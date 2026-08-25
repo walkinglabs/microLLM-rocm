@@ -26,7 +26,7 @@ def options() -> argparse.Namespace:
                         default="none")
     parser.add_argument("--reducer",
                         choices=("per-parameter", "bucket",
-                                 "persistent-bucket"),
+                                 "persistent-bucket", "bucket-views"),
                         default="per-parameter")
     parser.add_argument("--bucket-bytes", type=int, default=4096)
     parser.add_argument("--model", choices=("tiny", "model-s"), default="tiny")
@@ -278,6 +278,7 @@ def main() -> int:
                           "step_reducer_ms", "step_optimizer_ms")
     step_count_fields = ("step_collectives", "step_buckets",
                          "step_pack_copies", "step_unpack_copies",
+                         "step_gradient_views",
                          "step_reducer_allocation_calls",
                          "step_reducer_backend_allocation_calls",
                          "step_reducer_deallocation_calls",
@@ -319,11 +320,12 @@ def main() -> int:
     if any(sum(rank["step_collectives"]) != rank["collectives"] or
            sum(rank["step_buckets"]) != rank["buckets"] or
            sum(rank["step_pack_copies"]) != rank["pack_copies"] or
-           sum(rank["step_unpack_copies"]) != rank["unpack_copies"]
+           sum(rank["step_unpack_copies"]) != rank["unpack_copies"] or
+           sum(rank["step_gradient_views"]) != rank["gradient_views"]
            for rank in ranks):
         raise RuntimeError("rank per-step reducer totals changed")
     expected_reuse = [0] + [1] * (args.steps - 1)
-    if args.reducer == "persistent-bucket":
+    if args.reducer in ("persistent-bucket", "bucket-views"):
         if any(rank.get("persistent_storage") is not True or
                rank.get("plan_reuses") != args.steps - 1 or
                rank.get("plan_capacity_elements", 0) <= 0 or
@@ -338,6 +340,18 @@ def main() -> int:
              any(rank["step_plan_reused"])
              for rank in ranks):
         raise RuntimeError("non-persistent reducer exposed a bucket plan")
+    if args.reducer == "bucket-views":
+        if any(rank.get("gradient_views") !=
+               args.steps * len(reference["parameter_names"]) or
+               rank.get("unpack_copies") != 0 or
+               rank["step_gradient_views"] !=
+               [len(reference["parameter_names"])] * args.steps
+               for rank in ranks):
+            raise RuntimeError("rank bucket-view contract changed")
+    elif any(rank.get("gradient_views") != 0 or
+             any(rank["step_gradient_views"])
+             for rank in ranks):
+        raise RuntimeError("non-view reducer exposed gradient views")
     loss_difference = max(
         abs(sum(rank["losses"][step] for rank in ranks) / len(ranks) -
             reference["losses"][step])
@@ -408,6 +422,9 @@ def main() -> int:
         "maximum_rank_step_unpack_copies": [
             max(rank["step_unpack_copies"][step] for rank in ranks)
             for step in range(args.steps)],
+        "maximum_rank_step_gradient_views": [
+            max(rank["step_gradient_views"][step] for rank in ranks)
+            for step in range(args.steps)],
         "maximum_rank_step_reducer_allocation_calls": [
             max(rank["step_reducer_allocation_calls"][step]
                 for rank in ranks) for step in range(args.steps)],
@@ -448,6 +465,7 @@ def main() -> int:
         "plan_reuses_per_rank": ranks[0]["plan_reuses"],
         "plan_capacity_elements_per_rank": ranks[0]["plan_capacity_elements"],
         "plan_capacity_bytes_per_rank": ranks[0]["plan_capacity_bytes"],
+        "gradient_views_per_rank": ranks[0]["gradient_views"],
         "parameter_files_retained": False,
         "peer_processes_terminated": terminated,
         "collectives_per_rank": expected_collectives,

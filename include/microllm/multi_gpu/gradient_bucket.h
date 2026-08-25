@@ -35,15 +35,17 @@ struct RankBucketStats {
     std::size_t total_elements = 0;
     std::size_t pack_copy_calls = 0;
     std::size_t unpack_copy_calls = 0;
+    std::size_t gradient_view_count = 0;
     bool persistent_storage = false;
     bool plan_reused = false;
     std::size_t plan_capacity_elements = 0;
     std::size_t plan_capacity_bytes = 0;
 };
 
-// Owns reusable bucket and unpacked-gradient Storage for one process/rank.
+// Owns reusable bucket and optional unpacked-gradient Storage for one process/rank.
 // The plan binds to rank identity/device, parameter identity/order/shapes and
-// one bucket limit. clear() is required before changing that contract.
+// one bucket limit and the view policy. clear() is required before changing
+// that contract.
 class RankGradientBucketPlan {
 public:
     RankGradientBucketPlan();
@@ -64,7 +66,8 @@ private:
         RankCommunicator& communicator,
         const std::vector<autograd::Value*>& parameters,
         std::size_t maximum_bucket_bytes,
-        RankGradientBucketPlan* persistent_plan);
+        RankGradientBucketPlan* persistent_plan,
+        bool gradient_views);
 };
 
 // Owns reusable rank-local bucket and unpacked-gradient Storage. A plan binds to
@@ -110,6 +113,7 @@ private:
     RankCommunicator& communicator,
     const std::vector<autograd::Value*>& parameters,
     std::size_t maximum_bucket_bytes,
-    RankGradientBucketPlan* persistent_plan = nullptr);
+    RankGradientBucketPlan* persistent_plan = nullptr,
+    bool gradient_views = false);
 
 }  // namespace microllm::multi_gpu

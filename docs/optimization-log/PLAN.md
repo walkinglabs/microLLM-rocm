@@ -120,7 +120,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [89](steps/89-ranked-model-s-bucket-smoke.md) | complete | ranked Model-S B1T32 one-step | collective 57→3；Reducer方差阻止性能声明 |
 | [90](steps/90-ranked-multistep-reducer-timing.md) | complete | ranked Model-S多步cold/steady分离 | bucket steady Reducer 0.6747×；transient性能拒绝 |
 | [91](steps/91-ranked-persistent-buckets.md) | complete | rank-local persistent bucket Storage | alloc 60→0；vs transient total1.250×；显存代价使其显式 |
-| [92](steps/92-ranked-gradient-bucket-views.md) | planned | rank-local gradient-as-bucket views | unpack 57→0、plan容量减半与steady门 |
+| [92](steps/92-ranked-gradient-bucket-views.md) | implemented; measurement pending | rank-local gradient-as-bucket views | unpack 57→0、plan容量减半与steady门 |
 
 ## 为什么按这个顺序
 

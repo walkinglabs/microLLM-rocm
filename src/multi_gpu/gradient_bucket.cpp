@@ -130,6 +130,7 @@ struct RankGradientBucketPlan::Impl {
     int world_size = 0;
     Device device = Device::cpu();
     std::size_t maximum_bucket_bytes = 0;
+    bool gradient_views = false;
     std::vector<autograd::Value*> parameters;
     std::vector<PersistentRange> ranges;
     std::size_t capacity_elements = 0;
@@ -154,6 +155,7 @@ void GradientBucketPlan::clear() noexcept {
     impl_->parameters.clear();
     impl_->devices.clear();
     impl_->maximum_bucket_bytes = 0;
+    impl_->gradient_views = false;
     impl_->gradient_views = false;
     impl_->capacity_elements = 0;
     impl_->initialized = false;
@@ -567,10 +569,15 @@ RankBucketStats all_reduce_rank_gradients(
     RankCommunicator& communicator,
     const std::vector<autograd::Value*>& parameters,
     std::size_t maximum_bucket_bytes,
-    RankGradientBucketPlan* persistent_plan) {
+    RankGradientBucketPlan* persistent_plan,
+    bool gradient_views) {
     if (maximum_bucket_bytes < sizeof(float)) {
         throw std::invalid_argument(
             "rank gradient bucket must hold at least one float");
+    }
+    if (gradient_views && persistent_plan == nullptr) {
+        throw std::invalid_argument(
+            "rank gradient bucket views require persistent storage");
     }
     for (const auto* parameter : parameters) {
         if (parameter == nullptr || !parameter->has_grad() ||
@@ -598,6 +605,7 @@ RankBucketStats all_reduce_rank_gradients(
                 plan.world_size != communicator.world_size() ||
                 plan.device != communicator.device() ||
                 plan.maximum_bucket_bytes != maximum_bucket_bytes ||
+                plan.gradient_views != gradient_views ||
                 plan.parameters != parameters ||
                 plan.ranges.size() != ranges.size()) {
                 throw std::invalid_argument(
@@ -631,6 +639,7 @@ RankBucketStats all_reduce_rank_gradients(
             candidate.world_size = communicator.world_size();
             candidate.device = communicator.device();
             candidate.maximum_bucket_bytes = maximum_bucket_bytes;
+            candidate.gradient_views = gradient_views;
             candidate.parameters = parameters;
             candidate.ranges.reserve(ranges.size());
             for (const auto& range : ranges) {
@@ -649,14 +658,25 @@ RankBucketStats all_reduce_rank_gradients(
                 add_elements(candidate.capacity_elements, range.elements);
                 persistent.gradients.reserve(
                     range.end_parameter - range.first_parameter);
+                std::size_t offset = 0;
                 for (std::size_t index = range.first_parameter;
                      index < range.end_parameter; ++index) {
                     const auto& gradient = parameters[index]->grad();
-                    persistent.gradients.emplace_back(
-                        gradient.shape(), DType::Float32,
-                        communicator.device());
-                    add_elements(candidate.capacity_elements,
-                                 static_cast<std::size_t>(gradient.numel()));
+                    const auto elements =
+                        static_cast<std::size_t>(gradient.numel());
+                    if (gradient_views) {
+                        persistent.gradients.emplace_back(Tensor::from_storage(
+                            persistent.bucket.storage(), gradient.shape(),
+                            contiguous_strides(gradient.shape()),
+                            static_cast<std::int64_t>(offset),
+                            DType::Float32));
+                    } else {
+                        persistent.gradients.emplace_back(
+                            gradient.shape(), DType::Float32,
+                            communicator.device());
+                        add_elements(candidate.capacity_elements, elements);
+                    }
+                    add_elements(offset, elements);
                 }
                 candidate.ranges.push_back(std::move(persistent));
             }
@@ -670,6 +690,9 @@ RankBucketStats all_reduce_rank_gradients(
         stats.plan_capacity_bytes = bytes_for(
             plan.capacity_elements,
             "persistent rank gradient bucket capacity bytes overflow");
+        if (gradient_views) {
+            stats.gradient_view_count = parameters.size();
+        }
         for (auto& range : plan.ranges) {
             std::size_t offset = 0;
             for (std::size_t index = range.first_parameter;
@@ -688,19 +711,23 @@ RankBucketStats all_reduce_rank_gradients(
                 offset += elements;
             }
             communicator.enqueue_all_reduce_average_in_place(range.bucket);
-            offset = 0;
-            for (auto& gradient : range.gradients) {
-                const auto elements = static_cast<std::size_t>(gradient.numel());
-                const auto bytes = bytes_for(
-                    elements, "persistent rank gradient unpack bytes overflow");
-                const auto* source =
-                    static_cast<const std::byte*>(range.bucket.data()) +
-                    offset * sizeof(float);
-                runtime::copy_bytes_async(
-                    gradient.data(), gradient.device(), source,
-                    range.bucket.device(), bytes, communicator.stream());
-                ++stats.unpack_copy_calls;
-                offset += elements;
+            if (!gradient_views) {
+                offset = 0;
+                for (auto& gradient : range.gradients) {
+                    const auto elements =
+                        static_cast<std::size_t>(gradient.numel());
+                    const auto bytes = bytes_for(
+                        elements,
+                        "persistent rank gradient unpack bytes overflow");
+                    const auto* source =
+                        static_cast<const std::byte*>(range.bucket.data()) +
+                        offset * sizeof(float);
+                    runtime::copy_bytes_async(
+                        gradient.data(), gradient.device(), source,
+                        range.bucket.device(), bytes, communicator.stream());
+                    ++stats.unpack_copy_calls;
+                    offset += elements;
+                }
             }
             communicator.synchronize();
             for (std::size_t local = 0;

@@ -88,7 +88,8 @@ Options parse(int argc, char** argv) {
     if ((options.mode != "rank" && options.mode != "reference") ||
         options.steps == 0 || options.timeout_ms == 0 ||
         (options.reducer != "per-parameter" && options.reducer != "bucket" &&
-         options.reducer != "persistent-bucket") ||
+         options.reducer != "persistent-bucket" &&
+         options.reducer != "bucket-views") ||
         options.bucket_bytes < sizeof(float) ||
         (options.model != "tiny" && options.model != "model-s")) {
         throw std::invalid_argument("distributed rank options are invalid");
@@ -220,10 +221,12 @@ struct ReducerStats {
     std::size_t buckets = 0;
     std::size_t pack_copies = 0;
     std::size_t unpack_copies = 0;
+    std::size_t gradient_views = 0;
     std::vector<std::size_t> step_collectives;
     std::vector<std::size_t> step_buckets;
     std::vector<std::size_t> step_pack_copies;
     std::vector<std::size_t> step_unpack_copies;
+    std::vector<std::size_t> step_gradient_views;
     std::vector<std::size_t> step_allocation_calls;
     std::vector<std::size_t> step_backend_allocation_calls;
     std::vector<std::size_t> step_deallocation_calls;
@@ -279,6 +282,7 @@ void write_result(const char* mode, int rank,
               << ",\"buckets\":" << reducer_stats.buckets
               << ",\"pack_copies\":" << reducer_stats.pack_copies
               << ",\"unpack_copies\":" << reducer_stats.unpack_copies
+              << ",\"gradient_views\":" << reducer_stats.gradient_views
               << ",\"persistent_storage\":"
               << (reducer_stats.persistent_storage ? "true" : "false")
               << ",\"plan_reuses\":" << reducer_stats.plan_reuses
@@ -315,6 +319,8 @@ void write_result(const char* mode, int rank,
     write_number_array(reducer_stats.step_pack_copies);
     std::cout << ",\"step_unpack_copies\":";
     write_number_array(reducer_stats.step_unpack_copies);
+    std::cout << ",\"step_gradient_views\":";
+    write_number_array(reducer_stats.step_gradient_views);
     std::cout << ",\"step_reducer_allocation_calls\":";
     write_number_array(reducer_stats.step_allocation_calls);
     std::cout << ",\"step_reducer_backend_allocation_calls\":";
@@ -433,22 +439,28 @@ void run_rank(const Options& options) {
         std::size_t step_buckets = 0;
         std::size_t step_pack_copies = 0;
         std::size_t step_unpack_copies = 0;
+        std::size_t step_gradient_views = 0;
         std::size_t step_plan_reused = 0;
         if (options.reducer == "bucket" ||
-            options.reducer == "persistent-bucket") {
-            auto* plan = options.reducer == "persistent-bucket"
+            options.reducer == "persistent-bucket" ||
+            options.reducer == "bucket-views") {
+            auto* plan = options.reducer != "bucket"
                              ? &persistent_bucket_plan
                              : nullptr;
+            const auto gradient_views = options.reducer == "bucket-views";
             const auto buckets = microllm::multi_gpu::all_reduce_rank_gradients(
-                communicator, model.parameters(), options.bucket_bytes, plan);
+                communicator, model.parameters(), options.bucket_bytes, plan,
+                gradient_views);
             reducer_stats.collectives += buckets.bucket_count;
             reducer_stats.buckets += buckets.bucket_count;
             reducer_stats.pack_copies += buckets.pack_copy_calls;
             reducer_stats.unpack_copies += buckets.unpack_copy_calls;
+            reducer_stats.gradient_views += buckets.gradient_view_count;
             step_collectives = buckets.bucket_count;
             step_buckets = buckets.bucket_count;
             step_pack_copies = buckets.pack_copy_calls;
             step_unpack_copies = buckets.unpack_copy_calls;
+            step_gradient_views = buckets.gradient_view_count;
             step_plan_reused = buckets.plan_reused ? 1U : 0U;
             reducer_stats.persistent_storage = buckets.persistent_storage;
             reducer_stats.plan_reuses += step_plan_reused;
@@ -474,6 +486,7 @@ void run_rank(const Options& options) {
         reducer_stats.step_buckets.push_back(step_buckets);
         reducer_stats.step_pack_copies.push_back(step_pack_copies);
         reducer_stats.step_unpack_copies.push_back(step_unpack_copies);
+        reducer_stats.step_gradient_views.push_back(step_gradient_views);
         reducer_stats.step_allocation_calls.push_back(counter_delta(
             allocation_after.allocation_calls,
             allocation_before.allocation_calls));

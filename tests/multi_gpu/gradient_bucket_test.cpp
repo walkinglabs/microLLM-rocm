@@ -307,4 +307,58 @@ TEST(RcclRankGradientBucketTest,
     EXPECT_FALSE(moved.initialized());
 }
 
+TEST(RcclRankGradientBucketTest,
+     GradientViewsSharePersistentRankBucketAndSkipUnpackCopies) {
+    if (runtime::hip_device_count() < 1) {
+        GTEST_SKIP() << "visible HIP device required";
+    }
+    const auto id = create_communicator_id();
+    RankCommunicator communicator(0, 1, 0, id);
+    autograd::Value first(Tensor({2}, DType::Float32, Device::hip(0)), true);
+    autograd::Value second(Tensor({3}, DType::Float32, Device::hip(0)), true);
+    first.set_grad(Tensor::from_vector({1, 2}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({3, 4, 5}, {3}).to(Device::hip(0)));
+
+    RankGradientBucketPlan plan;
+    const auto first_before = runtime::allocation_stats(Device::hip(0));
+    const auto first_stats = all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &plan, true);
+    const auto first_after = runtime::allocation_stats(Device::hip(0));
+    EXPECT_TRUE(first_stats.persistent_storage);
+    EXPECT_FALSE(first_stats.plan_reused);
+    EXPECT_EQ(first_stats.gradient_view_count, 2U);
+    EXPECT_EQ(first_stats.unpack_copy_calls, 0U);
+    EXPECT_EQ(first_stats.plan_capacity_elements, 5U);
+    EXPECT_EQ(first_stats.plan_capacity_bytes, 5U * sizeof(float));
+    EXPECT_EQ(first_after.allocation_calls - first_before.allocation_calls, 1U);
+    EXPECT_EQ(first.grad().storage().data(), second.grad().storage().data());
+    EXPECT_EQ(first.grad().storage_offset(), 0);
+    EXPECT_EQ(second.grad().storage_offset(), 2);
+    const auto* first_address = first.grad().data();
+    const auto* second_address = second.grad().data();
+
+    first.set_grad(Tensor::from_vector({6, 7}, {2}).to(Device::hip(0)));
+    second.set_grad(Tensor::from_vector({8, 9, 10}, {3}).to(Device::hip(0)));
+    const auto reuse_before = runtime::allocation_stats(Device::hip(0));
+    const auto reused = all_reduce_rank_gradients(
+        communicator, {&first, &second}, 4096, &plan, true);
+    const auto reuse_after = runtime::allocation_stats(Device::hip(0));
+    EXPECT_TRUE(reused.plan_reused);
+    EXPECT_EQ(reused.gradient_view_count, 2U);
+    EXPECT_EQ(reused.unpack_copy_calls, 0U);
+    EXPECT_EQ(reuse_after.allocation_calls - reuse_before.allocation_calls, 0U);
+    EXPECT_EQ(first.grad().data(), first_address);
+    EXPECT_EQ(second.grad().data(), second_address);
+    EXPECT_EQ(first.grad().to_vector(), (std::vector<float>{6, 7}));
+    EXPECT_EQ(second.grad().to_vector(), (std::vector<float>{8, 9, 10}));
+    EXPECT_THROW(
+        (void)all_reduce_rank_gradients(
+            communicator, {&first, &second}, 4096, &plan, false),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)all_reduce_rank_gradients(
+            communicator, {&first, &second}, 4096, nullptr, true),
+        std::invalid_argument);
+}
+
 }  // namespace microllm::multi_gpu

@@ -30,6 +30,8 @@ def main() -> int:
         "maximum_rank_step_plan_reused",
         "maximum_engine_current_bytes", "maximum_engine_peak_bytes",
         "step_reducer_current_bytes_after",
+        "bucket-views", "gradient_views_per_rank",
+        "maximum_rank_step_gradient_views",
     ):
         assert token in runner
     for token in (
@@ -41,6 +43,7 @@ def main() -> int:
         "step_reducer_total_allocated_bytes", "allocation_stats",
         "RankGradientBucketPlan", "plan_capacity_bytes",
         "engine_current_bytes", "engine_peak_bytes",
+        "gradient_view_count", "bucket-views",
     ):
         assert token in worker
     print("ranked launcher contract: pass")
