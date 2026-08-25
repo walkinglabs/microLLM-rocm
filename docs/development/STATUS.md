@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 349/349; HIP label 188/188 with 1 conditional skip; ASan/UBSan 347/347; PyTorch-enabled 323/323 after building the installed comparison CLI target | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 357/357; ASan/UBSan 355/355; RCCL label 26/26; prior single-GPU HIP label 188/188 with 1 conditional skip and PyTorch-enabled 323/323 remain applicable | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -73,8 +73,9 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |
 | Single-GPU model matrix | smoke-tested | MI300X tiny/Model-S/Model-M plus official Qwen0.5B/DeepSeek-Distill1.5B train+generate, parameters, time, tokens/s and engine peak bytes | repeated contexts/dtypes and external board-level memory sampling |
 | Python/PyTorch ROCm performance matrix | smoke-tested | official Qwen/DeepSeek train plus inference context 1–2048, batch 1–8, output 1–64, KV allocated/active/waste, continuous slot metrics and token gates | DeepSeek continuous 3-case mismatch, identical residency policy, version matrix and llama.cpp |
-| Optimization experiment journal | implemented | experiments through 256; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
-| In-place RCCL bucket average | smoke-tested, default | Model-S 3bucket: communication 1.269×, total 1.107×, peak unchanged, 30 losses exact, RCCL 22/22 | persistent bucket/unpacked storage; 120 backend allocations remain |
+| Optimization experiment journal | implemented | experiments through 257; raw evidence, rejection gates and generated SVGs validated in CTest | Radeon and production data-parallel tracks |
+| Persistent RCCL gradient buckets | smoke-tested, explicit | later backend allocations 120→0; communication 1.681×, total 1.285×, exact losses/parameters; live/peak +124.7/+158.0MB | gradient-as-bucket views before any default |
+| In-place RCCL bucket average | smoke-tested, default | Model-S 3bucket: communication 1.269×, total 1.107×, peak unchanged, 30 losses exact, RCCL 22/22 | persistent bucket view storage and readiness |
 | Model-S reducer temporary attribution | smoke-tested | clean-commit step: 126 backend allocations, 228 D2D copies, 374,068,224 temporary bytes, communication 7.26ms/32.31% | in-place average, then persistent bucket/unpacked storage |
 | Model-S data-parallel bucket baseline | smoke-tested | 9 processes/45 exact losses; 25MiB gives 3 buckets, 19.76ms total, 6.825ms communication, 603.4MB peak/rank | pack/unpack/temporary attribution, then persistent views/readiness |
 | Data-parallel bucket matrix | smoke-tested | 12 processes/240 exact losses; 12 tiny buckets communication 1.18–1.26ms vs one bucket 0.34–0.39ms | Model-S natural multi-bucket workload before readiness overlap |
@@ -107,7 +108,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | BF16 solution tuning | smoke-tested | eight T512 shapes, 24 processes, 1,536 complete-output candidates and two rejected model policies | stable cross-process winner plus both-model 1.05 gate before persistence |
 | Matmul tuning registry | smoke-tested | exact persistent key plus complete-output gate, Event/wall P50/P95 and explicit acceptance | solution-index enumeration and automatic model regression |
 | RCCL two-GPU baseline | smoke-tested | XGMI average and global-batch parameter equivalence | buckets/4 GPU/failure timing |
-| DataParallelTrainer | smoke-tested | current RCCL 14/14; 20-step loss 2.75→0.55 and rank diff 0; steady 2.290ms with 0.350ms communication and 0.305ms unattributed host verification | parameter-check interval/timing, then one-process-per-GPU/gradient-ready overlap |
+| DataParallelTrainer | smoke-tested | current RCCL 26/26; baseline 20-step rank diff 0; verification timing plus persistent bucket address/allocation gates | bucket views, then one-process-per-GPU/gradient-ready overlap |
 | RCCL gradient buckets | smoke-tested | 1MB payload with 64/4/1 bucket matrix | overlap with backward |
 | RCCL four-GPU | draft | 3 stable init failures and debug root cause | environment with >87MB /dev/shm |
 | RCCL compute overlap | smoke-tested | 3 runs, 30–33% synthetic overlap gain | bucket readiness during real backward |

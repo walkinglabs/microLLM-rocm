@@ -4037,3 +4037,16 @@ tiny在4KiB和4MiB下都只有一个bucket；人为切成12个bucket后，通信
 1.107×，peak不变，30个loss与末步参数完全一致。
 
 ![Data parallel in-place average](assets/data-parallel-inplace-average.svg)
+
+## 274. Experiment 257：地址复用变快了，但显存账单必须写出来
+
+move-only plan在第一次真实backward后建立6个bucket和114个unpacked gradient Tensor。
+后续step只pack、all-reduce、原地average和unpack，communication backend allocation从120
+降到0。三轮交错同二进制A/B里，communication从7.070降到4.205ms（1.681×），total从
+21.025降到16.360ms（1.285×）；30个loss与6次末步rank参数检查完全一致。
+
+但“更快”不是完整结论。plan让live增加124,689,408B、peak增加157,958,408B，因为它长期
+持有两套梯度表示。因此保持显式、不设默认。下一步让parameter gradient直接成为reduced
+bucket的连续view，删除114个Storage和114次copy，再看速度与显存是否同时改善。
+
+![Persistent data-parallel buckets](assets/data-parallel-persistent-buckets.svg)

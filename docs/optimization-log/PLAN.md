@@ -108,7 +108,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [77](steps/77-data-parallel-model-s-workload.md) | complete | Model-S自然多bucket workload | 25MiB/3bucket/19.76ms；peak +54.3MB |
 | [78](steps/78-data-parallel-bucket-copy-attribution.md) | complete | bucket copy/temporary归因 | 126 backend alloc/228 copy/374MB逐项闭合 |
 | [79](steps/79-data-parallel-inplace-average.md) | complete | bucket原地average | comm1.269×/total1.107×；默认保留 |
-| [80](steps/80-data-parallel-persistent-buckets.md) | planned | persistent bucket+unpacked | 后续backend alloc 120→0目标 |
+| [80](steps/80-data-parallel-persistent-buckets.md) | complete | persistent bucket+unpacked | alloc 120→0、total1.285×；显存代价使其保持显式 |
+| [81](steps/81-data-parallel-gradient-bucket-views.md) | planned | gradient-as-bucket views | unpack Storage/copy 114→0，容量减半目标 |
 
 ## 为什么按这个顺序
 

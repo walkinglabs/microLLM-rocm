@@ -69,8 +69,12 @@ extending small decoder-only language models on AMD GPUs.
 > In-place averaging is the first persistent-reducer prerequisite.
 
 > In-place bucket averaging now passes the Model-S gate: communication 1.269×,
-> total 1.107×, unchanged peak and RCCL 22/22. Persistent bucket/unpacked storage
-> targets the remaining 120 backend allocations.
+> total 1.107×, unchanged peak and RCCL 22/22.
+
+> Persistent bucket/unpacked storage then removes all 120 later-step backend
+> allocations and improves communication/total by 1.681×/1.285×. It remains
+> explicit because live/peak memory rises 124.7/158.0 MB; gradient-as-bucket
+> views are the next measured reducer step.
 
 ## Why this project exists
 
@@ -705,12 +709,12 @@ Current `main` gates:
 | Gate | Result | Scope |
 |---|---:|---|
 | Full CPU/HIP configuration | 544/544 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 345/345 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 343/343 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 357/357 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 355/355 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 187/187 | allocator/arena/Stream/Graph, public rocWMMA online Attention, BF16 RMSNorm/SwiGLU, grouped/exact vendor solutions, FP8 and model paths |
 | PyTorch-enabled CPU build | 319/319 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
-| Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 107 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Multi-GPU/RCCL | 26/26 | collectives, global-batch equivalence, persistent gradient buckets, DDP trainer/CLI, package and evidence gates |
+| Registered test files | 117 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

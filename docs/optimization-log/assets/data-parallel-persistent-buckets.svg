@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 257 · Persistent Gradient Buckets</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Same binary · Model-S · 25 MiB / 3 buckets · step 2–5 medians</text>
+<rect x="170" y="135" width="480" height="385" rx="16" fill="#ffffff" stroke="#64748b" stroke-width="3"/>
+<text x="410.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="25" fill="#64748b" text-anchor="middle" font-weight="700">Transient each step</text>
+<text x="225.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033" text-anchor="start" font-weight="400">later backend allocs  120</text>
+<text x="225.0" y="295.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033" text-anchor="start" font-weight="400">communication  7.070 ms</text>
+<text x="225.0" y="345.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#64748b" text-anchor="start" font-weight="700">total  21.025 ms</text>
+<text x="225.0" y="400.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">live  475.7 MiB</text>
+<text x="225.0" y="450.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  575.4 MiB</text>
+<rect x="850" y="135" width="480" height="385" rx="16" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="1090.0" y="185.0" font-family="Inter,Arial,sans-serif" font-size="25" fill="#16a34a" text-anchor="middle" font-weight="700">Persistent plan</text>
+<text x="905.0" y="245.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033" text-anchor="start" font-weight="400">later backend allocs  0</text>
+<text x="905.0" y="295.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033" text-anchor="start" font-weight="400">communication  4.205 ms</text>
+<text x="905.0" y="345.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#16a34a" text-anchor="start" font-weight="700">total  16.360 ms</text>
+<text x="905.0" y="400.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">live  594.6 MiB</text>
+<text x="905.0" y="450.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033" text-anchor="start" font-weight="400">peak  726.1 MiB</text>
+<text x="750.0" y="585.0" font-family="Inter,Arial,sans-serif" font-size="25" fill="#166534" text-anchor="middle" font-weight="700">Communication 1.681x · total 1.285x</text>
+<text x="750.0" y="635.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">30 / 30 losses exact · later allocations 120 → 0 · rank parameters exact</text>
+<text x="750.0" y="682.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#b45309" text-anchor="middle" font-weight="700">Live +118.9 MiB · peak +150.6 MiB · explicit, not default</text>
+<text x="750.0" y="726.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Next: parameter gradients become views into reduced bucket Storage</text>
+</svg>

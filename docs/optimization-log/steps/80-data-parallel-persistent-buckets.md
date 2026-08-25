@@ -1,6 +1,6 @@
 # Step 80 — Persistent bucket and unpacked-gradient storage
 
-Status: implemented, Model-S A/B pending
+Status: complete, kept explicit
 
 为固定parameter order/device/world/bucket limit构建move-only plan，长期持有rank bucket与114个
 unpacked gradient Tensor。第一步建plan并做完整门，后续通信allocation/backend目标120→0，
@@ -11,3 +11,7 @@ bytes和Model-S端到端；未过门则删除模型route。
 limit，契约变化必须先clear。首步建立6个bucket和114个unpacked Tensor，后续step复用地址，
 通信阶段allocation/backend目标为0。`temporary_bytes`只描述逐步临时Storage，持久容量由独立
 `plan_capacity_bytes`记录，避免把长期占用写成“临时”。
+
+结果：后续backend allocation 120→0，communication 1.681×、total 1.285×，30个loss和末步
+参数完全一致。但live/peak增加124,689,408/157,958,408B，所以不设默认；下一步改成
+gradient-as-bucket views，删除114个unpacked Storage与copy。

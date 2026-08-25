@@ -1,0 +1,39 @@
+{
+  "aggregation": "median of step-2..5 medians with alternating policy order",
+  "communication_speedup": 1.6813317479191439,
+  "current_bytes_added": 124689408,
+  "decision": "keep explicit and continue to view-backed gradients",
+  "eligible_for_default": false,
+  "later_step_backend_allocations_eliminated": true,
+  "loss_trajectories_exact": true,
+  "memory_gate": true,
+  "peak_bytes_added": 157958408,
+  "plan_capacity_bytes": 249378816,
+  "policies": {
+    "persistent": {
+      "enabled": true,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 761342216,
+      "median_communication_ms": 4.205,
+      "median_engine_current_bytes": 623447040,
+      "median_total_ms": 16.36,
+      "processes": 3
+    },
+    "transient": {
+      "enabled": false,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 603383808,
+      "median_communication_ms": 7.07,
+      "median_engine_current_bytes": 498757632,
+      "median_total_ms": 21.025,
+      "processes": 3
+    }
+  },
+  "processes": 6,
+  "raw_records": 30,
+  "record_type": "data_parallel_persistent_bucket_summary",
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "total_speedup": 1.2851466992665037
+}

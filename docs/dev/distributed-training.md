@@ -100,6 +100,11 @@ is destroyed. Step one therefore allocates normally; later communication stages 
 allocation/backend/cache calls. Persistent capacity, whether a plan was reused, and process-wide
 current/peak bytes are emitted separately. Persistent mode requires in-place averaging.
 
+Experiment 257 keeps this path explicit: later backend allocations fall 120→0,
+communication/total improve 1.681x/1.285x, and all losses/parameters match. It is not a default
+because live/peak bytes rise by 124,689,408/157,958,408. The next reducer step replaces the 114
+unpacked gradient Storage objects and copies with parameter-shaped views into reduced buckets.
+
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 

@@ -1,0 +1,6 @@
+{"final_loss": 2.08, "maximum_engine_peak_bytes": 603383808, "median_communication_ms": 7.07, "median_engine_current_bytes": 498757632, "median_total_ms": 21.025, "policy": "transient", "process_run": 1}
+{"final_loss": 2.08, "maximum_engine_peak_bytes": 761342216, "median_communication_ms": 4.220000000000001, "median_engine_current_bytes": 623447040, "median_total_ms": 16.305, "policy": "persistent", "process_run": 1}
+{"final_loss": 2.08, "maximum_engine_peak_bytes": 761342216, "median_communication_ms": 4.15, "median_engine_current_bytes": 623447040, "median_total_ms": 16.36, "policy": "persistent", "process_run": 2}
+{"final_loss": 2.08, "maximum_engine_peak_bytes": 603383808, "median_communication_ms": 7.295, "median_engine_current_bytes": 498757632, "median_total_ms": 21.490000000000002, "policy": "transient", "process_run": 2}
+{"final_loss": 2.08, "maximum_engine_peak_bytes": 603383808, "median_communication_ms": 6.595, "median_engine_current_bytes": 498757632, "median_total_ms": 19.79, "policy": "transient", "process_run": 3}
+{"final_loss": 2.08, "maximum_engine_peak_bytes": 761342216, "median_communication_ms": 4.205, "median_engine_current_bytes": 623447040, "median_total_ms": 16.365000000000002, "policy": "persistent", "process_run": 3}

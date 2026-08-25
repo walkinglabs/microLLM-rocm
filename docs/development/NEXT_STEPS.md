@@ -225,12 +225,14 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   228 D2D copies and 374,068,224 bytes per 3-bucket step;
 - [x] make bucket averaging in-place and keep it after Model-S communication/total improve
   1.269x/1.107x, peak is unchanged and RCCL 22/22 passes;
-- [ ] build persistent bucket plus unpacked-gradient storage and require subsequent communication
-  backend allocations to fall from 120 to zero before readiness overlap;
+- [x] build persistent bucket plus unpacked-gradient storage: subsequent communication backend
+  allocations fall 120→0 and total improves 1.285x, but live/peak add 124.7/158.0MB, so it
+  remains explicit;
 - [ ] one process per GPU communicator initialization;
 - [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
 - [ ] compute-stream Events to communication streams and asynchronous work handles;
-- [ ] gradient-as-bucket views and zero-copy optimizer integration;
+- [ ] replace 114 unpacked-gradient Storage/copies with gradient-as-bucket views, then remeasure
+  total time and live/peak memory before any default or readiness-overlap claim;
 - [ ] unused parameter, uneven input, timeout, and cross-process failure handling.
 
 ## P3 — DeepSeek distill target

@@ -248,6 +248,11 @@ DATA_PARALLEL_INPLACE_ROOT = (
     "2026-08-25-data-parallel-inplace-average")
 DATA_PARALLEL_INPLACE_CHART = (
     ROOT / "assets" / "data-parallel-inplace-average.svg")
+DATA_PARALLEL_PERSISTENT_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-data-parallel-persistent-buckets")
+DATA_PARALLEL_PERSISTENT_CHART = (
+    ROOT / "assets" / "data-parallel-persistent-buckets.svg")
 
 
 def rows() -> list[dict]:
@@ -4530,6 +4535,57 @@ def data_parallel_inplace_average_svg() -> str:
     return "\n".join(parts)
 
 
+def data_parallel_persistent_bucket_svg() -> str:
+    summary = json.loads((DATA_PARALLEL_PERSISTENT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 760
+    baseline = summary["policies"]["transient"]
+    candidate = summary["policies"]["persistent"]
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 257 · Persistent Gradient Buckets", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Same binary · Model-S · 25 MiB / 3 buckets · step 2–5 medians",
+             16, "#5b6474", anchor="middle"),
+    ]
+    for index, (label, row, color, allocations) in enumerate((
+            ("Transient each step", baseline, "#64748b", 120),
+            ("Persistent plan", candidate, "#16a34a", 0))):
+        x = 170 + index * 680
+        parts.extend([
+            f'<rect x="{x}" y="135" width="480" height="385" rx="16" '
+            f'fill="#ffffff" stroke="{color}" stroke-width="3"/>',
+            text(x + 240, 185, label, 25, color, anchor="middle", weight=700),
+            text(x + 55, 245,
+                 f"later backend allocs  {allocations}", 19),
+            text(x + 55, 295,
+                 f"communication  {row['median_communication_ms']:.3f} ms", 19),
+            text(x + 55, 345, f"total  {row['median_total_ms']:.3f} ms", 22,
+                 color, weight=700),
+            text(x + 55, 400,
+                 f"live  {row['median_engine_current_bytes'] / (1024**2):.1f} MiB", 18),
+            text(x + 55, 450,
+                 f"peak  {row['maximum_engine_peak_bytes'] / (1024**2):.1f} MiB", 18),
+        ])
+    parts.append(text(width / 2, 585,
+                      f"Communication {summary['communication_speedup']:.3f}x · total {summary['total_speedup']:.3f}x",
+                      25, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 635,
+                      "30 / 30 losses exact · later allocations 120 → 0 · rank parameters exact",
+                      20, "#172033", anchor="middle", weight=700))
+    parts.append(text(width / 2, 682,
+                      f"Live +{summary['current_bytes_added'] / (1024**2):.1f} MiB · peak +{summary['peak_bytes_added'] / (1024**2):.1f} MiB · explicit, not default",
+                      19, "#b45309", anchor="middle", weight=700))
+    parts.append(text(width / 2, 726,
+                      "Next: parameter gradients become views into reduced bucket Storage",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4602,7 +4658,8 @@ def main() -> int:
                 DATA_PARALLEL_BUCKET_CHART: data_parallel_bucket_svg(),
                 DATA_PARALLEL_MODEL_S_CHART: data_parallel_model_s_svg(),
                 DATA_PARALLEL_COPY_CHART: data_parallel_copy_attribution_svg(),
-                DATA_PARALLEL_INPLACE_CHART: data_parallel_inplace_average_svg()}
+                DATA_PARALLEL_INPLACE_CHART: data_parallel_inplace_average_svg(),
+                DATA_PARALLEL_PERSISTENT_CHART: data_parallel_persistent_bucket_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

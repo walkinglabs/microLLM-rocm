@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "measurement_commit": "40927d4acf67959cb9b3e3bab16f0d646b0299e7",
+  "dirty_at_measurement": false,
+  "raw_records": 30,
+  "process_records": 6,
+  "loss_values_exact": 30,
+  "final_parameter_checks": 6,
+  "maximum_parameter_difference": 0.0,
+  "first_step_backend_allocations": 120,
+  "later_step_backend_allocations": 0,
+  "persistent_later_steps_checked": 12,
+  "plan_capacity_bytes": 249378816,
+  "communication_speedup": 1.6813317479191439,
+  "total_speedup": 1.2851466992665037,
+  "current_bytes_added": 124689408,
+  "peak_bytes_added": 157958408,
+  "default_persistent_buckets": false,
+  "rccl_label": {"passed": 26, "total": 26},
+  "registered_test_files": 117
+}
