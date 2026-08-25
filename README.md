@@ -198,8 +198,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > 15,586,176 values are rank-exact, with CPU parameter Max/RMS
 > `0.007760/3.639e-6`. Per-leaf weighted overlap is correct but rejected at
 > T128 (`0.9594x` steady step): 57 scale launches erase the shorter wait.
-> An explicit bucket-weighted candidate reduces those calls to 3 and is awaiting
-> a clean-revision Model-S matrix; no speed claim is made from its pilot.
+> An explicit bucket-weighted route reduces those calls to 3. On the measured
+> two-MI300X T128 track it
+> reaches `1.0661x` steady-step speed with exact cross-policy parameters and no
+> memory delta. It remains explicit because one paired run regressed and the
+> weakest leave-one sensitivity is `1.0027x`.
 
 </details>
 

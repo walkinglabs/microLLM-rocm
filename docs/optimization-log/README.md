@@ -957,6 +957,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/277-ranked-model-s-input-weighting.md](experiments/277-ranked-model-s-input-weighting.md) | 同步weighted保留与scale-before-ready交接 |
 | [assets/ranked-weighted-overlap-discard.svg](assets/ranked-weighted-overlap-discard.svg) | finish收益、leaf scale代价与0.9594x整步反例 |
 | [experiments/278-ranked-weighted-overlap-discard.md](experiments/278-ranked-weighted-overlap-discard.md) | 完整参数等价、性能拒绝与bucket weighting反驳实验 |
+| [assets/ranked-bucket-weighting.svg](assets/ranked-bucket-weighting.svg) | scale 57→3、finish/整步收益与敏感性边界 |
+| [experiments/279-ranked-bucket-weighting.md](experiments/279-ranked-bucket-weighting.md) | 显式T128保留、完整参数门与gather-scale交接 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

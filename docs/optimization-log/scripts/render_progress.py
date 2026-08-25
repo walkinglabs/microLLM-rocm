@@ -357,6 +357,11 @@ RANKED_WEIGHTED_OVERLAP_ROOT = (
     "2026-08-25-ranked-weighted-overlap")
 RANKED_WEIGHTED_OVERLAP_CHART = (
     ROOT / "assets" / "ranked-weighted-overlap-discard.svg")
+RANKED_BUCKET_WEIGHT_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-bucket-weighting")
+RANKED_BUCKET_WEIGHT_CHART = (
+    ROOT / "assets" / "ranked-bucket-weighting.svg")
 
 
 def rows() -> list[dict]:
@@ -6379,6 +6384,102 @@ def ranked_weighted_overlap_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_bucket_weighting_svg() -> str:
+    summary = json.loads((RANKED_BUCKET_WEIGHT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    verification = json.loads((RANKED_BUCKET_WEIGHT_ROOT /
+                               "verification.json").read_text(encoding="utf-8"))
+    result = summary["results"]["128"]
+    synchronous = result["policies"]["bucket-views"]
+    candidate = result["policies"]["bucket-weighted-overlap"]
+    width, height = 1500, 800
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 279 · Ready-Bucket Weighting", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "Model-S T128 · uneven [B1,B2] · 3 paired runs · 6 steady samples · exact policy parameters",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="55" y="125" width="420" height="420" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>',
+        text(265, 170, "Weighting granularity", 23, "#1d4ed8",
+             anchor="middle", weight=700),
+        text(100, 235, "Synchronous leaf scales", 16, "#5b6474"),
+        text(430, 235, "57", 29, "#b42335", anchor="end", weight=700),
+        '<rect x="100" y="260" width="300" height="34" rx="8" fill="#dc2626"/>',
+        text(100, 350, "Candidate leaf scales", 16, "#5b6474"),
+        text(430, 350, "0", 29, "#166534", anchor="end", weight=700),
+        text(100, 405, "Candidate bucket scales", 16, "#5b6474"),
+        text(430, 405, "3", 29, "#166534", anchor="end", weight=700),
+        '<rect x="100" y="430" width="15.8" height="34" rx="8" fill="#16a34a"/>',
+        text(265, 510, "57 → 3 scale launches per step", 19, "#166534",
+             anchor="middle", weight=700),
+        '<rect x="515" y="125" width="500" height="420" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(765, 170, "Measured T128 steady step", 23, "#166534",
+             anchor="middle", weight=700),
+    ]
+    measurements = (
+        ("Synchronous", synchronous["median_steady_training_ms"],
+         synchronous["median_steady_finish_ms"], "#64748b"),
+        ("Bucket weighted overlap", candidate["median_steady_training_ms"],
+         candidate["median_steady_finish_ms"], "#16a34a"),
+    )
+    for index, (label, total, finish, color) in enumerate(measurements):
+        y = 235 + index * 125
+        parts.extend([
+            text(560, y, label, 17, color, weight=700),
+            text(970, y, f"{total:.3f} ms", 22, color,
+                 anchor="end", weight=700),
+            f'<rect x="560" y="{y + 24}" width="{360 * total / 10.0:.1f}" '
+            f'height="32" rx="7" fill="{color}"/>',
+            text(560, y + 84, f"finish {finish:.3f} ms", 15,
+                 "#b45309"),
+        ])
+    parts.extend([
+        text(765, 490, f"whole step {result['training_speedup']:.4f}x", 27,
+             "#166534", anchor="middle", weight=700),
+        text(765, 520, f"finish {result['finish_speedup']:.3f}x · required ≥ 1.010x",
+             16, "#5b6474", anchor="middle"),
+        '<rect x="1055" y="125" width="390" height="420" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1250, 170, "Evidence gates", 23, "#166534",
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Policy Max / RMS", "0 / 0"),
+        ("Rank Max / RMS", "0 / 0"),
+        ("CPU Max", f"{verification['maximum_reference_difference']:.6f}"),
+        ("CPU RMS", f"{verification['maximum_reference_rms_difference']:.3e}"),
+        ("Current / peak delta", "0 / 0 bytes"),
+        ("Later backend alloc", "0"),
+        ("Temp weights", "deleted"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 225 + index * 42
+        parts.extend([
+            text(1095, y, label, 14, "#5b6474"),
+            text(1405, y, value, 16, "#166534", anchor="end", weight=700),
+        ])
+    paired = verification["paired_run_speedups"]
+    leave_one = verification["leave_one_pair_out_speedups"]
+    parts.extend([
+        '<rect x="55" y="585" width="1390" height="160" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>',
+        text(95, 625, "Sensitivity boundary", 19, "#b45309", weight=700),
+        text(330, 625,
+             "paired  " + "  /  ".join(f"{value:.3f}x" for value in paired),
+             17, "#172033"),
+        text(330, 669,
+             "leave-one  " + "  /  ".join(f"{value:.3f}x" for value in leave_one),
+             17, "#172033"),
+        text(330, 714,
+             "Explicit T128 keep · not a general default · next: fuse 57 pack copies + 3 scales",
+             18, "#b45309", weight=700),
+        text(1400, 714, "1.0661x", 27, "#166534", anchor="end", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -6473,7 +6574,8 @@ def main() -> int:
                 RANKED_PREFLIGHT_CHART: ranked_rccl_preflight_svg(),
                 RANKED_INPUT_WEIGHT_CHART: ranked_input_weighting_svg(),
                 RANKED_MODEL_S_INPUT_CHART: ranked_model_s_input_svg(),
-                RANKED_WEIGHTED_OVERLAP_CHART: ranked_weighted_overlap_svg()}
+                RANKED_WEIGHTED_OVERLAP_CHART: ranked_weighted_overlap_svg(),
+                RANKED_BUCKET_WEIGHT_CHART: ranked_bucket_weighting_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

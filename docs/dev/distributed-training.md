@@ -231,7 +231,9 @@ ready Event; it is numerically verified but its Model-S T128 steady step is only
 is not a performance route. `bucket-weighted-overlap` records leaf readiness without scaling,
 packs a complete bucket on the communication Stream, scales that bucket once, then launches the
 ordinary all-reduce average. This changes 57 scale calls to 3 for the measured Model-S bucket
-layout. It remains an experimental candidate until the clean-revision three-run matrix passes.
+layout. The clean T128 matrix measures `1.0661x` steady-step speed with exact final parameters and no
+memory delta, so the route is retained explicitly. It is not enabled as a general default: one
+paired run regressed and the weakest leave-one-pair-out result is `1.0027x`.
 
 The order matters:
 

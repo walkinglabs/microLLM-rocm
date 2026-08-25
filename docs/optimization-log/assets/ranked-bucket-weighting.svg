@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="800" viewBox="0 0 1500 800">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 279 · Ready-Bucket Weighting</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">Model-S T128 · uneven [B1,B2] · 3 paired runs · 6 steady samples · exact policy parameters</text>
+<rect x="55" y="125" width="420" height="420" rx="18" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+<text x="265.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#1d4ed8" text-anchor="middle" font-weight="700">Weighting granularity</text>
+<text x="100.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Synchronous leaf scales</text>
+<text x="430.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="29" fill="#b42335" text-anchor="end" font-weight="700">57</text>
+<rect x="100" y="260" width="300" height="34" rx="8" fill="#dc2626"/>
+<text x="100.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Candidate leaf scales</text>
+<text x="430.0" y="350.0" font-family="Inter,Arial,sans-serif" font-size="29" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="100.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="start" font-weight="400">Candidate bucket scales</text>
+<text x="430.0" y="405.0" font-family="Inter,Arial,sans-serif" font-size="29" fill="#166534" text-anchor="end" font-weight="700">3</text>
+<rect x="100" y="430" width="15.8" height="34" rx="8" fill="#16a34a"/>
+<text x="265.0" y="510.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534" text-anchor="middle" font-weight="700">57 → 3 scale launches per step</text>
+<rect x="515" y="125" width="500" height="420" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="765.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">Measured T128 steady step</text>
+<text x="560.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#64748b" text-anchor="start" font-weight="700">Synchronous</text>
+<text x="970.0" y="235.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#64748b" text-anchor="end" font-weight="700">9.262 ms</text>
+<rect x="560" y="259" width="333.4" height="32" rx="7" fill="#64748b"/>
+<text x="560.0" y="319.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#b45309" text-anchor="start" font-weight="400">finish 2.771 ms</text>
+<text x="560.0" y="360.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#16a34a" text-anchor="start" font-weight="700">Bucket weighted overlap</text>
+<text x="970.0" y="360.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#16a34a" text-anchor="end" font-weight="700">8.687 ms</text>
+<rect x="560" y="384" width="312.7" height="32" rx="7" fill="#16a34a"/>
+<text x="560.0" y="444.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#b45309" text-anchor="start" font-weight="400">finish 1.361 ms</text>
+<text x="765.0" y="490.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#166534" text-anchor="middle" font-weight="700">whole step 1.0661x</text>
+<text x="765.0" y="520.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">finish 2.035x · required ≥ 1.010x</text>
+<rect x="1055" y="125" width="390" height="420" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+<text x="1250.0" y="170.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">Evidence gates</text>
+<text x="1095.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Policy Max / RMS</text>
+<text x="1405.0" y="225.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0 / 0</text>
+<text x="1095.0" y="267.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Rank Max / RMS</text>
+<text x="1405.0" y="267.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0 / 0</text>
+<text x="1095.0" y="309.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">CPU Max</text>
+<text x="1405.0" y="309.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0.004938</text>
+<text x="1095.0" y="351.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">CPU RMS</text>
+<text x="1405.0" y="351.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">3.218e-06</text>
+<text x="1095.0" y="393.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Current / peak delta</text>
+<text x="1405.0" y="393.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0 / 0 bytes</text>
+<text x="1095.0" y="435.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Later backend alloc</text>
+<text x="1405.0" y="435.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">0</text>
+<text x="1095.0" y="477.0" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474" text-anchor="start" font-weight="400">Temp weights</text>
+<text x="1405.0" y="477.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534" text-anchor="end" font-weight="700">deleted</text>
+<rect x="55" y="585" width="1390" height="160" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+<text x="95.0" y="625.0" font-family="Inter,Arial,sans-serif" font-size="19" fill="#b45309" text-anchor="start" font-weight="700">Sensitivity boundary</text>
+<text x="330.0" y="625.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="400">paired  0.951x  /  1.044x  /  1.113x</text>
+<text x="330.0" y="669.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033" text-anchor="start" font-weight="400">leave-one  1.083x  /  1.020x  /  1.003x</text>
+<text x="330.0" y="714.0" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b45309" text-anchor="start" font-weight="700">Explicit T128 keep · not a general default · next: fuse 57 pack copies + 3 scales</text>
+<text x="1400.0" y="714.0" font-family="Inter,Arial,sans-serif" font-size="27" fill="#166534" text-anchor="end" font-weight="700">1.0661x</text>
+</svg>

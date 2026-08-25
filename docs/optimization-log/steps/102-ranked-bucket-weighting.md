@@ -1,6 +1,6 @@
 # Step 102 — Ranked ready-bucket weighting
 
-Status: implemented; formal Model-S measurement pending
+Status: complete; explicit T128 route retained
 
 Step 101证明RCCL重叠确实发生：finish快1.930x；失败来自每步57次leaf scale带来的1.520ms。
 最后一个最小反驳实验不改变数学公式、bucket边界或通信时机，只改变scale的位置：
@@ -25,3 +25,7 @@ Tiny `[B1,B2]`三步得到leaf scale `[0,0,0]`、bucket scale `[1,1,1]`、rank/C
 Model-S T32一次pilot中，策略参数逐项完全一致，steady step约1.080x；这是dirty pilot，只证明
 测量器和路线可用。完整RCCL标签51/51、`DistributedRank.*` 9/9。下一提交必须从干净revision
 运行T128三轮。
+
+正式T128三轮中，scale 57→3，finish 2.035x，steady step 9.262→8.687ms，即1.0661x；
+策略参数逐项Max/RMS 0/0，CPU和显存门通过。显式路由保留，但不设为一般默认：一轮0.951x，
+leave-one最低1.0027x。下一步只做persistent gather-scale融合。

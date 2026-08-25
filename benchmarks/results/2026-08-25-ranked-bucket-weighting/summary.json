@@ -1,0 +1,75 @@
+{
+  "bucket_bytes": 26214400,
+  "contexts": [
+    128
+  ],
+  "decision": "retain context-selective ranked weighted overlap",
+  "failure_returncodes": [
+    1,
+    -15
+  ],
+  "gate_contexts": [
+    128
+  ],
+  "input_weighting": "token-weighted",
+  "longer_context_gate_passed": true,
+  "maximum_policy_parameter_difference": 0,
+  "mean_loss_tolerance": 0.001,
+  "minimum_required_speedup": 1.01,
+  "overlap_policy": "bucket-weighted-overlap",
+  "peer_failure_detected": true,
+  "peer_processes_terminated": 1,
+  "policy_context_runs": 6,
+  "policy_parameter_comparisons": 3,
+  "policy_parameter_rms_difference": 0,
+  "rank_batch_rows": [
+    1,
+    2
+  ],
+  "rank_processes": 12,
+  "record_type": "ranked_overlap_context_summary",
+  "results": {
+    "128": {
+      "current_bytes_added": 0,
+      "finish_speedup": 2.035415499005024,
+      "forward_backward_added_ms": 0.6414694999999995,
+      "peak_bytes_added": 0,
+      "policies": {
+        "bucket-views": {
+          "maximum_engine_current_bytes": 249378820,
+          "maximum_engine_peak_bytes": 417369612,
+          "maximum_mean_loss_difference": 1.716433333243117e-05,
+          "maximum_reference_difference": 0.0049375561066,
+          "maximum_reference_rms_difference": 3.21758371961e-06,
+          "median_steady_finish_ms": 2.7708905,
+          "median_steady_forward_backward_ms": 6.4378215,
+          "median_steady_training_ms": 9.2618525,
+          "runs": 3,
+          "steady_samples": 6,
+          "steady_training_cv": 0.03562825818480754
+        },
+        "bucket-weighted-overlap": {
+          "maximum_engine_current_bytes": 249378820,
+          "maximum_engine_peak_bytes": 417369612,
+          "maximum_mean_loss_difference": 1.716433333243117e-05,
+          "maximum_reference_difference": 0.0049375561066,
+          "maximum_reference_rms_difference": 3.21758371961e-06,
+          "median_steady_finish_ms": 1.361339,
+          "median_steady_forward_backward_ms": 7.079291,
+          "median_steady_training_ms": 8.687486499999999,
+          "runs": 3,
+          "steady_samples": 6,
+          "steady_training_cv": 0.07196946134613988
+        }
+      },
+      "training_speedup": 1.0661141746810199
+    }
+  },
+  "runs_per_policy_context": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steady_skip_steps": 1,
+  "steady_steps_per_run": 2,
+  "steps_per_rank": 3,
+  "temporary_parameter_files_retained": false
+}

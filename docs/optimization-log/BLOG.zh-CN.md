@@ -4387,3 +4387,18 @@ backward增加1.520ms。steady step由8.954ms升到9.332ms，只有0.9594x。逐
 1.01门，weighted overlap优化track就到此关闭。
 
 ![Ranked weighted overlap discard](assets/ranked-weighted-overlap-discard.svg)
+
+## 296. Experiment 279：不要给57个叶子逐个称重，给3个桶称重
+
+Step 101的数学没有错，粒度错了。新路线让leaf只报告ready；通信Stream等Event、pack完整
+bucket，再乘一次local token weight。每步scale因此从57次变成3次。
+
+Model-S T128三轮里，finish从2.771ms降到1.361ms，快2.035x；forward/backward只增加
+0.641ms。steady step由9.262ms降到8.687ms，达到1.0661x。三轮策略最终15,586,176个
+参数逐项完全相同，CPU和显存门也通过。
+
+我们保留显式T128路由，但不把它写成默认：三轮速度比分别0.951x、1.044x、1.113x，
+leave-one最低只有1.0027x。下一步尝试把57次pack copy和3次scale融合为3次持久
+gather-scale Kernel；如果数值通过但速度或敏感性不改善，这条局部优化线就停止。
+
+![Ranked bucket weighting](assets/ranked-bucket-weighting.svg)

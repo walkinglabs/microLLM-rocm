@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Ranked ready-bucket weighting result](2026-08-25-ranked-bucket-weighting-result.md)
 - [2026-08-25: Ranked ready-bucket weighting infrastructure](2026-08-25-ranked-bucket-weighting-infrastructure.md)
 - [2026-08-25: Ranked weighted-overlap result](2026-08-25-ranked-weighted-overlap-result.md)
 - [2026-08-25: Ranked weighted-overlap matrix infrastructure](2026-08-25-ranked-weighted-overlap-matrix.md)

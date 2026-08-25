@@ -130,7 +130,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [99](steps/99-ranked-input-weighting.md) | complete for tiny | uneven local-batch weighting | 默认拒绝与三步weighted CPU等价 |
 | [100](steps/100-ranked-model-s-input-weighting.md) | complete | Model-S uneven-input smoke | `[B1,B2]` 57 Tensor weighted CPU门通过 |
 | [101](steps/101-ranked-weighted-overlap.md) | complete; performance rejected | token-weighted ready overlap | T128正确，57次leaf scale使整步仅0.9594x |
-| [102](steps/102-ranked-bucket-weighting.md) | implemented; measurement pending | ready-bucket weighting | leaf scale 57→bucket scale 3，Tiny门与T32 pilot通过 |
+| [102](steps/102-ranked-bucket-weighting.md) | complete; explicit keep | ready-bucket weighting | T128 scale 57→3，steady step 1.0661x，非一般默认 |
+| [103](steps/103-ranked-gather-scale.md) | planned | persistent gather-scale | 57 copy + 3 scale→3 fused launch，最后一条reducer局部线 |
 
 ## 为什么按这个顺序
 
