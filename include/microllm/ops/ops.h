@@ -862,6 +862,11 @@ void kv_cache_store_pair_positions_(
 [[nodiscard]] Tensor cached_gqa_attention_scores(
     const Tensor& query, const Tensor& key_cache,
     std::int64_t repeats, float scale, const OpContext& context = {});
+// Diagnostic-only P·V stage for one cached decode position. Probabilities are
+// contiguous FP32 [B,H,1,T]; value cache is [B,KV,T,D].
+[[nodiscard]] Tensor cached_gqa_attention_context(
+    const Tensor& probabilities, const Tensor& value_cache,
+    std::int64_t repeats, const OpContext& context = {});
 [[nodiscard]] Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                                           const Tensor& value_cache,
                                           std::int64_t repeats, float scale,

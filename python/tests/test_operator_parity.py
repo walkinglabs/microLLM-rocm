@@ -229,6 +229,18 @@ def pytorch_references(actual):
         cached_query @ torch.repeat_interleave(
             cached_key, 2, dim=1).transpose(-2, -1) * 0.5,
     )
+    cached_probabilities = torch.softmax(
+        cached_query @ torch.repeat_interleave(
+            cached_key, 2, dim=1).transpose(-2, -1) * 0.5,
+        dim=-1,
+    )
+    cached_value = tensor([1, 2, 3, 4, 5, 6], (1, 1, 3, 2))
+    record(
+        refs,
+        "cached_gqa_attention_context",
+        cached_probabilities @ torch.repeat_interleave(
+            cached_value, 2, dim=1),
+    )
     online_query = attention_query.to(torch.bfloat16).float()
     online_key = attention_key.to(torch.bfloat16).float()
     online_value = attention_value.to(torch.bfloat16).float()
@@ -847,6 +859,7 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_causal_shape",
             "invalid_causal_gqa_shape",
             "invalid_cached_gqa_scores_shape",
+            "invalid_cached_gqa_context_shape",
             "invalid_attention_probability_value_bthd_shape",
             "invalid_attention_probability_value_gqa_bthd_shape",
             "invalid_attention_probability_gradient_bthd_shape",

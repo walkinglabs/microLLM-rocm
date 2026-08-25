@@ -1211,9 +1211,31 @@ TEST(CpuOpsTest, CachedGqaAttentionScoresExposeEveryScaledDotWithoutMutation) {
     EXPECT_EQ(query.to_vector(), query_before);
     EXPECT_EQ(cache.to_vector(), cache_before);
 
+    auto value_backing = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6, 9, 9}, {1, 1, 4, 2});
+    auto value_cache = Tensor::from_storage(
+        value_backing.storage(), {1, 1, 3, 2}, value_backing.strides(), 0,
+        DType::Float32);
+    const auto probabilities = softmax(scores, -1);
+    const auto context = cached_gqa_attention_context(
+        probabilities, value_cache, 2);
+    const auto fused = cached_gqa_attention(
+        query, cache, value_cache, 2, 0.5F);
+    EXPECT_EQ(context.shape(), (Shape{1, 2, 1, 2}));
+    expect_near(context.to_vector(), fused.to_vector(), 2.0e-5F);
+
+    const auto bf16_cache = cache.cast(DType::BFloat16);
+    const auto bf16_value = value_cache.cast(DType::BFloat16);
     const auto bf16_scores = cached_gqa_attention_scores(
-        query, cache.cast(DType::BFloat16), 2, 0.5F);
+        query, bf16_cache, 2, 0.5F);
     EXPECT_EQ(bf16_scores.to_vector(), scores.to_vector());
+    const auto bf16_context = cached_gqa_attention_context(
+        softmax(bf16_scores, -1), bf16_value, 2);
+    expect_near(
+        bf16_context.to_vector(),
+        cached_gqa_attention(
+            query, bf16_cache, bf16_value, 2, 0.5F).to_vector(),
+        2.0e-5F);
     EXPECT_THROW(
         (void)cached_gqa_attention_scores(query, cache, 3, 0.5F),
         std::invalid_argument);
@@ -1223,6 +1245,14 @@ TEST(CpuOpsTest, CachedGqaAttentionScoresExposeEveryScaledDotWithoutMutation) {
     EXPECT_THROW(
         (void)cached_gqa_attention_scores(
             query, cache.transpose(2, 3), 2, 0.5F),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)cached_gqa_attention_context(
+            probabilities, value_cache, 3),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)cached_gqa_attention_context(
+            probabilities, value_cache.transpose(2, 3), 2),
         std::invalid_argument);
 }
 

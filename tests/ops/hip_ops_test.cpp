@@ -2010,6 +2010,7 @@ TEST(HipCachedAttentionTest,
                 batches * heads * width));
             std::vector<float> key_values(static_cast<std::size_t>(
                 batches * kv_heads * sequence * width));
+            std::vector<float> value_values(key_values.size());
             for (std::size_t index = 0; index < query_values.size(); ++index) {
                 query_values[index] =
                     static_cast<float>(static_cast<int>(index % 37) - 18) *
@@ -2019,32 +2020,66 @@ TEST(HipCachedAttentionTest,
                 key_values[index] =
                     static_cast<float>(static_cast<int>(index % 41) - 20) *
                     0.005859375F;
+                value_values[index] =
+                    static_cast<float>(static_cast<int>(index % 43) - 21) *
+                    0.0048828125F;
             }
             const auto query = Tensor::from_vector(
                 query_values, {batches, heads, 1, width});
             const auto key = Tensor::from_vector(
                 key_values, {batches, kv_heads, sequence, width}, dtype);
-            const auto expected = cached_gqa_attention_scores(
-                query, key, repeats, scale).to_vector();
+            const auto value = Tensor::from_vector(
+                value_values, {batches, kv_heads, sequence, width}, dtype);
+            const auto expected_scores = cached_gqa_attention_scores(
+                query, key, repeats, scale);
+            const auto expected_probabilities = softmax(expected_scores, -1);
+            const auto expected_context = cached_gqa_attention_context(
+                expected_probabilities, value, repeats);
+            const auto expected_score_values = expected_scores.to_vector();
+            const auto expected_probability_values =
+                expected_probabilities.to_vector();
+            const auto expected_context_values = expected_context.to_vector();
             const auto device_query = query.to(gpu);
             const auto device_key = key.to(gpu);
+            const auto device_value = value.to(gpu);
             const auto* query_address = device_query.data();
             const auto* key_address = device_key.data();
+            const auto* value_address = device_value.data();
             runtime::reset_transfer_stats();
-            const auto actual = cached_gqa_attention_scores(
+            const auto actual_scores = cached_gqa_attention_scores(
                 device_query, device_key, repeats, scale);
+            const auto actual_probabilities = softmax(actual_scores, -1);
+            const auto actual_context = cached_gqa_attention_context(
+                actual_probabilities, device_value, repeats);
+            const auto actual_fused = cached_gqa_attention(
+                device_query, device_key, device_value, repeats, scale);
             runtime::synchronize(gpu);
             const auto transfers = runtime::transfer_stats();
             EXPECT_EQ(transfers.host_to_device_calls, 0U);
             EXPECT_EQ(transfers.device_to_host_calls, 0U);
-            EXPECT_EQ(actual.shape(), (Shape{batches, heads, 1, sequence}));
-            EXPECT_EQ(actual.dtype(), DType::Float32);
-            EXPECT_TRUE(actual.is_contiguous());
+            EXPECT_EQ(actual_scores.shape(),
+                      (Shape{batches, heads, 1, sequence}));
+            EXPECT_EQ(actual_scores.dtype(), DType::Float32);
+            EXPECT_TRUE(actual_scores.is_contiguous());
+            EXPECT_EQ(actual_context.shape(),
+                      (Shape{batches, heads, 1, width}));
             EXPECT_EQ(device_query.data(), query_address);
             EXPECT_EQ(device_key.data(), key_address);
-            expect_near(actual.to_vector(), expected, 2.0e-4F);
+            EXPECT_EQ(device_value.data(), value_address);
+            expect_near(
+                actual_scores.to_vector(), expected_score_values,
+                2.0e-4F);
+            expect_near(
+                actual_probabilities.to_vector(),
+                expected_probability_values, 3.0e-4F);
+            expect_near(
+                actual_context.to_vector(), expected_context_values,
+                8.0e-4F);
+            expect_near(
+                actual_fused.to_vector(), expected_context_values,
+                8.0e-4F);
             EXPECT_TRUE(std::all_of(
-                expected.begin(), expected.end(),
+                expected_score_values.begin(), expected_score_values.end(),
                 [](float value) { return std::isfinite(value); }));
         }
     }

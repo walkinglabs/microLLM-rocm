@@ -2988,6 +2988,85 @@ Tensor cached_gqa_attention_scores(
         output, {batches, heads, 1, sequence});
 }
 
+Tensor cached_gqa_attention_context(
+    const Tensor& probabilities, const Tensor& value_cache,
+    std::int64_t repeats, [[maybe_unused]] const OpContext& context) {
+    require_float(probabilities, "probabilities");
+    require_forward_float(value_cache, "value_cache");
+    require_same_device(probabilities, value_cache);
+    if (probabilities.dtype() != DType::Float32 ||
+        (value_cache.dtype() != DType::Float32 &&
+         value_cache.dtype() != DType::BFloat16) ||
+        probabilities.ndim() != 4 || value_cache.ndim() != 4 ||
+        probabilities.shape()[0] <= 0 || probabilities.shape()[2] != 1 ||
+        value_cache.shape()[0] != probabilities.shape()[0] ||
+        value_cache.shape()[2] != probabilities.shape()[3] ||
+        value_cache.shape()[2] <= 0 || repeats <= 0 ||
+        probabilities.shape()[1] != value_cache.shape()[1] * repeats) {
+        throw std::invalid_argument(
+            "cached GQA context shape or dtype is invalid");
+    }
+    require_contiguous(probabilities, "probabilities");
+    const auto batches = probabilities.shape()[0];
+    const auto heads = probabilities.shape()[1];
+    const auto kv_heads = value_cache.shape()[1];
+    const auto sequence = value_cache.shape()[2];
+    const auto width = value_cache.shape()[3];
+    const auto cache_head_stride = value_cache.stride(1);
+    [[maybe_unused]] const auto cache_batch_stride = value_cache.stride(0);
+    if (value_cache.stride(3) != 1 || value_cache.stride(2) != width ||
+        cache_head_stride < sequence * width) {
+        throw std::invalid_argument(
+            "cached GQA context requires a dense sequence prefix");
+    }
+    Tensor output(
+        {batches, heads, 1, width}, DType::Float32,
+        probabilities.device());
+    if (probabilities.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_cached_attention_context(
+            static_cast<const float*>(probabilities.data()),
+            value_cache.data(), value_cache.dtype(),
+            static_cast<float*>(output.data()), batches, heads, kv_heads,
+            sequence, cache_batch_stride, cache_head_stride, width, repeats,
+            context.native_stream(probabilities.device()));
+        return output;
+#else
+        throw std::runtime_error(
+            "microLLM was built without HIP operator support");
+#endif
+    }
+
+    const auto probability_values = probabilities.to_vector();
+    const auto cache_values = value_cache.to_vector();
+    std::vector<float> output_values(
+        static_cast<std::size_t>(batches * heads * width));
+    for (std::int64_t batch = 0; batch < batches; ++batch) {
+        for (std::int64_t head = 0; head < heads; ++head) {
+            const auto kv_head = head / repeats;
+            const auto probability_base =
+                (batch * heads + head) * sequence;
+            const auto cache_base =
+                (batch * kv_heads + kv_head) * sequence * width;
+            const auto output_base = (batch * heads + head) * width;
+            for (std::int64_t column = 0; column < width; ++column) {
+                float total = 0.0F;
+                for (std::int64_t position = 0; position < sequence;
+                     ++position) {
+                    total += probability_values[static_cast<std::size_t>(
+                                 probability_base + position)] *
+                             cache_values[static_cast<std::size_t>(
+                                 cache_base + position * width + column)];
+                }
+                output_values[static_cast<std::size_t>(
+                    output_base + column)] = total;
+            }
+        }
+    }
+    return Tensor::from_vector(
+        output_values, {batches, heads, 1, width});
+}
+
 Tensor cached_gqa_attention(const Tensor& query, const Tensor& key_cache,
                             const Tensor& value_cache, std::int64_t repeats,
                             float factor, [[maybe_unused]] const OpContext& context) {
