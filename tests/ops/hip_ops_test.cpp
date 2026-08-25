@@ -265,6 +265,51 @@ TEST(HipLowPrecisionOpsTest, NativeBasicKernelsMatchCpuAndAvoidHostTransfers) {
     }
 }
 
+TEST(HipLowPrecisionOpsTest, VectorizedBf16SwiGLUMatchesScalarIncludingTail) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    std::vector<float> gate_values(4099);
+    std::vector<float> up_values(4099);
+    for (std::size_t index = 0; index < gate_values.size(); ++index) {
+        gate_values[index] =
+            static_cast<float>(static_cast<int>(index % 31U) - 15) / 16.0F;
+        up_values[index] =
+            static_cast<float>(static_cast<int>(index % 23U) - 11) / 8.0F;
+    }
+    auto gate = Tensor::from_vector(
+        gate_values, {4099}, DType::BFloat16).to(gpu);
+    const auto up = Tensor::from_vector(
+        up_values, {4099}, DType::BFloat16).to(gpu);
+    const auto scalar = swiglu_with_implementation(
+        gate, up, SwiGLUImplementation::Scalar);
+    const auto automatic = swiglu(gate, up);
+    const auto vectorized = swiglu_with_implementation(
+        gate, up, SwiGLUImplementation::Vectorized);
+    Tensor caller_output({4099}, DType::BFloat16, gpu);
+    swiglu_out_with_implementation_(
+        caller_output, gate, up, SwiGLUImplementation::Vectorized);
+    EXPECT_EQ(automatic.to_vector(), scalar.to_vector());
+    EXPECT_EQ(vectorized.to_vector(), scalar.to_vector());
+    EXPECT_EQ(caller_output.to_vector(), scalar.to_vector());
+
+    const auto fp32 = Tensor::from_vector({1.0F, 2.0F}, {2}).to(gpu);
+    EXPECT_THROW(
+        (void)swiglu_with_implementation(
+            fp32, fp32, SwiGLUImplementation::Vectorized),
+        std::invalid_argument);
+    const auto unaligned = Tensor::from_vector(
+        {0, 1, 2, 3, 4}, {5}, DType::BFloat16).to(gpu).slice(0, 1, 5);
+    EXPECT_THROW(
+        (void)swiglu_with_implementation(
+            unaligned, unaligned, SwiGLUImplementation::Vectorized),
+        std::invalid_argument);
+    EXPECT_THROW(
+        swiglu_out_with_implementation_(
+            gate, gate, up,
+            SwiGLUImplementation::Vectorized),
+        std::invalid_argument);
+}
+
 TEST(HipBf16MixedGemmTest, NativeCastAndFp32OutputMatchRoundedCpuReference) {
     require_gpu();
     constexpr std::int64_t size = 128;

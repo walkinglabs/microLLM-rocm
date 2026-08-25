@@ -13084,6 +13084,74 @@ def validate_fp32_attention_t1024(
         float(comparisons["deepseek-r1-distill-qwen-1.5b"]["candidate_speedup"])
 
 
+def validate_bf16_swiglu_vector(
+        errors: list[str]) -> tuple[int, int, float, float, float, float]:
+    operator_root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-swiglu-vector-operator")
+    model_root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-bf16-swiglu-vector-model-gate")
+    operator = json.loads((operator_root / "summary.json").read_text(
+        encoding="utf-8"))
+    model = json.loads((model_root / "summary.json").read_text(
+        encoding="utf-8"))
+    operator_check = json.loads((operator_root / "verification.json").read_text(
+        encoding="utf-8"))
+    model_check = json.loads((model_root / "verification.json").read_text(
+        encoding="utf-8"))
+    operator_rows = {row["model"]: row for row in operator.get("comparisons", [])}
+    model_rows = {row["model"]: row for row in model.get("comparisons", [])}
+    qwen = "qwen2.5-0.5b"
+    deep = "deepseek-r1-distill-qwen-1.5b"
+    expected = (1.24897007331365, 1.1902121534839072,
+                1.0073130673209338, 1.0005422962951154)
+    if (operator.get("schema_version") != 1 or operator.get("status") != "pass" or
+            operator.get("raw_processes") != 12 or
+            operator.get("operator_gate_passed") is not True or
+            set(operator_rows) != {qwen, deep} or
+            any(row.get("maximum_absolute_error") != 0.0 or
+                row.get("correctness_passed") is not True or
+                row.get("performance_passed") is not True
+                for row in operator_rows.values()) or
+            abs(float(operator_rows.get(qwen, {}).get("speedup", 0.0)) -
+                expected[0]) > 1.0e-12 or
+            abs(float(operator_rows.get(deep, {}).get("speedup", 0.0)) -
+                expected[1]) > 1.0e-12):
+        errors.append("BF16 SwiGLU vector operator evidence changed")
+    if (model.get("schema_version") != 1 or model.get("status") != "pass" or
+            model.get("raw_processes") != 12 or
+            model.get("minimum_speedup") != 1.005 or
+            model.get("keep_default") is not False or
+            set(model_rows) != {qwen, deep} or
+            any(row.get("maximum_absolute_logit_difference") != 0.0 or
+                row.get("maximum_rms_logit_difference") != 0.0 or
+                row.get("correctness_passed") is not True or
+                row.get("memory_passed") is not True
+                for row in model_rows.values()) or
+            abs(float(model_rows.get(qwen, {}).get("candidate_speedup", 0.0)) -
+                expected[2]) > 1.0e-12 or
+            abs(float(model_rows.get(deep, {}).get("candidate_speedup", 0.0)) -
+                expected[3]) > 1.0e-12):
+        errors.append("BF16 SwiGLU vector model evidence changed")
+    if (operator_check.get("operator_gate_passed") is not True or
+            model_check.get("keep_default") is not False or
+            model_check.get("peak_bytes_unchanged") is not True or
+            model_check.get("allocation_calls_unchanged") is not True):
+        errors.append("BF16 SwiGLU verification changed")
+    sources = (
+        ("SwiGLUImplementation", REPOSITORY / "include/microllm/ops/ops.h"),
+        ("swiglu_bfloat16_vectorized_kernel", REPOSITORY /
+         "src/ops/hip/basic_kernels.hip"),
+        ("VectorizedBf16SwiGLUMatchesScalarIncludingTail", REPOSITORY /
+         "tests/ops/hip_ops_test.cpp"),
+        ("operator_gate_passed", REPOSITORY /
+         "python/tests/test_bf16_swiglu_vector_matrix.py"),
+    )
+    if any(token not in path.read_text(encoding="utf-8")
+           for token, path in sources):
+        errors.append("BF16 SwiGLU source or tests changed")
+    return operator.get("raw_processes", 0), model.get("raw_processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -13295,7 +13363,8 @@ def validate_assets(errors: list[str]) -> None:
                  "rocwmma-online-model-discard.svg",
                  "rocwmma-direct-bf16-model-discard.svg",
                  "current-inference-profile.svg",
-                 "fp32-attention-t1024-discard.svg"):
+                 "fp32-attention-t1024-discard.svg",
+                 "bf16-swiglu-vector-discard.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -13739,6 +13808,9 @@ def main() -> int:
     t1024_operator_rows, t1024_model_rows, t1024_qwen_qk, \
         t1024_deep_pv, t1024_qwen_model, t1024_deep_model = \
         validate_fp32_attention_t1024(errors)
+    swiglu_operator_rows, swiglu_model_rows, swiglu_qwen_operator, \
+        swiglu_deep_operator, swiglu_qwen_model, swiglu_deep_model = \
+        validate_bf16_swiglu_vector(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -14139,6 +14211,9 @@ def main() -> int:
           f"t1024_solutions={t1024_operator_rows}/{t1024_model_rows}/"
           f"{t1024_qwen_qk:.3f}/{t1024_deep_pv:.3f}/"
           f"{t1024_qwen_model:.3f}/{t1024_deep_model:.3f} "
+          f"swiglu_vector={swiglu_operator_rows}/{swiglu_model_rows}/"
+          f"{swiglu_qwen_operator:.3f}/{swiglu_deep_operator:.3f}/"
+          f"{swiglu_qwen_model:.3f}/{swiglu_deep_model:.3f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

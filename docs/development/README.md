@@ -488,3 +488,5 @@ the next gate. Records are append-only except for factual corrections.
   beginner-friendly load-subtracted reprofile and next-hotspot selection.
 - [2026-08-25-fp32-attention-t1024-discard.md](2026-08-25-fp32-attention-t1024-discard.md):
   beginner-friendly descriptor mismatch and cross-model exact-solution rejection.
+- [2026-08-25-bf16-swiglu-vector-discard.md](2026-08-25-bf16-swiglu-vector-discard.md):
+  beginner-friendly operator-versus-model speedup counterexample.

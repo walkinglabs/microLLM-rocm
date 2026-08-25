@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 12,
+  "qwen_speedup": 1.0073130673209338,
+  "deepseek_speedup": 1.0005422962951154,
+  "maximum_absolute_logit_difference": 0.0,
+  "peak_bytes_unchanged": true,
+  "allocation_calls_unchanged": true,
+  "keep_default": false
+}

@@ -59,6 +59,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] screen exact T1024 QK/PV hipBLASLt solutions; all four operator rows win;
 - [x] reject the model policy: BTHD PV has a different descriptor, Qwen QK
   reaches 1.051x but fails complete logits, and DeepSeek QK reaches only 1.002x;
+- [x] vectorize the next open BF16 SwiGLU kernel and reject Auto after the operator
+  reaches 1.249x/1.190x but the two full models reach only 1.007x/1.001x;
 - [x] populate B1 KV cache from one full-sequence prefill instead of token replay;
 - [x] support batched cached decode with batch-aware KV Storage;
 - [x] add opt-in BF16 KV Storage with FP32 accumulation, complete-logit gates and a retained

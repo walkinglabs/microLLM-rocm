@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_processes": 12,
+  "runs_per_implementation_case": 3,
+  "qwen_speedup": 1.24897007331365,
+  "deepseek_speedup": 1.1902121534839072,
+  "maximum_absolute_error": 0.0,
+  "operator_gate_passed": true
+}

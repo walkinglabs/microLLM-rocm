@@ -395,6 +395,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 - T1024 screening finds four local 1.060×–1.538× QK/PV winners, but interleaved BTHD PV has a
   different descriptor (175 misses, zero dispatch); Qwen QK reaches 1.051× with Max/RMS logits
   0.0733/0.0157 while DeepSeek stays exact at only 1.002×, so no index becomes default.
+- a tail-safe BF16 SwiGLU vector candidate is bit-identical and 1.249×/1.190× at the exact
+  Qwen/DeepSeek operator shapes, but full models improve only 1.007×/1.001×; the explicit API
+  stays available while Auto remains scalar.
 
 </details>
 
@@ -626,13 +629,13 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| Full CPU/HIP configuration | 538/538 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
-| CPU Debug | 342/342 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 340/340 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 184/184 | allocator/arena/Stream/Graph, public rocWMMA online Attention, grouped/exact vendor solutions, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 316/316 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
+| Full CPU/HIP configuration | 542/542 | ordinary CPU suite plus HIP-labelled conformance; 3 intentional environment-dependent skips |
+| CPU Debug | 344/344 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 342/342 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 186/186 | allocator/arena/Stream/Graph, public rocWMMA online Attention, vectorized SwiGLU, grouped/exact vendor solutions, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 318/318 | dispatcher parity, 32-step BF16 optimizer state, full graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 12/12 | collectives, global-batch equivalence, gradient buckets, DDP trainer/CLI and per-device hipBLASLt ownership; RCCL label 14/14 with package gates |
-| Registered test files | 104 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 106 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

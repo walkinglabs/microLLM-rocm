@@ -31,6 +31,7 @@
 | `add_rms_norm` | left/right `[...,D]`，weight `[D]`，返回 sum/norm 两个 Tensor | `s=x+y; (s,F.rms_norm(s))` | `2e-4,2e-4` | shape/dtype/device/weight/epsilon 错 |
 | `silu` | `S -> S` | `F.silu` | 默认 | 非 FP32 |
 | `swiglu` | gate/up 都是 `S` | `F.silu(gate)*up` | `2e-6,2e-5` | shape/device 不同 |
+| `swiglu_with_implementation` / `_out_` | 同shape/dtype/device；Vectorized仅对8-byte aligned HIP BF16，caller-output地址不变 | 先按BF16舍入再`F.silu(gate.float())*up.float()`并舍入BF16 | scalar/vector逐项位级相同 | Vectorized非BF16/非HIP/未对齐、非连续、output shape/dtype/device/alias错 |
 | `rope` | `[...,T,...,H] -> same`，H 是偶数 | PyTorch `sin/cos` 组合 | `2e-5,2e-5` | rank<2、H 奇数、sequence_dim 错、offset/base 错 |
 | `rope_split_half_bias` | input `[B,H,T,D]`、bias `[H*D]`，D 偶数 | `rope_split_half(x+bias.view(1,H,1,D))` | `3e-5,3e-5` | 非 FP32、rank/shape/device 错、offset/base 错 |
 | `rope_split_half_bias_bthd` | FP32/BF16 input `[B,T,H,D]`、FP32 bias `[H*D]`，输出FP32 `[B,H,T,D]` | `rope_split_half((x.float()+bias.view(1,1,H,D)).transpose(1,2))` | FP32 `3e-5,3e-5`；BF16按输入舍入后同值 | 非连续、F16/FP8、rank/shape/device 错、offset/base 错 |
@@ -51,6 +52,9 @@
 `matmul_with_implementation` 的 `Readable` 和 `HipBLASLt` 是同一数学契约的不同执行办法；二者必须通过同一个 oracle。选择器和注册表只决定实现，不能改变 shape 或数值含义。
 `matmul_out_`也不增加新公式：PyTorch门仍是同一`torch.matmul`。它新增的是状态合同，因此CPU/HIP
 还必须检查调用前后output Storage地址不变、timed payload transfer为零，并拒绝任何输入alias。
+`SwiGLUImplementation::Auto`仍是scalar。`Vectorized`是显式研究路径：它在MI300X的两个
+T1024 operator shape上更快，但未通过两模型默认性能门，所以不能把“设备可执行”写成
+“模型默认受益”。
 
 ## 反向原语
 

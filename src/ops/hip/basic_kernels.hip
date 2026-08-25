@@ -618,6 +618,44 @@ __global__ void swiglu_typed_kernel(const T* gate, const T* up, T* output,
     }
 }
 
+struct alignas(8) BFloat16x4 {
+    hip_bfloat16 x;
+    hip_bfloat16 y;
+    hip_bfloat16 z;
+    hip_bfloat16 w;
+};
+
+__device__ hip_bfloat16 swiglu_bfloat16_value(hip_bfloat16 gate,
+                                               hip_bfloat16 up) {
+    const auto gate_value = static_cast<float>(gate);
+    return hip_bfloat16(gate_value * sigmoid_typed_device(gate_value) *
+                        static_cast<float>(up));
+}
+
+__global__ void swiglu_bfloat16_vectorized_kernel(
+    const hip_bfloat16* gate, const hip_bfloat16* up, hip_bfloat16* output,
+    std::int64_t elements) {
+    constexpr std::int64_t width = 4;
+    const auto base = (static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x) * width;
+    if (base >= elements) return;
+    if (base + width <= elements) {
+        const auto gate_values =
+            *reinterpret_cast<const BFloat16x4*>(gate + base);
+        const auto up_values = *reinterpret_cast<const BFloat16x4*>(up + base);
+        BFloat16x4 result;
+        result.x = swiglu_bfloat16_value(gate_values.x, up_values.x);
+        result.y = swiglu_bfloat16_value(gate_values.y, up_values.y);
+        result.z = swiglu_bfloat16_value(gate_values.z, up_values.z);
+        result.w = swiglu_bfloat16_value(gate_values.w, up_values.w);
+        *reinterpret_cast<BFloat16x4*>(output + base) = result;
+        return;
+    }
+    for (auto index = base; index < elements; ++index) {
+        output[index] = swiglu_bfloat16_value(gate[index], up[index]);
+    }
+}
+
 template <typename Input, typename Output>
 __global__ void quantize_fp8_kernel(const Input* input, Output* output,
                                     std::int64_t elements, float inverse_scale) {
@@ -2891,8 +2929,24 @@ void launch_silu_typed(const void* input, void* output, DType dtype,
 }
 
 void launch_swiglu_typed(const void* gate, const void* up, void* output, DType dtype,
-                         std::int64_t elements, void* stream) {
+                         std::int64_t elements, void* stream, bool vectorized) {
     if (elements == 0) return;
+    if (vectorized) {
+        if (dtype != DType::BFloat16) {
+            throw std::invalid_argument(
+                "vectorized swiglu requires bfloat16 tensors");
+        }
+        constexpr std::int64_t width = 4;
+        const auto vectors = (elements + width - 1) / width;
+        hipLaunchKernelGGL(
+            swiglu_bfloat16_vectorized_kernel, dim3(grid_size(vectors)),
+            dim3(kBlockSize), 0, as_stream(stream),
+            static_cast<const hip_bfloat16*>(gate),
+            static_cast<const hip_bfloat16*>(up),
+            static_cast<hip_bfloat16*>(output), elements);
+        check_launch("swiglu_bfloat16_vectorized_kernel");
+        return;
+    }
     const auto grid = dim3(grid_size(elements));
     const auto block = dim3(kBlockSize);
 #define MICROLLM_SWIGLU_CASE(cpp_type, enum_value)                                    \

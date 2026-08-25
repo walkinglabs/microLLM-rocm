@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "track": "bf16_swiglu_vector_operator",
+  "raw_processes": 12,
+  "warmup": 3,
+  "repetitions": 30,
+  "comparisons": [
+    {
+      "model": "qwen2.5-0.5b",
+      "sequence": 1024,
+      "elements": 4980736,
+      "runs_per_implementation": 3,
+      "scalar_kernel_ms_mean_median": 0.0170683,
+      "vectorized_kernel_ms_mean_median": 0.0136658999,
+      "speedup": 1.24897007331365,
+      "maximum_absolute_error": 0.0,
+      "correctness_passed": true,
+      "performance_passed": true
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-1.5b",
+      "sequence": 1024,
+      "elements": 9175040,
+      "runs_per_implementation": 3,
+      "scalar_kernel_ms_mean_median": 0.0279131331,
+      "vectorized_kernel_ms_mean_median": 0.0234522333,
+      "speedup": 1.1902121534839072,
+      "maximum_absolute_error": 0.0,
+      "correctness_passed": true,
+      "performance_passed": true
+    }
+  ],
+  "operator_gate_passed": true,
+  "decision": "admit full-model gate"
+}

@@ -3802,3 +3802,17 @@ Max/RMS误差扩大到0.0733/0.0157；DeepSeek数值完全相同，却只有1.00
 exact Attention solution track再次关闭，下一轮必须回到profile选一个新热点。
 
 ![T1024 Attention solutions discard](assets/fp32-attention-t1024-discard.svg)
+
+## 251. Experiment 234：小零件快两成，整辆车只快千分之五
+
+当前profile中最大的未关闭非Attention kernel是BF16 SwiGLU。新候选让每个线程处理4个
+BF16值，并为4099这种不整除shape保留tail。第一次测量误把输出分配算进Event，与
+profile差一个数量级；换成caller-output API后才重跑正式门。
+
+12进程operator门中，Qwen/DeepSeek快1.249×/1.190×，完整BF16输出bit-identical。
+可12进程整模门只有1.0073×/1.0005×；DeepSeek没过事先定义的1.005×。
+
+显式vector operator和测试保留，Auto恢复scalar。这个反例说明下一步必须跨过FFN
+operator边界，例如处理grouped GEMM epilogue，而不是继续打磨同一个小kernel。
+
+![BF16 SwiGLU vector discard](assets/bf16-swiglu-vector-discard.svg)

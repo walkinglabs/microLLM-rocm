@@ -318,6 +318,20 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.Fp32AttentionSolutionModelsContract PROPERTIES
         LABELS "cpu;benchmark;model;inference;attention;matmul;solution;schema")
     add_test(
+        NAME Benchmark.Bf16SwiGLUVectorMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_swiglu_vector_matrix.py
+    )
+    set_tests_properties(Benchmark.Bf16SwiGLUVectorMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;ffn;bf16;schema")
+    add_test(
+        NAME Benchmark.Bf16SwiGLUModelsContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_swiglu_models.py
+    )
+    set_tests_properties(Benchmark.Bf16SwiGLUModelsContract PROPERTIES
+        LABELS "cpu;benchmark;model;inference;ffn;bf16;schema")
+    add_test(
         NAME Benchmark.Bf16GroupedQkvMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_grouped_qkv_matrix.py

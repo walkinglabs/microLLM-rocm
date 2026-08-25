@@ -1727,20 +1727,33 @@ Tensor silu(const Tensor& input, [[maybe_unused]] const OpContext& context) {
     return from_values(std::move(values), input.shape(), input.dtype());
 }
 
-Tensor swiglu(const Tensor& gate, const Tensor& up,
-              [[maybe_unused]] const OpContext& context) {
+Tensor swiglu_with_implementation(
+    const Tensor& gate, const Tensor& up, SwiGLUImplementation implementation,
+    [[maybe_unused]] const OpContext& context) {
     require_forward_float(gate, "gate");
     require_forward_float(up, "up");
     require_same_dtype(gate, up);
     require_same_shape(gate, up);
     require_same_device(gate, up);
+    if (implementation == SwiGLUImplementation::Vectorized &&
+        !gate.device().is_hip()) {
+        throw std::invalid_argument(
+            "vectorized swiglu requires HIP bfloat16 tensors");
+    }
     if (gate.device().is_hip()) {
         require_contiguous(gate, "gate");
         require_contiguous(up, "up");
+        if (implementation == SwiGLUImplementation::Vectorized &&
+            (gate.dtype() != DType::BFloat16 ||
+             !is_aligned(gate.data(), 8) || !is_aligned(up.data(), 8))) {
+            throw std::invalid_argument(
+                "vectorized swiglu requires aligned bfloat16 HIP tensors");
+        }
         Tensor output(gate.shape(), gate.dtype(), gate.device());
 #if MICROLLM_HAS_HIP
         hip::launch_swiglu_typed(gate.data(), up.data(), output.data(), gate.dtype(),
-                                 gate.numel(), context.native_stream(gate.device()));
+                                 gate.numel(), context.native_stream(gate.device()),
+                                 implementation == SwiGLUImplementation::Vectorized);
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -1754,8 +1767,16 @@ Tensor swiglu(const Tensor& gate, const Tensor& up,
     return from_values(std::move(gate_values), gate.shape(), gate.dtype());
 }
 
-void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
-                 [[maybe_unused]] const OpContext& context) {
+Tensor swiglu(const Tensor& gate, const Tensor& up,
+              const OpContext& context) {
+    return swiglu_with_implementation(
+        gate, up, SwiGLUImplementation::Auto, context);
+}
+
+void swiglu_out_with_implementation_(
+    Tensor& output, const Tensor& gate, const Tensor& up,
+    SwiGLUImplementation implementation,
+    [[maybe_unused]] const OpContext& context) {
     require_forward_float(gate, "gate");
     require_forward_float(up, "up");
     require_forward_float(output, "output");
@@ -1769,20 +1790,45 @@ void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
         !output.is_contiguous()) {
         throw std::invalid_argument("swiglu_out requires contiguous tensors");
     }
+    if (output.storage().data() == gate.storage().data() ||
+        output.storage().data() == up.storage().data()) {
+        throw std::invalid_argument(
+            "swiglu_out output must not alias either input Storage");
+    }
+    if (implementation == SwiGLUImplementation::Vectorized &&
+        !gate.device().is_hip()) {
+        throw std::invalid_argument(
+            "vectorized swiglu requires HIP bfloat16 tensors");
+    }
     if (gate.device().is_cpu()) {
-        const auto reference = swiglu(gate, up);
+        const auto reference = swiglu_with_implementation(
+            gate, up, implementation);
         runtime::copy_bytes(
             output.data(), output.device(), reference.data(), reference.device(),
             static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
         return;
     }
 #if MICROLLM_HAS_HIP
+    if (implementation == SwiGLUImplementation::Vectorized &&
+        (gate.dtype() != DType::BFloat16 ||
+         !is_aligned(gate.data(), 8) || !is_aligned(up.data(), 8) ||
+         !is_aligned(output.data(), 8))) {
+        throw std::invalid_argument(
+            "vectorized swiglu requires aligned bfloat16 HIP tensors");
+    }
     hip::launch_swiglu_typed(
         gate.data(), up.data(), output.data(), gate.dtype(), gate.numel(),
-        context.native_stream(gate.device()));
+        context.native_stream(gate.device()),
+        implementation == SwiGLUImplementation::Vectorized);
 #else
     throw std::runtime_error("microLLM was built without HIP operator support");
 #endif
+}
+
+void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
+                 const OpContext& context) {
+    swiglu_out_with_implementation_(
+        output, gate, up, SwiGLUImplementation::Auto, context);
 }
 
 Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t position_offset,

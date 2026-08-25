@@ -867,6 +867,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/232-current-inference-profile.md](experiments/232-current-inference-profile.md) | 4进程rocprof、phase delta与新GEMM合同 |
 | [assets/fp32-attention-t1024-discard.svg](assets/fp32-attention-t1024-discard.svg) | 四个operator winner与两个整模反例 |
 | [experiments/233-fp32-attention-t1024-discard.md](experiments/233-fp32-attention-t1024-discard.md) | descriptor mismatch、logits与默认拒绝 |
+| [assets/bf16-swiglu-vector-discard.svg](assets/bf16-swiglu-vector-discard.svg) | operator加速与整模收益落差 |
+| [experiments/234-bf16-swiglu-vector-discard.md](experiments/234-bf16-swiglu-vector-discard.md) | 预分配测量、bit-exact门与Auto拒绝 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

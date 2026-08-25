@@ -54,6 +54,10 @@ environment identity. `register_fp32_matmul_solution` is thread-local and explic
 `fp32_matmul_solution_stats()` to prove a candidate actually dispatched; zero hits are not a
 performance result. Even a bit-exact operator candidate still needs complete-model throughput and
 peak-memory gates before any default can change.
+Elementwise candidates follow the same rule. `swiglu_with_implementation` and
+`swiglu_out_with_implementation_` expose the measured BF16 vector route, while Auto remains scalar
+because DeepSeek's full-model gate was only 1.001x. Benchmark caller-provided output Storage; timing
+an owning convenience call would include allocator work and answer a different question.
 BF16 GroupedQKV has an even stricter lifetime rule: `GroupedGemm::initialize` binds every pointer.
 Use it only through `bf16_qkv_projection_out_` with caller-owned stable buffers. The exact cache key
 must include all three weights, BF16 intermediates, FP32 outputs, device and Stream. Timing only

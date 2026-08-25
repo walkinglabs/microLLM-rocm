@@ -358,6 +358,12 @@ if(BUILD_TESTING)
         add_test(NAME Benchmark.HipAddSmoke
                  COMMAND microllm_bench_ops --op add --size 1024 --warmup 1 --repetitions 2 --device hip)
         set_tests_properties(Benchmark.HipAddSmoke PROPERTIES LABELS "hip;benchmark;smoke")
+        add_test(NAME Benchmark.HipBf16SwiGLUVectorized
+                 COMMAND microllm_bench_ops --op swiglu --device hip --dtype bf16
+                         --implementation vectorized --size 4099
+                         --warmup 1 --repetitions 2)
+        set_tests_properties(Benchmark.HipBf16SwiGLUVectorized
+                             PROPERTIES LABELS "hip;benchmark;ffn;bf16;correctness;smoke")
         add_test(NAME Benchmark.HipAdamWVectorized
                  COMMAND microllm_bench_adamw --elements 4099 --mirror true
                          --implementation vectorized --warmup 1 --repetitions 2)

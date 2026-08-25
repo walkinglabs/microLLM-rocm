@@ -1322,6 +1322,12 @@ TEST(CpuOpsTest, SiluAndSwiGluMatchDefinitions) {
     Tensor caller_output({3});
     swiglu_out_(caller_output, input, up);
     expect_near(caller_output.to_vector(), swiglu(input, up).to_vector());
+    EXPECT_THROW(
+        (void)swiglu_with_implementation(
+            input, up, SwiGLUImplementation::Vectorized),
+        std::invalid_argument);
+    auto alias_output = input;
+    EXPECT_THROW(swiglu_out_(alias_output, input, up), std::invalid_argument);
     Tensor wrong({2});
     EXPECT_THROW(swiglu_out_(wrong, input, up), std::invalid_argument);
 }

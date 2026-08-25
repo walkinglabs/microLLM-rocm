@@ -107,7 +107,8 @@ void launch_matmul_transposed_typed(
 void launch_silu_typed(const void* input, void* output, DType dtype,
                        std::int64_t elements, void* stream = nullptr);
 void launch_swiglu_typed(const void* gate, const void* up, void* output, DType dtype,
-                         std::int64_t elements, void* stream = nullptr);
+                         std::int64_t elements, void* stream = nullptr,
+                         bool vectorized = false);
 void launch_quantize_fp8(const void* input, DType input_dtype, void* output,
                          DType fp8_dtype, std::int64_t elements, float inverse_scale,
                          void* stream = nullptr);

@@ -17,6 +17,7 @@ enum class MatmulImplementation { Auto, Readable, HipBLASLt };
 enum class AdamWImplementation { Auto, Scalar, Vectorized };
 enum class BiasGradientImplementation { Auto, ScalarColumns, CooperativeRows };
 enum class CausalSoftmaxImplementation { Auto, Rows128 };
+enum class SwiGLUImplementation { Auto, Scalar, Vectorized };
 
 struct AdamWMultiTensorEntry {
     Tensor* parameter = nullptr;
@@ -607,8 +608,16 @@ void matmul_out_(Tensor& output, const Tensor& left, const Tensor& right,
 [[nodiscard]] Tensor silu(const Tensor& input, const OpContext& context = {});
 [[nodiscard]] Tensor swiglu(const Tensor& gate, const Tensor& up,
                             const OpContext& context = {});
+// Explicit implementation selection is intended for correctness-first tuning.
+// Auto remains the stable scalar route; Vectorized is an explicit measured candidate.
+[[nodiscard]] Tensor swiglu_with_implementation(
+    const Tensor& gate, const Tensor& up, SwiGLUImplementation implementation,
+    const OpContext& context = {});
 void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
                  const OpContext& context = {});
+void swiglu_out_with_implementation_(
+    Tensor& output, const Tensor& gate, const Tensor& up,
+    SwiGLUImplementation implementation, const OpContext& context = {});
 [[nodiscard]] Tensor rope(const Tensor& input, std::int64_t sequence_dim = 1,
                           std::int64_t position_offset = 0, float base = 10000.0F,
                           const OpContext& context = {});

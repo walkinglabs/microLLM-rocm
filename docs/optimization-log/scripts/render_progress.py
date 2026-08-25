@@ -139,6 +139,12 @@ FP32_ATTENTION_T1024_MODEL_ROOT = (
     "2026-08-25-fp32-attention-t1024-qk-model-gate")
 FP32_ATTENTION_T1024_CHART = (
     ROOT / "assets" / "fp32-attention-t1024-discard.svg")
+BF16_SWIGLU_VECTOR_ROOT = (ROOT.parents[1] / "benchmarks" / "results" /
+                           "2026-08-25-bf16-swiglu-vector-operator")
+BF16_SWIGLU_VECTOR_MODEL_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-bf16-swiglu-vector-model-gate")
+BF16_SWIGLU_VECTOR_CHART = ROOT / "assets" / "bf16-swiglu-vector-discard.svg"
 
 
 def rows() -> list[dict]:
@@ -3229,6 +3235,63 @@ def fp32_attention_t1024_svg() -> str:
     return "\n".join(parts)
 
 
+def bf16_swiglu_vector_svg() -> str:
+    operator = json.loads((BF16_SWIGLU_VECTOR_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    model = json.loads((BF16_SWIGLU_VECTOR_MODEL_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    values = [
+        ("Qwen operator", operator["comparisons"][0]["speedup"], "#16a34a"),
+        ("Deep operator", operator["comparisons"][1]["speedup"], "#16a34a"),
+        ("Qwen model", model["comparisons"][0]["candidate_speedup"], "#e11d48"),
+        ("Deep model", model["comparisons"][1]["candidate_speedup"], "#e11d48"),
+    ]
+    width, height = 1500, 720
+    chart_x, chart_y, chart_w, chart_h = 180, 150, 1140, 350
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 234 · BF16 SwiGLU: Operator vs Model", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "12 operator processes + 12 full-model processes · complete outputs checked",
+             16, "#5b6474", anchor="middle"),
+        f'<rect x="{chart_x}" y="{chart_y}" width="{chart_w}" height="{chart_h}" '
+        'fill="#ffffff" stroke="#cbd3df" rx="10"/>',
+    ]
+    def y(value: float) -> float:
+        return chart_y + chart_h * (1.30 - value) / 0.32
+    for tick in (1.0, 1.05, 1.10, 1.15, 1.20, 1.25):
+        y_pos = y(tick)
+        color = "#2563eb" if tick == 1.0 else "#e5e9f0"
+        parts.append(f'<line x1="{chart_x}" y1="{y_pos:.1f}" '
+                     f'x2="{chart_x+chart_w}" y2="{y_pos:.1f}" stroke="{color}"/>')
+        parts.append(text(chart_x - 12, y_pos + 5, f"{tick:.2f}×", 13,
+                          "#5b6474", anchor="end"))
+    slot = chart_w / len(values)
+    for index, (label, value, color) in enumerate(values):
+        center = chart_x + slot * (index + 0.5)
+        top, base = y(value), y(0.98)
+        parts.append(f'<rect x="{center-65:.1f}" y="{top:.1f}" width="130" '
+                     f'height="{base-top:.1f}" fill="{color}" rx="6"/>')
+        parts.append(text(center, top - 10, f"{value:.3f}×", 15, color,
+                          anchor="middle", weight=700))
+        parts.append(text(center, chart_y + chart_h + 30, label, 14,
+                          "#5b6474", anchor="middle"))
+    parts.append(text(width / 2, 610,
+                      "Operator: 1.249× / 1.190×, bit-identical",
+                      18, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 652,
+                      "Model: 1.007× / 1.001×; DeepSeek fails the 1.005× gate",
+                      18, "#b42335", anchor="middle", weight=700))
+    parts.append(text(width / 2, 690,
+                      "Explicit vector operator retained; Auto remains scalar",
+                      13, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -3278,7 +3341,8 @@ def main() -> int:
                 ROCWMMA_MODEL_CHART: rocwmma_online_model_svg(),
                 ROCWMMA_DIRECT_MODEL_CHART: rocwmma_direct_bf16_model_svg(),
                 CURRENT_INFERENCE_PROFILE_CHART: current_inference_profile_svg(),
-                FP32_ATTENTION_T1024_CHART: fp32_attention_t1024_svg()}
+                FP32_ATTENTION_T1024_CHART: fp32_attention_t1024_svg(),
+                BF16_SWIGLU_VECTOR_CHART: bf16_swiglu_vector_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

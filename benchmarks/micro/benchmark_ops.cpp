@@ -71,16 +71,23 @@ Options parse_options(int argc, char** argv) {
         else throw std::invalid_argument("unknown benchmark option: " + std::string(name));
     }
     if (options.operation != "add" && options.operation != "matmul" &&
-        options.operation != "bf16-mixed" &&
+        options.operation != "bf16-mixed" && options.operation != "swiglu" &&
         options.operation != "softmax") {
-        throw std::invalid_argument("op must be add, matmul, bf16-mixed, or softmax");
+        throw std::invalid_argument(
+            "op must be add, matmul, bf16-mixed, swiglu, or softmax");
     }
     if (options.device != "cpu" && options.device != "hip") {
         throw std::invalid_argument("device must be cpu or hip");
     }
-    if (options.implementation != "auto" && options.implementation != "readable" &&
-        options.implementation != "hipblaslt") {
-        throw std::invalid_argument("implementation must be auto, readable, or hipblaslt");
+    const auto swiglu_implementation = options.operation == "swiglu" &&
+        (options.implementation == "auto" || options.implementation == "scalar" ||
+         options.implementation == "vectorized");
+    const auto general_implementation = options.operation != "swiglu" &&
+        (options.implementation == "auto" || options.implementation == "readable" ||
+         options.implementation == "hipblaslt");
+    if (!swiglu_implementation && !general_implementation) {
+        throw std::invalid_argument(
+            "implementation is invalid for the selected operator");
     }
     if (options.dtype != "fp32" && options.dtype != "fp16" && options.dtype != "bf16") {
         throw std::invalid_argument("dtype must be fp32, fp16, or bf16");
@@ -99,7 +106,8 @@ Options parse_options(int argc, char** argv) {
         options.size > 16384) {
         throw std::invalid_argument("matrix benchmark size exceeds the safety limit");
     }
-    if (options.operation == "add" && options.size > 100000000) {
+    if ((options.operation == "add" || options.operation == "swiglu") &&
+        options.size > 100000000) {
         throw std::invalid_argument("elementwise benchmark size exceeds the safety limit");
     }
     if (options.operation == "matmul" || options.operation == "bf16-mixed") {
@@ -119,6 +127,9 @@ Options parse_options(int argc, char** argv) {
     }
     if (options.batch != 1 && options.operation != "matmul") {
         throw std::invalid_argument("batch greater than one is valid only for matmul");
+    }
+    if (options.operation == "swiglu" && options.dtype != "bf16") {
+        throw std::invalid_argument("swiglu tuning is pinned to bf16");
     }
     return options;
 }
@@ -146,6 +157,14 @@ microllm::Tensor run_operation(const std::string& operation, const microllm::Ten
             transpose_left, transpose_right, context);
     }
     if (operation == "bf16-mixed") return microllm::ops::bf16_matmul(left, right, context);
+    if (operation == "swiglu") {
+        const auto selected = implementation == "vectorized"
+            ? microllm::ops::SwiGLUImplementation::Vectorized
+            : implementation == "scalar" || implementation == "readable"
+                ? microllm::ops::SwiGLUImplementation::Scalar
+                : microllm::ops::SwiGLUImplementation::Auto;
+        return microllm::ops::swiglu_with_implementation(left, right, selected, context);
+    }
     return microllm::ops::softmax(left, -1, context);
 }
 
@@ -182,7 +201,8 @@ int main(int argc, char** argv) {
         const auto right_columns = options.transpose_right ? options.inner : options.columns;
         const auto left_count = (matrix_operation
                                     ? left_rows * left_columns
-                                    : options.operation == "add" ? options.size
+                                    : options.operation == "add" ||
+                                              options.operation == "swiglu" ? options.size
                                                                   : options.size * options.size) *
                                 (matrix_operation ? options.batch : 1);
         const auto right_count = (matrix_operation
@@ -198,7 +218,7 @@ int main(int argc, char** argv) {
         }
         const microllm::Shape left_shape = options.batch > 1
             ? microllm::Shape{options.batch, left_rows, left_columns}
-            : options.operation == "add"
+            : options.operation == "add" || options.operation == "swiglu"
                 ? microllm::Shape{options.size}
                 : matrix_operation
                       ? microllm::Shape{left_rows, left_columns}
@@ -226,22 +246,37 @@ int main(int argc, char** argv) {
 
         std::vector<double> wall_times;
         std::vector<double> kernel_times;
-        microllm::Tensor output;
+        microllm::Tensor output = options.operation == "swiglu"
+            ? microllm::Tensor(left.shape(), left.dtype(), left.device())
+            : microllm::Tensor{};
+        const auto execute = [&](const microllm::ops::OpContext& context = {}) {
+            if (options.operation == "swiglu") {
+                const auto selected = options.implementation == "vectorized"
+                    ? microllm::ops::SwiGLUImplementation::Vectorized
+                    : options.implementation == "scalar"
+                        ? microllm::ops::SwiGLUImplementation::Scalar
+                        : microllm::ops::SwiGLUImplementation::Auto;
+                microllm::ops::swiglu_out_with_implementation_(
+                    output, left, right, selected, context);
+            } else {
+                output = run_operation(
+                    options.operation, left, right, options.implementation,
+                    options.transpose_left, options.transpose_right, context);
+            }
+        };
         if (device.is_hip()) {
             microllm::runtime::Stream stream(device);
             microllm::runtime::Event start(device);
             microllm::runtime::Event finish(device);
             const microllm::ops::OpContext context{&stream, nullptr, 0};
             for (int iteration = 0; iteration < options.warmup; ++iteration) {
-                output = run_operation(options.operation, left, right, options.implementation,
-                                       options.transpose_left, options.transpose_right, context);
+                execute(context);
             }
             stream.synchronize();
             for (int iteration = 0; iteration < options.repetitions; ++iteration) {
                 const auto wall_start = std::chrono::steady_clock::now();
                 start.record(stream);
-                output = run_operation(options.operation, left, right, options.implementation,
-                                       options.transpose_left, options.transpose_right, context);
+                execute(context);
                 finish.record(stream);
                 finish.synchronize();
                 const auto wall_finish = std::chrono::steady_clock::now();
@@ -252,13 +287,11 @@ int main(int argc, char** argv) {
             }
         } else {
             for (int iteration = 0; iteration < options.warmup; ++iteration) {
-                output = run_operation(options.operation, left, right, options.implementation,
-                                       options.transpose_left, options.transpose_right);
+                execute();
             }
             for (int iteration = 0; iteration < options.repetitions; ++iteration) {
                 const auto start = std::chrono::steady_clock::now();
-                output = run_operation(options.operation, left, right, options.implementation,
-                                       options.transpose_left, options.transpose_right);
+                execute();
                 const auto finish = std::chrono::steady_clock::now();
                 const auto elapsed =
                     std::chrono::duration<double, std::milli>(finish - start).count();
