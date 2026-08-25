@@ -1240,13 +1240,22 @@ public:
         const auto use_materialized = cached_attention_materialized_ &&
                                       cache.key.shape()[2] >=
                                           cached_attention_materialized_minimum_;
-        const auto use_split = !use_materialized &&
+        const auto use_split_pv = !use_materialized &&
+                                  cached_attention_pv_splits_ > 0 &&
+                                  cache.key.shape()[2] >=
+                                      cached_attention_pv_minimum_sequence_;
+        const auto use_split = !use_materialized && !use_split_pv &&
                                cached_attention_splits_ > 0 &&
                                cache.key.shape()[2] >=
                                    cached_attention_minimum_sequence_;
         auto cached_context = use_materialized
             ? ops::cached_gqa_attention_materialized_scores(
                   query, cache.key, cache.value, repeats, scale)
+            : use_split_pv
+                  ? ops::cached_gqa_attention_split_pv_exact_softmax(
+                        query, cache.key, cache.value, repeats, scale,
+                        std::min(cached_attention_pv_splits_,
+                                 cache.key.shape()[2]))
             : use_split ? ops::cached_gqa_attention_split_sequence(
                   query, cache.key, cache.value, repeats, scale,
                   std::min(cached_attention_splits_, cache.key.shape()[2]))
@@ -1409,6 +1418,11 @@ public:
         cached_attention_materialized_ = enabled;
         cached_attention_materialized_minimum_ = minimum_sequence;
     }
+    void set_cached_attention_split_pv(
+        std::int64_t splits, std::int64_t minimum_sequence) noexcept {
+        cached_attention_pv_splits_ = splits;
+        cached_attention_pv_minimum_sequence_ = minimum_sequence;
+    }
     void prewarm_bf16_grouped_qkv(const Tensor& input) {
         if (qkv_arena_cache_ == nullptr) {
             throw std::logic_error(
@@ -1507,6 +1521,8 @@ private:
     std::int64_t cached_attention_minimum_sequence_ = 512;
     bool cached_attention_materialized_ = false;
     std::int64_t cached_attention_materialized_minimum_ = 512;
+    std::int64_t cached_attention_pv_splits_ = 0;
+    std::int64_t cached_attention_pv_minimum_sequence_ = 512;
 };
 
 class Bf16FfnArenaCache {
@@ -1955,6 +1971,10 @@ public:
         attention_.set_cached_attention_materialized_scores(
             enabled, minimum_sequence);
     }
+    void set_cached_attention_split_pv(
+        std::int64_t splits, std::int64_t minimum_sequence) noexcept {
+        attention_.set_cached_attention_split_pv(splits, minimum_sequence);
+    }
     void prewarm_bf16_grouped_qkv(const Tensor& input) {
         attention_.prewarm_bf16_grouped_qkv(input);
     }
@@ -2036,6 +2056,8 @@ struct TransformerModel::Impl {
     std::int64_t cached_attention_minimum_sequence = 512;
     bool cached_attention_materialized = false;
     std::int64_t cached_attention_materialized_minimum = 512;
+    std::int64_t cached_attention_pv_splits = 0;
+    std::int64_t cached_attention_pv_minimum_sequence = 512;
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
     bool fp8_inference_prepared = false;
@@ -2919,7 +2941,8 @@ void TransformerModel::set_cached_attention_split_sequence(
         throw std::invalid_argument(
             "cached Attention splits must be 0..32 and minimum sequence positive");
     }
-    if (splits > 0 && impl_->cached_attention_materialized) {
+    if (splits > 0 && (impl_->cached_attention_materialized ||
+                       impl_->cached_attention_pv_splits > 0)) {
         throw std::logic_error(
             "cached Attention split and materialized policies are mutually exclusive");
     }
@@ -2946,7 +2969,8 @@ void TransformerModel::set_cached_attention_materialized_scores(
         throw std::invalid_argument(
             "materialized cached Attention minimum sequence must be positive");
     }
-    if (enabled && impl_->cached_attention_splits > 0) {
+    if (enabled && (impl_->cached_attention_splits > 0 ||
+                    impl_->cached_attention_pv_splits > 0)) {
         throw std::logic_error(
             "cached Attention materialized and split policies are mutually exclusive");
     }
@@ -2966,6 +2990,34 @@ bool TransformerModel::cached_attention_materialized_scores_enabled()
 std::int64_t TransformerModel::cached_attention_materialized_minimum_sequence()
     const noexcept {
     return impl_->cached_attention_materialized_minimum;
+}
+
+void TransformerModel::set_cached_attention_split_pv(
+    std::int64_t splits, std::int64_t minimum_sequence) {
+    if (splits < 0 || splits > 32 || minimum_sequence <= 0) {
+        throw std::invalid_argument(
+            "cached Attention P*V splits must be 0..32 and minimum sequence positive");
+    }
+    if (splits > 0 && (impl_->cached_attention_splits > 0 ||
+                       impl_->cached_attention_materialized)) {
+        throw std::logic_error(
+            "cached Attention P*V, materialized, and full split policies are mutually exclusive");
+    }
+    for (auto& block : impl_->blocks) {
+        block->set_cached_attention_split_pv(splits, minimum_sequence);
+    }
+    impl_->cached_attention_pv_splits = splits;
+    impl_->cached_attention_pv_minimum_sequence = minimum_sequence;
+}
+
+std::int64_t TransformerModel::cached_attention_split_pv_splits()
+    const noexcept {
+    return impl_->cached_attention_pv_splits;
+}
+
+std::int64_t TransformerModel::cached_attention_split_pv_minimum_sequence()
+    const noexcept {
+    return impl_->cached_attention_pv_minimum_sequence;
 }
 
 Fp8WeightPreparationReport TransformerModel::prepare_fp8_inference_weights() {

@@ -21,6 +21,17 @@ decode且prefix至少2048时，会自动使用保序的materialized-score路径�
 
 请同时保存JSON中的`cached_attention_materialized_policy`、`cached_attention_materialized_scores`和
 `cached_attention_materialized_minimum_sequence`，不要只根据命令行猜测实际路径。
+
+`split-P×V`是单独的显式研究路径，不属于Auto。它与materialized和完整split互斥：
+
+```bash
+--cached-attention-pv-splits 16 \
+--cached-attention-minimum-sequence 2048 \
+--cached-attention-materialized false
+```
+
+正式结果还要保存`cached_attention_pv_splits`与
+`cached_attention_pv_minimum_sequence`。positions-aware serving继续使用专用参考路径。
 ## 推理有三段，不是一件事
 
 假设输入是一段128个token的文字，模型还要生成4个token：

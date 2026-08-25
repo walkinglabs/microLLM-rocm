@@ -26,12 +26,13 @@ n = int(a["--new-tokens"])
 steps = int(a["--steps"])
 warmup = int(a["--warmup"])
 splits = int(a["--cached-attention-splits"])
+pv_splits = int(a.get("--cached-attention-pv-splits", "0"))
 materialized_explicit = "--cached-attention-materialized" in a
 materialized = a.get("--cached-attention-materialized", "true") == "true"
-candidate = bool(splits) or materialized
+candidate = bool(splits) or bool(pv_splits) or materialized
 minimum = int(a["--cached-attention-minimum-sequence"])
 tokens = [int(value) for value in a["--tokens"].split(",")]
-values = [float(index) / 32.0 + (1.0e-6 if splits else 0.0)
+values = [float(index) / 32.0 + (1.0e-6 if (splits or pv_splits) else 0.0)
           for index in range(b * 16)]
 with open(a["--cache-logits-output"], "wb") as stream:
     array.array("f", values).tofile(stream)
@@ -54,6 +55,8 @@ record = {
     "kv_cache_active_bytes": 4096,
     "cached_attention_splits": splits,
     "cached_attention_minimum_sequence": minimum,
+    "cached_attention_pv_splits": pv_splits,
+    "cached_attention_pv_minimum_sequence": minimum,
     "cached_attention_materialized_scores": materialized,
     "cached_attention_materialized_policy": (
         "explicit-on" if materialized_explicit and materialized
@@ -178,6 +181,42 @@ def main() -> int:
         assert auto_summary["candidate_policy"] == "auto"
         assert auto_summary["accuracy_gate_passed"] is True
         assert auto_summary["performance_gate_passed"] is True
+
+        split_pv_output = root / "split-pv-output"
+        split_pv_completed = subprocess.run([
+            sys.executable, str(RUNNER), "--manifest", str(manifest),
+            "--binary", str(fake), "--output-directory", str(split_pv_output),
+            "--model", "fixture", "--candidate-policy", "split-pv",
+            "--context", "8", "--batch", "2", "--decode-tokens", "4",
+            "--cache-dtype", "bf16", "--splits", "4",
+            "--minimum-sequence", "4", "--warmup", "1", "--steps", "2",
+            "--runs", "3",
+        ], text=True, capture_output=True, check=False)
+        if split_pv_completed.returncode != 0:
+            raise AssertionError(
+                split_pv_completed.stdout + split_pv_completed.stderr)
+        split_pv_summary = json.loads(
+            (split_pv_output / "summary.json").read_text(encoding="utf-8"))
+        split_pv_raw = [json.loads(line) for line in
+                        (split_pv_output / "raw.jsonl").read_text(
+                            encoding="utf-8").splitlines()]
+        assert split_pv_summary["candidate_policy"] == "split-pv"
+        assert split_pv_summary["pv_splits"] == 4
+        assert split_pv_summary["accuracy_gate_passed"] is True
+        assert split_pv_summary["performance_gate_passed"] is False
+        assert all((row["cached_attention_pv_splits"] == 4 and
+                    row["cached_attention_materialized_scores"] is False)
+                   if row["policy"] == "split" else
+                   (row["cached_attention_pv_splits"] == 0 and
+                    row["cached_attention_materialized_scores"] is True)
+                   for row in split_pv_raw)
+        one_pair = subprocess.run([
+            sys.executable, str(RUNNER), "--manifest", str(manifest),
+            "--binary", str(fake), "--output-directory", str(root / "one-pair"),
+            "--model", "fixture", "--runs", "1",
+        ], text=True, capture_output=True, check=False)
+        assert one_pair.returncode == 2
+        assert "outside the measured contract" in one_pair.stderr
 
         fake_comparison = root / "fake_comparison.py"
         fake_comparison.write_text(FAKE_COMPARISON, encoding="utf-8")

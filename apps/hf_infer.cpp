@@ -60,6 +60,7 @@ struct Options {
     bool attention_core_arena = false;
     std::int64_t attention_core_arena_minimum_sequence = 512;
     std::int64_t cached_attention_splits = 0;
+    std::int64_t cached_attention_pv_splits = 0;
     std::int64_t cached_attention_minimum_sequence = 512;
     bool cached_attention_materialized = false;
     bool cached_attention_materialized_explicit = false;
@@ -191,6 +192,8 @@ Options options(int argc, char** argv) {
                 std::stoll(argv[index + 1]);
         } else if (name == "--cached-attention-splits") {
             result.cached_attention_splits = std::stoll(argv[index + 1]);
+        } else if (name == "--cached-attention-pv-splits") {
+            result.cached_attention_pv_splits = std::stoll(argv[index + 1]);
         } else if (name == "--cached-attention-minimum-sequence") {
             result.cached_attention_minimum_sequence =
                 std::stoll(argv[index + 1]);
@@ -496,10 +499,18 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--cached-attention-splits must be 0..32 and minimum sequence positive");
     }
-    if (result.cached_attention_materialized &&
-        result.cached_attention_splits > 0) {
+    if (result.cached_attention_pv_splits < 0 ||
+        result.cached_attention_pv_splits > 32) {
         throw std::invalid_argument(
-            "cached Attention materialized and split policies are mutually exclusive");
+            "--cached-attention-pv-splits must be 0..32");
+    }
+    const auto explicit_cached_policies =
+        static_cast<int>(result.cached_attention_materialized) +
+        static_cast<int>(result.cached_attention_splits > 0) +
+        static_cast<int>(result.cached_attention_pv_splits > 0);
+    if (explicit_cached_policies > 1) {
+        throw std::invalid_argument(
+            "cached Attention materialized, split, and split-P*V policies are mutually exclusive");
     }
     if (result.bf16_ffn_arena && !result.trace_output.empty()) {
         throw std::invalid_argument(
@@ -1252,7 +1263,8 @@ int main(int argc, char** argv) {
               external.model.head_dimension() == 128));
         const auto materialized_auto_eligible =
             !command.cached_attention_materialized_explicit &&
-            command.cached_attention_splits == 0 && device.is_hip() &&
+            command.cached_attention_splits == 0 &&
+            command.cached_attention_pv_splits == 0 && device.is_hip() &&
             materialized_architecture.starts_with("gfx942") &&
             command.kv_cache_dtype == "bf16" && command.use_cache &&
             measured_head_signature;
@@ -1312,6 +1324,9 @@ int main(int argc, char** argv) {
         }
         model.set_cached_attention_split_sequence(
             command.cached_attention_splits,
+            command.cached_attention_minimum_sequence);
+        model.set_cached_attention_split_pv(
+            command.cached_attention_pv_splits,
             command.cached_attention_minimum_sequence);
         model.set_cached_attention_materialized_scores(
             materialized_enabled, materialized_minimum_sequence);
@@ -2265,6 +2280,10 @@ int main(int argc, char** argv) {
                   << model.cached_attention_split_sequence_splits()
                   << ",\"cached_attention_minimum_sequence\":"
                   << model.cached_attention_split_minimum_sequence()
+                  << ",\"cached_attention_pv_splits\":"
+                  << model.cached_attention_split_pv_splits()
+                  << ",\"cached_attention_pv_minimum_sequence\":"
+                  << model.cached_attention_split_pv_minimum_sequence()
                   << ",\"cached_attention_materialized_scores\":"
                   << (model.cached_attention_materialized_scores_enabled()
                           ? "true" : "false")

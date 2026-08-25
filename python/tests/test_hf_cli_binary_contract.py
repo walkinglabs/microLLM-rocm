@@ -49,6 +49,8 @@ def main() -> int:
         b"--cached-attention-materialized",
         b"cached_attention_materialized_scores",
         b"cached_attention_materialized_policy",
+        b"cached_attention_pv_splits",
+        b"cached-attention-pv-splits",
         b"auto-enabled",
         b"auto-bypass",
         b"--bf16-grouped-gate-up-algorithm-index",
@@ -91,6 +93,16 @@ def main() -> int:
                 rejected_split.stderr:
             raise RuntimeError(
                 "hf_infer accepted an invalid cached Attention split count")
+        rejected_pv_split = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1",
+            "--device", "cpu", "--cached-attention-pv-splits", "33",
+        ], text=True, capture_output=True, check=False)
+        if rejected_pv_split.returncode == 0 or \
+                "--cached-attention-pv-splits must be 0..32" not in \
+                rejected_pv_split.stderr:
+            raise RuntimeError(
+                "hf_infer accepted an invalid cached Attention P*V split count")
         rejected_conflict = subprocess.run([
             str(args.binary), "--config", str(missing),
             "--weights", str(missing), "--tokens", "1",
@@ -101,6 +113,16 @@ def main() -> int:
                 "mutually exclusive" not in rejected_conflict.stderr:
             raise RuntimeError(
                 "hf_infer accepted conflicting cached Attention policies")
+        rejected_pv_conflict = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1",
+            "--device", "cpu", "--cached-attention-pv-splits", "16",
+            "--cached-attention-materialized", "true",
+        ], text=True, capture_output=True, check=False)
+        if rejected_pv_conflict.returncode == 0 or \
+                "mutually exclusive" not in rejected_pv_conflict.stderr:
+            raise RuntimeError(
+                "hf_infer accepted conflicting split-P*V and materialized policies")
     print("hf_infer binary contract: pass")
     return 0
 

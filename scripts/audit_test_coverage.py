@@ -97,6 +97,7 @@ expected_weight_model = {
     "set_attention_core_arena_enabled",
     "set_cached_attention_split_sequence",
     "set_cached_attention_materialized_scores",
+    "set_cached_attention_split_pv",
     "prewarm_bf16_grouped_qkv",
 }
 if declared_weight_model != expected_weight_model:

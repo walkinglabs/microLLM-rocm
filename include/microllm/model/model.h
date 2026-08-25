@@ -193,6 +193,13 @@ public:
         const noexcept;
     [[nodiscard]] std::int64_t cached_attention_materialized_minimum_sequence()
         const noexcept;
+    // Explicit research route for uniform cached decode. Zero disables it.
+    // It is mutually exclusive with full split-sequence and materialized routes.
+    void set_cached_attention_split_pv(
+        std::int64_t splits, std::int64_t minimum_sequence = 512);
+    [[nodiscard]] std::int64_t cached_attention_split_pv_splits() const noexcept;
+    [[nodiscard]] std::int64_t cached_attention_split_pv_minimum_sequence()
+        const noexcept;
     // One-way inference preparation for every Linear. FP32 Embedding/Norm and
     // a tied output head remain unchanged. Weight scale is either fixed or
     // computed independently from each Linear Tensor; activation scale remains fixed.

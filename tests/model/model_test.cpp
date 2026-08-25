@@ -763,6 +763,8 @@ TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
         EXPECT_FALSE(model.cached_attention_materialized_scores_enabled());
         EXPECT_EQ(
             model.cached_attention_materialized_minimum_sequence(), 512);
+        EXPECT_EQ(model.cached_attention_split_pv_splits(), 0);
+        EXPECT_EQ(model.cached_attention_split_pv_minimum_sequence(), 512);
         EXPECT_THROW(model.set_cached_attention_split_sequence(-1, 1),
                      std::invalid_argument);
         EXPECT_THROW(model.set_cached_attention_split_sequence(33, 1),
@@ -771,14 +773,45 @@ TEST(TransformerModelTest, CachedLogitsMatchFullPrefixForMhaAndGqa) {
                      std::invalid_argument);
         EXPECT_THROW(model.set_cached_attention_materialized_scores(true, 0),
                      std::invalid_argument);
+        EXPECT_THROW(model.set_cached_attention_split_pv(-1, 1),
+                     std::invalid_argument);
+        EXPECT_THROW(model.set_cached_attention_split_pv(33, 1),
+                     std::invalid_argument);
+        EXPECT_THROW(model.set_cached_attention_split_pv(2, 0),
+                     std::invalid_argument);
         model.set_cached_attention_materialized_scores(true, 1);
         EXPECT_TRUE(model.cached_attention_materialized_scores_enabled());
         EXPECT_THROW(model.set_cached_attention_split_sequence(2, 1),
+                     std::logic_error);
+        EXPECT_THROW(model.set_cached_attention_split_pv(2, 1),
                      std::logic_error);
         model.set_cached_attention_materialized_scores(false, 1);
         model.set_cached_attention_split_sequence(2, 1);
         EXPECT_EQ(model.cached_attention_split_sequence_splits(), 2);
         EXPECT_EQ(model.cached_attention_split_minimum_sequence(), 1);
+        EXPECT_THROW(model.set_cached_attention_split_pv(2, 1),
+                     std::logic_error);
+        model.set_cached_attention_split_sequence(0, 1);
+        model.set_cached_attention_split_pv(2, 1);
+        EXPECT_EQ(model.cached_attention_split_pv_splits(), 2);
+        EXPECT_EQ(model.cached_attention_split_pv_minimum_sequence(), 1);
+        EXPECT_THROW(model.set_cached_attention_materialized_scores(true, 1),
+                     std::logic_error);
+        EXPECT_THROW(model.set_cached_attention_split_sequence(2, 1),
+                     std::logic_error);
+        inference::KVCache split_pv_cache(
+            model.config().layers, model.config().max_sequence_length);
+        const auto split_pv_logits = model.forward_cached(
+            Tensor::from_int32_vector({1}, {1, 1}), split_pv_cache).to_vector();
+        model.set_cached_attention_split_pv(0, 1);
+        model.set_cached_attention_materialized_scores(true, 1);
+        inference::KVCache materialized_cache(
+            model.config().layers, model.config().max_sequence_length);
+        const auto materialized_logits = model.forward_cached(
+            Tensor::from_int32_vector({1}, {1, 1}), materialized_cache).to_vector();
+        EXPECT_EQ(split_pv_logits, materialized_logits);
+        model.set_cached_attention_materialized_scores(false, 1);
+        model.set_cached_attention_split_sequence(2, 1);
         inference::KVCache cache(model.config().layers, model.config().max_sequence_length);
         const std::vector<std::int32_t> tokens{1, 2, 3, 4};
         const void* key_address = nullptr;

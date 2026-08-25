@@ -26,7 +26,8 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--cache-dtype", choices=("fp32", "bf16"), default="bf16")
     parser.add_argument("--splits", type=int, default=32)
     parser.add_argument(
-        "--candidate-policy", choices=("split", "materialized", "auto"),
+        "--candidate-policy",
+        choices=("split", "split-pv", "materialized", "auto"),
         default="split")
     parser.add_argument("--minimum-sequence", type=int, default=512)
     parser.add_argument("--warmup", type=int, default=2)
@@ -39,7 +40,7 @@ def arguments() -> argparse.Namespace:
     if (result.context <= 0 or result.batch <= 0 or result.decode_tokens <= 0 or
             result.splits <= 0 or result.splits > 32 or
             result.minimum_sequence <= 0 or result.warmup < 0 or
-            result.steps <= 0 or result.runs <= 0 or
+            result.steps <= 0 or result.runs < 2 or
             result.maximum_logit_error < 0 or result.maximum_logit_rms < 0 or
             result.timeout_seconds <= 0):
         parser.error("model comparison options are outside the measured contract")
@@ -92,8 +93,11 @@ def command(args: argparse.Namespace, model: dict, policy: str,
     is_candidate = policy == "split"
     splits = (args.splits if is_candidate and
               args.candidate_policy == "split" else 0)
-    materialized = is_candidate and args.candidate_policy in {
-        "materialized", "auto"}
+    pv_splits = (args.splits if is_candidate and
+                 args.candidate_policy == "split-pv" else 0)
+    materialized = ((is_candidate and args.candidate_policy in {
+        "materialized", "auto"}) or
+        (not is_candidate and args.candidate_policy == "split-pv"))
     result = [
         str(args.binary), "--config", model["config"],
         "--weights", model["weights"],
@@ -110,6 +114,7 @@ def command(args: argparse.Namespace, model: dict, policy: str,
         "--bf16-ffn", "true", "--bf16-attention", "true",
         "--workload", "decode", "--cache-logits-output", str(logits_path),
         "--cached-attention-splits", str(splits),
+        "--cached-attention-pv-splits", str(pv_splits),
         "--cached-attention-minimum-sequence", str(args.minimum_sequence),
     ]
     if not (is_candidate and args.candidate_policy == "auto"):
@@ -123,8 +128,11 @@ def validate_record(record: dict, args: argparse.Namespace, model: dict,
     is_candidate = policy == "split"
     splits = (args.splits if is_candidate and
               args.candidate_policy == "split" else 0)
-    materialized = is_candidate and args.candidate_policy in {
-        "materialized", "auto"}
+    pv_splits = (args.splits if is_candidate and
+                 args.candidate_policy == "split-pv" else 0)
+    materialized = ((is_candidate and args.candidate_policy in {
+        "materialized", "auto"}) or
+        (not is_candidate and args.candidate_policy == "split-pv"))
     expected_policy = (
         "auto-enabled" if is_candidate and args.candidate_policy == "auto"
         else "explicit-on" if materialized else "explicit-off")
@@ -145,6 +153,8 @@ def validate_record(record: dict, args: argparse.Namespace, model: dict,
         "kv_cache_active_tokens": args.context + args.decode_tokens,
         "cached_attention_splits": splits,
         "cached_attention_minimum_sequence": args.minimum_sequence,
+        "cached_attention_pv_splits": pv_splits,
+        "cached_attention_pv_minimum_sequence": args.minimum_sequence,
         "cached_attention_materialized_scores": materialized,
         "cached_attention_materialized_policy": expected_policy,
         "cached_attention_materialized_auto_eligible": expected_auto,
@@ -224,6 +234,7 @@ def compare_pair(args: argparse.Namespace, current: tuple[dict, list[float]],
         "cache_dtype": args.cache_dtype,
         "candidate_policy": args.candidate_policy,
         "splits": args.splits if args.candidate_policy == "split" else 0,
+        "pv_splits": args.splits if args.candidate_policy == "split-pv" else 0,
         "minimum_sequence": args.minimum_sequence,
         "process_run": run,
         "pair_order": order,
@@ -339,6 +350,7 @@ def main() -> int:
         "cache_dtype": args.cache_dtype,
         "candidate_policy": args.candidate_policy,
         "splits": args.splits if args.candidate_policy == "split" else 0,
+        "pv_splits": args.splits if args.candidate_policy == "split-pv" else 0,
         "minimum_sequence": args.minimum_sequence,
         "runs_per_policy": args.runs,
         "process_rows": len(records),
