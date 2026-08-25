@@ -166,6 +166,14 @@ host enqueue order only; it does not claim device completion or change the synch
 The audit runner maps that order to the exact natural bucket ranges before any Event/collective
 prototype is admitted.
 
+The default-off `overlap_gradient_communication` prototype requires persistent bucket views.
+After step-one plan warm-up, each rank records a default-Stream Event when a bucket's final leaf is
+ready. Communication Streams wait on both Events, pack, enqueue RCCL sum and in-place average, and
+the trainer waits for all buckets before optimizer. The synchronous path remains the control.
+Because this controller executes rank0 then rank1 backward in one process, it can overlap only
+with the second rank's remaining work; it is not a one-process-per-GPU DDP claim. Candidate
+forward/backward timing includes the final overlap wait, so `total_ms` is the primary gate.
+
 A production one-process-per-GPU DDP path still needs:
 
 - rank initialization from `RANK`, `LOCAL_RANK`, `WORLD_SIZE`, and a distributed unique

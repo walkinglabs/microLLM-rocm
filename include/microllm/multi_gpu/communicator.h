@@ -26,6 +26,7 @@ public:
     void all_reduce(std::vector<Tensor>& tensors, bool average = true,
                     bool in_place_average = true);
     void enqueue_all_reduce_sum(std::vector<Tensor>& tensors);
+    void enqueue_all_reduce_average_in_place(std::vector<Tensor>& tensors);
     void synchronize();
     void abort() noexcept;
 

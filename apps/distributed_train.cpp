@@ -23,6 +23,7 @@ struct Options {
     bool persistent_gradient_buckets = false;
     bool gradient_bucket_views = false;
     bool record_gradient_ready_order = false;
+    bool overlap_gradient_communication = false;
     std::uint64_t seed = 601;
     std::size_t batch = 1;
     std::size_t context = 0;
@@ -81,6 +82,13 @@ Options parse(int argc, char** argv) {
                     "--record-gradient-ready-order must be true or false");
             }
             options.record_gradient_ready_order = value == "true";
+        } else if (argument == "--overlap-gradient-communication") {
+            const auto value = next("--overlap-gradient-communication");
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--overlap-gradient-communication must be true or false");
+            }
+            options.overlap_gradient_communication = value == "true";
         } else if (argument == "--seed") options.seed = number(next("--seed"), "seed");
         else if (argument == "--batch") {
             options.batch = static_cast<std::size_t>(number(next("--batch"), "batch"));
@@ -190,6 +198,7 @@ int main(int argc, char** argv) {
              .persistent_gradient_buckets = options.persistent_gradient_buckets,
              .gradient_bucket_views = options.gradient_bucket_views,
              .record_gradient_ready_order = options.record_gradient_ready_order,
+             .overlap_gradient_communication = options.overlap_gradient_communication,
              .optimizer = optimizer});
         const auto parameter_count = trainer.model(0).parameter_count();
         std::vector<std::string> parameter_names;
@@ -244,6 +253,8 @@ int main(int argc, char** argv) {
                           << (options.gradient_bucket_views ? "true" : "false")
                           << ",\"record_gradient_ready_order\":"
                           << (options.record_gradient_ready_order ? "true" : "false")
+                          << ",\"overlap_gradient_communication\":"
+                          << (options.overlap_gradient_communication ? "true" : "false")
                           << ",\"mean_loss\":" << metrics.mean_loss
                           << ",\"bucket_count\":" << metrics.buckets.bucket_count
                           << ",\"bucket_parameter_count\":"
@@ -270,6 +281,10 @@ int main(int argc, char** argv) {
                           << (metrics.buckets.persistent_storage ? "true" : "false")
                           << ",\"bucket_plan_reused\":"
                           << (metrics.buckets.plan_reused ? "true" : "false")
+                          << ",\"bucket_overlap_enabled\":"
+                          << (metrics.buckets.overlap_enabled ? "true" : "false")
+                          << ",\"overlapped_bucket_count\":"
+                          << metrics.buckets.overlapped_bucket_count
                           << ",\"bucket_plan_capacity_elements\":"
                           << metrics.buckets.plan_capacity_elements
                           << ",\"bucket_plan_capacity_bytes\":"
@@ -298,6 +313,10 @@ int main(int argc, char** argv) {
                           << (metrics.gradient_ready_audit_performed ? "true" : "false")
                           << ",\"gradient_ready_orders_match\":"
                           << (metrics.gradient_ready_orders_match ? "true" : "false")
+                          << ",\"overlap_communication_performed\":"
+                          << (metrics.overlap_communication_performed ? "true" : "false")
+                          << ",\"overlap_finish_ms\":"
+                          << metrics.overlap_finish_ms
                           << ",\"parameter_names\":";
                 write_strings(parameter_names);
                 std::cout << ",\"parameter_elements\":";

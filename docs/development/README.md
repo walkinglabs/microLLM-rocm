@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Gradient-ready Event overlap infrastructure](2026-08-25-gradient-ready-overlap-infrastructure.md)
 - [2026-08-25: Gradient-ready audit result](2026-08-25-gradient-ready-audit-result.md)
 - [2026-08-25: Gradient-ready audit infrastructure](2026-08-25-gradient-ready-audit-infrastructure.md)
 - [2026-08-25: Rejected scoped Autograd producer cleanup](2026-08-25-scoped-autograd-gradient-producer-cleanup.md)

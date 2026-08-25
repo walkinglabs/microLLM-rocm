@@ -231,6 +231,59 @@ TEST(DataParallelTrainerTest, GradientReadyAuditIsCompleteStableAndRankIdentical
     EXPECT_EQ(second.maximum_parameter_difference, 0.0F);
 }
 
+TEST(DataParallelTrainerTest, GradientOverlapMatchesSingleGlobalBatchAfterPlanWarmup) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    const training::AdamWConfig optimizer{.learning_rate = 0.005F,
+                                           .beta1 = 0.9F,
+                                           .beta2 = 0.99F,
+                                           .epsilon = 1.0e-8F,
+                                           .weight_decay = 0.0F};
+    model::TransformerModel reference(config(), 587);
+    training::AdamW reference_optimizer(reference.parameters(), optimizer);
+    DataParallelTrainer trainer(
+        config(), 587,
+        {.device_indices = {0, 1},
+         .maximum_bucket_bytes = 1024 * 1024,
+         .parameter_check_interval = 1,
+         .in_place_bucket_average = true,
+         .persistent_gradient_buckets = true,
+         .gradient_bucket_views = true,
+         .overlap_gradient_communication = true,
+         .optimizer = optimizer});
+    for (std::uint64_t step = 1; step <= 3; ++step) {
+        reference_optimizer.zero_grad();
+        reference.loss(global_batch().inputs, global_batch().targets).backward();
+        reference_optimizer.step();
+        const auto metrics = trainer.step(local_batches(), step);
+        if (step == 1) {
+            EXPECT_FALSE(metrics.overlap_communication_performed);
+            EXPECT_FALSE(metrics.buckets.overlap_enabled);
+        } else {
+            EXPECT_TRUE(metrics.overlap_communication_performed);
+            EXPECT_TRUE(metrics.buckets.overlap_enabled);
+            EXPECT_EQ(metrics.buckets.overlapped_bucket_count,
+                      metrics.buckets.bucket_count);
+            EXPECT_EQ(metrics.communication_allocation_calls, 0U);
+            EXPECT_EQ(metrics.buckets.unpack_copy_calls, 0U);
+        }
+        EXPECT_EQ(metrics.maximum_parameter_difference, 0.0F);
+    }
+    EXPECT_LE(difference(reference, trainer.model(0)), 2.0e-5F);
+    EXPECT_EQ(difference(trainer.model(0), trainer.model(1)), 0.0F);
+}
+
+TEST(DataParallelTrainerTest, GradientOverlapRequiresPersistentViews) {
+    if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
+    EXPECT_THROW(
+        (void)DataParallelTrainer(
+            config(), 593,
+            {.device_indices = {0, 1},
+             .maximum_bucket_bytes = 4096,
+             .overlap_gradient_communication = true,
+             .optimizer = {}}),
+        std::invalid_argument);
+}
+
 TEST(DataParallelTrainerTest, RejectsUnequalLocalBatchWeighting) {
     if (runtime::hip_device_count() < 2) GTEST_SKIP() << "two visible HIP devices required";
     DataParallelTrainer trainer(

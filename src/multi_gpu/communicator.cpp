@@ -128,6 +128,16 @@ void Communicator::enqueue_all_reduce_sum(std::vector<Tensor>& tensors) {
     }
 }
 
+void Communicator::enqueue_all_reduce_average_in_place(
+    std::vector<Tensor>& tensors) {
+    enqueue_all_reduce_sum(tensors);
+    const auto factor = 1.0F / static_cast<float>(tensors.size());
+    for (std::size_t rank = 0; rank < tensors.size(); ++rank) {
+        const ops::OpContext context{&impl_->streams[rank], nullptr, 0};
+        ops::scale_in_place_(tensors[rank], factor, context);
+    }
+}
+
 void Communicator::synchronize() {
     if (impl_->aborted) throw std::logic_error("communicator has been aborted");
     try {

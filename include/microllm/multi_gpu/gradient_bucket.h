@@ -23,6 +23,8 @@ struct BucketStats {
     std::size_t temporary_bytes = 0;
     bool persistent_storage = false;
     bool plan_reused = false;
+    bool overlap_enabled = false;
+    std::size_t overlapped_bucket_count = 0;
     std::size_t plan_capacity_elements = 0;
     std::size_t plan_capacity_bytes = 0;
 };
@@ -40,7 +42,13 @@ public:
     GradientBucketPlan& operator=(const GradientBucketPlan&) = delete;
 
     [[nodiscard]] bool initialized() const noexcept;
+    [[nodiscard]] bool overlap_active() const noexcept;
     void clear() noexcept;
+    void begin_overlap_step(
+        Communicator& communicator,
+        const std::vector<std::vector<autograd::Value*>>& rank_parameters);
+    void mark_parameter_ready(std::size_t rank, std::size_t parameter_index);
+    [[nodiscard]] BucketStats finish_overlap_step();
 
 private:
     struct Impl;

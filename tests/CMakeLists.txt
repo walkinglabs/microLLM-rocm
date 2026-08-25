@@ -570,6 +570,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.DataParallelGradientReadyAuditContract PROPERTIES
         LABELS "cpu;benchmark;autograd;training;model;multi_gpu;rccl;bucket;schema")
     add_test(
+        NAME Benchmark.DataParallelGradientOverlapMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_gradient_overlap_matrix.py
+    )
+    set_tests_properties(Benchmark.DataParallelGradientOverlapMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;autograd;training;model;multi_gpu;rccl;bucket;memory;schema")
+    add_test(
         NAME Benchmark.Bf16RepeatContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_repeat.py

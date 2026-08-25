@@ -118,6 +118,12 @@ struct DataParallelTrainer::Impl {
             throw std::invalid_argument(
                 "gradient bucket views require persistent gradient buckets");
         }
+        if (config.overlap_gradient_communication &&
+            (!config.persistent_gradient_buckets ||
+             !config.gradient_bucket_views)) {
+            throw std::invalid_argument(
+                "gradient overlap requires persistent gradient bucket views");
+        }
         models.reserve(config.device_indices.size());
         optimizers.reserve(config.device_indices.size());
         gradient_ready_order.resize(config.device_indices.size());
@@ -130,13 +136,20 @@ struct DataParallelTrainer::Impl {
             optimizers.push_back(std::make_unique<training::AdamW>(
                 rank_model->parameters(), config.optimizer));
         }
-        if (config.record_gradient_ready_order) {
+        if (config.record_gradient_ready_order ||
+            config.overlap_gradient_communication) {
             for (std::size_t rank = 0; rank < models.size(); ++rank) {
                 const auto parameters = models[rank]->parameters();
                 for (std::size_t index = 0; index < parameters.size(); ++index) {
                     parameters[index]->set_gradient_ready_hook(
                         [this, rank, index] {
-                            gradient_ready_order[rank].push_back(index);
+                            if (config.record_gradient_ready_order) {
+                                gradient_ready_order[rank].push_back(index);
+                            }
+                            if (gradient_bucket_plan.overlap_active()) {
+                                gradient_bucket_plan.mark_parameter_ready(
+                                    rank, index);
+                            }
                         });
                 }
             }
@@ -175,6 +188,18 @@ DistributedStepMetrics DataParallelTrainer::step(
     if (impl_->config.record_gradient_ready_order) {
         for (auto& order : impl_->gradient_ready_order) order.clear();
     }
+    std::vector<std::vector<autograd::Value*>> rank_parameters;
+    rank_parameters.reserve(world_size());
+    for (auto& rank_model : impl_->models) {
+        rank_parameters.push_back(rank_model->parameters());
+    }
+    const bool overlap_active =
+        impl_->config.overlap_gradient_communication &&
+        impl_->gradient_bucket_plan.initialized();
+    if (overlap_active) {
+        impl_->gradient_bucket_plan.begin_overlap_step(
+            impl_->communicator, rank_parameters);
+    }
 
     const auto forward_start = Clock::now();
     for (std::size_t rank = 0; rank < world_size(); ++rank) {
@@ -207,11 +232,35 @@ DistributedStepMetrics DataParallelTrainer::step(
                 "rank gradient-ready orders are incomplete or inconsistent");
         }
     }
-    // Correctness baseline: communication streams must not read gradients before
-    // default-stream backward work is complete. Gradient-ready event overlap is a
-    // separate milestone.
-    for (const auto device : impl_->config.device_indices) {
-        runtime::synchronize(Device::hip(device));
+    if (overlap_active) {
+        const auto overlap_start = Clock::now();
+        const auto allocation_before = runtime::allocation_stats(
+            Device::hip(impl_->config.device_indices.front()));
+        metrics.buckets = impl_->gradient_bucket_plan.finish_overlap_step();
+        for (const auto device : impl_->config.device_indices) {
+            runtime::synchronize(Device::hip(device));
+        }
+        const auto allocation_after = runtime::allocation_stats(
+            Device::hip(impl_->config.device_indices.front()));
+        metrics.communication_allocation_calls =
+            allocation_after.allocation_calls - allocation_before.allocation_calls;
+        metrics.communication_backend_allocation_calls =
+            allocation_after.backend_allocation_calls -
+            allocation_before.backend_allocation_calls;
+        metrics.communication_cache_reuse_calls =
+            allocation_after.cache_reuse_calls - allocation_before.cache_reuse_calls;
+        metrics.communication_total_allocated_bytes =
+            allocation_after.total_allocated_bytes -
+            allocation_before.total_allocated_bytes;
+        metrics.overlap_communication_performed = true;
+        metrics.overlap_finish_ms = elapsed_ms(overlap_start, Clock::now());
+        metrics.communication_ms = metrics.overlap_finish_ms;
+    } else {
+        // Correctness baseline: communication streams must not read gradients
+        // before default-stream backward work is complete.
+        for (const auto device : impl_->config.device_indices) {
+            runtime::synchronize(Device::hip(device));
+        }
     }
     const auto forward_finish = Clock::now();
     metrics.forward_backward_ms = elapsed_ms(forward_start, forward_finish);
@@ -222,39 +271,37 @@ DistributedStepMetrics DataParallelTrainer::step(
                       scalar(metrics.mean_loss), metrics.forward_backward_ms);
     }
 
-    const auto communication_start = Clock::now();
-    // Runtime HIP allocation counters are process-wide across HIP devices.
-    // Sample once; summing per-device queries would double-count the same ledger.
-    const auto communication_allocation_before = runtime::allocation_stats(
-        Device::hip(impl_->config.device_indices.front()));
-    std::vector<std::vector<autograd::Value*>> rank_parameters;
-    rank_parameters.reserve(world_size());
-    for (auto& rank_model : impl_->models) {
-        rank_parameters.push_back(rank_model->parameters());
+    if (!overlap_active) {
+        const auto communication_start = Clock::now();
+        // Runtime HIP allocation counters are process-wide across HIP devices.
+        // Sample once; summing per-device queries would double-count the same ledger.
+        const auto communication_allocation_before = runtime::allocation_stats(
+            Device::hip(impl_->config.device_indices.front()));
+        metrics.buckets = all_reduce_gradients(
+            impl_->communicator, rank_parameters,
+            impl_->config.maximum_bucket_bytes,
+            impl_->config.in_place_bucket_average,
+            impl_->config.persistent_gradient_buckets
+                ? &impl_->gradient_bucket_plan
+                : nullptr,
+            impl_->config.gradient_bucket_views);
+        const auto communication_allocation_after = runtime::allocation_stats(
+            Device::hip(impl_->config.device_indices.front()));
+        metrics.communication_allocation_calls =
+            communication_allocation_after.allocation_calls -
+            communication_allocation_before.allocation_calls;
+        metrics.communication_backend_allocation_calls =
+            communication_allocation_after.backend_allocation_calls -
+            communication_allocation_before.backend_allocation_calls;
+        metrics.communication_cache_reuse_calls =
+            communication_allocation_after.cache_reuse_calls -
+            communication_allocation_before.cache_reuse_calls;
+        metrics.communication_total_allocated_bytes =
+            communication_allocation_after.total_allocated_bytes -
+            communication_allocation_before.total_allocated_bytes;
+        metrics.communication_ms = elapsed_ms(
+            communication_start, Clock::now());
     }
-    metrics.buckets = all_reduce_gradients(
-        impl_->communicator, rank_parameters, impl_->config.maximum_bucket_bytes,
-        impl_->config.in_place_bucket_average,
-        impl_->config.persistent_gradient_buckets
-            ? &impl_->gradient_bucket_plan
-            : nullptr,
-        impl_->config.gradient_bucket_views);
-    const auto communication_allocation_after = runtime::allocation_stats(
-        Device::hip(impl_->config.device_indices.front()));
-    metrics.communication_allocation_calls =
-        communication_allocation_after.allocation_calls -
-        communication_allocation_before.allocation_calls;
-    metrics.communication_backend_allocation_calls =
-        communication_allocation_after.backend_allocation_calls -
-        communication_allocation_before.backend_allocation_calls;
-    metrics.communication_cache_reuse_calls =
-        communication_allocation_after.cache_reuse_calls -
-        communication_allocation_before.cache_reuse_calls;
-    metrics.communication_total_allocated_bytes =
-        communication_allocation_after.total_allocated_bytes -
-        communication_allocation_before.total_allocated_bytes;
-    const auto communication_finish = Clock::now();
-    metrics.communication_ms = elapsed_ms(communication_start, communication_finish);
     if (auto* trace = profiling::TraceSession::current(); trace != nullptr) {
         trace->record(profiling::TraceKind::Layer, "data_parallel.all_reduce",
                       scalar(static_cast<float>(metrics.buckets.bucket_count)),

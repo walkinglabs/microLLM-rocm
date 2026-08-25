@@ -23,6 +23,7 @@ struct DataParallelConfig {
     bool persistent_gradient_buckets = false;
     bool gradient_bucket_views = false;
     bool record_gradient_ready_order = false;
+    bool overlap_gradient_communication = false;
     training::AdamWConfig optimizer;
 };
 
@@ -44,6 +45,8 @@ struct DistributedStepMetrics {
     double total_ms = 0.0;
     bool gradient_ready_audit_performed = false;
     bool gradient_ready_orders_match = false;
+    bool overlap_communication_performed = false;
+    double overlap_finish_ms = 0.0;
     std::vector<std::vector<std::size_t>> rank_gradient_ready_order;
 };
 

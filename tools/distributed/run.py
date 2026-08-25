@@ -28,6 +28,8 @@ def parse_args():
                         default="false")
     parser.add_argument("--record-gradient-ready-order", choices=("true", "false"),
                         default="false")
+    parser.add_argument("--overlap-gradient-communication", choices=("true", "false"),
+                        default="false")
     parser.add_argument("--seed", type=int, default=601)
     parser.add_argument("--batch", type=int, default=1)
     parser.add_argument("--context", type=int, default=0)
@@ -81,6 +83,7 @@ def main():
         "--persistent-gradient-buckets", args.persistent_gradient_buckets,
         "--gradient-bucket-views", args.gradient_bucket_views,
         "--record-gradient-ready-order", args.record_gradient_ready_order,
+        "--overlap-gradient-communication", args.overlap_gradient_communication,
         "--seed", str(args.seed),
         "--batch", str(args.batch),
         "--context", str(args.context),
@@ -137,6 +140,8 @@ def main():
             "persistent_gradient_buckets": args.persistent_gradient_buckets == "true",
             "gradient_bucket_views": args.gradient_bucket_views == "true",
             "record_gradient_ready_order": args.record_gradient_ready_order == "true",
+            "overlap_gradient_communication":
+                args.overlap_gradient_communication == "true",
             "seed": args.seed,
             "batch": args.batch,
             "context": args.context,

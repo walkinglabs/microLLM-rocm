@@ -28,6 +28,8 @@ def main() -> int:
         "gradient_view_count",
         "--record-gradient-ready-order", "record_gradient_ready_order",
         "gradient_ready_order_rank", "parameter_names", "parameter_elements",
+        "--overlap-gradient-communication", "overlap_gradient_communication",
+        "overlapped_bucket_count", "overlap_finish_ms",
         "maximum_engine_current_bytes",
         "distributed step failed its loss or rank-parameter gate",
     ):
