@@ -347,6 +347,11 @@ RANKED_INPUT_WEIGHT_ROOT = (
     "2026-08-25-ranked-input-weighting")
 RANKED_INPUT_WEIGHT_CHART = (
     ROOT / "assets" / "ranked-input-weighting.svg")
+RANKED_MODEL_S_INPUT_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-ranked-model-s-input-weighting")
+RANKED_MODEL_S_INPUT_CHART = (
+    ROOT / "assets" / "ranked-model-s-input-weighting.svg")
 
 
 def rows() -> list[dict]:
@@ -6198,6 +6203,75 @@ def ranked_input_weighting_svg() -> str:
     return "\n".join(parts)
 
 
+def ranked_model_s_input_svg() -> str:
+    summary = json.loads((RANKED_MODEL_S_INPUT_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 720
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 277 · Model-S Uneven-Input Weighting", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "two ranks · B1T32 + B2T32 · 57 tensors / 15,586,176 values · CPU B3T32 reference",
+             16, "#5b6474", anchor="middle"),
+    ]
+    cards = (("Rank0", 1, 32, summary["rank_gradient_scales"][0], 75, "#2563eb"),
+             ("Rank1", 2, 64, summary["rank_gradient_scales"][1], 430, "#16a34a"))
+    for label, rows, tokens, scale, x, color in cards:
+        parts.extend([
+            f'<rect x="{x}" y="135" width="315" height="330" rx="18" '
+            f'fill="#ffffff" stroke="{color}" stroke-width="3"/>',
+            text(x + 157, 180, label, 25, color, anchor="middle", weight=700),
+            text(x + 45, 235, "Local rows", 15, "#5b6474"),
+            text(x + 270, 235, str(rows), 21, color, anchor="end", weight=700),
+            text(x + 45, 285, "Local tokens", 15, "#5b6474"),
+            text(x + 270, 285, str(tokens), 21, color, anchor="end", weight=700),
+            text(x + 45, 335, "Average tokens", 15, "#5b6474"),
+            text(x + 270, 335, "48", 21, color, anchor="end", weight=700),
+            text(x + 157, 395, f"gradient scale {scale:.6f}", 20, color,
+                 anchor="middle", weight=700),
+            f'<rect x="{x + 45}" y="420" width="{220 * scale / 1.4:.1f}" '
+            f'height="25" rx="7" fill="{color}"/>',
+        ])
+    parts.extend([
+        '<line x1="745" y1="300" x2="835" y2="300" stroke="#64748b" stroke-width="5"/>',
+        '<polygon points="825,290 845,300 825,310" fill="#64748b"/>',
+        text(790, 280, "RCCL", 15, "#5b6474", anchor="middle"),
+        '<rect x="835" y="135" width="590" height="330" rx="18" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>',
+        text(1130, 180, "One-step global-batch evidence", 24, "#166534",
+             anchor="middle", weight=700),
+    ])
+    facts = (
+        ("Rank Max / RMS", "0 / 0"),
+        ("CPU parameter Max", "0.007760"),
+        ("CPU parameter RMS", "3.639e-6"),
+        ("Weighted loss diff", "3.20e-7"),
+        ("Engine peak", f"{summary['maximum_engine_peak_bytes'] / 1.0e6:.1f} MB"),
+        ("Equal-only", "2 / 2 rejected"),
+    )
+    for index, (label, value) in enumerate(facts):
+        y = 230 + index * 42
+        parts.extend([
+            text(885, y, label, 15, "#5b6474"),
+            text(1380, y, value, 18, "#166534", anchor="end", weight=700),
+        ])
+    parts.extend([
+        '<rect x="75" y="510" width="1350" height="145" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>',
+        text(width / 2, 550, "Synchronous token weighting kept", 22,
+             "#1d4ed8", anchor="middle", weight=700),
+        text(width / 2, 590,
+             "scale local mean gradients before RCCL average = concatenated B3 global mean",
+             17, "#172033", anchor="middle"),
+        text(width / 2, 625,
+             "Weighted ready-overlap remains off until scale executes before each bucket Event",
+             17, "#b45309", anchor="middle", weight=700),
+        "</svg>\n",
+    ])
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -6290,7 +6364,8 @@ def main() -> int:
                 RANKED_MODEL_S_CHECKPOINT_CHART: ranked_model_s_checkpoint_svg(),
                 RANKED_WORLD_SIZE_CHART: ranked_world_size_svg(),
                 RANKED_PREFLIGHT_CHART: ranked_rccl_preflight_svg(),
-                RANKED_INPUT_WEIGHT_CHART: ranked_input_weighting_svg()}
+                RANKED_INPUT_WEIGHT_CHART: ranked_input_weighting_svg(),
+                RANKED_MODEL_S_INPUT_CHART: ranked_model_s_input_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

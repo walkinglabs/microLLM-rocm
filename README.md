@@ -194,6 +194,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > gradients by `0.6667/1.3333` and matches a CPU B3 global batch through three
 > steps (parameter Max/RMS `8.18e-8/8.79e-9`).
 
+> The same `[B1T32,B2T32]` contract passes Model-S: all 57 tensors and
+> 15,586,176 values are rank-exact, with CPU parameter Max/RMS
+> `0.007760/3.639e-6`. Weighted communication remains synchronous until scaling
+> is moved before each ready-bucket Event.
+
 </details>
 
 ## Why this project exists

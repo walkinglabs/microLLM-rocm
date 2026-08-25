@@ -4357,3 +4357,17 @@ weighted ready overlap仍拒绝，因为bucket可能在backward期间、全局sc
 只做Model-S同步weighted smoke，不同时改通信时机。
 
 ![Ranked input weighting](assets/ranked-input-weighting.svg)
+
+## 294. Experiment 277：同一个权重公式，放到Model-S还成立吗
+
+Model-S T32使用rank0 B1、rank1 B2，也就是32/64有效token。average为48，gradient scale仍是
+0.666666687/1.333333373。equal-only先交换count并让两个rank共同拒绝。
+
+token-weighted一步比较57个Tensor、15,586,176个值：rank Max/RMS为0，CPU B3参数Max/RMS为
+0.007760/3.639e-6，加权loss差3.20e-7。engine peak 275,790,348 bytes。一步时间被首次初始化
+主导，不作性能结论。
+
+同步weighted语义现在从tiny扩展到Model-S。下一问题是顺序：overlap不能等backward结束再scale。
+我们需要在leaf ready hook里先scale，再让plan记录Event和pack bucket。
+
+![Ranked Model-S input weighting](assets/ranked-model-s-input-weighting.svg)

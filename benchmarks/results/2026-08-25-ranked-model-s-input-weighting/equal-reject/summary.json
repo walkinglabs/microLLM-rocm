@@ -1,0 +1,20 @@
+{
+  "decision": "admit explicit token-weighted input mode",
+  "failure_detected": true,
+  "input_weighting": "equal-only",
+  "peer_processes_terminated": 0,
+  "rank_batch_rows": [
+    1,
+    2
+  ],
+  "rank_group_ms": 3056.287234649062,
+  "record_type": "ranked_uneven_input_failure_summary",
+  "returncodes": [
+    1,
+    1
+  ],
+  "schema_version": 1,
+  "status": "pass",
+  "weighting_contract_error_processes": 2,
+  "world_size": 2
+}
