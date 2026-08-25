@@ -76,6 +76,9 @@ Build the RCCL preset, then:
 The current 4 MiB run naturally creates 12 buckets and records bucket parameter/elements plus
 maximum per-rank engine peak bytes. This workload is the prerequisite for real overlap work.
 
+Experiment 254 selects 25 MiB/3 buckets as the current reducer baseline: 19.76 ms total,
+6.825 ms communication and 603,383,808 peak engine bytes per rank. It is not yet overlapped.
+
 The CLI prints one JSON record per step and writes stage/layer/model timing records using
 the same trace schema as the alignment infrastructure.
 

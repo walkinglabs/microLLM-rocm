@@ -542,3 +542,5 @@ the next gate. Records are append-only except for factual corrections.
   adds the first natural multi-bucket model workload and measured memory/stage evidence.
 - [2026-08-25-model-s-bucket-matrix-runner.md](2026-08-25-model-s-bucket-matrix-runner.md):
   pins the natural 1/4/25 MiB reducer-baseline matrix.
+- [2026-08-25-data-parallel-model-s-buckets.md](2026-08-25-data-parallel-model-s-buckets.md):
+  selects the 3-bucket baseline and records its memory tradeoff.

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="750" viewBox="0 0 1500 750">
+<rect width="100%" height="100%" fill="#fbfcfe"/>
+<text x="750.0" y="48.0" font-family="Inter,Arial,sans-serif" font-size="30" fill="#172033" text-anchor="middle" font-weight="700">Experiment 254 · Model-S Natural Buckets</text>
+<text x="750.0" y="82.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">15,586,176 parameters · B1T32 · final-step rank audit</text>
+<rect x="150" y="218.8" width="280" height="246.2" rx="10" fill="#2563eb"/>
+<text x="290.0" y="200.8" font-family="Inter,Arial,sans-serif" font-size="22" fill="#2563eb" text-anchor="middle" font-weight="700">21.76 ms</text>
+<text x="290.0" y="510.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">1 MiB</text>
+<text x="290.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">45 buckets</text>
+<text x="290.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">comm 9.180 ms</text>
+<text x="290.0" y="610.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">peak 523.7 MiB</text>
+<rect x="600" y="145.0" width="280" height="320.0" rx="10" fill="#2563eb"/>
+<text x="740.0" y="127.0" font-family="Inter,Arial,sans-serif" font-size="22" fill="#2563eb" text-anchor="middle" font-weight="700">28.29 ms</text>
+<text x="740.0" y="510.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">4 MiB</text>
+<text x="740.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">12 buckets</text>
+<text x="740.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">comm 15.490 ms</text>
+<text x="740.0" y="610.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">peak 523.7 MiB</text>
+<rect x="1050" y="241.4" width="280" height="223.6" rx="10" fill="#16a34a"/>
+<text x="1190.0" y="223.4" font-family="Inter,Arial,sans-serif" font-size="22" fill="#16a34a" text-anchor="middle" font-weight="700">19.76 ms</text>
+<text x="1190.0" y="510.0" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033" text-anchor="middle" font-weight="700">25 MiB</text>
+<text x="1190.0" y="545.0" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474" text-anchor="middle" font-weight="400">3 buckets</text>
+<text x="1190.0" y="578.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">comm 6.825 ms</text>
+<text x="1190.0" y="610.0" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474" text-anchor="middle" font-weight="400">peak 575.4 MiB</text>
+<text x="750.0" y="665.0" font-family="Inter,Arial,sans-serif" font-size="23" fill="#166534" text-anchor="middle" font-weight="700">25 MiB / 3 buckets is the current reducer baseline</text>
+<text x="750.0" y="710.0" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474" text-anchor="middle" font-weight="400">Peak tradeoff +54,294,528 bytes · overlap not implemented yet</text>
+</svg>

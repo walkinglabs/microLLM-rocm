@@ -105,7 +105,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [74](steps/74-current-data-parallel-audit.md) | complete | 当前多卡production gap审计 | RCCL14/14；参数审计残差13.32%；选第一合同 |
 | [75](steps/75-data-parallel-verification-interval.md) | complete | 参数审计独立计时与interval | loss exact；稀疏1.244×；默认仍1 |
 | [76](steps/76-data-parallel-bucket-matrix.md) | complete | tiny真实bucket-count矩阵 | 12-bucket更慢；one-bucket无overlap机会 |
-| [77](steps/77-data-parallel-model-s-workload.md) | planned | Model-S自然多bucket workload | 先等价/显存/stage，再建readiness |
+| [77](steps/77-data-parallel-model-s-workload.md) | complete | Model-S自然多bucket workload | 25MiB/3bucket/19.76ms；peak +54.3MB |
+| [78](steps/78-data-parallel-bucket-copy-attribution.md) | planned | bucket copy/temporary归因 | 先恒等式，再设计view/readiness |
 
 ## 为什么按这个顺序
 

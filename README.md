@@ -60,6 +60,10 @@ extending small decoder-only language models on AMD GPUs.
 > while forcing 12 buckets makes communication 3–4× larger. Model-S is the next
 > distributed workload before any readiness-overlap claim.
 
+> Model-S now supplies that workload: 25 MiB produces 3 natural buckets and the
+> 19.76 ms best step, with exact rank parameters and a documented 54.3 MB peak-memory
+> tradeoff. Pack/unpack attribution comes before readiness overlap.
+
 ## Why this project exists
 
 Large frameworks make model development productive, but they hide the ownership,

@@ -14042,6 +14042,52 @@ def validate_data_parallel_bucket_matrix(
     return summary.get("processes", 0), *expected
 
 
+def validate_data_parallel_model_s_bucket_matrix(
+        errors: list[str]) -> tuple[int, int, float, float, int]:
+    root = REPOSITORY / (
+        "benchmarks/results/2026-08-25-data-parallel-model-s-bucket-matrix")
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    processes = [json.loads(line) for line in (root / "process-summary.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    policies = summary.get("policies", {})
+    best = policies.get("25mib", {})
+    four = policies.get("4mib", {})
+    expected = (3, 19.76, 6.824999999999999, 54294528)
+    if (summary.get("schema_version") != 1 or summary.get("status") != "pass" or
+            summary.get("record_type") !=
+                "data_parallel_model_s_bucket_matrix_summary" or
+            summary.get("model") != "model-s" or
+            summary.get("parameter_count") != 15586176 or
+            summary.get("raw_records") != 45 or summary.get("processes") != 9 or
+            summary.get("loss_trajectories_exact") is not True or
+            summary.get("best_policy") != "25mib" or
+            best.get("bucket_count") != expected[0] or
+            abs(float(best.get("median_total_ms", 0.0)) - expected[1]) > 1.0e-12 or
+            abs(float(best.get("median_communication_ms", 0.0)) - expected[2]) > 1.0e-12 or
+            int(best.get("maximum_engine_peak_bytes", 0)) -
+                int(four.get("maximum_engine_peak_bytes", 0)) != expected[3]):
+        errors.append("data-parallel Model-S bucket summary changed")
+    if (len(raw) != 45 or len(processes) != 9 or any(
+            row.get("parameter_count") != 15586176 or
+            row.get("bucket_total_elements") != 15586176 or
+            row.get("bucket_parameter_count") != 57 or
+            row.get("maximum_engine_peak_bytes", 0) <= 0 for row in raw)):
+        errors.append("data-parallel Model-S raw evidence changed")
+    if (check.get("raw_records") != 45 or check.get("process_records") != 9 or
+            check.get("loss_values_exact") != 45 or
+            check.get("final_parameter_checks") != 9 or
+            check.get("maximum_parameter_difference") != 0.0 or
+            check.get("best_policy") != "25mib" or
+            check.get("best_bucket_count") != 3 or
+            check.get("peak_byte_tradeoff") != expected[3] or
+            check.get("registered_test_files") != 115):
+        errors.append("data-parallel Model-S verification changed")
+    return summary.get("processes", 0), *expected
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -14273,7 +14319,8 @@ def validate_assets(errors: list[str]) -> None:
                  "training-local-saturation.svg",
                  "current-data-parallel-audit.svg",
                  "data-parallel-verification-interval.svg",
-                 "data-parallel-bucket-matrix.svg"):
+                 "data-parallel-bucket-matrix.svg",
+                 "data-parallel-model-s-buckets.svg"):
         path = ROOT / "assets" / name
         if not path.is_file():
             errors.append(f"missing SVG asset: {name}")
@@ -14777,6 +14824,10 @@ def main() -> int:
     data_parallel_bucket_processes, data_parallel_tiny_buckets, \
         data_parallel_large_buckets, data_parallel_tiny_comm, \
         data_parallel_large_comm = validate_data_parallel_bucket_matrix(errors)
+    data_parallel_model_s_processes, data_parallel_model_s_buckets, \
+        data_parallel_model_s_total, data_parallel_model_s_comm, \
+        data_parallel_model_s_peak_delta = \
+        validate_data_parallel_model_s_bucket_matrix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -15239,6 +15290,9 @@ def main() -> int:
           f"data_parallel_buckets={data_parallel_bucket_processes}/"
           f"{data_parallel_tiny_buckets}/{data_parallel_large_buckets}/"
           f"{data_parallel_tiny_comm:.3f}/{data_parallel_large_comm:.3f} "
+          f"data_parallel_model_s={data_parallel_model_s_processes}/"
+          f"{data_parallel_model_s_buckets}/{data_parallel_model_s_total:.3f}/"
+          f"{data_parallel_model_s_comm:.3f}/{data_parallel_model_s_peak_delta} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

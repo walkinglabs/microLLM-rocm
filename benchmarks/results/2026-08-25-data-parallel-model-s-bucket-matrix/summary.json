@@ -1,0 +1,56 @@
+{
+  "aggregation": "median of step-2..5 medians with rotated bucket order",
+  "batch": 1,
+  "best_policy": "25mib",
+  "context": 32,
+  "decision": "use the best natural multi-bucket policy as the reducer baseline",
+  "loss_trajectories_exact": true,
+  "model": "model-s",
+  "parameter_count": 15586176,
+  "policies": {
+    "1mib": {
+      "bucket_bytes": 1048576,
+      "bucket_count": 45,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 549089280,
+      "median_communication_ms": 9.18,
+      "median_forward_backward_ms": 11.98,
+      "median_optimizer_ms": 0.475,
+      "median_total_ms": 21.759999999999998,
+      "processes": 3,
+      "speedup_vs_best": 0.9080882352941176
+    },
+    "25mib": {
+      "bucket_bytes": 26214400,
+      "bucket_count": 3,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 603383808,
+      "median_communication_ms": 6.824999999999999,
+      "median_forward_backward_ms": 12.66,
+      "median_optimizer_ms": 0.48,
+      "median_total_ms": 19.759999999999998,
+      "processes": 3,
+      "speedup_vs_best": 1.0
+    },
+    "4mib": {
+      "bucket_bytes": 4194304,
+      "bucket_count": 12,
+      "final_loss": 2.08,
+      "maximum_engine_peak_bytes": 549089280,
+      "median_communication_ms": 15.49,
+      "median_forward_backward_ms": 11.96,
+      "median_optimizer_ms": 0.49,
+      "median_total_ms": 28.285,
+      "processes": 3,
+      "speedup_vs_best": 0.698603500088386
+    }
+  },
+  "processes": 9,
+  "raw_records": 45,
+  "record_type": "data_parallel_model_s_bucket_matrix_summary",
+  "runs_per_policy": 3,
+  "schema_version": 1,
+  "status": "pass",
+  "steady_steps_per_process": 4,
+  "steps_per_process": 5
+}

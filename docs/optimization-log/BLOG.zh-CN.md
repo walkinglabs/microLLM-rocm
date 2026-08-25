@@ -4012,3 +4012,12 @@ tiny在4KiB和4MiB下都只有一个bucket；人为切成12个bucket后，通信
 因此下一步增加Model-S自然多bucket workload，而不是在tiny上制造overlap。
 
 ![Data parallel bucket matrix](assets/data-parallel-bucket-matrix.svg)
+
+## 271. Experiment 254：Model-S终于给出自然多bucket
+
+25MiB产生3个bucket并以19.76ms胜出；4MiB的12bucket是28.29ms，1MiB的45bucket为21.76ms。
+三bucket每卡peak比4MiB多54.3MB。45bucket胜12bucket也说明count不是唯一解释。
+
+下一节先记录pack/unpack copy和temporary恒等式，再设计gradient view/readiness。
+
+![Model-S data-parallel buckets](assets/data-parallel-model-s-buckets.svg)

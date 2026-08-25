@@ -233,6 +233,11 @@ DATA_PARALLEL_BUCKET_ROOT = (
     "2026-08-25-data-parallel-bucket-matrix")
 DATA_PARALLEL_BUCKET_CHART = (
     ROOT / "assets" / "data-parallel-bucket-matrix.svg")
+DATA_PARALLEL_MODEL_S_ROOT = (
+    ROOT.parents[1] / "benchmarks" / "results" /
+    "2026-08-25-data-parallel-model-s-bucket-matrix")
+DATA_PARALLEL_MODEL_S_CHART = (
+    ROOT / "assets" / "data-parallel-model-s-buckets.svg")
 
 
 def rows() -> list[dict]:
@@ -4373,6 +4378,52 @@ def data_parallel_bucket_svg() -> str:
     return "\n".join(parts)
 
 
+def data_parallel_model_s_svg() -> str:
+    summary = json.loads((DATA_PARALLEL_MODEL_S_ROOT / "summary.json").read_text(
+        encoding="utf-8"))
+    width, height = 1500, 750
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#fbfcfe"/>',
+        text(width / 2, 48, "Experiment 254 · Model-S Natural Buckets", 30,
+             anchor="middle", weight=700),
+        text(width / 2, 82,
+             "15,586,176 parameters · B1T32 · final-step rank audit",
+             16, "#5b6474", anchor="middle"),
+    ]
+    order = (("1mib", "1 MiB"), ("4mib", "4 MiB"), ("25mib", "25 MiB"))
+    max_total = max(row["median_total_ms"] for row in summary["policies"].values())
+    for index, (key, label) in enumerate(order):
+        row = summary["policies"][key]
+        x = 150 + index * 450
+        bar_height = 320 * row["median_total_ms"] / max_total
+        y = 465 - bar_height
+        color = "#16a34a" if key == summary["best_policy"] else "#2563eb"
+        parts.extend([
+            f'<rect x="{x}" y="{y:.1f}" width="280" height="{bar_height:.1f}" '
+            f'rx="10" fill="{color}"/>',
+            text(x + 140, y - 18, f"{row['median_total_ms']:.2f} ms", 22,
+                 color, anchor="middle", weight=700),
+            text(x + 140, 510, label, 20, "#172033", anchor="middle", weight=700),
+            text(x + 140, 545, f"{row['bucket_count']} buckets", 17,
+                 "#5b6474", anchor="middle"),
+            text(x + 140, 578, f"comm {row['median_communication_ms']:.3f} ms", 16,
+                 "#5b6474", anchor="middle"),
+            text(x + 140, 610,
+                 f"peak {row['maximum_engine_peak_bytes'] / (1024**2):.1f} MiB", 16,
+                 "#5b6474", anchor="middle"),
+        ])
+    parts.append(text(width / 2, 665,
+                      "25 MiB / 3 buckets is the current reducer baseline",
+                      23, "#166534", anchor="middle", weight=700))
+    parts.append(text(width / 2, 710,
+                      "Peak tradeoff +54,294,528 bytes · overlap not implemented yet",
+                      15, "#5b6474", anchor="middle"))
+    parts.append("</svg>\n")
+    return "\n".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -4442,7 +4493,8 @@ def main() -> int:
                 TRAINING_LOCAL_SATURATION_CHART: training_local_saturation_svg(),
                 CURRENT_DATA_PARALLEL_CHART: current_data_parallel_svg(),
                 DATA_PARALLEL_VERIFICATION_CHART: data_parallel_verification_svg(),
-                DATA_PARALLEL_BUCKET_CHART: data_parallel_bucket_svg()}
+                DATA_PARALLEL_BUCKET_CHART: data_parallel_bucket_svg(),
+                DATA_PARALLEL_MODEL_S_CHART: data_parallel_model_s_svg()}
     if args.check:
         stale = [str(path.relative_to(ROOT)) for path, value in expected.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != value]

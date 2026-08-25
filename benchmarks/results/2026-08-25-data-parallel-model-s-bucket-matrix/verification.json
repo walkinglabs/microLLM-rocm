@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "raw_records": 45,
+  "process_records": 9,
+  "loss_values_exact": 45,
+  "final_parameter_checks": 9,
+  "maximum_parameter_difference": 0.0,
+  "model": "model-s",
+  "parameter_count": 15586176,
+  "bucket_parameter_count": 57,
+  "best_policy": "25mib",
+  "best_bucket_count": 3,
+  "best_total_ms": 19.76,
+  "peak_byte_tradeoff": 54294528,
+  "model_s_slow_test": {"passed": 1, "total": 1},
+  "matrix_contract": {"passed": 1, "total": 1},
+  "registered_test_files": 115
+}
+

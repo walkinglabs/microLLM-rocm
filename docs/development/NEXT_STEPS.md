@@ -219,8 +219,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   default every-step behavior; 180 loss values match and final-step audit reaches 1.244x;
 - [x] run a final-step-audited tiny bucket-count matrix: one natural bucket is fastest;
   artificial 12-bucket paths increase communication about 3–4x;
-- [ ] add a Model-S natural multi-bucket distributed workload with equivalence, stage time and
-  peak-memory evidence before implementing readiness overlap;
+- [x] add a Model-S natural multi-bucket workload: 25MiB/3 buckets is the 19.76ms best
+  baseline with exact losses/parameters and a +54.3MB peak tradeoff versus 4MiB;
+- [ ] attribute bucket pack/unpack copies and temporary allocations before persistent views or
+  readiness overlap;
 - [ ] one process per GPU communicator initialization;
 - [ ] autograd gradient-ready hooks and bucket rebuild by observed readiness;
 - [ ] compute-stream Events to communication streams and asynchronous work handles;
