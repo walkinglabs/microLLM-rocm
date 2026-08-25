@@ -51,6 +51,8 @@ def main() -> int:
         b"cached_attention_materialized_policy",
         b"cached_attention_pv_splits",
         b"cached-attention-pv-splits",
+        b"--cache-logits-step",
+        b"decode_tokens",
         b"auto-enabled",
         b"auto-bypass",
         b"--bf16-grouped-gate-up-algorithm-index",
@@ -123,6 +125,14 @@ def main() -> int:
                 "mutually exclusive" not in rejected_pv_conflict.stderr:
             raise RuntimeError(
                 "hf_infer accepted conflicting split-P*V and materialized policies")
+        rejected_logit_step = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1",
+            "--device", "cpu", "--cache-logits-step", "0",
+        ], text=True, capture_output=True, check=False)
+        if rejected_logit_step.returncode == 0 or \
+                "requires an output" not in rejected_logit_step.stderr:
+            raise RuntimeError("hf_infer accepted a logits step without output")
     print("hf_infer binary contract: pass")
     return 0
 

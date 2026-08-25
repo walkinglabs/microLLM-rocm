@@ -139,8 +139,9 @@ build/apps/microllm_hf_infer \
 层编号从0开始，必须唯一且在模型层数内。输出会分开报告FP32/BF16层数和字节；混合
 Cache没有一个统一的“每元素字节数”，因此该字段为0，理论字节按每层真实dtype求和。
 
-`--cache-logits-output PATH` 可以保存真正经过 cached decode 后的完整 logits。它只用于
-精度诊断，要求至少生成两个 token；不要拿开启诊断输出的运行做正式性能排名。
+`--cache-logits-output PATH` 可以保存真正经过 cached decode 后的完整 logits。默认保存最后一步；
+`--cache-logits-step N`可以选择从0开始的具体步骤，并保存完整`[B,V]` FP32值。它只用于精度诊断，
+要求至少生成一个 token；不要拿开启诊断输出的运行做正式性能排名。
 
 ## 6. 怎样判断做对了
 

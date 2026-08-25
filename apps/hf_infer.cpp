@@ -38,6 +38,7 @@ struct Options {
     std::int64_t top_k = 10;
     std::filesystem::path logits_output;
     std::filesystem::path cache_logits_output;
+    std::int64_t cache_logits_step = -1;
     std::string text;
     std::filesystem::path vocabulary;
     std::filesystem::path merges;
@@ -124,6 +125,9 @@ Options options(int argc, char** argv) {
         else if (name == "--logits-output") result.logits_output = argv[index + 1];
         else if (name == "--cache-logits-output") {
             result.cache_logits_output = argv[index + 1];
+        }
+        else if (name == "--cache-logits-step") {
+            result.cache_logits_step = std::stoll(argv[index + 1]);
         }
         else if (name == "--text") result.text = argv[index + 1];
         else if (name == "--vocab") result.vocabulary = argv[index + 1];
@@ -661,9 +665,15 @@ Options options(int argc, char** argv) {
             "FP32 Attention solution indices require HIP prefill workload");
     }
     if (!result.cache_logits_output.empty() &&
-        (!result.use_cache || result.workload == "prefill" || result.new_tokens < 2)) {
+        (!result.use_cache || result.workload == "prefill" || result.new_tokens < 1)) {
         throw std::invalid_argument(
-            "--cache-logits-output requires cached decode with at least two new tokens");
+            "--cache-logits-output requires cached decode with at least one new token");
+    }
+    if (result.cache_logits_step >= 0 &&
+        (result.cache_logits_output.empty() ||
+         result.cache_logits_step >= result.new_tokens)) {
+        throw std::invalid_argument(
+            "--cache-logits-step requires an output and must be below new tokens");
     }
     if (result.allocation_source_diagnostics &&
         (result.workload != "prefill" || result.prefill_warmup != 0 ||
@@ -828,7 +838,9 @@ CachedGenerationState prepare_cached(
 
 GenerationRun decode_cached(microllm::model::TransformerModel& model,
                             CachedGenerationState& state,
-                            std::int64_t new_tokens, bool steady = false) {
+                            std::int64_t new_tokens, bool steady = false,
+                            std::int64_t capture_step = -1,
+                            microllm::Tensor* captured_logits = nullptr) {
     GenerationRun run;
     run.kv_cache_capacity_tokens = state.cache.max_sequence_length();
     const auto batch = state.logits.shape()[0];
@@ -840,6 +852,9 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
         auto history_slot = history.slice(0, generated, generated + 1)
                                 .reshape({batch, 1});
         if (steady) state.logits = model.forward_cached(next_tensor, state.cache);
+        if (captured_logits != nullptr && generated == capture_step) {
+            *captured_logits = state.logits;
+        }
         microllm::ops::argmax_last_dim_out_(state.logits, history_slot);
         next_tensor = history_slot;
         if (!steady && generated + 1 < new_tokens) {
@@ -2020,15 +2035,17 @@ int main(int argc, char** argv) {
                     decode_prepare_ms += std::chrono::duration<double, std::milli>(
                                             prepare_finish - prepare_start).count();
                     const auto decode_start = std::chrono::steady_clock::now();
-                    current = decode_cached(model, state, command.new_tokens,
-                                            command.decode_mode == "steady");
+                    const auto capture_step = command.cache_logits_step >= 0
+                        ? command.cache_logits_step : command.new_tokens - 1;
+                    current = decode_cached(
+                        model, state, command.new_tokens,
+                        command.decode_mode == "steady", capture_step,
+                        iteration == 0 && !command.cache_logits_output.empty()
+                            ? &cache_logits_evidence : nullptr);
                     microllm::runtime::synchronize(device);
                     const auto decode_finish = std::chrono::steady_clock::now();
                     generation_ms += std::chrono::duration<double, std::milli>(
                                          decode_finish - decode_start).count();
-                    if (iteration == 0 && !command.cache_logits_output.empty()) {
-                        cache_logits_evidence = state.logits;
-                    }
                 } else {
                     TokenRows steady_sequences;
                     if (command.decode_mode == "steady") {
@@ -2401,10 +2418,14 @@ int main(int argc, char** argv) {
                   << command.kv_cache_fp32_layers << "\""
                   << ",\"cache_logits_step\":"
                   << (command.cache_logits_output.empty()
-                          ? 0 : command.new_tokens - 1)
+                          ? 0
+                          : command.cache_logits_step >= 0
+                                ? command.cache_logits_step
+                                : command.new_tokens - 1)
                   << ",\"batch_argmax_mode\":\""
                   << command.batch_argmax_mode << "\""
                   << ",\"decode_mode\":\"" << command.decode_mode << "\""
+                  << ",\"decode_tokens\":" << command.new_tokens
                   << ",\"warmup\":" << command.warmup
                   << ",\"steps\":" << command.steps
                   << ",\"warmup_ms\":" << warmup_ms

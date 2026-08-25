@@ -84,8 +84,9 @@ layer 1只对原prompt有效；robust-strict使用layers 0–3 FP32、其余BF16
 Qwen uniform BF16在repeat/rotated/ramp通过，但constant T32/512/2048完整logits失败；
 constant T2048只有全FP32 Cache通过。`fp32`默认值因此仍是必要fallback。
 
-`--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断，
-要求至少生成两个token；开启它的运行不作为正式性能排名。
+`--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断。
+默认保存最后一步；`--cache-logits-step N`可选择`0 <= N < new_tokens`的具体decode步，包含
+batch的完整`[B,V]` FP32值。至少生成一个token；开启诊断输出的运行不作为正式性能排名。
 
 cached模式默认`--cache-prefill-mode full`，一次完整prompt直接填入每层预分配Storage。
 显式`token`会逐token重放，只用于复现旧性能失败和reference；发布结果必须记录所选模式。

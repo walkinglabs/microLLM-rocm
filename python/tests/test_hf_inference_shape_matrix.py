@@ -18,9 +18,41 @@ RENDER_SPEC = importlib.util.spec_from_file_location(
 RENDER = importlib.util.module_from_spec(RENDER_SPEC)
 assert RENDER_SPEC.loader is not None
 RENDER_SPEC.loader.exec_module(RENDER)
+CROSS_BATCH_SPEC = importlib.util.spec_from_file_location(
+    "audit_cached_cross_batch_logits",
+    ROOT / "benchmarks/single_gpu/audit_cached_cross_batch_logits.py")
+CROSS_BATCH = importlib.util.module_from_spec(CROSS_BATCH_SPEC)
+assert CROSS_BATCH_SPEC.loader is not None
+CROSS_BATCH_SPEC.loader.exec_module(CROSS_BATCH)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_cross_batch_audit_finds_first_complete_logit_drift(self):
+        measurements = []
+        for run in (1, 2):
+            for step in (0, 1, 2):
+                for batch in (1, 2, 4, 8):
+                    values = [0.0, 1.0, 2.0, 3.0]
+                    if batch == 8 and step >= 1:
+                        values = [0.0, 1.0, 2.25, 3.0]
+                    logits = values * batch
+                    measurements.append(({
+                        "batch": batch, "decode_step": step,
+                        "process_run": run,
+                        "within_batch_bitwise_equal": True,
+                        "host_device_argmax_equal": True,
+                        "device_argmax_token": 3,
+                    }, logits))
+        summary = CROSS_BATCH.summarize(measurements, 4)
+        self.assertEqual(summary["process_rows"], 24)
+        self.assertEqual(summary["case_rows"], 12)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertTrue(summary["all_within_batch_bitwise_equal"])
+        self.assertTrue(summary["all_host_device_argmax_equal"])
+        self.assertFalse(summary["all_cross_batch_bitwise_equal"])
+        self.assertEqual(summary["first_non_bitwise_step"], 1)
+        self.assertAlmostEqual(summary["maximum_cross_batch_error"], 0.25)
+
     def test_current_serving_batch_scale_is_complete_and_rendered(self):
         root = ROOT / "benchmarks/results/2026-08-25-serving-batch-scale"
         summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
