@@ -17244,6 +17244,129 @@ def validate_cached_attention_split_matrix(
             max(float(row.get("best_event_speedup", 0.0)) for row in winners))
 
 
+def validate_cached_attention_split_model(
+        errors: list[str]) -> tuple[int, float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-cached-attention-split-model")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    pairs = [json.loads(line) for line in (root / "pairs.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    expected_speedups = [
+        2.2286436256151188, 2.219452490886908, 2.222300670315982]
+    expected_leave_one = [
+        2.2208765806014448, 2.2254721479655504, 2.2240480582510136]
+    if (summary.get("schema_version") != 1 or
+            summary.get("status") != "failed" or
+            summary.get("record_type") !=
+                "cached_attention_split_model_summary" or
+            summary.get("model") != "deepseek-r1-distill-qwen-1.5b" or
+            summary.get("context") != 2048 or summary.get("batch") != 2 or
+            summary.get("decode_tokens") != 64 or
+            summary.get("cache_dtype") != "bf16" or
+            summary.get("splits") != 32 or
+            summary.get("minimum_sequence") != 512 or
+            summary.get("runs_per_policy") != 3 or
+            summary.get("process_rows") != 6 or
+            summary.get("pair_rows") != 3 or summary.get("warmup") != 2 or
+            summary.get("steps") != 5 or
+            summary.get("maximum_logit_error") != 0.056911319494247437 or
+            summary.get("maximum_logit_rms_error") !=
+                0.013696466247356471 or
+            summary.get("all_generated_tokens_equal") is not True or
+            summary.get("median_current_throughput_tokens_per_second") !=
+                133.273857126 or
+            summary.get("median_split_throughput_tokens_per_second") !=
+                297.019932145 or
+            summary.get("median_throughput_speedup") !=
+                2.222300670315982 or
+            summary.get("paired_speedups") != expected_speedups or
+            summary.get("leave_one_pair_out_speedups") != expected_leave_one or
+            summary.get("median_peak_bytes_delta") != 0 or
+            summary.get("median_allocation_calls_delta") != 17920 or
+            summary.get("median_backend_allocation_calls_delta") != 1 or
+            summary.get("accuracy_gate_passed") is not False or
+            summary.get("performance_gate_passed") is not True):
+        errors.append("cached Attention split model summary changed")
+    if (len(raw) != 6 or
+            {row.get("policy") for row in raw} != {"current", "split"} or
+            {row.get("process_run") for row in raw} != {1, 2, 3} or
+            any(row.get("status") != "pass" or
+                row.get("complete_logit_elements") != 303872 or
+                len(row.get("generated_tokens", [])) != 64 or
+                row.get("kv_cache_actual_bytes") != 121110528 or
+                row.get("engine_peak_bytes") != 5231076352
+                for row in raw)):
+        errors.append("cached Attention split model raw evidence changed")
+    if (len(pairs) != 3 or
+            [pair.get("pair_order") for pair in pairs] !=
+                ["current-first", "split-first", "current-first"] or
+            [pair.get("throughput_speedup") for pair in pairs] !=
+                expected_speedups or
+            any(pair.get("status") != "failed" or
+                pair.get("maximum_logit_error") != 0.056911319494247437 or
+                pair.get("logit_rms_error") != 0.013696466247356471 or
+                pair.get("generated_tokens_equal") is not True or
+                pair.get("peak_bytes_delta") != 0 or
+                pair.get("allocation_calls_delta") != 17920 or
+                pair.get("backend_allocation_calls_delta") != 1
+                for pair in pairs)):
+        errors.append("cached Attention split model pairs changed")
+    if (analysis.get("record_type") !=
+            "cached_attention_split_model_analysis" or
+            analysis.get("median_throughput_speedup") !=
+                2.222300670315982 or
+            analysis.get("split_over_historical_pytorch_throughput") !=
+                1.8150473208477944 or
+            analysis.get("accuracy_gate_passed") is not False or
+            analysis.get("performance_gate_passed") is not True or
+            analysis.get("general_default_admitted") is not False or
+            analysis.get("research_primitive_retained") is not True or
+            "Materialize every per-position score" not in
+                analysis.get("next_hypothesis", "")):
+        errors.append("cached Attention split model analysis changed")
+    if (check.get("measurement_commit") !=
+            "af75f378e56aed3371b34e5a3e320730d6279895" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("process_rows") != 6 or check.get("pair_rows") != 3 or
+            check.get("maximum_logit_error") != 0.056911319494247437 or
+            check.get("median_throughput_speedup") != 2.222300670315982 or
+            check.get("accuracy_gate_passed") is not False or
+            check.get("performance_gate_passed") is not True or
+            check.get("model_route_admitted") is not False or
+            check.get("general_default_claim") is not False or
+            check.get("research_primitive_retained") is not True or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("pytorch_enabled_cpu") !=
+                {"passed": 377, "total": 377} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("registered_test_files") != 129):
+        errors.append("cached Attention split model verification changed")
+    for name in ("README.md", "raw.jsonl", "pairs.jsonl", "summary.json",
+                 "analysis.json", "verification.json", "comparison.svg"):
+        if not (root / name).is_file():
+            errors.append(f"cached Attention split model evidence missing: {name}")
+    try:
+        ET.parse(root / "comparison.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid cached Attention split model SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "compare_cached_attention_split_models.py").read_text(
+                  encoding="utf-8")
+    for token in ("--cached-attention-splits", "complete_logit_elements",
+                  "leave_one_pair_out_speedups", "comparison.svg"):
+        if token not in runner:
+            errors.append(f"cached Attention split model runner token missing: {token}")
+    return (len(raw),
+            float(summary.get("median_throughput_speedup", 0.0)),
+            float(summary.get("maximum_logit_error", 0.0)),
+            float(summary.get("maximum_logit_rms_error", 0.0)))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -18095,6 +18218,9 @@ def main() -> int:
         cached_stage_fused_maximum = validate_cached_attention_stage_matrix(errors)
     cached_split_rows, cached_split_candidates, cached_split_minimum, \
         cached_split_maximum = validate_cached_attention_split_matrix(errors)
+    cached_split_model_rows, cached_split_model_speedup, \
+        cached_split_model_maximum, cached_split_model_rms = \
+        validate_cached_attention_split_model(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -18679,6 +18805,10 @@ def main() -> int:
           f"{cached_stage_fused_maximum:.3f} "
           f"cached_split={cached_split_rows}/{cached_split_candidates}/"
           f"{cached_split_minimum:.3f}/{cached_split_maximum:.3f} "
+          f"cached_split_model={cached_split_model_rows}/"
+          f"{cached_split_model_speedup:.3f}/"
+          f"{cached_split_model_maximum:.4f}/"
+          f"{cached_split_model_rms:.4f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,6 +1,6 @@
 # Step 105 — Cached Attention score/context microarchitecture
 
-Status: split-sequence official paired model runner implemented; measurement pending
+Status: partial log-sum-exp model route rejected on precision; exact-order score materialization next
 
 Experiment 281证明当前DeepSeek T2048/B2/N64的cached Attention占Kernel时间61.57%，单次约
 361.2us；GEMM第二，KV store和allocator不是主因。
@@ -23,4 +23,5 @@ BF16 fused比FP32快1.313x–1.534x。透明比例不冒充fused内部归因。
 
 144进程搜索中，八个winner Event为2.381x–8.096x，wall为2.084x–6.988x；S1全失败、S2全
 过门，T512选S16，T2048选S16/S32。完整精度和资源门通过，因此只准入显式官方DeepSeek模型A/B。
-模型必须守住完整logits/64 tokens/allocation/peak和三对fresh process，才允许自动policy。
+模型三对速度达到2.2223x且token/peak/KV通过，但完整logits Max/RMS为0.05691/0.01370，精度拒绝。
+下一候选并行物化逐position score，再用保留原归约/P·V顺序的finalize Kernel；仍不改默认。

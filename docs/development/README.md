@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-25: Split-sequence model rejection](../optimization-log/experiments/284-cached-attention-split-model-reject.md)
 - [2026-08-25: Split-sequence official model-gate infrastructure](2026-08-25-split-sequence-model-gate-infrastructure.md)
 - [2026-08-25: Split-sequence explicit model route](2026-08-25-split-sequence-model-route.md)
 - [2026-08-25: Split-sequence operator result](../optimization-log/experiments/283-cached-attention-split-search.md)

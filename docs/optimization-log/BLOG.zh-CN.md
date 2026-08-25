@@ -4468,3 +4468,17 @@ Max/RMS最多3.90e-9/1.09e-9。
 T2048/B2/N64三对fresh process。
 
 ![Split-sequence search](../../benchmarks/results/2026-08-25-cached-attention-split-matrix/split-search.svg)
+
+## 301. Experiment 284：快2.22倍，token也相同，还是被精度门拒绝
+
+DeepSeek T2048/B2/BF16/S32/N64三对fresh process中，current中位133.27 tok/s，split为
+297.02 tok/s，稳定快2.2223x。峰值和KV bytes不变，64个生成token逐项完全相同。
+
+但每对303,872个完整cached logits都得到同一个Max/RMS：0.05691/0.01370。partial
+log-sum-exp改变了归约树，微小context差异经过28层和64步被放大。top-1没变不能替代完整分布门，
+所以模型默认拒绝，不能拿表面的1.815x PyTorch比值作胜出声明。
+
+下一反驳实验保留当前归约顺序：第一个Kernel并行物化逐position score，第二个Kernel按旧fused
+顺序完成max、softmax和P·V。若logits恢复但global score流量吃掉速度，原解释同样会被推翻。
+
+![Split model comparison](../../benchmarks/results/2026-08-25-cached-attention-split-model/comparison.svg)
