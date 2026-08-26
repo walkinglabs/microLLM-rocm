@@ -152,9 +152,22 @@ FFN_SOLUTIONS_SPEC = importlib.util.spec_from_file_location(
 FFN_SOLUTIONS = importlib.util.module_from_spec(FFN_SOLUTIONS_SPEC)
 assert FFN_SOLUTIONS_SPEC.loader is not None
 FFN_SOLUTIONS_SPEC.loader.exec_module(FFN_SOLUTIONS)
+FFN_DOWN_SPEC = importlib.util.spec_from_file_location(
+    "fp32_ffn_down_row_invariance",
+    ROOT / "benchmarks/single_gpu/fp32_ffn_down_row_invariance.py")
+FFN_DOWN = importlib.util.module_from_spec(FFN_DOWN_SPEC)
+assert FFN_DOWN_SPEC.loader is not None
+FFN_DOWN_SPEC.loader.exec_module(FFN_DOWN)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_ffn_down_runner_uses_clean_real_descriptor(self):
+        self.assertEqual(FFN_DOWN.BASE.ROWS, [2048, 4096, 8192, 16384])
+        self.assertEqual(FFN_DOWN.BASE.INNER, 8960)
+        self.assertEqual(FFN_DOWN.BASE.COLUMNS, 1536)
+        self.assertFalse((ROOT / "benchmarks/single_gpu" /
+                          "fp32_prefill_ffn_model_gate.py").exists())
+
     def test_current_post_exact_gate_up_trace_selects_down(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-post-exact-gate-up-ffn-trace")
