@@ -1132,6 +1132,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 first divergence SVG](assets/qwen3-bf16-first-divergence.svg) | 低margin、整网BF16 tie与mixed BF16保留 |
 | [experiments/366-qwen3-bf16-oracle-sweep.md](experiments/366-qwen3-bf16-oracle-sweep.md) | 全部8行分叉的五case共同oracle |
 | [Qwen3 BF16 oracle sweep SVG](assets/qwen3-bf16-oracle-sweep.svg) | mixed/full BF16的4:1 case与T128反例 |
+| [experiments/367-qwen3-bf16-t128-weight-islands.md](experiments/367-qwen3-bf16-t128-weight-islands.md) | T128反例的FFN/Attention/Cache隔离 |
+| [Qwen3 T128 weight islands SVG](assets/qwen3-bf16-t128-weight-islands.svg) | FFN翻转、Attention保留与Cache反驳 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

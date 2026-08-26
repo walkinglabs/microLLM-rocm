@@ -5405,3 +5405,13 @@ T512/B2的自然FP32更早分叉，因此C++/PyTorch都使用相同9-token force
 T128反例证明全局Max/RMS小不保证top-2顺序正确。全部row继续是precision limit，不设通用winner。
 
 ![Qwen3 BF16 oracle sweep](assets/qwen3-bf16-oracle-sweep.svg)
+
+## 383. Experiment 367：唯一反例先拆权重岛
+
+T128/B2固定共同输入和FP32 Cache。FFN-only已经把FP32 token320翻成25，错误margin 0.03416；
+Attention-only仍选320，margin 0.07367。batch内Max分别0.1443/0.0325。
+
+全部BF16 weights改用BF16 Cache后全局误差和错误margin都缩小，却仍选25。因此下一搜索只进入
+28层FFN；Cache与Attention在这个反例中关闭，不拿全局Max/RMS替代top-2判断。
+
+![Qwen3 T128 BF16 weight islands](assets/qwen3-bf16-t128-weight-islands.svg)

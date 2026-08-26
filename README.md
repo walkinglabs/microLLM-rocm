@@ -317,6 +317,8 @@ If “Config package” is unfamiliar, read the beginner-facing
 > rounds tokens 374/323 to an exact 14.1875 tie; mixed BF16 preserves the FP32 token 374.
 > All five unique split states now have common-input FP32 oracles. Mixed/full BF16 match
 > FP32 in 4/1 cases (7/1 matrix rows); T128/B2 is the explicit mixed-BF16 counterexample.
+> That counterexample is now isolated to FFN-only BF16: it flips 320→25, while
+> Attention-only keeps 320 and changing Cache dtype does not restore the answer.
 
 </details>
 
@@ -1314,6 +1316,9 @@ while an honest answer gate records 24 accepted rows plus 8 BF16 token mismatche
 [Experiment 366](docs/optimization-log/experiments/366-qwen3-bf16-oracle-sweep.md) applies that
 gate to all five unique split states. Mixed/full BF16 match FP32 in 4/1 cases and 7/1 original
 rows; T128/B2 remains the counterexample, so neither policy is declared universally correct.
+[Experiment 367](docs/optimization-log/experiments/367-qwen3-bf16-t128-weight-islands.md) fixes
+the T128 input and isolates the flip to FFN-only BF16. Attention-only preserves FP32 token 320;
+BF16 Cache reduces global error but does not restore the wrong FFN argmax.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

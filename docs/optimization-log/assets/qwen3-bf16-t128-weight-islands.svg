@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="740" viewBox="0 0 1500 740">
+  <rect width="1500" height="740" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 T128/B2 · which BF16 island flips top-2?</text>
+  <text x="60" y="103" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Forced shared inputs · decode step 8 · FP32 Cache · complete 151,936 logits</text>
+
+  <rect x="55" y="145" width="330" height="405" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="220" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#1d4ed8">FP32 oracle</text>
+  <text x="220" y="270" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#166534">320</text>
+  <text x="220" y="310" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">runner argmax</text>
+  <text x="220" y="385" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="29" font-weight="700" fill="#166534">margin 0.06830</text>
+  <text x="220" y="445" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">batch Max 6.15e-5</text>
+
+  <rect x="425" y="145" width="330" height="405" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="590" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#b42335">FFN-only BF16</text>
+  <text x="590" y="270" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#b42335">25</text>
+  <text x="590" y="310" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">flips oracle argmax</text>
+  <text x="590" y="385" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="29" font-weight="700" fill="#b42335">margin 0.03416</text>
+  <text x="590" y="445" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335">batch Max 0.1443</text>
+  <text x="590" y="495" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">oracle Max/RMS 0.4550 / 0.0967</text>
+
+  <rect x="795" y="145" width="330" height="405" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="960" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#166534">Attention-only BF16</text>
+  <text x="960" y="270" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#166534">320</text>
+  <text x="960" y="310" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">keeps oracle argmax</text>
+  <text x="960" y="385" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="29" font-weight="700" fill="#166534">margin 0.07367</text>
+  <text x="960" y="445" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">batch Max 0.0325</text>
+  <text x="960" y="495" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">oracle Max/RMS 0.1649 / 0.0352</text>
+
+  <rect x="1165" y="145" width="280" height="405" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+  <text x="1305" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#b45309">Cache check</text>
+  <text x="1305" y="260" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">all BF16 weights</text>
+  <text x="1305" y="320" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">FP32 Cache → 25</text>
+  <text x="1305" y="370" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">BF16 Cache → 25</text>
+  <text x="1305" y="440" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#b45309">error shrinks</text>
+  <text x="1305" y="477" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#b42335">argmax stays wrong</text>
+
+  <rect x="55" y="600" width="1390" height="90" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="90" y="645" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">Next:</text>
+  <text x="175" y="645" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033">search only the 28 FFN layers with the same forced-input top-2 oracle</text>
+  <text x="175" y="675" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">do not change Cache, Attention or the acceptance threshold</text>
+</svg>

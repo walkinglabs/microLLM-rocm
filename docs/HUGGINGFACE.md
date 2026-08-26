@@ -36,6 +36,8 @@ payload 各保存了一份。Qwen3 strict loader 会先逐字节验证两份来�
 实验现已完成：T32/B1的FP32 margin只有0.03260，Transformers整网BF16把前两名舍入成
 14.1875平局，microLLM mixed BF16保留FP32 argmax。完整5-case sweep中mixed/full BF16
 匹配FP32为4/1，映射到8行是7/1；T128/B2是反例，不能写成通用mixed-BF16胜利。
+该反例进一步隔离到FFN-only BF16：它选择25，Attention-only仍选择FP32的320；BF16 Cache只
+缩小误差，没有恢复argmax。下一步只定位FFN层。
 
 ### 一条命令准备固定 fixture
 

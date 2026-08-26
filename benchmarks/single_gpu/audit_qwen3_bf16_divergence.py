@@ -22,10 +22,14 @@ assert MATRIX_SPEC.loader is not None
 MATRIX_SPEC.loader.exec_module(MATRIX)
 
 MICRO_POLICIES = {
-    "micro-fp32-fp32": (False, "fp32"),
-    "micro-fp32-bf16": (False, "bf16"),
-    "micro-bf16-fp32": (True, "fp32"),
-    "micro-bf16-bf16": (True, "bf16"),
+    "micro-fp32-fp32": (False, False, "fp32"),
+    "micro-fp32-bf16": (False, False, "bf16"),
+    "micro-bf16-fp32": (True, True, "fp32"),
+    "micro-bf16-bf16": (True, True, "bf16"),
+    "micro-ffn-bf16-fp32": (True, False, "fp32"),
+    "micro-attention-bf16-fp32": (False, True, "fp32"),
+    "micro-ffn-bf16-bf16": (True, False, "bf16"),
+    "micro-attention-bf16-bf16": (False, True, "bf16"),
 }
 TORCH_POLICIES = ("torch-fp32", "torch-bf16")
 
@@ -112,7 +116,7 @@ def top_tokens(values: list[float], count: int = 3) -> list[int]:
 
 def micro_command(args: argparse.Namespace, model: dict, policy: str,
                   output: Path) -> list[str]:
-    bf16_weights, cache_dtype = MICRO_POLICIES[policy]
+    bf16_ffn, bf16_attention, cache_dtype = MICRO_POLICIES[policy]
     tokens = ",".join(str(token) for token in MATRIX.expanded_tokens(
         model["inference"]["token_ids"], args.context))
     command = [
@@ -125,8 +129,8 @@ def micro_command(args: argparse.Namespace, model: dict, policy: str,
         "--cache-capacity", str(args.context + args.decode_tokens),
         "--new-tokens", str(args.decode_tokens), "--warmup", "0", "--steps", "1",
         "--prefill-warmup", "0", "--prefill-steps", "1",
-        "--bf16-ffn", str(bf16_weights).lower(),
-        "--bf16-attention", str(bf16_weights).lower(),
+        "--bf16-ffn", str(bf16_ffn).lower(),
+        "--bf16-attention", str(bf16_attention).lower(),
         "--workload", "decode", "--cache-logits-output", str(output),
         "--cache-logits-step", str(args.capture_step),
     ]
@@ -146,7 +150,7 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
     record = last_json(completed.stdout)
-    bf16_weights, cache_dtype = MICRO_POLICIES[policy]
+    bf16_ffn, bf16_attention, cache_dtype = MICRO_POLICIES[policy]
     required = {
         "status": "pass", "parameter_count": model["parameter_count"],
         "token_count": args.context, "batch": args.batch,
@@ -157,14 +161,16 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
     }
     if any(record.get(name) != wanted for name, wanted in required.items()):
         raise RuntimeError(f"{policy} changed the decode capture contract")
-    if ((int(record.get("bf16_ffn_converted_tensors", 0)) > 0) != bf16_weights or
+    if ((int(record.get("bf16_ffn_converted_tensors", 0)) > 0) != bf16_ffn or
             (int(record.get("bf16_attention_converted_tensors", 0)) > 0) !=
-            bf16_weights):
+            bf16_attention):
         raise RuntimeError(f"{policy} did not execute its declared weight policy")
     rows = read_logit_rows(logits_path, vocabulary, args.batch)
     within = [error(rows[0], row) for row in rows[1:]]
     record.update({
         "framework_policy": policy, "precision_family": "microllm",
+        "bf16_ffn_weights": bf16_ffn,
+        "bf16_attention_weights": bf16_attention,
         "captured_rows_bitwise_equal": all(item[2] for item in within),
         "captured_rows_maximum_error": max(
             (item[0] for item in within), default=0.0),

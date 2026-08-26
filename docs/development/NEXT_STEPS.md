@@ -49,8 +49,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] apply the common-input FP32 full-logit gate to all five unique T32/T128/T512
   mismatch states; mixed/full BF16 match FP32 in 4/1 cases and 7/1 matrix rows, with
   a forced nine-token T512/B2 audit where natural FP32 had already left the trajectory;
-- [ ] isolate the sole T128/B2 mixed-BF16 failure across weight and Cache policies at
-  the top-2 logits; do not infer a universal winner from the 7/1 aggregate;
+- [x] isolate the sole T128/B2 mixed-BF16 failure: FFN-only flips oracle 320→25,
+  Attention-only keeps 320, and BF16 Cache shrinks error without restoring the answer;
+- [ ] locate the responsible Qwen3 FFN layer/substage with the same forced-input top-2
+  oracle; do not change Attention, Cache or thresholds during this search;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

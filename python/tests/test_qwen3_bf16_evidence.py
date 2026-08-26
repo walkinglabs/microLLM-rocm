@@ -10,6 +10,8 @@ DIVERGENCE_ROOT = (ROOT / "benchmarks/results" /
                    "2026-08-26-qwen3-bf16-first-divergence")
 SWEEP_ROOT = (ROOT / "benchmarks/results" /
               "2026-08-26-qwen3-bf16-oracle-sweep")
+ISLAND_ROOT = (ROOT / "benchmarks/results" /
+               "2026-08-26-qwen3-bf16-t128-weight-islands")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -93,6 +95,29 @@ def main():
     assert len(forced_raw) == 4
     assert all(item["forced_decode_inputs"] is True and
                item["forced_decode_input_count"] == 9 for item in forced_raw)
+    islands = json.loads((ISLAND_ROOT / "summary.json").read_text())
+    island_raw = [json.loads(line) for line in
+                  (ISLAND_ROOT / "raw.jsonl").read_text().splitlines() if line]
+    assert islands["status"] == "pass_diagnosed_precision_policy"
+    assert all(islands["gates"].values())
+    assert islands["context"] == 128 and islands["batch"] == 2
+    assert islands["forced_inputs"] == \
+        [14582, 1, 374, 264, 3491, 429, 374, 537, 264]
+    policies = {item["policy"]: item for item in islands["policy_rows"]}
+    assert len(policies) == len(island_raw) == 7
+    assert policies["micro-fp32-fp32"]["argmax_token"] == 320
+    assert policies["micro-ffn-bf16-fp32"]["argmax_token"] == 25
+    assert policies["micro-attention-bf16-fp32"]["argmax_token"] == 320
+    assert policies["micro-bf16-fp32"]["argmax_token"] == 25
+    assert policies["micro-bf16-bf16"]["argmax_token"] == 25
+    assert policies["torch-bf16"]["argmax_token"] == 320
+    assert policies["micro-ffn-bf16-fp32"]["captured_rows_maximum_error"] > 0.14
+    assert policies["micro-attention-bf16-fp32"]["captured_rows_maximum_error"] < 0.033
+    raw_by_policy = {item["framework_policy"]: item for item in island_raw}
+    assert raw_by_policy["micro-ffn-bf16-fp32"]["bf16_ffn_weights"] is True
+    assert raw_by_policy["micro-ffn-bf16-fp32"]["bf16_attention_weights"] is False
+    assert raw_by_policy["micro-attention-bf16-fp32"]["bf16_ffn_weights"] is False
+    assert raw_by_policy["micro-attention-bf16-fp32"]["bf16_attention_weights"] is True
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":
