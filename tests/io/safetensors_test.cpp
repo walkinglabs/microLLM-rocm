@@ -120,6 +120,10 @@ TEST(SafetensorsTest, LoadsMultipleShardsAndIndexWeightMap) {
              "\"a.weight\":\"model-00001.safetensors\","
              "\"b.weight\":\"model-00002.safetensors\"}}";
     index.close();
+    const auto inspected_index = inspect_safetensors_index(index_path);
+    EXPECT_EQ(inspected_index.size(), 2U);
+    EXPECT_EQ(inspected_index.at("a.weight"), first_path.lexically_normal());
+    EXPECT_EQ(inspected_index.at("b.weight"), second_path.lexically_normal());
     const auto indexed = load_safetensors_index(index_path);
     EXPECT_EQ(indexed.size(), 2U);
     EXPECT_EQ(indexed.at("a.weight").to_vector(), combined.at("a.weight").to_vector());

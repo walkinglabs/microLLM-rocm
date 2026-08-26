@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"indexed_streaming_complete","public_weight_map_metadata":true,"relative_path_escape_rejected":true,"declared_shard_membership_verified_before_h2d":true,"whole_set_preflight":true,"bf16_h2d_bytes":"parameter_count*2","d2h_calls":0,"next_gap":"memory-mapped payload visits"}

@@ -1,5 +1,6 @@
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 
 #include <gtest/gtest.h>
 #include <microllm/io/safetensors.h>
@@ -147,9 +148,38 @@ TEST(HipWeightsTest, StreamsMultipleShardsAfterWholeSetPreflight) {
                  std::runtime_error);
     EXPECT_EQ(runtime::transfer_stats().host_to_device_calls, 0U);
 
+    const auto index_path = first_path.parent_path() /
+        (first_path.stem().string() + "-index.json");
+    {
+        std::ofstream index(index_path);
+        index << "{\"weight_map\":{";
+        bool first_name = true;
+        for (const auto& [name, tensor] : expected) {
+            (void)tensor;
+            if (!first_name) index << ',';
+            first_name = false;
+            index << '"' << name << "\":\""
+                  << (first.contains(name) ? first_path.filename().string()
+                                           : second_path.filename().string())
+                  << '"';
+        }
+        index << "}}";
+    }
+    model::TransformerModel indexed(
+        config(), 449, model::ParameterInitialization::Uninitialized);
+    indexed.to(Device::hip());
+    runtime::reset_transfer_stats();
+    const auto indexed_report = indexed.load_safetensors_index(
+        index_path, {.strict = true, .mapping = {}});
+    EXPECT_TRUE(indexed_report.complete());
+    EXPECT_EQ(runtime::transfer_stats().host_to_device_bytes,
+              static_cast<std::size_t>(source.parameter_count()) * 2U);
+    EXPECT_EQ(runtime::transfer_stats().device_to_host_calls, 0U);
+
     std::error_code ignored;
     std::filesystem::remove(first_path, ignored);
     std::filesystem::remove(second_path, ignored);
+    std::filesystem::remove(index_path, ignored);
 }
 
 }  // namespace microllm::io

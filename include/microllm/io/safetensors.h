@@ -14,6 +14,7 @@
 namespace microllm::io {
 
 using StateDict = std::map<std::string, Tensor>;
+using SafetensorsIndex = std::map<std::string, std::filesystem::path>;
 
 enum class WeightFileDType { Float32, BFloat16, Float16 };
 
@@ -38,6 +39,8 @@ using SafetensorsTensorVisitor =
 // visited in payload-offset order so callers can stream large checkpoints.
 void visit_safetensors(const std::filesystem::path& path,
                        const SafetensorsTensorVisitor& visitor);
+[[nodiscard]] SafetensorsIndex inspect_safetensors_index(
+    const std::filesystem::path& index_path);
 
 [[nodiscard]] StateDict load_safetensors(
     const std::filesystem::path& path, Device target = Device::cpu());

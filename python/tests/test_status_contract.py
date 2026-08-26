@@ -187,6 +187,9 @@ def main() -> int:
         "benchmarks/results/2026-08-26-multishard-streaming/analysis.json",
         "benchmarks/results/2026-08-26-multishard-streaming/verification.json",
         "benchmarks/results/2026-08-26-multishard-streaming/multishard-streaming.svg",
+        "benchmarks/results/2026-08-26-indexed-streaming/analysis.json",
+        "benchmarks/results/2026-08-26-indexed-streaming/verification.json",
+        "benchmarks/results/2026-08-26-indexed-streaming/indexed-streaming.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (

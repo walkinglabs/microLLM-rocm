@@ -3658,7 +3658,37 @@ LoadWeightsReport TransformerModel::load_safetensors_files(
 
 LoadWeightsReport TransformerModel::load_safetensors_index(
     const std::filesystem::path& index_path, const LoadWeightsOptions& options) {
-    return load_state_dict(io::load_safetensors_index(index_path, device()), options);
+    if (impl_->parameters_initialized || !device().is_hip()) {
+        return load_state_dict(io::load_safetensors_index(index_path, device()), options);
+    }
+    const auto weight_map = io::inspect_safetensors_index(index_path);
+    std::set<std::filesystem::path> unique_paths;
+    for (const auto& [name, path] : weight_map) {
+        (void)name;
+        unique_paths.insert(path);
+    }
+    std::map<std::string, std::filesystem::path> actual_paths;
+    for (const auto& path : unique_paths) {
+        for (const auto& info : io::inspect_safetensors(path)) {
+            if (!actual_paths.emplace(info.name, path).second) {
+                throw std::runtime_error(
+                    "duplicate tensor across indexed safetensors shards: " + info.name);
+            }
+        }
+    }
+    for (const auto& [name, expected_path] : weight_map) {
+        const auto found = actual_paths.find(name);
+        if (found == actual_paths.end()) {
+            throw std::runtime_error("indexed weight is absent from shard: " + name);
+        }
+        if (found->second != expected_path) {
+            throw std::runtime_error(
+                "indexed weight is stored in a different shard: " + name);
+        }
+    }
+    const std::vector<std::filesystem::path> paths(
+        unique_paths.begin(), unique_paths.end());
+    return load_safetensors_files(paths, options);
 }
 
 void TransformerModel::save_safetensors(

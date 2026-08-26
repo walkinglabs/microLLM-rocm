@@ -632,7 +632,8 @@ StateDict load_safetensors_files(const std::vector<std::filesystem::path>& paths
     return combined;
 }
 
-StateDict load_safetensors_index(const std::filesystem::path& index_path, Device target) {
+SafetensorsIndex inspect_safetensors_index(
+    const std::filesystem::path& index_path) {
     std::ifstream input(index_path);
     if (!input) throw std::runtime_error("cannot open safetensors index: " + index_path.string());
     std::ostringstream contents;
@@ -642,7 +643,7 @@ StateDict load_safetensors_index(const std::filesystem::path& index_path, Device
                                  .object("weight_map");
     if (weight_map.empty()) throw std::runtime_error("safetensors weight_map is empty");
 
-    std::map<std::string, std::set<std::string>> names_by_file;
+    SafetensorsIndex output;
     for (const auto& [name, file_json] : weight_map) {
         const auto& filename = file_json.string("weight shard filename");
         const std::filesystem::path relative(filename);
@@ -652,12 +653,19 @@ StateDict load_safetensors_index(const std::filesystem::path& index_path, Device
         for (const auto& component : relative) {
             if (component == "..") throw std::runtime_error("weight shard escapes index directory");
         }
-        names_by_file[filename].insert(name);
+        output.emplace(name, (index_path.parent_path() / relative).lexically_normal());
     }
+    return output;
+}
+
+StateDict load_safetensors_index(const std::filesystem::path& index_path, Device target) {
+    const auto weight_map = inspect_safetensors_index(index_path);
+    std::map<std::filesystem::path, std::set<std::string>> names_by_file;
+    for (const auto& [name, path] : weight_map) names_by_file[path].insert(name);
 
     StateDict output;
-    for (const auto& [filename, expected_names] : names_by_file) {
-        const auto shard = load_safetensors(index_path.parent_path() / filename, target);
+    for (const auto& [path, expected_names] : names_by_file) {
+        const auto shard = load_safetensors(path, target);
         for (const auto& name : expected_names) {
             const auto found = shard.find(name);
             if (found == shard.end()) {
