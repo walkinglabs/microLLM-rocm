@@ -146,7 +146,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [115](steps/115-cached-block-zero-detail.md) | complete | Block 0内部边界trace | BF16 input Max放大163.84x；gate首过1e-3，down rel-L2峰值 |
 | [116](steps/116-block-zero-fp32-counterfactual.md) | complete; rejected | 仅Block 0 FFN保持FP32 | Max仅改善9.55%，B4/B8反向，peak +82.6MB |
 | [117](steps/117-bf16-decode-algorithm-consistency.md) | complete; rejected | M1/2/4/8共同BF16 solution | 75892 Max 1.1104x、吞吐最低0.9853x、workspace +4.59MB |
-| [118](steps/118-bf16-operator-row-invariance.md) | planned | 64个共同solution算子row-invariance搜索 | 先找跨M位级候选再进模型 |
+| [118](steps/118-bf16-operator-row-invariance.md) | complete; track closed | 64个共同solution算子row-invariance搜索 | 64/64 CPU与跨M exact；完整模型差异来自上游输入 |
+| [119](steps/119-block-zero-prefill-cache-audit.md) | planned | Block0 BF16 K/V prefill前缀 | 判断漂移在cache写入前还是decode Attention内产生 |
 
 ## 为什么按这个顺序
 

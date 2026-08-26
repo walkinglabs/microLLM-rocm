@@ -63,6 +63,26 @@ ROW_INVARIANCE_SPEC.loader.exec_module(ROW_INVARIANCE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_bf16_row_invariance_closes_gate_up_search(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-bf16-decode-row-invariance")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(summary["candidate_count"], 64)
+        self.assertEqual(summary["supported_count"], 64)
+        self.assertEqual(summary["reference_pass_count"], 64)
+        self.assertEqual(summary["row_invariant_count"], 64)
+        self.assertEqual(summary["maximum_reference_error"], 0.0)
+        self.assertEqual(summary["maximum_row_error"], 0.0)
+        self.assertIn(75892, summary["row_invariant_indices"])
+        self.assertFalse(
+            analysis["gate_up_intrinsic_identical_input_row_drift_supported"])
+        self.assertEqual(verification["measurement_commit"],
+                         "7fe8c75513d8fed4b670b697b89d59686376c363")
+        ET.parse(root / "row-invariance.svg")
+
     def test_bf16_row_invariance_summary_joins_workspace_and_exactness(self):
         inventory = {
             "shapes": [{"candidates": [

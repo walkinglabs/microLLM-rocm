@@ -4703,3 +4703,18 @@ batch行仍不位级相同。
 位级通过者才再进模型；75892不进入默认。
 
 ![BF16 decode algorithm](../../benchmarks/results/2026-08-26-deepseek-bf16-decode-algorithm/algorithm.svg)
+
+## 318. Experiment 301：不是一个候选exact，而是64个全部exact
+
+把Transformer拿掉后，我们给M1/2/4/8完全相同的BF16输入行，逐个运行64个共同solution。64/64
+support、64/64与完整CPU BF16 reference位级相同、64/64跨M和M内重复行位级相同，最大误差为0。
+
+75892也在算子层exact。这推翻了“固定index失败，所以该solution跨M不保序”的简单解释。真正情况是：
+完整模型进入gate前的BF16输入已经不同，solution只是在稳定计算不同输入。4个候选不需要workspace，
+但没有任何理由把其中一个写成默认。
+
+下一步检查尚未观察的状态：Block 0 full prefill写下的2048-token BF16 K/V cache。如果cache已经随
+batch漂移，就继续向prefill上游拆；如果cache exact，才审查decode materialized Attention。gate/up
+solution局部路线关闭。
+
+![BF16 row invariance](../../benchmarks/results/2026-08-26-bf16-decode-row-invariance/row-invariance.svg)

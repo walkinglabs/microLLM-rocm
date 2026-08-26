@@ -19005,6 +19005,107 @@ def validate_bf16_decode_algorithm(
             analysis.get("minimum_throughput_ratio_common_over_default", 0.0))
 
 
+def validate_bf16_row_invariance(
+        errors: list[str]) -> tuple[int, int, float, int]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-bf16-decode-row-invariance")
+    inventory = json.loads((root / "inventory.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    if (inventory.get("record_type") != "bf16_algorithm_inventory" or
+            inventory.get("status") != "pass" or
+            inventory.get("common_candidate_count") != 64 or
+            len(inventory.get("common_indices", [])) != 64 or
+            [row.get("rows") for row in inventory.get("shapes", [])] !=
+                [1, 2, 4, 8] or
+            any(row.get("candidate_count") != 64
+                for row in inventory.get("shapes", []))):
+        errors.append("BF16 row-invariance inventory changed")
+    if (summary.get("record_type") !=
+            "bf16_operator_row_invariance_matrix" or
+            summary.get("status") != "pass" or
+            summary.get("rows") != [1, 2, 4, 8] or
+            summary.get("inner") != 1536 or summary.get("columns") != 8960 or
+            summary.get("output_dtype") != "bfloat16" or
+            summary.get("candidate_count") != 64 or len(raw) != 64 or
+            summary.get("supported_count") != 64 or
+            summary.get("reference_pass_count") != 64 or
+            summary.get("row_invariant_count") != 64 or
+            summary.get("row_invariant_indices") !=
+                inventory.get("common_indices") or
+            summary.get("minimum_invariant_workspace_bytes") != 0 or
+            summary.get("maximum_row_error") != 0 or
+            summary.get("maximum_reference_error") != 0 or
+            any(row.get("supported") is not True or
+                row.get("reference_passed") is not True or
+                row.get("row_invariant") is not True or
+                row.get("reference_maximum_error") != 0 or
+                row.get("row_maximum_error") != 0 or
+                len(row.get("event_ms_p50", [])) != 4
+                for row in raw)):
+        errors.append("BF16 row-invariance summary/raw changed")
+    selected = {row.get("index"): row for row in raw}
+    if (selected.get(75841, {}).get("maximum_workspace_bytes") != 1146880 or
+            selected.get(75788, {}).get("maximum_workspace_bytes") != 0 or
+            selected.get(75892, {}).get("maximum_workspace_bytes") != 4587520 or
+            selected.get(75892, {}).get("row_invariant") is not True):
+        errors.append("BF16 row-invariance key candidates changed")
+    if (analysis.get("decision") !=
+            "close gate-up solution search and audit block-zero prefill cache state" or
+            analysis.get("candidate_count") != 64 or
+            analysis.get("row_invariant_count") != 64 or
+            analysis.get("zero_workspace_candidate_count") != 4 or
+            analysis.get("fastest_candidate_index") != 75841 or
+            analysis.get("fastest_zero_workspace_candidate_index") != 75788 or
+            analysis.get("solution_75892_row_invariant") is not True or
+            analysis.get(
+                "gate_up_intrinsic_identical_input_row_drift_supported") is not False or
+            analysis.get("algorithm_default_admitted") is not False):
+        errors.append("BF16 row-invariance analysis changed")
+    if (check.get("measurement_commit") !=
+            "7fe8c75513d8fed4b670b697b89d59686376c363" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("candidate_count") != 64 or
+            check.get("supported_count") != 64 or
+            check.get("reference_pass_count") != 64 or
+            check.get("row_invariant_count") != 64 or
+            check.get("complete_row_elements_per_comparison") != 8960 or
+            check.get("algorithm_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 375, "total": 375} or
+            check.get("sanitizer_label") != {"passed": 373, "total": 373} or
+            check.get("hip_label") != {"passed": 194, "total": 194} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("BF16 row-invariance verification changed")
+    for name in ("README.md", "inventory.json", "raw.jsonl", "summary.json",
+                 "analysis.json", "verification.json", "row-invariance.svg"):
+        if not (root / name).is_file():
+            errors.append(f"BF16 row-invariance evidence missing: {name}")
+    try:
+        ET.parse(root / "row-invariance.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid BF16 row-invariance SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "bf16_row_invariance_matrix.py").read_text(encoding="utf-8")
+    operator = (REPOSITORY / "benchmarks/micro" /
+                "benchmark_bf16_row_invariance.cpp").read_text(encoding="utf-8")
+    if ("row_invariant_count" not in runner or
+            "maximum_workspace_bytes" not in runner or
+            "register_bf16_algorithm" not in operator or
+            "reference_passed" not in operator):
+        errors.append("BF16 row-invariance source contract changed")
+    return (len(raw), summary.get("row_invariant_count", 0),
+            summary.get("maximum_row_error", -1.0),
+            analysis.get("fastest_zero_workspace_candidate_index", -1))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19899,6 +20000,8 @@ def main() -> int:
     bf16_decode_rows, bf16_decode_common, bf16_decode_default, \
         bf16_decode_fixed, bf16_decode_rate = \
         validate_bf16_decode_algorithm(errors)
+    bf16_invariance_rows, bf16_invariance_exact, bf16_invariance_error, \
+        bf16_invariance_zero = validate_bf16_row_invariance(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20538,6 +20641,9 @@ def main() -> int:
           f"bf16_decode_algorithm={bf16_decode_rows}/{bf16_decode_common}/"
           f"{bf16_decode_default:.4f}/{bf16_decode_fixed:.4f}/"
           f"{bf16_decode_rate:.4f} "
+          f"bf16_row_invariance={bf16_invariance_rows}/"
+          f"{bf16_invariance_exact}/{bf16_invariance_error:.1f}/"
+          f"{bf16_invariance_zero} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

@@ -1,0 +1,1382 @@
+{
+  "columns": 8960,
+  "common_candidate_count": 64,
+  "common_indices": [
+    75776,
+    75786,
+    75788,
+    75800,
+    75838,
+    75839,
+    75841,
+    75846,
+    75847,
+    75849,
+    75851,
+    75853,
+    75854,
+    75865,
+    75866,
+    75868,
+    75870,
+    75871,
+    75872,
+    75873,
+    75889,
+    75892,
+    75894,
+    75896,
+    75899,
+    75903,
+    75999,
+    76008,
+    76009,
+    76010,
+    76011,
+    76015,
+    76024,
+    76025,
+    76026,
+    76032,
+    76035,
+    76036,
+    76039,
+    76040,
+    76049,
+    76050,
+    76079,
+    76080,
+    76089,
+    76091,
+    76102,
+    76103,
+    76130,
+    76293,
+    76295,
+    76302,
+    76303,
+    76312,
+    76314,
+    76330,
+    76617,
+    76618,
+    76620,
+    76621,
+    76625,
+    76626,
+    76631,
+    76632
+  ],
+  "inner": 1536,
+  "record_type": "bf16_algorithm_inventory",
+  "requested_algorithms": 64,
+  "schema_version": 1,
+  "shapes": [
+    {
+      "candidate_count": 64,
+      "candidates": [
+        {
+          "index": 75776,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75788,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75871,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75892,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75870,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75868,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75896,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 76010,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 76009,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 75841,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75786,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75851,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75873,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75894,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75903,
+          "waves": 0.0,
+          "workspace_bytes": 5734400
+        },
+        {
+          "index": 75853,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75800,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75849,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 76011,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 75838,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75847,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75865,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75889,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75899,
+          "waves": 0.0,
+          "workspace_bytes": 5734400
+        },
+        {
+          "index": 75999,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75839,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75866,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75846,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75854,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75872,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 76032,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76008,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 76040,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76015,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76025,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76039,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76080,
+          "waves": 0.0,
+          "workspace_bytes": 16056320
+        },
+        {
+          "index": 76036,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76050,
+          "waves": 0.0,
+          "workspace_bytes": 13762560
+        },
+        {
+          "index": 76049,
+          "waves": 0.0,
+          "workspace_bytes": 13762560
+        },
+        {
+          "index": 76295,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76293,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76079,
+          "waves": 0.0,
+          "workspace_bytes": 16056320
+        },
+        {
+          "index": 76089,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76091,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76302,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76102,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76103,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76303,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76314,
+          "waves": 0.0,
+          "workspace_bytes": 27525120
+        },
+        {
+          "index": 76312,
+          "waves": 0.0,
+          "workspace_bytes": 27525120
+        },
+        {
+          "index": 76130,
+          "waves": 0.0,
+          "workspace_bytes": 32112640
+        },
+        {
+          "index": 76618,
+          "waves": 0.0,
+          "workspace_bytes": 18874368
+        },
+        {
+          "index": 76330,
+          "waves": 0.0,
+          "workspace_bytes": 32112640
+        },
+        {
+          "index": 76617,
+          "waves": 0.0,
+          "workspace_bytes": 18874368
+        },
+        {
+          "index": 76620,
+          "waves": 0.0,
+          "workspace_bytes": 23592960
+        },
+        {
+          "index": 76621,
+          "waves": 0.0,
+          "workspace_bytes": 23592960
+        },
+        {
+          "index": 76626,
+          "waves": 0.0,
+          "workspace_bytes": 28311552
+        },
+        {
+          "index": 76625,
+          "waves": 0.0,
+          "workspace_bytes": 28311552
+        },
+        {
+          "index": 76631,
+          "waves": 0.0,
+          "workspace_bytes": 33030144
+        },
+        {
+          "index": 76632,
+          "waves": 0.0,
+          "workspace_bytes": 33030144
+        },
+        {
+          "index": 76024,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76026,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76035,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        }
+      ],
+      "rows": 1
+    },
+    {
+      "candidate_count": 64,
+      "candidates": [
+        {
+          "index": 75776,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75788,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75871,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75892,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75870,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75868,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75896,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 76010,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 76009,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 75841,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75786,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75851,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75873,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75894,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75903,
+          "waves": 0.0,
+          "workspace_bytes": 5734400
+        },
+        {
+          "index": 75853,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75800,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75849,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 76011,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 75838,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75847,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75865,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75889,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75899,
+          "waves": 0.0,
+          "workspace_bytes": 5734400
+        },
+        {
+          "index": 75999,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75839,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75866,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75846,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75854,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75872,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 76032,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76008,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 76040,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76015,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76025,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76039,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76080,
+          "waves": 0.0,
+          "workspace_bytes": 16056320
+        },
+        {
+          "index": 76036,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76050,
+          "waves": 0.0,
+          "workspace_bytes": 13762560
+        },
+        {
+          "index": 76049,
+          "waves": 0.0,
+          "workspace_bytes": 13762560
+        },
+        {
+          "index": 76295,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76293,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76079,
+          "waves": 0.0,
+          "workspace_bytes": 16056320
+        },
+        {
+          "index": 76089,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76091,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76302,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76102,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76103,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76303,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76314,
+          "waves": 0.0,
+          "workspace_bytes": 27525120
+        },
+        {
+          "index": 76312,
+          "waves": 0.0,
+          "workspace_bytes": 27525120
+        },
+        {
+          "index": 76130,
+          "waves": 0.0,
+          "workspace_bytes": 32112640
+        },
+        {
+          "index": 76618,
+          "waves": 0.0,
+          "workspace_bytes": 18874368
+        },
+        {
+          "index": 76330,
+          "waves": 0.0,
+          "workspace_bytes": 32112640
+        },
+        {
+          "index": 76617,
+          "waves": 0.0,
+          "workspace_bytes": 18874368
+        },
+        {
+          "index": 76620,
+          "waves": 0.0,
+          "workspace_bytes": 23592960
+        },
+        {
+          "index": 76621,
+          "waves": 0.0,
+          "workspace_bytes": 23592960
+        },
+        {
+          "index": 76626,
+          "waves": 0.0,
+          "workspace_bytes": 28311552
+        },
+        {
+          "index": 76625,
+          "waves": 0.0,
+          "workspace_bytes": 28311552
+        },
+        {
+          "index": 76631,
+          "waves": 0.0,
+          "workspace_bytes": 33030144
+        },
+        {
+          "index": 76632,
+          "waves": 0.0,
+          "workspace_bytes": 33030144
+        },
+        {
+          "index": 76024,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76026,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76035,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        }
+      ],
+      "rows": 2
+    },
+    {
+      "candidate_count": 64,
+      "candidates": [
+        {
+          "index": 75776,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75788,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75871,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75892,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75870,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75868,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75896,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 76010,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 76009,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 75841,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75786,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75851,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75873,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75894,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75903,
+          "waves": 0.0,
+          "workspace_bytes": 5734400
+        },
+        {
+          "index": 75853,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75800,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75849,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 76011,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 75838,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75847,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75865,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75889,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75899,
+          "waves": 0.0,
+          "workspace_bytes": 5734400
+        },
+        {
+          "index": 75999,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75839,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75866,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75846,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75854,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75872,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 76032,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76008,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 76040,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76015,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76025,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76039,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76080,
+          "waves": 0.0,
+          "workspace_bytes": 16056320
+        },
+        {
+          "index": 76036,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76050,
+          "waves": 0.0,
+          "workspace_bytes": 13762560
+        },
+        {
+          "index": 76049,
+          "waves": 0.0,
+          "workspace_bytes": 13762560
+        },
+        {
+          "index": 76295,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76293,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76079,
+          "waves": 0.0,
+          "workspace_bytes": 16056320
+        },
+        {
+          "index": 76089,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76091,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76302,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76102,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76103,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76303,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76314,
+          "waves": 0.0,
+          "workspace_bytes": 27525120
+        },
+        {
+          "index": 76312,
+          "waves": 0.0,
+          "workspace_bytes": 27525120
+        },
+        {
+          "index": 76130,
+          "waves": 0.0,
+          "workspace_bytes": 32112640
+        },
+        {
+          "index": 76618,
+          "waves": 0.0,
+          "workspace_bytes": 18874368
+        },
+        {
+          "index": 76330,
+          "waves": 0.0,
+          "workspace_bytes": 32112640
+        },
+        {
+          "index": 76617,
+          "waves": 0.0,
+          "workspace_bytes": 18874368
+        },
+        {
+          "index": 76620,
+          "waves": 0.0,
+          "workspace_bytes": 23592960
+        },
+        {
+          "index": 76621,
+          "waves": 0.0,
+          "workspace_bytes": 23592960
+        },
+        {
+          "index": 76626,
+          "waves": 0.0,
+          "workspace_bytes": 28311552
+        },
+        {
+          "index": 76625,
+          "waves": 0.0,
+          "workspace_bytes": 28311552
+        },
+        {
+          "index": 76631,
+          "waves": 0.0,
+          "workspace_bytes": 33030144
+        },
+        {
+          "index": 76632,
+          "waves": 0.0,
+          "workspace_bytes": 33030144
+        },
+        {
+          "index": 76024,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76026,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76035,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        }
+      ],
+      "rows": 4
+    },
+    {
+      "candidate_count": 64,
+      "candidates": [
+        {
+          "index": 75776,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75788,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75871,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75892,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75870,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75868,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75896,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 76010,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 76009,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 75841,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75786,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75851,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75873,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75894,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75903,
+          "waves": 0.0,
+          "workspace_bytes": 5734400
+        },
+        {
+          "index": 75853,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75800,
+          "waves": 0.0,
+          "workspace_bytes": 0
+        },
+        {
+          "index": 75849,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 76011,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 75838,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75847,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75865,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75889,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75899,
+          "waves": 0.0,
+          "workspace_bytes": 5734400
+        },
+        {
+          "index": 75999,
+          "waves": 0.0,
+          "workspace_bytes": 4587520
+        },
+        {
+          "index": 75839,
+          "waves": 0.0,
+          "workspace_bytes": 1146880
+        },
+        {
+          "index": 75866,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 75846,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75854,
+          "waves": 0.0,
+          "workspace_bytes": 2293760
+        },
+        {
+          "index": 75872,
+          "waves": 0.0,
+          "workspace_bytes": 3440640
+        },
+        {
+          "index": 76032,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76008,
+          "waves": 0.0,
+          "workspace_bytes": 6881280
+        },
+        {
+          "index": 76040,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76015,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76025,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76039,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76080,
+          "waves": 0.0,
+          "workspace_bytes": 16056320
+        },
+        {
+          "index": 76036,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        },
+        {
+          "index": 76050,
+          "waves": 0.0,
+          "workspace_bytes": 13762560
+        },
+        {
+          "index": 76049,
+          "waves": 0.0,
+          "workspace_bytes": 13762560
+        },
+        {
+          "index": 76295,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76293,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76079,
+          "waves": 0.0,
+          "workspace_bytes": 16056320
+        },
+        {
+          "index": 76089,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76091,
+          "waves": 0.0,
+          "workspace_bytes": 18350080
+        },
+        {
+          "index": 76302,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76102,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76103,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76303,
+          "waves": 0.0,
+          "workspace_bytes": 22937600
+        },
+        {
+          "index": 76314,
+          "waves": 0.0,
+          "workspace_bytes": 27525120
+        },
+        {
+          "index": 76312,
+          "waves": 0.0,
+          "workspace_bytes": 27525120
+        },
+        {
+          "index": 76130,
+          "waves": 0.0,
+          "workspace_bytes": 32112640
+        },
+        {
+          "index": 76618,
+          "waves": 0.0,
+          "workspace_bytes": 18874368
+        },
+        {
+          "index": 76330,
+          "waves": 0.0,
+          "workspace_bytes": 32112640
+        },
+        {
+          "index": 76617,
+          "waves": 0.0,
+          "workspace_bytes": 18874368
+        },
+        {
+          "index": 76620,
+          "waves": 0.0,
+          "workspace_bytes": 23592960
+        },
+        {
+          "index": 76621,
+          "waves": 0.0,
+          "workspace_bytes": 23592960
+        },
+        {
+          "index": 76626,
+          "waves": 0.0,
+          "workspace_bytes": 28311552
+        },
+        {
+          "index": 76625,
+          "waves": 0.0,
+          "workspace_bytes": 28311552
+        },
+        {
+          "index": 76631,
+          "waves": 0.0,
+          "workspace_bytes": 33030144
+        },
+        {
+          "index": 76632,
+          "waves": 0.0,
+          "workspace_bytes": 33030144
+        },
+        {
+          "index": 76024,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76026,
+          "waves": 0.0,
+          "workspace_bytes": 9175040
+        },
+        {
+          "index": 76035,
+          "waves": 0.0,
+          "workspace_bytes": 11468800
+        }
+      ],
+      "rows": 8
+    }
+  ],
+  "status": "pass",
+  "workspace_limit_bytes": 33554432
+}

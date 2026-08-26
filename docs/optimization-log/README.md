@@ -1001,6 +1001,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [block-0 counterfactual SVG](../../benchmarks/results/2026-08-26-deepseek-bf16-ffn-layer-counterfactual/counterfactual.svg) | FP32/全BF16/Block0-FP32完整logits |
 | [experiments/300-bf16-decode-algorithm-reject.md](experiments/300-bf16-decode-algorithm-reject.md) | 64候选交集、75892反例与算子row-invariance交接 |
 | [BF16 decode algorithm SVG](../../benchmarks/results/2026-08-26-deepseek-bf16-decode-algorithm/algorithm.svg) | 默认与固定solution的完整logits/吞吐边界 |
+| [experiments/301-bf16-row-invariance.md](experiments/301-bf16-row-invariance.md) | 64/64相同BF16输入跨M exact与gate/up track关闭 |
+| [BF16 row-invariance SVG](../../benchmarks/results/2026-08-26-bf16-decode-row-invariance/row-invariance.svg) | 64个solution的CPU/row双门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

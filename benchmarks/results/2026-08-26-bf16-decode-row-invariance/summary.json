@@ -1,0 +1,1177 @@
+{
+  "candidate_count": 64,
+  "candidates": [
+    {
+      "event_ms_p50": [
+        0.0294269994,
+        0.0277430005,
+        0.0267009996,
+        0.0267810002
+      ],
+      "index": 75776,
+      "maximum_workspace_bytes": 0,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.027423,
+        0.0260189995,
+        0.0267409999,
+        0.0263800006
+      ],
+      "index": 75786,
+      "maximum_workspace_bytes": 0,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0263,
+        0.0261799991,
+        0.0258189999,
+        0.025737999
+      ],
+      "index": 75788,
+      "maximum_workspace_bytes": 0,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0264999997,
+        0.0260990001,
+        0.0262199994,
+        0.0261400007
+      ],
+      "index": 75800,
+      "maximum_workspace_bytes": 0,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0246559996,
+        0.024495,
+        0.0260990001,
+        0.0244159997
+      ],
+      "index": 75838,
+      "maximum_workspace_bytes": 1146880,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0248569995,
+        0.0246159993,
+        0.0246159993,
+        0.024456
+      ],
+      "index": 75839,
+      "maximum_workspace_bytes": 1146880,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0248169992,
+        0.0238940008,
+        0.0238940008,
+        0.0244149994
+      ],
+      "index": 75841,
+      "maximum_workspace_bytes": 1146880,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0262599997,
+        0.0260189995,
+        0.0261000004,
+        0.0270210002
+      ],
+      "index": 75846,
+      "maximum_workspace_bytes": 2293760,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0266609993,
+        0.0264599994,
+        0.0257779993,
+        0.025618
+      ],
+      "index": 75847,
+      "maximum_workspace_bytes": 2293760,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0257789996,
+        0.0262599997,
+        0.0261390004,
+        0.0259789992
+      ],
+      "index": 75849,
+      "maximum_workspace_bytes": 2293760,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0257389992,
+        0.0259390008,
+        0.0261799991,
+        0.0271019991
+      ],
+      "index": 75851,
+      "maximum_workspace_bytes": 2293760,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.025497999,
+        0.0256980006,
+        0.0260990001,
+        0.0256590005
+      ],
+      "index": 75853,
+      "maximum_workspace_bytes": 2293760,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.025737999,
+        0.0258189999,
+        0.0258189999,
+        0.0255789999
+      ],
+      "index": 75854,
+      "maximum_workspace_bytes": 2293760,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0269419998,
+        0.0270620007,
+        0.0269820001,
+        0.0276229996
+      ],
+      "index": 75865,
+      "maximum_workspace_bytes": 3440640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0273020007,
+        0.0269419998,
+        0.0276229996,
+        0.0269009992
+      ],
+      "index": 75866,
+      "maximum_workspace_bytes": 3440640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0273419991,
+        0.0281450003,
+        0.0269009992,
+        0.0272220001
+      ],
+      "index": 75868,
+      "maximum_workspace_bytes": 3440640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0298280008,
+        0.0270610005,
+        0.0271019991,
+        0.0271019991
+      ],
+      "index": 75870,
+      "maximum_workspace_bytes": 3440640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0270210002,
+        0.0267409999,
+        0.0269820001,
+        0.0267810002
+      ],
+      "index": 75871,
+      "maximum_workspace_bytes": 3440640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0266609993,
+        0.0269809999,
+        0.0263800006,
+        0.0264199991
+      ],
+      "index": 75872,
+      "maximum_workspace_bytes": 3440640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0271010008,
+        0.0267810002,
+        0.0264209993,
+        0.0266200006
+      ],
+      "index": 75873,
+      "maximum_workspace_bytes": 3440640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.027423,
+        0.0273419991,
+        0.027302999,
+        0.0291869994
+      ],
+      "index": 75889,
+      "maximum_workspace_bytes": 4587520,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0297079999,
+        0.0294669997,
+        0.0296279993,
+        0.0298280008
+      ],
+      "index": 75892,
+      "maximum_workspace_bytes": 4587520,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0293070003,
+        0.0296669994,
+        0.0308699999,
+        0.0291859992
+      ],
+      "index": 75894,
+      "maximum_workspace_bytes": 4587520,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0296279993,
+        0.0289859995,
+        0.0287449993,
+        0.0300280005
+      ],
+      "index": 75896,
+      "maximum_workspace_bytes": 4587520,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0302290004,
+        0.0312309992,
+        0.0293470006,
+        0.0303089991
+      ],
+      "index": 75899,
+      "maximum_workspace_bytes": 5734400,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.029747,
+        0.0300280005,
+        0.0295470003,
+        0.0302690007
+      ],
+      "index": 75903,
+      "maximum_workspace_bytes": 5734400,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0275829993,
+        0.0272620004,
+        0.0275829993,
+        0.0277830008
+      ],
+      "index": 75999,
+      "maximum_workspace_bytes": 4587520,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0332349986,
+        0.0325939991,
+        0.0332349986,
+        0.0329950005
+      ],
+      "index": 76008,
+      "maximum_workspace_bytes": 6881280,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0329149999,
+        0.0327950008,
+        0.0329149999,
+        0.0327139981
+      ],
+      "index": 76009,
+      "maximum_workspace_bytes": 6881280,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0329959989,
+        0.0327139981,
+        0.0322329998,
+        0.0324340016
+      ],
+      "index": 76010,
+      "maximum_workspace_bytes": 6881280,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0375260003,
+        0.0320330001,
+        0.0320729986,
+        0.0324340016
+      ],
+      "index": 76011,
+      "maximum_workspace_bytes": 6881280,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0349199995,
+        0.0337570012,
+        0.0343579985,
+        0.0348800011
+      ],
+      "index": 76015,
+      "maximum_workspace_bytes": 9175040,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0317529999,
+        0.0337570012,
+        0.0343180001,
+        0.0347190015
+      ],
+      "index": 76024,
+      "maximum_workspace_bytes": 9175040,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0315519981,
+        0.0342780016,
+        0.0343579985,
+        0.0341570005
+      ],
+      "index": 76025,
+      "maximum_workspace_bytes": 9175040,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0410539992,
+        0.0340379998,
+        0.0360420011,
+        0.0355609991
+      ],
+      "index": 76026,
+      "maximum_workspace_bytes": 9175040,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0362429991,
+        0.0362429991,
+        0.036483001,
+        0.0356809981
+      ],
+      "index": 76032,
+      "maximum_workspace_bytes": 9175040,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0434999987,
+        0.0421359986,
+        0.043099001,
+        0.0434589982
+      ],
+      "index": 76035,
+      "maximum_workspace_bytes": 11468800,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0426170006,
+        0.0431380011,
+        0.0424159989,
+        0.0418960005
+      ],
+      "index": 76036,
+      "maximum_workspace_bytes": 11468800,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.036603,
+        0.037845999,
+        0.0373650007,
+        0.0376860015
+      ],
+      "index": 76039,
+      "maximum_workspace_bytes": 11468800,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.037726,
+        0.0372049995,
+        0.0376459993,
+        0.0373650007
+      ],
+      "index": 76040,
+      "maximum_workspace_bytes": 11468800,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0402520001,
+        0.0400910005,
+        0.0404919982,
+        0.0400509983
+      ],
+      "index": 76049,
+      "maximum_workspace_bytes": 13762560,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0396500006,
+        0.0411739983,
+        0.0400509983,
+        0.0406530015
+      ],
+      "index": 76050,
+      "maximum_workspace_bytes": 13762560,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0454230011,
+        0.0461449996,
+        0.0448619984,
+        0.0455840006
+      ],
+      "index": 76079,
+      "maximum_workspace_bytes": 16056320,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.045384001,
+        0.0457840003,
+        0.0453439988,
+        0.0451430008
+      ],
+      "index": 76080,
+      "maximum_workspace_bytes": 16056320,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0461449996,
+        0.0450230017,
+        0.0489920005,
+        0.0458649993
+      ],
+      "index": 76089,
+      "maximum_workspace_bytes": 18350080,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0453029983,
+        0.0455439985,
+        0.0456640013,
+        0.0462649986
+      ],
+      "index": 76091,
+      "maximum_workspace_bytes": 18350080,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0513169989,
+        0.0513169989,
+        0.0511169992,
+        0.0511969998
+      ],
+      "index": 76102,
+      "maximum_workspace_bytes": 22937600,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0511960015,
+        0.0515969992,
+        0.0513969995,
+        0.0505549982
+      ],
+      "index": 76103,
+      "maximum_workspace_bytes": 22937600,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0619410016,
+        0.0628229976,
+        0.0634640008,
+        0.0637049973
+      ],
+      "index": 76130,
+      "maximum_workspace_bytes": 32112640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0604179986,
+        0.0607389994,
+        0.0612599999,
+        0.0613400005
+      ],
+      "index": 76293,
+      "maximum_workspace_bytes": 18350080,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0603780001,
+        0.060376998,
+        0.0589740016,
+        0.0595350005
+      ],
+      "index": 76295,
+      "maximum_workspace_bytes": 18350080,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0700789988,
+        0.0693579987,
+        0.070520997,
+        0.0700799972
+      ],
+      "index": 76302,
+      "maximum_workspace_bytes": 22937600,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0703200027,
+        0.0692379996,
+        0.0706809983,
+        0.0702800006
+      ],
+      "index": 76303,
+      "maximum_workspace_bytes": 22937600,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0805839971,
+        0.07914,
+        0.0791409984,
+        0.0802220032
+      ],
+      "index": 76312,
+      "maximum_workspace_bytes": 27525120,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0798219964,
+        0.0804629996,
+        0.0793009996,
+        0.0822679996
+      ],
+      "index": 76314,
+      "maximum_workspace_bytes": 27525120,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.088601999,
+        0.0874790028,
+        0.0893229991,
+        0.0873589963
+      ],
+      "index": 76330,
+      "maximum_workspace_bytes": 32112640,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0821079984,
+        0.0813459978,
+        0.0819059983,
+        0.081987001
+      ],
+      "index": 76617,
+      "maximum_workspace_bytes": 18874368,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0811450034,
+        0.0793809965,
+        0.0831499994,
+        0.0819469988
+      ],
+      "index": 76618,
+      "maximum_workspace_bytes": 18874368,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0958990008,
+        0.0943759978,
+        0.0960189998,
+        0.0957790017
+      ],
+      "index": 76620,
+      "maximum_workspace_bytes": 23592960,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.0984240025,
+        0.0946960002,
+        0.096059002,
+        0.0972620025
+      ],
+      "index": 76621,
+      "maximum_workspace_bytes": 23592960,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.112495996,
+        0.111213997,
+        0.109930001,
+        0.110611998
+      ],
+      "index": 76625,
+      "maximum_workspace_bytes": 28311552,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.109729998,
+        0.110771999,
+        0.110572003,
+        0.109730996
+      ],
+      "index": 76626,
+      "maximum_workspace_bytes": 28311552,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.125765994,
+        0.123600997,
+        0.124482997,
+        0.130256996
+      ],
+      "index": 76631,
+      "maximum_workspace_bytes": 33030144,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    },
+    {
+      "event_ms_p50": [
+        0.123882003,
+        0.130498007,
+        0.122157998,
+        0.124805003
+      ],
+      "index": 76632,
+      "maximum_workspace_bytes": 33030144,
+      "reference_maximum_error": 0,
+      "reference_passed": true,
+      "reference_rms_error": 0,
+      "row_invariant": true,
+      "row_maximum_error": 0,
+      "row_rms_error": 0,
+      "supported": true
+    }
+  ],
+  "columns": 8960,
+  "inner": 1536,
+  "maximum_reference_error": 0,
+  "maximum_row_error": 0,
+  "minimum_invariant_workspace_bytes": 0,
+  "output_dtype": "bfloat16",
+  "record_type": "bf16_operator_row_invariance_matrix",
+  "reference_pass_count": 64,
+  "row_invariant_count": 64,
+  "row_invariant_indices": [
+    75776,
+    75786,
+    75788,
+    75800,
+    75838,
+    75839,
+    75841,
+    75846,
+    75847,
+    75849,
+    75851,
+    75853,
+    75854,
+    75865,
+    75866,
+    75868,
+    75870,
+    75871,
+    75872,
+    75873,
+    75889,
+    75892,
+    75894,
+    75896,
+    75899,
+    75903,
+    75999,
+    76008,
+    76009,
+    76010,
+    76011,
+    76015,
+    76024,
+    76025,
+    76026,
+    76032,
+    76035,
+    76036,
+    76039,
+    76040,
+    76049,
+    76050,
+    76079,
+    76080,
+    76089,
+    76091,
+    76102,
+    76103,
+    76130,
+    76293,
+    76295,
+    76302,
+    76303,
+    76312,
+    76314,
+    76330,
+    76617,
+    76618,
+    76620,
+    76621,
+    76625,
+    76626,
+    76631,
+    76632
+  ],
+  "rows": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "schema_version": 1,
+  "status": "pass",
+  "supported_count": 64
+}

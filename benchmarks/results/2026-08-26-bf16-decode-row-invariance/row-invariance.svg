@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="680" viewBox="0 0 1500 680">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:12px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">BF16 gate/up row invariance · M1/2/4/8</text>
+<text x="30" y="62" class="muted">K1536 · N8960 · complete BF16 row · green means CPU gate + bitwise row invariance</text>
+<rect x="30" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="66" y="121" class="label" text-anchor="middle">75776</text>
+<text x="66" y="143" class="label" text-anchor="middle">exact</text>
+<text x="66" y="163" class="muted" text-anchor="middle">0 KiB</text>
+<rect x="116" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="152" y="121" class="label" text-anchor="middle">75786</text>
+<text x="152" y="143" class="label" text-anchor="middle">exact</text>
+<text x="152" y="163" class="muted" text-anchor="middle">0 KiB</text>
+<rect x="202" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="238" y="121" class="label" text-anchor="middle">75788</text>
+<text x="238" y="143" class="label" text-anchor="middle">exact</text>
+<text x="238" y="163" class="muted" text-anchor="middle">0 KiB</text>
+<rect x="288" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="324" y="121" class="label" text-anchor="middle">75800</text>
+<text x="324" y="143" class="label" text-anchor="middle">exact</text>
+<text x="324" y="163" class="muted" text-anchor="middle">0 KiB</text>
+<rect x="374" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="410" y="121" class="label" text-anchor="middle">75838</text>
+<text x="410" y="143" class="label" text-anchor="middle">exact</text>
+<text x="410" y="163" class="muted" text-anchor="middle">1120 KiB</text>
+<rect x="460" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="496" y="121" class="label" text-anchor="middle">75839</text>
+<text x="496" y="143" class="label" text-anchor="middle">exact</text>
+<text x="496" y="163" class="muted" text-anchor="middle">1120 KiB</text>
+<rect x="546" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="582" y="121" class="label" text-anchor="middle">75841</text>
+<text x="582" y="143" class="label" text-anchor="middle">exact</text>
+<text x="582" y="163" class="muted" text-anchor="middle">1120 KiB</text>
+<rect x="632" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="668" y="121" class="label" text-anchor="middle">75846</text>
+<text x="668" y="143" class="label" text-anchor="middle">exact</text>
+<text x="668" y="163" class="muted" text-anchor="middle">2240 KiB</text>
+<rect x="718" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="754" y="121" class="label" text-anchor="middle">75847</text>
+<text x="754" y="143" class="label" text-anchor="middle">exact</text>
+<text x="754" y="163" class="muted" text-anchor="middle">2240 KiB</text>
+<rect x="804" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="840" y="121" class="label" text-anchor="middle">75849</text>
+<text x="840" y="143" class="label" text-anchor="middle">exact</text>
+<text x="840" y="163" class="muted" text-anchor="middle">2240 KiB</text>
+<rect x="890" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="926" y="121" class="label" text-anchor="middle">75851</text>
+<text x="926" y="143" class="label" text-anchor="middle">exact</text>
+<text x="926" y="163" class="muted" text-anchor="middle">2240 KiB</text>
+<rect x="976" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1012" y="121" class="label" text-anchor="middle">75853</text>
+<text x="1012" y="143" class="label" text-anchor="middle">exact</text>
+<text x="1012" y="163" class="muted" text-anchor="middle">2240 KiB</text>
+<rect x="1062" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1098" y="121" class="label" text-anchor="middle">75854</text>
+<text x="1098" y="143" class="label" text-anchor="middle">exact</text>
+<text x="1098" y="163" class="muted" text-anchor="middle">2240 KiB</text>
+<rect x="1148" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1184" y="121" class="label" text-anchor="middle">75865</text>
+<text x="1184" y="143" class="label" text-anchor="middle">exact</text>
+<text x="1184" y="163" class="muted" text-anchor="middle">3360 KiB</text>
+<rect x="1234" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1270" y="121" class="label" text-anchor="middle">75866</text>
+<text x="1270" y="143" class="label" text-anchor="middle">exact</text>
+<text x="1270" y="163" class="muted" text-anchor="middle">3360 KiB</text>
+<rect x="1320" y="95" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1356" y="121" class="label" text-anchor="middle">75868</text>
+<text x="1356" y="143" class="label" text-anchor="middle">exact</text>
+<text x="1356" y="163" class="muted" text-anchor="middle">3360 KiB</text>
+<rect x="30" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="66" y="231" class="label" text-anchor="middle">75870</text>
+<text x="66" y="253" class="label" text-anchor="middle">exact</text>
+<text x="66" y="273" class="muted" text-anchor="middle">3360 KiB</text>
+<rect x="116" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="152" y="231" class="label" text-anchor="middle">75871</text>
+<text x="152" y="253" class="label" text-anchor="middle">exact</text>
+<text x="152" y="273" class="muted" text-anchor="middle">3360 KiB</text>
+<rect x="202" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="238" y="231" class="label" text-anchor="middle">75872</text>
+<text x="238" y="253" class="label" text-anchor="middle">exact</text>
+<text x="238" y="273" class="muted" text-anchor="middle">3360 KiB</text>
+<rect x="288" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="324" y="231" class="label" text-anchor="middle">75873</text>
+<text x="324" y="253" class="label" text-anchor="middle">exact</text>
+<text x="324" y="273" class="muted" text-anchor="middle">3360 KiB</text>
+<rect x="374" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="410" y="231" class="label" text-anchor="middle">75889</text>
+<text x="410" y="253" class="label" text-anchor="middle">exact</text>
+<text x="410" y="273" class="muted" text-anchor="middle">4480 KiB</text>
+<rect x="460" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="496" y="231" class="label" text-anchor="middle">75892</text>
+<text x="496" y="253" class="label" text-anchor="middle">exact</text>
+<text x="496" y="273" class="muted" text-anchor="middle">4480 KiB</text>
+<rect x="546" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="582" y="231" class="label" text-anchor="middle">75894</text>
+<text x="582" y="253" class="label" text-anchor="middle">exact</text>
+<text x="582" y="273" class="muted" text-anchor="middle">4480 KiB</text>
+<rect x="632" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="668" y="231" class="label" text-anchor="middle">75896</text>
+<text x="668" y="253" class="label" text-anchor="middle">exact</text>
+<text x="668" y="273" class="muted" text-anchor="middle">4480 KiB</text>
+<rect x="718" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="754" y="231" class="label" text-anchor="middle">75899</text>
+<text x="754" y="253" class="label" text-anchor="middle">exact</text>
+<text x="754" y="273" class="muted" text-anchor="middle">5600 KiB</text>
+<rect x="804" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="840" y="231" class="label" text-anchor="middle">75903</text>
+<text x="840" y="253" class="label" text-anchor="middle">exact</text>
+<text x="840" y="273" class="muted" text-anchor="middle">5600 KiB</text>
+<rect x="890" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="926" y="231" class="label" text-anchor="middle">75999</text>
+<text x="926" y="253" class="label" text-anchor="middle">exact</text>
+<text x="926" y="273" class="muted" text-anchor="middle">4480 KiB</text>
+<rect x="976" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1012" y="231" class="label" text-anchor="middle">76008</text>
+<text x="1012" y="253" class="label" text-anchor="middle">exact</text>
+<text x="1012" y="273" class="muted" text-anchor="middle">6720 KiB</text>
+<rect x="1062" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1098" y="231" class="label" text-anchor="middle">76009</text>
+<text x="1098" y="253" class="label" text-anchor="middle">exact</text>
+<text x="1098" y="273" class="muted" text-anchor="middle">6720 KiB</text>
+<rect x="1148" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1184" y="231" class="label" text-anchor="middle">76010</text>
+<text x="1184" y="253" class="label" text-anchor="middle">exact</text>
+<text x="1184" y="273" class="muted" text-anchor="middle">6720 KiB</text>
+<rect x="1234" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1270" y="231" class="label" text-anchor="middle">76011</text>
+<text x="1270" y="253" class="label" text-anchor="middle">exact</text>
+<text x="1270" y="273" class="muted" text-anchor="middle">6720 KiB</text>
+<rect x="1320" y="205" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1356" y="231" class="label" text-anchor="middle">76015</text>
+<text x="1356" y="253" class="label" text-anchor="middle">exact</text>
+<text x="1356" y="273" class="muted" text-anchor="middle">8960 KiB</text>
+<rect x="30" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="66" y="341" class="label" text-anchor="middle">76024</text>
+<text x="66" y="363" class="label" text-anchor="middle">exact</text>
+<text x="66" y="383" class="muted" text-anchor="middle">8960 KiB</text>
+<rect x="116" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="152" y="341" class="label" text-anchor="middle">76025</text>
+<text x="152" y="363" class="label" text-anchor="middle">exact</text>
+<text x="152" y="383" class="muted" text-anchor="middle">8960 KiB</text>
+<rect x="202" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="238" y="341" class="label" text-anchor="middle">76026</text>
+<text x="238" y="363" class="label" text-anchor="middle">exact</text>
+<text x="238" y="383" class="muted" text-anchor="middle">8960 KiB</text>
+<rect x="288" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="324" y="341" class="label" text-anchor="middle">76032</text>
+<text x="324" y="363" class="label" text-anchor="middle">exact</text>
+<text x="324" y="383" class="muted" text-anchor="middle">8960 KiB</text>
+<rect x="374" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="410" y="341" class="label" text-anchor="middle">76035</text>
+<text x="410" y="363" class="label" text-anchor="middle">exact</text>
+<text x="410" y="383" class="muted" text-anchor="middle">11200 KiB</text>
+<rect x="460" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="496" y="341" class="label" text-anchor="middle">76036</text>
+<text x="496" y="363" class="label" text-anchor="middle">exact</text>
+<text x="496" y="383" class="muted" text-anchor="middle">11200 KiB</text>
+<rect x="546" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="582" y="341" class="label" text-anchor="middle">76039</text>
+<text x="582" y="363" class="label" text-anchor="middle">exact</text>
+<text x="582" y="383" class="muted" text-anchor="middle">11200 KiB</text>
+<rect x="632" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="668" y="341" class="label" text-anchor="middle">76040</text>
+<text x="668" y="363" class="label" text-anchor="middle">exact</text>
+<text x="668" y="383" class="muted" text-anchor="middle">11200 KiB</text>
+<rect x="718" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="754" y="341" class="label" text-anchor="middle">76049</text>
+<text x="754" y="363" class="label" text-anchor="middle">exact</text>
+<text x="754" y="383" class="muted" text-anchor="middle">13440 KiB</text>
+<rect x="804" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="840" y="341" class="label" text-anchor="middle">76050</text>
+<text x="840" y="363" class="label" text-anchor="middle">exact</text>
+<text x="840" y="383" class="muted" text-anchor="middle">13440 KiB</text>
+<rect x="890" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="926" y="341" class="label" text-anchor="middle">76079</text>
+<text x="926" y="363" class="label" text-anchor="middle">exact</text>
+<text x="926" y="383" class="muted" text-anchor="middle">15680 KiB</text>
+<rect x="976" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1012" y="341" class="label" text-anchor="middle">76080</text>
+<text x="1012" y="363" class="label" text-anchor="middle">exact</text>
+<text x="1012" y="383" class="muted" text-anchor="middle">15680 KiB</text>
+<rect x="1062" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1098" y="341" class="label" text-anchor="middle">76089</text>
+<text x="1098" y="363" class="label" text-anchor="middle">exact</text>
+<text x="1098" y="383" class="muted" text-anchor="middle">17920 KiB</text>
+<rect x="1148" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1184" y="341" class="label" text-anchor="middle">76091</text>
+<text x="1184" y="363" class="label" text-anchor="middle">exact</text>
+<text x="1184" y="383" class="muted" text-anchor="middle">17920 KiB</text>
+<rect x="1234" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1270" y="341" class="label" text-anchor="middle">76102</text>
+<text x="1270" y="363" class="label" text-anchor="middle">exact</text>
+<text x="1270" y="383" class="muted" text-anchor="middle">22400 KiB</text>
+<rect x="1320" y="315" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1356" y="341" class="label" text-anchor="middle">76103</text>
+<text x="1356" y="363" class="label" text-anchor="middle">exact</text>
+<text x="1356" y="383" class="muted" text-anchor="middle">22400 KiB</text>
+<rect x="30" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="66" y="451" class="label" text-anchor="middle">76130</text>
+<text x="66" y="473" class="label" text-anchor="middle">exact</text>
+<text x="66" y="493" class="muted" text-anchor="middle">31360 KiB</text>
+<rect x="116" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="152" y="451" class="label" text-anchor="middle">76293</text>
+<text x="152" y="473" class="label" text-anchor="middle">exact</text>
+<text x="152" y="493" class="muted" text-anchor="middle">17920 KiB</text>
+<rect x="202" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="238" y="451" class="label" text-anchor="middle">76295</text>
+<text x="238" y="473" class="label" text-anchor="middle">exact</text>
+<text x="238" y="493" class="muted" text-anchor="middle">17920 KiB</text>
+<rect x="288" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="324" y="451" class="label" text-anchor="middle">76302</text>
+<text x="324" y="473" class="label" text-anchor="middle">exact</text>
+<text x="324" y="493" class="muted" text-anchor="middle">22400 KiB</text>
+<rect x="374" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="410" y="451" class="label" text-anchor="middle">76303</text>
+<text x="410" y="473" class="label" text-anchor="middle">exact</text>
+<text x="410" y="493" class="muted" text-anchor="middle">22400 KiB</text>
+<rect x="460" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="496" y="451" class="label" text-anchor="middle">76312</text>
+<text x="496" y="473" class="label" text-anchor="middle">exact</text>
+<text x="496" y="493" class="muted" text-anchor="middle">26880 KiB</text>
+<rect x="546" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="582" y="451" class="label" text-anchor="middle">76314</text>
+<text x="582" y="473" class="label" text-anchor="middle">exact</text>
+<text x="582" y="493" class="muted" text-anchor="middle">26880 KiB</text>
+<rect x="632" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="668" y="451" class="label" text-anchor="middle">76330</text>
+<text x="668" y="473" class="label" text-anchor="middle">exact</text>
+<text x="668" y="493" class="muted" text-anchor="middle">31360 KiB</text>
+<rect x="718" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="754" y="451" class="label" text-anchor="middle">76617</text>
+<text x="754" y="473" class="label" text-anchor="middle">exact</text>
+<text x="754" y="493" class="muted" text-anchor="middle">18432 KiB</text>
+<rect x="804" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="840" y="451" class="label" text-anchor="middle">76618</text>
+<text x="840" y="473" class="label" text-anchor="middle">exact</text>
+<text x="840" y="493" class="muted" text-anchor="middle">18432 KiB</text>
+<rect x="890" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="926" y="451" class="label" text-anchor="middle">76620</text>
+<text x="926" y="473" class="label" text-anchor="middle">exact</text>
+<text x="926" y="493" class="muted" text-anchor="middle">23040 KiB</text>
+<rect x="976" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1012" y="451" class="label" text-anchor="middle">76621</text>
+<text x="1012" y="473" class="label" text-anchor="middle">exact</text>
+<text x="1012" y="493" class="muted" text-anchor="middle">23040 KiB</text>
+<rect x="1062" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1098" y="451" class="label" text-anchor="middle">76625</text>
+<text x="1098" y="473" class="label" text-anchor="middle">exact</text>
+<text x="1098" y="493" class="muted" text-anchor="middle">27648 KiB</text>
+<rect x="1148" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1184" y="451" class="label" text-anchor="middle">76626</text>
+<text x="1184" y="473" class="label" text-anchor="middle">exact</text>
+<text x="1184" y="493" class="muted" text-anchor="middle">27648 KiB</text>
+<rect x="1234" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1270" y="451" class="label" text-anchor="middle">76631</text>
+<text x="1270" y="473" class="label" text-anchor="middle">exact</text>
+<text x="1270" y="493" class="muted" text-anchor="middle">32256 KiB</text>
+<rect x="1320" y="425" width="72" height="82" rx="7" fill="#166534"/>
+<text x="1356" y="451" class="label" text-anchor="middle">76632</text>
+<text x="1356" y="473" class="label" text-anchor="middle">exact</text>
+<text x="1356" y="493" class="muted" text-anchor="middle">32256 KiB</text>
+</svg>
