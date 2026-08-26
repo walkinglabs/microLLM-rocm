@@ -5372,3 +5372,15 @@ microLLM 与 Transformers BF16 都生成 `[14582,25,16246,264]`，但 logits 不
 固定 Qwen3 显式策略保留，不推广到长上下文或训练。
 
 ![Qwen3 BF16 inference](assets/qwen3-bf16-inference.svg)
+
+## 380. Experiment 364：进程成功不是答案通过
+
+Qwen3双计数manifest进入T1/32/128/512、B1/B2、prefill与N1/N4/N32 cached矩阵。
+microLLM/PyTorch 64/64进程执行成功，8/8 prefill top token与24/24 active KV bytes一致。
+
+旧summary却漏了最后一道门：只有16/24 decode行token序列完全相同，8行在共同前缀1、2或8
+之后分叉。汇总器修正为24 pass+8 `precision_mismatch`，整体
+`complete_with_recorded_limits`。两边BF16 policy不同，下一节点回到共同FP32 full-logit oracle，
+不能仅凭最终token选择“谁对”。visible-device双重过滤也改为双方环境失败后立即停止。
+
+![Qwen3 fixture shape matrix](assets/qwen3-fixture-shape-matrix.svg)

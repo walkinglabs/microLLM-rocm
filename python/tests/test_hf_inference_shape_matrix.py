@@ -2200,6 +2200,7 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
                     "kv_cache_allocation_efficiency": 0.0,
                     "kv_cache_utilization": 0.0,
                     "kv_cache_share_of_peak": 0.0,
+                    "top_logits": [{"token": 7, "logit": 1.0}],
                 })
         # The two decode cases remain explicitly limited because no fake samples exist.
         summary = MATRIX.summarize(records, [model], [8], [1], 3)
@@ -2217,7 +2218,71 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(MATRIX.classify_failure(
             "cached decode currently supports batch 1"), "unsupported")
         self.assertEqual(MATRIX.classify_failure("HIP out of memory"), "oom")
+        self.assertEqual(MATRIX.classify_failure(
+            "HIP inference requested without a visible device"),
+            "environment_unavailable")
+        self.assertEqual(MATRIX.classify_failure(
+            "PyTorch ROCm device unavailable"),
+            "environment_unavailable")
         self.assertEqual(MATRIX.classify_failure("wrong answer"), "failed")
+
+    def test_global_environment_failure_requires_both_frameworks(self):
+        micro = {"framework": "microllm", "status": "environment_unavailable"}
+        torch = {"framework": "pytorch", "status": "environment_unavailable"}
+        self.assertTrue(MATRIX.pair_has_global_environment_failure([micro, torch]))
+        self.assertFalse(MATRIX.pair_has_global_environment_failure([micro]))
+        self.assertFalse(MATRIX.pair_has_global_environment_failure([
+            micro, {"framework": "pytorch", "status": "pass"}]))
+
+    def test_summary_marks_cross_framework_token_divergence(self):
+        model = {"name": "tiny", "revision": "fixed"}
+        records = []
+        for framework, tokens in (("microllm", [1, 2]), ("pytorch", [1, 3])):
+            records.append({
+                "model": "tiny", "context": 8, "batch": 1,
+                "decode_tokens": 2, "workload": "decode",
+                "cache_mode": "cached", "framework": framework,
+                "status": "pass", "generated_tokens": tokens,
+                "throughput_tokens_per_second": 10.0,
+                "latency_ms": 2.0, "peak_bytes": 100,
+                "resident_weight_bytes": 80, "device_total_bytes": 1000,
+                "kv_cache_actual_bytes": 8, "kv_cache_active_bytes": 8,
+                "kv_cache_theoretical_bytes": 8,
+                "kv_cache_capacity_tokens": 10,
+                "kv_cache_active_tokens": 10, "kv_cache_element_bytes": 2,
+                "kv_cache_allocation_efficiency": 1.0,
+                "kv_cache_utilization": 1.0, "kv_cache_share_of_peak": 0.08,
+            })
+        summary = MATRIX.summarize(
+            records, [model], [8], [1], 1, cases=["cached"],
+            decode_lengths=[2])
+        row = summary["rows"][0]
+        self.assertEqual(row["status"], "precision_mismatch")
+        self.assertFalse(row["cross_framework_tokens_equal"])
+        self.assertEqual(row["cross_framework_first_token_difference"], 1)
+        self.assertEqual(summary["status"], "complete_with_recorded_limits")
+
+    def test_manifest_runtime_and_stored_counts_are_consistent(self):
+        base = {
+            "name": "tied", "revision": "fixed", "config": "/config",
+            "weights": "/weights", "parameter_count": 4,
+            "runtime_parameter_count": 4, "stored_parameter_count": 6,
+            "inference": {"token_ids": [1]},
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest = Path(temporary) / "manifest.json"
+            manifest.write_text(json.dumps({
+                "schema_version": 1, "models": [base]}), encoding="utf-8")
+            self.assertEqual(MATRIX.load_models(manifest)[0]["parameter_count"], 4)
+            for replacement, message in (
+                    ({"runtime_parameter_count": 3}, "differs"),
+                    ({"stored_parameter_count": 3}, "smaller")):
+                manifest.write_text(json.dumps({
+                    "schema_version": 1,
+                    "models": [{**base, **replacement}],
+                }), encoding="utf-8")
+                with self.assertRaisesRegex(RuntimeError, message):
+                    MATRIX.load_models(manifest)
 
     def test_first_sequence_difference_reports_exact_divergence(self):
         self.assertEqual(MATRIX.first_sequence_difference([1, 2], [1, 2]), -1)
@@ -2237,6 +2302,7 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
                 "framework": framework, "status": "pass",
                 "throughput_tokens_per_second": 1.0, "latency_ms": 1.0,
                 "peak_bytes": 10, "resident_weight_bytes": 8,
+                "top_logits": [{"token": 3, "logit": 1.0}],
             })
         summary = MATRIX.summarize(
             records, [model], [8], [1], 1, cases=["prefill"])

@@ -149,6 +149,17 @@ def load_models(path: Path, selected: list[str] | None = None) -> list[dict]:
         missing = {"revision", "config", "weights", "parameter_count", "inference"} - model.keys()
         if missing:
             raise RuntimeError(f"{name} is missing fields: {sorted(missing)}")
+        parameter_count = model["parameter_count"]
+        runtime_count = model.get("runtime_parameter_count", parameter_count)
+        stored_count = model.get("stored_parameter_count", runtime_count)
+        if type(parameter_count) is not int or parameter_count <= 0:
+            raise RuntimeError(f"{name} needs a positive runtime parameter_count")
+        if runtime_count != parameter_count:
+            raise RuntimeError(
+                f"{name} runtime_parameter_count differs from parameter_count")
+        if type(stored_count) is not int or stored_count < runtime_count:
+            raise RuntimeError(
+                f"{name} stored_parameter_count is smaller than runtime parameters")
         tokens = model["inference"].get("token_ids")
         if not isinstance(tokens, list) or not tokens or any(int(token) < 0 for token in tokens):
             raise RuntimeError(f"{name} needs nonnegative inference.token_ids")
@@ -187,11 +198,24 @@ def first_sequence_difference(left: list[int], right: list[int]) -> int:
 
 def classify_failure(error: Exception | str) -> str:
     text = str(error).lower()
+    if ("without a visible device" in text or
+            "device unavailable" in text or
+            "invalid device id" in text):
+        return "environment_unavailable"
     if "out of memory" in text or "memory allocation" in text:
         return "oom"
     if "currently supports batch 1" in text or "unsupported" in text:
         return "unsupported"
     return "failed"
+
+
+def pair_has_global_environment_failure(records: list[dict]) -> bool:
+    """True only when both framework workers fail before model evidence exists."""
+    return (len(records) == 2 and
+            {record.get("framework") for record in records} ==
+            {"microllm", "pytorch"} and
+            all(record.get("status") == "environment_unavailable"
+                for record in records))
 
 
 def run_one_json(command: list[str], timeout: int) -> dict:
@@ -717,7 +741,16 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                                     row["prefill_top_logit_abs_difference"] = abs(
                                         float(micro_top[0]["logit"]) -
                                         float(torch_top[0]["logit"]))
-                        row["status"] = "pass" if len(per_framework) == 2 else "limited"
+                        if len(per_framework) != 2:
+                            row["status"] = "limited"
+                        elif workload == "decode" and not row.get(
+                                "cross_framework_tokens_equal", False):
+                            row["status"] = "precision_mismatch"
+                        elif workload == "prefill" and not row.get(
+                                "prefill_top_token_equal", False):
+                            row["status"] = "precision_mismatch"
+                        else:
+                            row["status"] = "pass"
                         rows.append(row)
 
     for framework in ("microllm", "pytorch"):
@@ -859,6 +892,7 @@ def main() -> int:
                         for process_run in range(1, args.runs + 1):
                             order = ("microllm", "pytorch") if process_run % 2 else \
                                 ("pytorch", "microllm")
+                            pair_start = len(records)
                             for framework in order:
                                 base = {
                                     "schema_version": 1,
@@ -932,6 +966,22 @@ def main() -> int:
                                     record = {**base, "status": classify_failure(error),
                                               "error": str(error)}
                                 save(record)
+                            pair_records = records[pair_start:]
+                            if pair_has_global_environment_failure(pair_records):
+                                summary = summarize(
+                                    records, models, args.contexts, args.batches, args.runs,
+                                    args.cases, args.micro_kv_cache_dtype,
+                                    args.micro_kv_cache_fp32_layers,
+                                    args.prefill_logits_mode, args.decode_lengths,
+                                    args.micro_cache_capacity)
+                                summary["status"] = "invalid_environment"
+                                summary["environment_failure"] = (
+                                    "both framework workers could not see a GPU; "
+                                    "remaining shape processes were not launched")
+                                (args.output_directory / "summary.json").write_text(
+                                    json.dumps(summary, indent=2, sort_keys=True) + "\n",
+                                    encoding="utf-8")
+                                return 2
     summary = summarize(records, models, args.contexts, args.batches, args.runs,
                         args.cases, args.micro_kv_cache_dtype,
                         args.micro_kv_cache_fp32_layers,

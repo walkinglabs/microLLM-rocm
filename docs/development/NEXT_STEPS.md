@@ -40,6 +40,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   align official Qwen3-0.6B complete logits/greedy tokens with Transformers on MI300X;
 - [x] run explicit Qwen3 FFN+Attention BF16 with FP32 QK-Norm; it is closer to the
   shared FP32 oracle than Transformers BF16 and passes matched token/s/residency gates;
+- [x] route the Qwen3 tied fixture through T1/32/128/512, B1/B2 prefill/cached matrix;
+  all 64 framework processes run and all KV bytes agree, while the corrected answer gate
+  records 24 pass plus 8 cross-framework token mismatches instead of a false green;
+- [ ] capture complete logits at the first Qwen3 BF16 T32/T128/T512 token divergence and
+  compare microLLM/Transformers against one FP32 oracle before changing either policy;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

@@ -1126,6 +1126,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 official SVG](assets/qwen3-official-alignment.svg) | bounded load、Max/RMS、token与MI300X资源 |
 | [experiments/363-qwen3-bf16-inference.md](experiments/363-qwen3-bf16-inference.md) | Qwen3 BF16共同FP32 oracle、速度与常驻 |
 | [Qwen3 BF16 SVG](assets/qwen3-bf16-inference.svg) | 误差、3.66×端到端与显存 |
+| [experiments/364-qwen3-fixture-shape-matrix.md](experiments/364-qwen3-fixture-shape-matrix.md) | 双计数fixture进入通用矩阵并修复token假绿 |
+| [Qwen3 fixture matrix SVG](assets/qwen3-fixture-shape-matrix.svg) | 64/64执行、24 pass与8个精度边界 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

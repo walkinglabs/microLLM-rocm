@@ -30,6 +30,11 @@ payload 各保存了一份。Qwen3 strict loader 会先逐字节验证两份来�
 两种模型均已完成固定 prompt 的官方 logits/token 真机门。显式 BF16 路径有独立误差、
 常驻显存和吞吐证据；这些结果不自动推广到其他 Qwen 尺寸。
 
+扩展Qwen3 BF16矩阵进一步说明“固定短prompt通过”不是全shape结论：T1/32/128/512、B1/B2
+的64个framework进程全部运行，但24个decode row中只有16个完整token-exact，另外8个必须标记
+`precision_mismatch`。两边policy不同，当前只记录边界；第一处分叉的共同FP32 full-logit
+实验尚未完成。
+
 ### 一条命令准备固定 fixture
 
 仓库不会提交数GB权重，但会固定来源、revision、许可和结构预期：

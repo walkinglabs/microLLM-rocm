@@ -182,6 +182,13 @@ PyTorch：整模型BF16
 
 跨框架token不一致不是“性能失败”，而是数值对齐失败。summary会保存相同前缀长度与首个
 分叉位置；`-1`表示整段完全相同。不能只打印`false`，否则不知道第一步就错还是最后一步才分叉。
+两个worker各自`pass`也不等于聚合row通过：decode token分叉或prefill top token不同会把row
+标成`precision_mismatch`，整体summary成为`complete_with_recorded_limits`。这些row的时间可以
+帮助定位成本，但不能进入“精度对齐后的速度”结论。
+
+如果microLLM和PyTorch都报告GPU不可见，runner把整体写成`invalid_environment`，只保留最先的
+两个worker并以非零状态退出，不再为每个shape重复同一个环境错误。visible-device变量应只使用
+一套逻辑；同一物理编号同时交给ROCR和HIP过滤可能造成二次过滤。
 
 正式大模型矩阵之外，CI还有一套很小但真的执行计算的回归：
 
@@ -227,3 +234,5 @@ GPU、ROCm、PyTorch/Transformers版本和失败行。正式看P95时建议至�
 [Experiment 085](../optimization-log/experiments/085-inference-shape-memory-matrix.md)。
 N64、B2/B4、显式KV waste字段、T2048/B2长上下文以及一次未稳定复现的batch-row失败见
 [Experiment 095](../optimization-log/experiments/095-serving-inference-efficiency.md)。
+Qwen3双计数fixture、64/64执行成功却有8个token分叉，以及修正后的诚实状态门见
+[Experiment 364](../optimization-log/experiments/364-qwen3-fixture-shape-matrix.md)。

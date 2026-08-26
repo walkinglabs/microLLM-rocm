@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="820" viewBox="0 0 1500 820">
+  <rect width="1500" height="820" fill="#f7f8fc"/>
+  <text x="60" y="68" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 fixture → honest inference matrix</text>
+  <text x="60" y="105" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Experiment 364 · MI300X · BF16 Cache · exact capacity · one-run functional preflight</text>
+
+  <rect x="55" y="145" width="430" height="250" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="270" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#1d4ed8">One file, two counts</text>
+  <text x="90" y="245" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">stored safetensors values</text>
+  <rect x="90" y="265" width="335" height="34" rx="8" fill="#93c5fd"/>
+  <text x="415" y="290" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">751.6M</text>
+  <text x="90" y="335" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">unique runtime parameters</text>
+  <rect x="90" y="350" width="266" height="34" rx="8" fill="#2563eb"/>
+  <text x="415" y="375" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">596.0M</text>
+
+  <rect x="535" y="145" width="430" height="250" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="750" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">Execution gate</text>
+  <text x="750" y="260" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="54" font-weight="700" fill="#16a34a">64 / 64</text>
+  <text x="750" y="302" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">framework processes ran successfully</text>
+  <text x="750" y="348" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534">8/8 prefill top tokens · 24/24 KV bytes</text>
+
+  <rect x="1015" y="145" width="430" height="250" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+  <text x="1230" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#b45309">Answer gate</text>
+  <rect x="1070" y="240" width="240" height="42" rx="9" fill="#dcfce7"/>
+  <rect x="1310" y="240" width="80" height="42" rx="9" fill="#fee2e2"/>
+  <text x="1190" y="268" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">24 pass</text>
+  <text x="1350" y="268" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#b42335">8 limit</text>
+  <text x="1230" y="320" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">decode token exact: 16 / 24</text>
+  <text x="1230" y="355" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#b42335">overall ≠ pass</text>
+
+  <rect x="55" y="445" width="1390" height="245" rx="20" fill="#ffffff" stroke="#d7dce6" stroke-width="2"/>
+  <text x="90" y="490" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#172033">Recorded precision mismatches</text>
+  <text x="90" y="525" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">cell = matching prefix before first different token</text>
+
+  <text x="430" y="560" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">T32</text>
+  <text x="750" y="560" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">T128</text>
+  <text x="1070" y="560" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">T512</text>
+  <text x="170" y="605" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">B1</text>
+  <text x="170" y="655" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">B2</text>
+  <rect x="300" y="578" width="260" height="38" rx="8" fill="#fee2e2"/>
+  <text x="430" y="604" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#b42335">N4/N32 → prefix 1</text>
+  <rect x="940" y="578" width="260" height="38" rx="8" fill="#fee2e2"/>
+  <text x="1070" y="604" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#b42335">N4/N32 → prefix 2</text>
+  <rect x="300" y="628" width="260" height="38" rx="8" fill="#fee2e2"/>
+  <text x="430" y="654" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#b42335">N4/N32 → prefix 1</text>
+  <rect x="620" y="628" width="260" height="38" rx="8" fill="#fef3c7"/>
+  <text x="750" y="654" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#b45309">N32 → prefix 8</text>
+  <rect x="940" y="628" width="260" height="38" rx="8" fill="#fef3c7"/>
+  <text x="1070" y="654" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#b45309">N32 → prefix 8</text>
+
+  <rect x="55" y="725" width="1390" height="60" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="85" y="762" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">Next falsifiable step:</text>
+  <text x="285" y="762" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">export full logits immediately before the first split and compare both policies to one FP32 oracle</text>
+</svg>

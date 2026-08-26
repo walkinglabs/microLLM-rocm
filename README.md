@@ -310,6 +310,9 @@ If “Config package” is unfamiliar, read the beginner-facing
 > runtime parameters, while the 311-Tensor file stores 751,632,384 values because tied
 > embedding/lm_head payloads are byte-identical. Bounded strict alias loading now passes;
 > complete FP32 logits and four greedy tokens align with Transformers on MI300X.
+> The generic Qwen3 BF16 shape matrix then separates execution from answers: all 64
+> framework processes run and all 24 KV byte counts agree, but only 16/24 decode rows
+> are token-exact. Eight rows are now `precision_mismatch`, not a false 32/32 pass.
 
 </details>
 
@@ -1298,6 +1301,9 @@ exact greedy tokens against Transformers on MI300X.
 [Experiment 363](docs/optimization-log/experiments/363-qwen3-bf16-inference.md) keeps an explicit
 single-representation BF16 policy: it is closer to the shared FP32 oracle than Transformers BF16,
 reaches 3.66× matched end-to-end throughput and reduces resident weights to 1.503GB.
+[Experiment 364](docs/optimization-log/experiments/364-qwen3-fixture-shape-matrix.md) sends the
+dual-count fixture through T1/32/128/512 and B1/B2. All 64 processes and 24 KV-byte checks pass,
+while an honest answer gate records 24 accepted rows plus 8 BF16 token mismatches for diagnosis.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.
