@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass","merge_commit":"df495477","hip_range_test_commit":"69cda6ba","rocprof_flags":["--marker-trace","--kernel-trace"],"focused_hip_test":"pass","perfetto_json_parsed":true}

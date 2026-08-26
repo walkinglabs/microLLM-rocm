@@ -210,7 +210,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] optional standard-library Python context manager/decorator with schema JSONL;
 - [x] Chrome/Perfetto Trace Event export for Python schema spans;
 - [x] default-off ROCTX ranges with rocprof marker trace evidence;
-- [ ] merge Python/C++ markers and GPU kernels into one Perfetto timeline.
+- [x] merge C++ ROCTX markers and GPU kernels into one Perfetto timeline by correlation ID;
+- [ ] calibrate Python `perf_counter_ns` against rocprof timestamps before three-way merge.
 
 ## P2.5 — production data parallel reducer
 

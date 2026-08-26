@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"roctx_gpu_perfetto_merge_complete","marker_events":2,"kernel_events":2,"correlated_ids":1,"trace_events":6,"correlation_method":"rocprof Correlation_Id flow","timestamp_containment_assumed":false,"python_clock_calibrated":false}

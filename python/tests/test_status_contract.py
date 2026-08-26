@@ -213,6 +213,9 @@ def main() -> int:
         "benchmarks/results/2026-08-26-roctx-marker-correlation/analysis.json",
         "benchmarks/results/2026-08-26-roctx-marker-correlation/verification.json",
         "benchmarks/results/2026-08-26-roctx-marker-correlation/roctx-ranges.svg",
+        "benchmarks/results/2026-08-26-unified-rocprof-perfetto/analysis.json",
+        "benchmarks/results/2026-08-26-unified-rocprof-perfetto/verification.json",
+        "benchmarks/results/2026-08-26-unified-rocprof-perfetto/unified-timeline.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (

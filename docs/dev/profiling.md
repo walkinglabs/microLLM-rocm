@@ -549,4 +549,8 @@ Set `TraceOptions.emit_roctx_ranges=true` to mirror active `TraceTimer` spans in
 ROCTX. rocprofv3 `--marker-trace` then records the same names; unfinished timers are
 closed by the destructor. The option is default-off and loads ROCTX at runtime.
 
+`merge_rocprof_perfetto(marker_csv, kernel_csv, output_json)` merges rocprof marker
+and Kernel CSV using `Correlation_Id` flows. It deliberately does not align Python
+`perf_counter_ns`; that requires a measured clock calibration first.
+
 Ad-hoc wall-clock timing around asynchronous kernels is not accepted evidence.
