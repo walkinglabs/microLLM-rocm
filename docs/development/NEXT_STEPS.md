@@ -15,8 +15,9 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 - [x] read-only memory-mapped payload visits with portable buffered fallback;
 - [x] signed one-byte INT8 Tensor plus scalar F32 weight scale, CPU/HIP
   quantize/dequantize and mixed I8/F32 safetensors interoperability;
-- [ ] standardized FP8 files, INT4 packing, per-channel INT8 metadata and a
-  complete-output model compute route;
+- [x] scalar/per-output-column INT8 metadata, device preparation, fused M=1,
+  scoped whole-model compute and complete-output official rejection gates;
+- [ ] standardized FP8 files and packed INT4 software/storage path;
 - [x] add pinned official Qwen/DeepSeek fixture preparation: fixed revisions/licenses,
   complete safetensors header/index validation, exact parameter/Tensor counts,
   config/vocab/merges gates and a shared local manifest; large payloads remain outside Git.
@@ -373,7 +374,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   4.31x FP32 and 1.42x FP16, but only 18.25% of official FP8 peak;
 - [x] execute raw hipBLASLt INT8xINT8→INT32 for 128–4096 with exact CPU samples;
   4096 reaches 416 TOPS and 15.91% official peak;
-- [ ] decide and implement a weight-only INT8 Tensor/scale contract before any model claim;
+- [x] implement scalar/per-column weight-only INT8 Tensor/scale, device-only amax,
+  fused M=1, transactional model preparation and explicit scopes; fixed official
+  Qwen gates reject all/FFN/Attention/QKV/O PTQ routes and close the current line;
 - [x] run official Qwen/DeepSeek T8/T512 with single-representation FP8 Linear weights;
   all four static-global-scale precision gates fail despite 35%–46% FP32 residency;
 - [x] screen a fixed 4x4 global FP8 scale grid on official T8 complete logits: 34/34
