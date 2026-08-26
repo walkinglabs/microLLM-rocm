@@ -1837,6 +1837,50 @@ TEST(HipOpsTest, SoftmaxAndRmsNormMatchCpuReference) {
                 rms_norm(input_cpu, weight_cpu).to_vector(), 2.0e-4F);
 }
 
+TEST(HipOpsTest, TypedSoftmaxDispatchBoundariesMatchCpuWithoutTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    runtime::Stream stream(gpu);
+    const auto context = OpContext::from_external_stream(gpu, stream.native_handle());
+    runtime::Event finished(gpu, false);
+    const std::vector<std::int64_t> widths{
+        1, 17, 32, 33, 64, 65, 128, 129, 1024, 4096};
+    constexpr std::int64_t rows = 3;
+
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        for (const auto width : widths) {
+            std::vector<float> values(
+                static_cast<std::size_t>(rows * width));
+            for (std::size_t index = 0; index < values.size(); ++index) {
+                values[index] =
+                    static_cast<float>(static_cast<int>(index % 251) - 125) /
+                    32.0F;
+            }
+            const auto cpu =
+                Tensor::from_vector(values, {rows, width}).cast(dtype);
+            const auto input = cpu.to(gpu);
+            Tensor output(input.shape(), dtype, gpu);
+
+            runtime::reset_transfer_stats();
+            const auto allocations_before = runtime::allocation_stats(gpu);
+            softmax_typed_out_(output, input, -1, context);
+            finished.record(stream);
+            finished.synchronize();
+            const auto allocations_after = runtime::allocation_stats(gpu);
+            const auto transfers = runtime::transfer_stats();
+            EXPECT_EQ(transfers.host_to_device_calls, 0U)
+                << "dtype=" << dtype_name(dtype) << " width=" << width;
+            EXPECT_EQ(transfers.device_to_host_calls, 0U)
+                << "dtype=" << dtype_name(dtype) << " width=" << width;
+            EXPECT_EQ(allocations_after.allocation_calls,
+                      allocations_before.allocation_calls)
+                << "dtype=" << dtype_name(dtype) << " width=" << width;
+            expect_near(output.to_vector(), softmax(cpu).to_vector(),
+                        dtype == DType::Float16 ? 5.0e-4F : 4.0e-3F);
+        }
+    }
+}
+
 TEST(HipCausalSoftmaxTest, RegisterBoundaryT2048MatchesCpuAndZerosMask) {
     require_gpu();
     constexpr std::int64_t sequence = 2048;

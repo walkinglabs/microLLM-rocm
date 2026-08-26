@@ -728,4 +728,15 @@ Measure the direct caller-owned FP16/BF16 Softmax baseline:
 ```
 
 The baseline requires pointer identity, non-owning wrappers, dtype-specific Max/RMS and zero
-microLLM peak extra. Performance failure is retained as the input to block-parallel work.
+microLLM peak extra. Performance failure is retained as the input to block-parallel work. The
+accepted block result uses the same command and ten cases; its committed evidence is
+`benchmarks/results/2026-08-26-pytorch-rocm-block-softmax`. Width128/1024 reaches
+1.213×–1.252×/1.103×–1.114× PyTorch while width4096 remains 0.430×–0.464×. Regenerate the
+serial/block chart with:
+
+```bash
+python3 docs/optimization-log/scripts/render_pytorch_block_softmax.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-typed-softmax \
+  --candidate benchmarks/results/2026-08-26-pytorch-rocm-block-softmax \
+  --output docs/optimization-log/assets/pytorch-rocm-block-softmax.svg
+```

@@ -5132,3 +5132,17 @@ FP16/BF16 Softmax现在直接FP32 reduction并舍入到caller输出，10格point
 baseline保留为reference；下一步必须一block一row的并行max/sum。
 
 ![Typed Softmax baseline](assets/pytorch-rocm-typed-softmax.svg)
+
+## 355. Experiment 339：把一整行交给一个block
+
+不改接口、不增加Tensor临时量，只把width>32的FP16/BF16 Softmax改成一block一row。线程共同求
+maximum和denominator，32/33、64/65、128/129边界都由HIP测试覆盖。
+
+六进程同矩阵中，width128比serial快13.297×–15.680×并达到1.213×–1.252×PyTorch；width1024
+快99.945×–103.214×并达到1.103×–1.114×PyTorch。width4096虽然快了145.826×–148.896×，
+仍只有0.430×–0.464×PyTorch：现在的block Kernel为denominator和最终写回各算一次`expf`。
+
+所以shape-aware block dispatch保留；下一次只验证wide row的block-local FP32 exp cache，不把
+“提高一百多倍”偷换成“所有shape已经对齐”。
+
+![Block typed Softmax](assets/pytorch-rocm-block-softmax.svg)

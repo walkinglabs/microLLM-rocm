@@ -44,6 +44,7 @@ unsigned grid_size(std::int64_t elements) {
 }
 
 __device__ float block_reduce_sum(float value, float* scratch);
+__device__ float block_reduce_max(float value, float* scratch);
 
 __global__ void fill_kernel(float* output, std::int64_t elements, float value) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -794,7 +795,7 @@ __global__ void softmax_kernel(const float* input, float* output, std::int64_t r
 }
 
 template <typename T>
-__global__ void softmax_typed_kernel(
+__global__ void softmax_typed_serial_kernel(
     const T* input, T* output, std::int64_t rows, std::int64_t width) {
     const auto row = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (row >= rows) return;
@@ -809,6 +810,37 @@ __global__ void softmax_typed_kernel(
     }
     const auto inverse = 1.0F / denominator;
     for (std::int64_t column = 0; column < width; ++column) {
+        output[base + column] = store_from_float<T>(
+            expf(load_as_float(input[base + column]) - maximum) * inverse);
+    }
+}
+
+template <typename T>
+__global__ void softmax_typed_block_kernel(
+    const T* input, T* output, std::int64_t rows, std::int64_t width) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x);
+    if (row >= rows) return;
+    const auto base = row * width;
+
+    float local_maximum = -INFINITY;
+    for (std::int64_t column = threadIdx.x; column < width;
+         column += blockDim.x) {
+        local_maximum =
+            fmaxf(local_maximum, load_as_float(input[base + column]));
+    }
+    __shared__ float reduction[kBlockSize];
+    const auto maximum = block_reduce_max(local_maximum, reduction);
+
+    float local_denominator = 0.0F;
+    for (std::int64_t column = threadIdx.x; column < width;
+         column += blockDim.x) {
+        local_denominator +=
+            expf(load_as_float(input[base + column]) - maximum);
+    }
+    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    const auto inverse = 1.0F / denominator;
+    for (std::int64_t column = threadIdx.x; column < width;
+         column += blockDim.x) {
         output[base + column] = store_from_float<T>(
             expf(load_as_float(input[base + column]) - maximum) * inverse);
     }
@@ -3922,26 +3954,46 @@ void launch_softmax_typed(const void* input, void* output, DType dtype,
                           std::int64_t rows, std::int64_t width,
                           void* stream) {
     if (rows == 0) return;
-    const auto grid = dim3(grid_size(rows));
-    const auto block = dim3(kBlockSize);
+    constexpr std::int64_t serial_width = 32;
+    const auto use_serial = width <= serial_width;
+    const auto grid = use_serial
+                          ? dim3(grid_size(rows))
+                          : dim3(static_cast<unsigned>(rows));
+    const auto threads = width <= 64 ? 64U : (width <= 128 ? 128U : kBlockSize);
+    const auto block = dim3(use_serial ? kBlockSize : threads);
     switch (dtype) {
         case DType::Float16:
-            hipLaunchKernelGGL(
-                softmax_typed_kernel<__half>, grid, block, 0, as_stream(stream),
-                static_cast<const __half*>(input), static_cast<__half*>(output),
-                rows, width);
+            if (use_serial) {
+                hipLaunchKernelGGL(
+                    softmax_typed_serial_kernel<__half>, grid, block, 0,
+                    as_stream(stream), static_cast<const __half*>(input),
+                    static_cast<__half*>(output), rows, width);
+            } else {
+                hipLaunchKernelGGL(
+                    softmax_typed_block_kernel<__half>, grid, block, 0,
+                    as_stream(stream), static_cast<const __half*>(input),
+                    static_cast<__half*>(output), rows, width);
+            }
             break;
         case DType::BFloat16:
-            hipLaunchKernelGGL(
-                softmax_typed_kernel<hip_bfloat16>, grid, block, 0,
-                as_stream(stream), static_cast<const hip_bfloat16*>(input),
-                static_cast<hip_bfloat16*>(output), rows, width);
+            if (use_serial) {
+                hipLaunchKernelGGL(
+                    softmax_typed_serial_kernel<hip_bfloat16>, grid, block, 0,
+                    as_stream(stream), static_cast<const hip_bfloat16*>(input),
+                    static_cast<hip_bfloat16*>(output), rows, width);
+            } else {
+                hipLaunchKernelGGL(
+                    softmax_typed_block_kernel<hip_bfloat16>, grid, block, 0,
+                    as_stream(stream), static_cast<const hip_bfloat16*>(input),
+                    static_cast<hip_bfloat16*>(output), rows, width);
+            }
             break;
         default:
             throw std::invalid_argument(
                 "typed softmax requires float16 or bfloat16");
     }
-    check_launch("softmax_typed_kernel");
+    check_launch(use_serial ? "softmax_typed_serial_kernel"
+                            : "softmax_typed_block_kernel");
 }
 
 void launch_rms_norm(const float* input, const float* weight, float* output,

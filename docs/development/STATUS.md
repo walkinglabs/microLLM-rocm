@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 396/396, ASan/UBSan 393/393, PyTorch-enabled CPU 399/399, single-GPU HIP label 201/201, RCCL label 55/55 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 397/397, ASan/UBSan 394/394, PyTorch-enabled CPU 400/400, single-GPU HIP label 202/202, RCCL label 55/55 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -102,7 +102,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | PyTorch compiled SwiGLU | measured, rejected | eight processes; gradients Max 4.77e-7, compiled/eager 0.584×–0.610×, cold 55.8–1160.3ms; loss reduction delta 0.00390625 | C++ Autograd is final adjacent adapter candidate |
 | PyTorch C++ SwiGLU Autograd | smoke-tested, recommended adapter default | C++/Python 1.286×–1.475×; FP32/native 1.136×–1.144× with 1,536B peak; low peak equals native | typed fused FP16/BF16 backward; FP32 line closed |
 | PyTorch typed SwiGLU backward | smoke-tested, kept/line closed | FP16/BF16 typed/ATen 1.257×–1.319×, typed/native 1.048×–1.084×, equal peak; BF16 exact, FP16 Max2.38e-7 | new profile required before further adapter work |
-| Direct typed Softmax | correctness baseline kept; performance rejected | FP16/BF16 caller-owned FP32 reduction, 10/10 PyTorch/pointer rows, zero Tensor temporary/peak extra | serial width1024/4096 only 0.011×/0.004×; block-parallel reduction |
+| Direct typed Softmax | shape-aware block path kept | FP16/BF16 caller-owned FP32 reduction; 10/10 PyTorch/pointer rows and zero peak extra; serial width1024/4096 only 0.011×/0.004×; block is 13.297×–148.896× serial, width128/1024 reaches 1.213×–1.252×/1.103×–1.114× Torch | width4096 remains 0.430×–0.464× Torch; test block-local FP32 exponential cache |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled CPU build plus Tensor/graph/model/optimizer parity, package, trajectory and schema gates | broader official-model direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | external descriptors/native Stream, forward outputs and six caller-owned backward families with explicit scratch; 58 symbols | Autograd external leaf pool |

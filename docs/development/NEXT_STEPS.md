@@ -269,8 +269,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   PyTorch fallback formulas;
 - [x] implement direct caller-owned FP16/BF16 Softmax with FP32 reduction and no
   Tensor-shaped FP32 temporary; 10/10 PyTorch/pointer gates pass and peak extra is zero;
-- [ ] replace the serial typed row Kernel with block-parallel max/sum before any model or
-  performance route; current width1024/4096 is only about 0.011×/0.004× Torch.
+- [x] replace the serial typed row Kernel above width32 with 64/128/256-thread block
+  max/sum; width128/1024 reaches 1.213×–1.252×/1.103×–1.114× Torch and the same
+  10 precision/pointer/zero-temporary gates pass;
+- [ ] isolate the remaining typed Softmax wide-row gap: width4096 improves
+  145.826×–148.896× over serial but remains 0.430×–0.464× Torch; test a bounded
+  block-local FP32 exponential cache without adding a Tensor-shaped allocation.
 
 ## P2.5 — production data parallel reducer
 
