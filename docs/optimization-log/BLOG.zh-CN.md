@@ -5200,3 +5200,14 @@ Event为12.027/7.567/5.472/5.086μs，wall为12.839/8.271/6.215/5.859μs。
 来到0.880×。这不是通用“最大线程最快”规则，只属于FP16、2048–8192、cached/wave这条谓词。
 
 ![FP16 Softmax thread matrix](assets/pytorch-rocm-softmax-thread-matrix.svg)
+
+## 361. Experiment 345：最后0.6微秒不是一个人的锅
+
+新的benchmark-only C++程序绕过公开op直接发同一Kernel，再测C++ out API；与已提交Python/C API和
+PyTorch矩阵拼接。六进程Event中位数是PyTorch/raw/C++/Python
+`4.530/4.764/4.815/5.086μs`。raw/C++输出Max都是5.96e-8，timed transfer为0。
+
+C++/raw只有1.011×，Python/C++是1.056×，raw/PyTorch是1.052×。所以约12.3%的总差距同时包含
+Kernel与桥接，不应继续全部压给GPU数学。下一尺度是C++ PyTorch Custom Op。
+
+![Typed Softmax attribution](assets/pytorch-rocm-softmax-attribution.svg)

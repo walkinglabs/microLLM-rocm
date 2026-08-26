@@ -255,6 +255,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > `1.076×/1.061×` Event/wall over 512 and reaches `0.880×` PyTorch. The rule is not
 > applied to BF16 or unrelated operators.
 
+> Attribution now splits the remaining FP16 gap. PyTorch/raw launcher/C++ out API/
+> Python C API Event medians are `4.530/4.764/4.815/5.086 μs`. C++ validation is only
+> `1.011×` raw time; Python/C API adds `1.056×` over C++, while raw remains `1.052×`
+> PyTorch time. The next scale is a C++ PyTorch Custom Op, not another blind math edit.
+
 </details>
 
 ## Why this project exists
@@ -963,12 +968,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 402/402 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 399/399 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 202/202 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 405/405 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| CPU Debug | 403/403 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 400/400 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 203/203 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
+| PyTorch-enabled CPU build | 406/406 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 147 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 148 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1382,6 +1387,8 @@ Fast-exp is not retained: it passes low-precision correctness but adds only
 `1.045×/1.034×` Event/wall, below the declared 1.05 gate.
 The later thread-count matrix retains 1024 for cached FP16: it beats 512 by
 `1.076×/1.061×` and raises the width4096 PyTorch ratio to `0.880×`.
+Raw/C++/Python attribution then measures `4.764/4.815/5.086 μs` against PyTorch
+`4.530 μs`; both the Kernel and bridge own a bounded part of the residual.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

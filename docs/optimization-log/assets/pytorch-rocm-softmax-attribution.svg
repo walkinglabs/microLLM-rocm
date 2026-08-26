@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="680" viewBox="0 0 1280 680">
+<rect width="1280" height="680" fill="#f7f9fc"/>
+<text x="640" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">The Last Softmax Gap Is Split Across Two Boundaries</text>
+<text x="640" y="79" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">FP16 rows8 × width4096 Event median · lower is better · MI300X</text>
+<line x1="105" y1="545.0" x2="820" y2="545.0" stroke="#dbe1ea"/>
+<text x="92" y="550.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">0 μs</text>
+<line x1="105" y1="468.6" x2="820" y2="468.6" stroke="#dbe1ea"/>
+<text x="92" y="473.6" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1 μs</text>
+<line x1="105" y1="392.3" x2="820" y2="392.3" stroke="#dbe1ea"/>
+<text x="92" y="397.3" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">2 μs</text>
+<line x1="105" y1="315.9" x2="820" y2="315.9" stroke="#dbe1ea"/>
+<text x="92" y="320.9" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">3 μs</text>
+<line x1="105" y1="239.5" x2="820" y2="239.5" stroke="#dbe1ea"/>
+<text x="92" y="244.5" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">4 μs</text>
+<line x1="105" y1="163.2" x2="820" y2="163.2" stroke="#dbe1ea"/>
+<text x="92" y="168.2" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">5 μs</text>
+<rect x="142" y="199.1" width="86" height="345.9" rx="9" fill="#4776c5"/>
+<text x="185" y="189.1" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">4.530</text>
+<text x="185" y="580" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">PyTorch</text>
+<rect x="327" y="181.2" width="86" height="363.8" rx="9" fill="#52a36d"/>
+<text x="370" y="171.2" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">4.764</text>
+<text x="370" y="580" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">raw launcher</text>
+<rect x="512" y="177.3" width="86" height="367.7" rx="9" fill="#198754"/>
+<text x="555" y="167.3" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">4.815</text>
+<text x="555" y="580" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">C++ out API</text>
+<rect x="697" y="156.6" width="86" height="388.4" rx="9" fill="#e28b22"/>
+<text x="740" y="146.6" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">5.086</text>
+<text x="740" y="580" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">Python / C API</text>
+<rect x="865" y="125" width="365" height="420" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="895" y="168" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Attribution</text>
+<text x="895" y="216" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ raw/C++ Max = 5.96e-8</text>
+<text x="895" y="249" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ timed payload transfers = 0</text>
+<text x="895" y="299" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">C++ / raw time = 1.011×</text>
+<text x="895" y="332" font-family="Inter,Arial,sans-serif" font-size="16" fill="#e28b22">Python / C++ time = 1.056×</text>
+<text x="895" y="365" font-family="Inter,Arial,sans-serif" font-size="16" fill="#e28b22">raw / PyTorch time = 1.052×</text>
+<text x="895" y="398" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#b42335">Python / PyTorch = 1.123×</text>
+<text x="895" y="448" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">next scale: C++ PyTorch Custom Op</text>
+<text x="895" y="477" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">not another blind math tweak</text>
+<text x="640" y="642" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">Kernel and bridge each own part of the residual</text>
+</svg>

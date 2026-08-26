@@ -801,3 +801,18 @@ python3 docs/optimization-log/scripts/render_pytorch_softmax_thread_matrix.py \
   --threads1024 benchmarks/results/2026-08-26-pytorch-rocm-softmax-threads1024 \
   --output docs/optimization-log/assets/pytorch-rocm-softmax-thread-matrix.svg
 ```
+
+Attribute the retained path below the Python wrapper with:
+
+```bash
+cmake --build build/hip-release \
+  --target microllm_bench_typed_softmax_attribution --parallel
+python3 benchmarks/single_gpu/pytorch_typed_softmax_attribution.py \
+  --binary build/hip-release/benchmarks/microllm_bench_typed_softmax_attribution \
+  --python-results benchmarks/results/2026-08-26-pytorch-rocm-softmax-threads1024 \
+  --output /tmp/microllm-softmax-attribution
+```
+
+The committed result measures PyTorch/raw/C++/Python Event at
+4.530/4.764/4.815/5.086μs with zero timed payload transfers. It bounds both the remaining
+Kernel gap and the Python/C API submission gap instead of assigning the whole delta to one layer.

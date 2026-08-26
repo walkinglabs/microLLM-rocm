@@ -1088,6 +1088,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Fast-exp Softmax reject SVG](assets/pytorch-rocm-fast-exp-softmax-reject.svg) | Event/wall与1.05门 |
 | [experiments/344-pytorch-softmax-thread-matrix.md](experiments/344-pytorch-softmax-thread-matrix.md) | 128/256/512/1024线程矩阵选择1024 |
 | [Softmax thread matrix SVG](assets/pytorch-rocm-softmax-thread-matrix.svg) | 四档Event/wall与PyTorch线 |
+| [experiments/345-pytorch-softmax-attribution.md](experiments/345-pytorch-softmax-attribution.md) | raw/C++/Python/PyTorch分层归因 |
+| [Softmax attribution SVG](assets/pytorch-rocm-softmax-attribution.svg) | 四层Event中位数与边界比值 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1,0 +1,23 @@
+{
+  "cpp_event_ms_median": 0.004814999994999999,
+  "cpp_over_raw_event_ratio": 1.01077319331665,
+  "cpp_wall_ms_median": 0.00518974,
+  "maximum_cpp_error": 5.96046448e-08,
+  "maximum_raw_error": 5.96046448e-08,
+  "processes": 6,
+  "python_capi_event_ms_median": 0.005085999965667725,
+  "python_capi_wall_ms_median": 0.00585862,
+  "python_over_cpp_event_ratio": 1.0562824446415655,
+  "python_over_pytorch_event_ratio": 1.1228513336808212,
+  "pytorch_event_ms_median": 0.0045295399427413945,
+  "pytorch_wall_ms_median": 0.00536008,
+  "raw_event_ms_median": 0.00476367995,
+  "raw_over_pytorch_event_ratio": 1.0516917855275383,
+  "raw_wall_ms_median": 0.00513718,
+  "record_type": "typed_softmax_attribution_matrix",
+  "rows": 8,
+  "schema_version": 1,
+  "status": "pass",
+  "timed_payload_transfer_calls": 0,
+  "width": 4096
+}

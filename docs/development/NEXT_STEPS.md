@@ -285,8 +285,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] measure FP16 cached/wave 128/256/512/1024 threads: width4096 Event is
   12.027/7.567/5.472/5.086μs; 1024 beats 512 by 1.076×/1.061× Event/wall and
   reaches 0.880× PyTorch;
-- [ ] attribute the remaining roughly 0.6μs Event gap to wrapper submission versus
-  device Kernel before another local edit; no larger legal workgroup remains.
+- [x] attribute FP16 width4096 submission: PyTorch/raw/C++/Python Event is
+  4.530/4.764/4.815/5.086μs; C++/raw is 1.011×, Python/C++ 1.056× and
+  raw/PyTorch 1.052×;
+- [ ] register typed Softmax in the C++ PyTorch Custom Op adapter and compare that
+  dispatcher path against ctypes and native Torch before another Kernel change.
 
 ## P2.5 — production data parallel reducer
 

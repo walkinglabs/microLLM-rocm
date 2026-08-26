@@ -70,6 +70,12 @@ if(MICROLLM_HAS_HIP)
                    micro/benchmark_causal_softmax.cpp)
     target_link_libraries(microllm_bench_causal_softmax PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_typed_softmax_attribution
+                   micro/benchmark_typed_softmax_attribution.cpp)
+    target_include_directories(microllm_bench_typed_softmax_attribution PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/ops/hip)
+    target_link_libraries(microllm_bench_typed_softmax_attribution PRIVATE
+        microllm::ops microllm::runtime hip::host)
     add_executable(microllm_bench_bf16_repeat
                    micro/benchmark_bf16_repeat.cpp)
     target_link_libraries(microllm_bench_bf16_repeat PRIVATE
@@ -399,6 +405,12 @@ if(BUILD_TESTING)
         add_test(NAME Benchmark.HipAddSmoke
                  COMMAND microllm_bench_ops --op add --size 1024 --warmup 1 --repetitions 2 --device hip)
         set_tests_properties(Benchmark.HipAddSmoke PROPERTIES LABELS "hip;benchmark;smoke")
+        add_test(NAME Benchmark.HipTypedSoftmaxAttributionSmoke
+                 COMMAND microllm_bench_typed_softmax_attribution
+                         --rows 2 --width 2048 --warmup 1
+                         --repetitions 2 --samples 1 --order raw-first)
+        set_tests_properties(Benchmark.HipTypedSoftmaxAttributionSmoke PROPERTIES
+                             LABELS "hip;benchmark;softmax;profile;correctness;smoke")
         add_test(NAME Benchmark.HipBf16SwiGLUVectorized
                  COMMAND microllm_bench_ops --op swiglu --device hip --dtype bf16
                          --implementation vectorized --size 4099

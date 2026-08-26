@@ -83,6 +83,9 @@ The FP16 path continues to use precise `expf`: the fast intrinsic passed the cur
 oracle but improved Event/wall only 1.045×/1.034×, so approximation was not admitted.
 For cached FP16 only, 1024 threads is the measured MI300X winner over 128/256/512. Keep this predicate
 next to the dtype/range gate; it is not permission to increase unrelated Kernel workgroups.
+Attribution places PyTorch/raw/C++/Python Event at 4.530/4.764/4.815/5.086μs for `[8,4096]`.
+The C++ validation layer is only 1.011× raw; optimize the adapter boundary before claiming the full
+12.3% Python/PyTorch time gap is a device-Kernel problem.
 That model gate now exists for FFN Norm: `bf16_ffn_precast_out_` consumes an already-filled Arena
 input, Qwen/DeepSeek both pass, and enabling BF16 FFN Arena enables this exact route by default.
 Keep explicit false available, and never apply the shortcut to trace, cached, training or bypassed
