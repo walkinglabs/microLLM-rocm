@@ -160,7 +160,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [129](steps/129-prefill-o-projection-scope.md) | complete; diagnostic only | cached-prefill O独立scope | O/FFN norm exact；FFN output接过首差 |
 | [130](steps/130-prefill-o-model-gate.md) | complete; rejected | scoped O完整模型门 | logits改善24.7%/32.6%，但B1仅0.944× |
 | [131](steps/131-prefill-exact-stack-gate.md) | complete; rejected, track closed | 真实upstream对batch-selective exact stack | 性能0.987×–1.020×；Max恶化6.9%，RMS仅改善2.5% |
-| [132](steps/132-prefill-ffn-stage-trace.md) | planned | Block0 FFN gate/up/SwiGLU/down完整trace | 只选择第一个非零阶段进入反驳 |
+| [132](steps/132-prefill-ffn-stage-trace.md) | instrumentation complete; measurement planned | Block0 FFN gate/up/SwiGLU/down完整trace | 只选择第一个非零阶段进入反驳 |
 
 ## 为什么按这个顺序
 

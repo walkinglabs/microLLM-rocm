@@ -1,6 +1,6 @@
 # Step 132 — Block-0 prefill FFN stage trace
 
-Status: planned
+Status: trace instrumentation complete; measurement planned
 
 Experiment 315关闭了exact Linear solution组合路线。Experiment 313只记录聚合FFN output，还不能区分
 差异来自gate projection、up projection、SwiGLU乘法还是down projection。

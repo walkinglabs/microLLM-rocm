@@ -307,9 +307,85 @@ TEST(TransformerModelTest, TraceAllLayerDetailsExposesEveryLinearInputBoundary) 
         EXPECT_FALSE(prefill_has(prefix + ".attention.probabilities"));
         EXPECT_FALSE(prefill_has(prefix + ".attention.pv_output"));
         EXPECT_TRUE(prefill_has(prefix + ".attention.context"));
+        EXPECT_TRUE(prefill_has(prefix + ".ffn.gate"));
+        EXPECT_TRUE(prefill_has(prefix + ".ffn.up"));
+        EXPECT_TRUE(prefill_has(prefix + ".ffn.activated"));
+        EXPECT_TRUE(prefill_has(prefix + ".ffn.down"));
         EXPECT_TRUE(prefill_has(prefix + ".ffn_output"));
         EXPECT_TRUE(prefill_has(prefix + ".output"));
     }
+}
+
+TEST(TransformerModelTest,
+     CachedPrefillFfnDetailTraceKeepsOnlyTwoBatchRowsAndPreservesOutput) {
+    const auto config = tiny_config();
+    TransformerModel model(config, 39);
+    const auto tokens = Tensor::from_int32_vector(
+        {1, 2, 1, 2, 1, 2}, {3, 2});
+    inference::KVCache baseline_cache(
+        config.layers, config.max_sequence_length, 3, DType::BFloat16);
+    const auto baseline =
+        model.forward_prefill_cached(tokens, baseline_cache).to_vector();
+
+    profiling::TraceOptions options;
+    options.record_operators = false;
+    options.record_all_layer_details = true;
+    options.capture_values = true;
+    options.value_name_filters = {
+        "inference.cached_prefill.blocks.0.ffn."};
+    options.max_captured_elements = 4096;
+    profiling::TraceSession trace(
+        "microllm", "cached-prefill-ffn-detail", options);
+    inference::KVCache diagnostic_cache(
+        config.layers, config.max_sequence_length, 3, DType::BFloat16);
+    std::vector<float> diagnostic;
+    {
+        profiling::ScopedTraceSession active(trace);
+        diagnostic = model.forward_prefill_cached(
+            tokens, diagnostic_cache).to_vector();
+    }
+    expect_near(diagnostic, baseline, 1.0e-6F);
+
+    const auto find = [&](const std::string& name)
+        -> const profiling::TraceRecord* {
+        const auto found = std::find_if(
+            trace.records().begin(), trace.records().end(),
+            [&](const auto& record) { return record.name == name; });
+        return found == trace.records().end() ? nullptr : &*found;
+    };
+    const std::string prefix =
+        "inference.cached_prefill.blocks.0.ffn.";
+    for (const auto* suffix : {"gate", "up", "activated"}) {
+        const auto* record = find(prefix + suffix);
+        ASSERT_NE(record, nullptr);
+        EXPECT_EQ(record->shape,
+                  (Shape{2, 2, config.ffn_dimension}));
+        EXPECT_EQ(record->values.size(),
+                  static_cast<std::size_t>(
+                      4 * config.ffn_dimension));
+    }
+    const auto* down = find(prefix + "down");
+    ASSERT_NE(down, nullptr);
+    EXPECT_EQ(down->shape, (Shape{2, 2, config.dimension}));
+    EXPECT_EQ(down->values.size(),
+              static_cast<std::size_t>(4 * config.dimension));
+
+    profiling::TraceOptions ordinary_options;
+    ordinary_options.record_operators = false;
+    ordinary_options.capture_values = false;
+    profiling::TraceSession ordinary_trace(
+        "microllm", "cached-prefill-without-ffn-detail", ordinary_options);
+    inference::KVCache ordinary_cache(
+        config.layers, config.max_sequence_length, 3, DType::BFloat16);
+    {
+        profiling::ScopedTraceSession active(ordinary_trace);
+        (void)model.forward_prefill_cached(tokens, ordinary_cache);
+    }
+    EXPECT_TRUE(std::none_of(
+        ordinary_trace.records().begin(), ordinary_trace.records().end(),
+        [&](const auto& record) {
+            return record.name.find(prefix) != std::string::npos;
+        }));
 }
 
 TEST(TransformerModelTest,

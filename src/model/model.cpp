@@ -1797,11 +1797,20 @@ public:
     }
 
     Tensor forward_tensor(const Tensor& input,
-                          const std::string& trace_prefix = {}) {
+                          const std::string& trace_prefix = {},
+                          bool prefill_trace_rows = false) {
         if (input.ndim() != 3) throw std::invalid_argument("FFN input must be BxTxD");
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
         const auto flat = input.reshape({batch * sequence, config_.dimension});
+        const auto trace_stage = [&](const char* suffix, const Tensor& tensor) {
+            if (prefill_trace_rows) {
+                trace_prefill_rows(
+                    trace_prefix, suffix, tensor, batch, sequence);
+            } else {
+                trace_detail(trace_prefix, suffix, tensor);
+            }
+        };
         Tensor output;
         if (gate_.weight_data().dtype() == DType::BFloat16) {
             if (up_.weight_data().dtype() != DType::BFloat16 ||
@@ -1833,13 +1842,11 @@ public:
                 const auto diagnostics = ops::bf16_ffn_diagnostics(
                     flat, gate_.weight_data(), up_.weight_data(),
                     down_.weight_data());
-                trace_detail(trace_prefix, "input_bf16",
-                             diagnostics.input_bf16);
-                trace_detail(trace_prefix, "gate", diagnostics.gate);
-                trace_detail(trace_prefix, "up", diagnostics.up);
-                trace_detail(trace_prefix, "activated",
-                             diagnostics.activated);
-                trace_detail(trace_prefix, "down", diagnostics.output);
+                trace_stage("input_bf16", diagnostics.input_bf16);
+                trace_stage("gate", diagnostics.gate);
+                trace_stage("up", diagnostics.up);
+                trace_stage("activated", diagnostics.activated);
+                trace_stage("down", diagnostics.output);
                 output = diagnostics.output;
             }
         } else {
@@ -1858,14 +1865,18 @@ public:
             auto* trace = profiling::TraceSession::current();
             if (trace != nullptr &&
                 trace->options().record_all_layer_details) {
-                trace_detail(trace_prefix, "gate", gate);
-                trace_detail(trace_prefix, "up", up);
-                trace_detail(trace_prefix, "activated", activated);
+                trace_stage("gate", gate);
+                trace_stage("up", up);
+                trace_stage("activated", activated);
             }
             output = down_.forward_tensor(activated);
+            if (trace != nullptr &&
+                trace->options().record_all_layer_details) {
+                trace_stage("down", output);
+            }
         }
         auto reshaped = output.reshape({batch, sequence, config_.dimension});
-        trace_detail(trace_prefix, "output", reshaped);
+        trace_stage("output", reshaped);
         return reshaped;
     }
 
@@ -2026,7 +2037,15 @@ public:
         auto ffn_input = ffn_norm_.forward_tensor(hidden);
         trace_prefill_rows(trace_prefix, "ffn_norm", ffn_input,
                            input.shape()[0], input.shape()[1]);
-        auto ffn = feed_forward_.forward_tensor(ffn_input);
+        const auto* trace = profiling::TraceSession::current();
+        const auto ffn_details = trace != nullptr &&
+                                 trace->options().record_all_layer_details;
+        auto ffn = feed_forward_.forward_tensor(
+            ffn_input,
+            ffn_details && !trace_prefix.empty()
+                ? trace_prefix + ".ffn"
+                : std::string{},
+            ffn_details);
         trace_prefill_rows(trace_prefix, "ffn_output", ffn,
                            input.shape()[0], input.shape()[1]);
         auto output = ops::add(hidden, ffn);

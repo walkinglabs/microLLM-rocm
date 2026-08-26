@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="430" viewBox="0 0 1180 430">
+  <rect width="1180" height="430" fill="#0b1020"/>
+  <style>.title{font:700 25px ui-monospace,monospace;fill:#f8fafc}.head{font:700 17px ui-monospace,monospace;fill:#e5e7eb}.small{font:14px ui-monospace,monospace;fill:#94a3b8}.box{fill:#131b2e;stroke:#38bdf8;stroke-width:2}</style>
+  <text x="42" y="52" class="title">Cached-prefill FFN detail trace</text>
+  <text x="42" y="82" class="small">explicit all-layer details · filtered values · first two batch rows only</text>
+  <g>
+    <rect x="45" y="145" width="175" height="90" rx="12" class="box"/><text x="132" y="182" text-anchor="middle" class="head">FFN norm</text><text x="132" y="208" text-anchor="middle" class="small">known exact input</text>
+    <rect x="270" y="145" width="175" height="90" rx="12" class="box"/><text x="357" y="182" text-anchor="middle" class="head">gate + up</text><text x="357" y="208" text-anchor="middle" class="small">two projections</text>
+    <rect x="495" y="145" width="175" height="90" rx="12" class="box"/><text x="582" y="182" text-anchor="middle" class="head">SwiGLU</text><text x="582" y="208" text-anchor="middle" class="small">activation × up</text>
+    <rect x="720" y="145" width="175" height="90" rx="12" class="box"/><text x="807" y="182" text-anchor="middle" class="head">down</text><text x="807" y="208" text-anchor="middle" class="small">back to model width</text>
+    <rect x="945" y="145" width="175" height="90" rx="12" class="box"/><text x="1032" y="182" text-anchor="middle" class="head">FFN output</text><text x="1032" y="208" text-anchor="middle" class="small">known first drift</text>
+    <g stroke="#64748b" stroke-width="3"><path d="M220 190H270"/><path d="M445 190H495"/><path d="M670 190H720"/><path d="M895 190H945"/></g>
+  </g>
+  <rect x="110" y="305" width="960" height="70" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="590" y="337" text-anchor="middle" class="small">No timing claim: trace changes execution and copies selected values for evidence.</text>
+  <text x="590" y="360" text-anchor="middle" class="small">Only the first nonzero stage may become the next bounded experiment.</text>
+</svg>

@@ -3987,7 +3987,7 @@ def validate_block0_drift(
               "hf_prefill_layer_drift.py").read_text(encoding="utf-8")
     if 'trace_detail(trace_prefix, "q_projection"' not in model_source or \
             'trace_detail(trace_prefix, "attention_norm"' not in model_source or \
-            'trace_detail(trace_prefix, "output", reshaped)' not in model_source or \
+            'trace_stage("output", reshaped)' not in model_source or \
             '"inference.blocks.0.attention.q_projection"' not in model_tests or \
             "right_shape[0] != 2 * left_shape[0]" not in runner:
         errors.append("block0 drift source or tests are missing")
@@ -4051,7 +4051,7 @@ def validate_bf16_ffn_drift(errors: list[str]) -> tuple[int, int, int, int]:
              "trace_test.cpp").read_text(encoding="utf-8")
     if "is_floating_point(tensor.dtype())" not in trace_source or \
             "bf16_ffn_diagnostics" not in optimized or \
-            'trace_detail(trace_prefix, "gate"' not in model_source or \
+            'trace_stage("gate", diagnostics.gate)' not in model_source or \
             "low_precision.statistics.finite_count" not in tests:
         errors.append("BF16 FFN drift source or low-precision trace tests are missing")
     if gates.get("status") != "first_drift_is_gate_gemm" or \

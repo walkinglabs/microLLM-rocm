@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Cached-prefill FFN detail trace](2026-08-26-prefill-ffn-detail-trace.md)
 - [2026-08-26: Exact-stack model rejection](2026-08-26-prefill-exact-stack-reject.md)
 - [2026-08-26: Batch-selective exact-stack model gate](2026-08-26-prefill-exact-stack-gate-infrastructure.md)
 - [2026-08-26: Why the scoped O model candidate was rejected](2026-08-26-prefill-o-model-reject.md)

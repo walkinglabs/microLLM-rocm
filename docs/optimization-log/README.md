@@ -1031,6 +1031,7 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [O model-gate SVG](../../benchmarks/results/2026-08-26-fp32-prefill-o-model-gate/o-model-gate.svg) | 16+16进程数值、prefill和资源门 |
 | [experiments/315-prefill-exact-stack-reject.md](experiments/315-prefill-exact-stack-reject.md) | 真实upstream下exact组合数值拒绝与路线关闭 |
 | [Exact-stack SVG](../../benchmarks/results/2026-08-26-fp32-prefill-exact-stack-gate/exact-stack-gate.svg) | Release 16+16进程完整模型门 |
+| [FFN detail-trace SVG](assets/prefill-ffn-detail-trace.svg) | gate/up/SwiGLU/down显式两行数值显微镜 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
