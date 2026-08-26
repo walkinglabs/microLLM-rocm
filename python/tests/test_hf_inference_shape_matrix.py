@@ -108,6 +108,27 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
             candidate[candidate.index("--fp32-prefill-kv-solution-index") + 1],
             "292135")
 
+    def test_fp32_qkv_model_route_counts_include_warmup(self):
+        base = {
+            "status": "pass", "batch": 2, "token_count": 2048,
+            "decode_tokens": 1, "kv_cache_dtype": "bf16",
+            "cached_attention_materialized_policy": "auto-enabled",
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_solution_registered_entries": 2,
+            "fp32_solution_cached_algorithms": 2,
+            "fp32_solution_cache_misses": 2,
+            "fp32_solution_registry_hits": 168,
+            "fp32_solution_cache_hits": 166,
+            "fp32_solution_dispatches": 168,
+        }
+        FP32_QKV_MODEL.require_route(
+            base, "invariant-qkv", 2, 2048, 1)
+        base["fp32_solution_registry_hits"] = 84
+        with self.assertRaises(ValueError):
+            FP32_QKV_MODEL.require_route(
+                base, "invariant-qkv", 2, 2048, 1)
+
     def test_fp32_qkv_model_summary_keeps_precision_and_performance_separate(self):
         metric = {"elements": 4, "maximum": 0.0, "rms": 0.0,
                   "bitwise_equal": True}

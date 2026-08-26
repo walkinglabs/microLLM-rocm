@@ -98,7 +98,8 @@ def logit_metric(left: list[float], right: list[float]) -> dict:
             "bitwise_equal": bitwise}
 
 
-def require_route(record: dict, policy: str, batch: int, context: int) -> None:
+def require_route(record: dict, policy: str, batch: int, context: int,
+                  warmup: int) -> None:
     candidate = policy == "invariant-qkv"
     expected = {
         "status": "pass", "batch": batch, "token_count": context,
@@ -113,10 +114,14 @@ def require_route(record: dict, policy: str, batch: int, context: int) -> None:
         if record.get(name) != wanted:
             raise ValueError(
                 f"{policy} B{batch} {name} expected {wanted!r}, got {record.get(name)!r}")
-    if candidate and (record.get("fp32_solution_registry_hits") != 84 or
+    expected_dispatches = 84 * (warmup + 1)
+    if candidate and (record.get("fp32_solution_registry_hits") !=
+                          expected_dispatches or
                       record.get("fp32_solution_cache_misses") != 2 or
-                      record.get("fp32_solution_cache_hits") != 82 or
-                      record.get("fp32_solution_dispatches") != 84):
+                      record.get("fp32_solution_cache_hits") !=
+                          expected_dispatches - 2 or
+                      record.get("fp32_solution_dispatches") !=
+                          expected_dispatches):
         raise ValueError(f"{policy} B{batch} projection registry counts changed")
 
 
@@ -138,7 +143,7 @@ def precision_phase(args: argparse.Namespace, model: dict,
                     raise RuntimeError(
                         completed.stderr.strip() or completed.stdout.strip())
                 record = COMMON.last_json(completed.stdout)
-                require_route(record, policy, batch, args.context)
+                require_route(record, policy, batch, args.context, 0)
                 header, raw_cache, values = CACHE.load(cache_path)
                 logits = COMMON.read_logits(logits_path, batch, vocabulary)
                 logit_rows = [logits[index * vocabulary:(index + 1) * vocabulary]
@@ -213,7 +218,8 @@ def performance_phase(args: argparse.Namespace, model: dict) -> list[dict]:
                     raise RuntimeError(
                         completed.stderr.strip() or completed.stdout.strip())
                 record = COMMON.last_json(completed.stdout)
-                require_route(record, policy, batch, args.context)
+                require_route(record, policy, batch, args.context,
+                              args.performance_warmup)
                 rows.append({
                     "schema_version": 1,
                     "record_type": "fp32_qkv_model_performance_process",
