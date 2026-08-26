@@ -54,9 +54,40 @@ DECODE_ALGORITHM_SPEC = importlib.util.spec_from_file_location(
 DECODE_ALGORITHM = importlib.util.module_from_spec(DECODE_ALGORITHM_SPEC)
 assert DECODE_ALGORITHM_SPEC.loader is not None
 DECODE_ALGORITHM_SPEC.loader.exec_module(DECODE_ALGORITHM)
+ROW_INVARIANCE_SPEC = importlib.util.spec_from_file_location(
+    "bf16_row_invariance_matrix",
+    ROOT / "benchmarks/single_gpu/bf16_row_invariance_matrix.py")
+ROW_INVARIANCE = importlib.util.module_from_spec(ROW_INVARIANCE_SPEC)
+assert ROW_INVARIANCE_SPEC.loader is not None
+ROW_INVARIANCE_SPEC.loader.exec_module(ROW_INVARIANCE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_bf16_row_invariance_summary_joins_workspace_and_exactness(self):
+        inventory = {
+            "shapes": [{"candidates": [
+                {"index": 10, "workspace_bytes": 0},
+                {"index": 20, "workspace_bytes": 1024},
+            ]}, {"candidates": [
+                {"index": 10, "workspace_bytes": 2048},
+                {"index": 20, "workspace_bytes": 1024},
+            ]}],
+        }
+        matrix = {"candidates": [
+            {"index": 10, "supported": True, "reference_passed": True,
+             "row_invariant": True, "row_maximum_error": 0.0,
+             "reference_maximum_error": 0.0},
+            {"index": 20, "supported": True, "reference_passed": True,
+             "row_invariant": False, "row_maximum_error": 0.25,
+             "reference_maximum_error": 0.01},
+        ]}
+        summary = ROW_INVARIANCE.summarize(inventory, matrix)
+        self.assertEqual(summary["candidate_count"], 2)
+        self.assertEqual(summary["row_invariant_count"], 1)
+        self.assertEqual(summary["row_invariant_indices"], [10])
+        self.assertEqual(summary["minimum_invariant_workspace_bytes"], 2048)
+        self.assertEqual(summary["maximum_row_error"], 0.25)
+
     def test_current_bf16_decode_algorithm_rejects_common_solution(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-deepseek-bf16-decode-algorithm")
