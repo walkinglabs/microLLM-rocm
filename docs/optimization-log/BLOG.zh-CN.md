@@ -5263,3 +5263,13 @@ Qwen最大relative-L2为2.89e-5，logits Max/RMS 8.01e-5/1.01e-5；DeepSeek分�
 2.48e-5/4.19e-6。逐层空白关闭，后续图级优化能在第一处变化处验收，而不只看最终token。
 
 ![Official hidden alignment](assets/official-pytorch-hidden-alignment.svg)
+
+## 367. Experiment 351：大权重不进Git，实验仍要能重建
+
+`model_fixtures.toml`固定Qwen/DeepSeek官方repo、revision、license和结构预期。prepare工具能下载或
+验证本地目录，解析完整safetensors header/分片index，并要求config、vocab、merges齐全。
+
+真实结果还原出Qwen 290 Tensor/494,032,768参数、DeepSeek 339 Tensor/1,777,088,000参数；权重
+分别988MB/3.554GB，均为BF16。生成manifest供C++/PyTorch共用，可提交evidence不含本机payload路径。
+
+![Official HF fixtures](assets/official-hf-fixtures.svg)

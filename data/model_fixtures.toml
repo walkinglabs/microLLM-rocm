@@ -1,0 +1,29 @@
+schema_version = 1
+
+[[model]]
+id = "qwen2.5-0.5b"
+repo_id = "Qwen/Qwen2.5-0.5B"
+source = "https://huggingface.co/Qwen/Qwen2.5-0.5B"
+revision = "060db6499f32faf8b98477b0a26969ef7d8b9987"
+license = "Apache-2.0"
+license_url = "https://huggingface.co/Qwen/Qwen2.5-0.5B/blob/main/LICENSE"
+parameter_count = 494032768
+tensor_count = 290
+tokenizer_family = "qwen2"
+inference_token_ids = [9707, 1879]
+expected_generated_tokens = [0, 358, 2776, 264]
+training_tokens = "1,2,3,4"
+
+[[model]]
+id = "deepseek-r1-distill-qwen-1.5b"
+repo_id = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+source = "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+revision = "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562"
+license = "MIT"
+license_url = "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/blob/main/LICENSE"
+parameter_count = 1777088000
+tensor_count = 339
+tokenizer_family = "deepseek-distill"
+inference_token_ids = [151646, 151644, 3838, 374, 220, 17, 10, 17, 30, 151645, 151648, 198]
+expected_generated_tokens = [40, 1184, 311, 8253, 279, 2629, 315, 220]
+training_tokens = "151646,151644,3838,374"

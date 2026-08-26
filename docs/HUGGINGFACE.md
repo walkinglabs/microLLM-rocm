@@ -23,6 +23,21 @@ tokenizer_config     特殊 token 和聊天模板
 权重 Tensor。默认路径把 BF16 文件准确转换成 FP32 reference；可选的单份 BF16 FFN
 准备路径已经在同一 revision 上完成 logits、exact token、显存和吞吐实测。
 
+### 一条命令准备固定 fixture
+
+仓库不会提交数GB权重，但会固定来源、revision、许可和结构预期：
+
+```bash
+python3 tools/prepare_hf_fixture.py prepare \
+  --download-root /absolute/path/to/models \
+  --manifest /absolute/path/to/hf-models.local.json \
+  --evidence /tmp/hf-fixture-evidence.json
+```
+
+注册表在`data/model_fixtures.toml`。工具下载指定revision，检查完整safetensors header/安全分片
+index、参数量、Tensor数、config、vocab与merges，再生成下文所有runner共用的manifest。Qwen来源标记
+Apache-2.0；DeepSeek Distill来源标记MIT。使用者仍应阅读注册表中的官方license链接。
+
 ## 3. 先检查 config
 
 ```bash

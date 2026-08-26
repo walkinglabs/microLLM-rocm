@@ -283,6 +283,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > PyTorch. Embeddings are exact, first differences appear at block 0, and final logits
 > Max/RMS are `8.01e-5/1.01e-5` and `2.48e-5/4.19e-6`.
 
+> Pinned official fixture preparation is also complete. One tool downloads or validates
+> Qwen/DeepSeek at fixed revisions, parses complete safetensors headers, checks exact
+> `290/339` Tensor and `494,032,768/1,777,088,000` parameter contracts, requires
+> config/vocab/merges, and writes the shared local manifest without vendoring payloads.
+
 </details>
 
 ## Why this project exists
@@ -991,12 +996,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 408/408 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 405/405 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 410/410 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 407/407 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 203/203 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 411/411 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 413/413 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 153 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 155 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1420,6 +1425,7 @@ BF16 wave1024 then raises its width4096 core and Custom-out paths by about 1.69�
 the current caller-owned wide ratios are `0.821×/0.804×` for FP16/BF16.
 Autograd fallthrough then fails at only `1.008×/0.998×`; the adapter dispatch line is closed.
 Official FP32 Qwen/DeepSeek now also have complete 27/31-stage PyTorch hidden-state evidence.
+Pinned fixture preparation now supplies the same validated local manifest to C++ and PyTorch runners.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

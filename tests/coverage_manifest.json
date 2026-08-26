@@ -454,6 +454,8 @@
     "python/tests/test_pytorch_bf16_wave1024_softmax.py",
     "python/tests/test_pytorch_softmax_out_fallthrough_reject.py",
     "python/tests/test_official_pytorch_hidden_alignment.py",
+    "python/tests/test_hf_fixture_tool.py",
+    "python/tests/test_official_hf_fixture_evidence.py",
     "python/tests/test_data_parallel_verification_matrix.py",
     "python/tests/test_data_parallel_bucket_matrix.py",
     "python/tests/test_distributed_model_workload.py",

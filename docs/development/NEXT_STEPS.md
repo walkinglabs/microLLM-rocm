@@ -14,7 +14,9 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 - [x] indexed weight-map streaming with declared-shard membership preflight;
 - [x] read-only memory-mapped payload visits with portable buffered fallback;
 - [ ] FP8/INT8/INT4 tensors and quantization metadata;
-- [ ] official Qwen checkpoint fixture and tokenizer files.
+- [x] add pinned official Qwen/DeepSeek fixture preparation: fixed revisions/licenses,
+  complete safetensors header/index validation, exact parameter/Tensor counts,
+  config/vocab/merges gates and a shared local manifest; large payloads remain outside Git.
 
 ## P1 — dense Qwen correctness target
 

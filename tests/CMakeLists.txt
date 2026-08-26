@@ -708,6 +708,20 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.OfficialPyTorchHiddenAlignmentContract PROPERTIES
         LABELS "cpu;benchmark;pytorch;huggingface;model;graph;precision;schema")
     add_test(
+        NAME HuggingFace.FixtureToolContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_hf_fixture_tool.py
+    )
+    set_tests_properties(HuggingFace.FixtureToolContract PROPERTIES
+        LABELS "cpu;huggingface;weights;tokenizer;fixture;schema")
+    add_test(
+        NAME Benchmark.OfficialHfFixtureEvidenceContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_official_hf_fixture_evidence.py
+    )
+    set_tests_properties(Benchmark.OfficialHfFixtureEvidenceContract PROPERTIES
+        LABELS "cpu;benchmark;huggingface;weights;tokenizer;fixture;schema")
+    add_test(
         NAME Benchmark.DataParallelVerificationMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py

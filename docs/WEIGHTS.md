@@ -214,6 +214,11 @@ Qwen2.5-0.5B 已经通过一个固定官方 checkpoint 的严格加载和 logits
 代表任意 Hugging Face 大模型都兼容。其他 Qwen 规模、Qwen3、DeepSeek、量化格式
 仍必须分别通过 config、权重、tokenizer 和完整 logits 门。
 
+官方fixture不把权重放进仓库。`tools/prepare_hf_fixture.py`读取
+`data/model_fixtures.toml`中的固定revision，支持下载或验证已有目录，并通过完整header/index
+重新计算参数量与Tensor数。生成的本地manifest可直接传给benchmark；可提交evidence不会记录
+本机payload路径。
+
 ## 10. 测试门
 
 权重 API 的独立测试覆盖：

@@ -1100,6 +1100,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Softmax out fallthrough SVG](assets/pytorch-rocm-softmax-out-fallthrough-reject.svg) | 两dtype相对1.05门 |
 | [experiments/350-official-pytorch-hidden-alignment.md](experiments/350-official-pytorch-hidden-alignment.md) | 真实Qwen/DeepSeek逐层PyTorch对齐 |
 | [Official hidden alignment SVG](assets/official-pytorch-hidden-alignment.svg) | 27/31阶段relative-L2曲线 |
+| [experiments/351-official-hf-fixtures.md](experiments/351-official-hf-fixtures.md) | pinned官方权重/tokenizer fixture |
+| [Official HF fixtures SVG](assets/official-hf-fixtures.svg) | 权重规模与结构/许可门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
