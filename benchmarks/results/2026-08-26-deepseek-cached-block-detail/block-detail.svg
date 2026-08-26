@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:23px;font-weight:700}.label{font-size:12px}.muted{fill:#94a3b8;font-size:12px}.axis{stroke:#334155;stroke-width:1}</style>
+<text x="30" y="38" class="title">Cached block-0 internal batch drift</text>
+<text x="30" y="63" class="muted">B1 vs B2 row0 · relative L2 · log10 scale · DeepSeek T2048 step0</text>
+<line x1="110" y1="590.00" x2="1560" y2="590.00" class="axis"/>
+<text x="30" y="594.00" class="label">1e-8</text>
+<line x1="110" y1="529.38" x2="1560" y2="529.38" class="axis"/>
+<text x="30" y="533.38" class="label">1e-7</text>
+<line x1="110" y1="468.75" x2="1560" y2="468.75" class="axis"/>
+<text x="30" y="472.75" class="label">1e-6</text>
+<line x1="110" y1="408.12" x2="1560" y2="408.12" class="axis"/>
+<text x="30" y="412.12" class="label">1e-5</text>
+<line x1="110" y1="347.50" x2="1560" y2="347.50" class="axis"/>
+<text x="30" y="351.50" class="label">1e-4</text>
+<line x1="110" y1="286.88" x2="1560" y2="286.88" class="axis"/>
+<text x="30" y="290.88" class="label">1e-3</text>
+<line x1="110" y1="226.25" x2="1560" y2="226.25" class="axis"/>
+<text x="30" y="230.25" class="label">1e-2</text>
+<line x1="110" y1="165.62" x2="1560" y2="165.62" class="axis"/>
+<text x="30" y="169.62" class="label">1e-1</text>
+<line x1="110" y1="105.00" x2="1560" y2="105.00" class="axis"/>
+<text x="30" y="109.00" class="label">1e0</text>
+<circle cx="146.25" cy="590.00" r="5" fill="#f97316"/>
+<circle cx="146.25" cy="590.00" r="4" fill="#38bdf8"/>
+<text x="146.25" y="608" class="label" text-anchor="start" transform="rotate(58 146.25 608)">attention_norm</text>
+<circle cx="218.75" cy="590.00" r="5" fill="#f97316"/>
+<circle cx="218.75" cy="590.00" r="4" fill="#38bdf8"/>
+<text x="218.75" y="608" class="label" text-anchor="start" transform="rotate(58 218.75 608)">attention.q_projection</text>
+<circle cx="291.25" cy="590.00" r="5" fill="#f97316"/>
+<circle cx="291.25" cy="590.00" r="4" fill="#38bdf8"/>
+<text x="291.25" y="608" class="label" text-anchor="start" transform="rotate(58 291.25 608)">attention.k_projection</text>
+<circle cx="363.75" cy="590.00" r="5" fill="#f97316"/>
+<circle cx="363.75" cy="590.00" r="4" fill="#38bdf8"/>
+<text x="363.75" y="608" class="label" text-anchor="start" transform="rotate(58 363.75 608)">attention.v_projection</text>
+<circle cx="436.25" cy="590.00" r="5" fill="#f97316"/>
+<circle cx="436.25" cy="590.00" r="4" fill="#38bdf8"/>
+<text x="436.25" y="608" class="label" text-anchor="start" transform="rotate(58 436.25 608)">attention.q_rope</text>
+<circle cx="508.75" cy="590.00" r="5" fill="#f97316"/>
+<circle cx="508.75" cy="590.00" r="4" fill="#38bdf8"/>
+<text x="508.75" y="608" class="label" text-anchor="start" transform="rotate(58 508.75 608)">attention.k_rope</text>
+<circle cx="581.25" cy="590.00" r="5" fill="#f97316"/>
+<circle cx="581.25" cy="590.00" r="4" fill="#38bdf8"/>
+<text x="581.25" y="608" class="label" text-anchor="start" transform="rotate(58 581.25 608)">attention.value</text>
+<circle cx="653.75" cy="422.76" r="5" fill="#f97316"/>
+<circle cx="653.75" cy="422.76" r="4" fill="#38bdf8"/>
+<text x="653.75" y="608" class="label" text-anchor="start" transform="rotate(58 653.75 608)">attention.context</text>
+<circle cx="726.25" cy="443.13" r="5" fill="#f97316"/>
+<circle cx="726.25" cy="443.13" r="4" fill="#38bdf8"/>
+<text x="726.25" y="608" class="label" text-anchor="start" transform="rotate(58 726.25 608)">attention.output</text>
+<circle cx="798.75" cy="443.13" r="5" fill="#f97316"/>
+<circle cx="798.75" cy="443.13" r="4" fill="#38bdf8"/>
+<text x="798.75" y="608" class="label" text-anchor="start" transform="rotate(58 798.75 608)">attention_output</text>
+<circle cx="871.25" cy="443.12" r="5" fill="#f97316"/>
+<circle cx="871.25" cy="443.12" r="4" fill="#38bdf8"/>
+<text x="871.25" y="608" class="label" text-anchor="start" transform="rotate(58 871.25 608)">attention_residual</text>
+<circle cx="943.75" cy="430.20" r="5" fill="#f97316"/>
+<circle cx="943.75" cy="430.20" r="4" fill="#38bdf8"/>
+<text x="943.75" y="608" class="label" text-anchor="start" transform="rotate(58 943.75 608)">ffn_norm</text>
+<circle cx="1016.25" cy="347.21" r="5" fill="#f97316"/>
+<text x="1016.25" y="608" class="label" text-anchor="start" transform="rotate(58 1016.25 608)">ffn.input_bf16</text>
+<circle cx="1088.75" cy="309.01" r="5" fill="#f97316"/>
+<circle cx="1088.75" cy="438.48" r="4" fill="#38bdf8"/>
+<text x="1088.75" y="608" class="label" text-anchor="start" transform="rotate(58 1088.75 608)">ffn.gate</text>
+<circle cx="1161.25" cy="309.62" r="5" fill="#f97316"/>
+<circle cx="1161.25" cy="432.47" r="4" fill="#38bdf8"/>
+<text x="1161.25" y="608" class="label" text-anchor="start" transform="rotate(58 1161.25 608)">ffn.up</text>
+<circle cx="1233.75" cy="306.88" r="5" fill="#f97316"/>
+<circle cx="1233.75" cy="429.86" r="4" fill="#38bdf8"/>
+<text x="1233.75" y="608" class="label" text-anchor="start" transform="rotate(58 1233.75 608)">ffn.activated</text>
+<circle cx="1306.25" cy="283.36" r="5" fill="#f97316"/>
+<text x="1306.25" y="608" class="label" text-anchor="start" transform="rotate(58 1306.25 608)">ffn.down</text>
+<circle cx="1378.75" cy="283.36" r="5" fill="#f97316"/>
+<circle cx="1378.75" cy="433.55" r="4" fill="#38bdf8"/>
+<text x="1378.75" y="608" class="label" text-anchor="start" transform="rotate(58 1378.75 608)">ffn.output</text>
+<circle cx="1451.25" cy="306.31" r="5" fill="#f97316"/>
+<circle cx="1451.25" cy="443.34" r="4" fill="#38bdf8"/>
+<text x="1451.25" y="608" class="label" text-anchor="start" transform="rotate(58 1451.25 608)">output</text>
+<circle cx="1523.75" cy="306.31" r="5" fill="#f97316"/>
+<circle cx="1523.75" cy="443.34" r="4" fill="#38bdf8"/>
+<text x="1523.75" y="608" class="label" text-anchor="start" transform="rotate(58 1523.75 608)">output</text>
+<circle cx="1160" cy="42" r="5" fill="#38bdf8"/>
+<text x="1172" y="46" class="label">FP32 Linear</text>
+<circle cx="1320" cy="42" r="5" fill="#f97316"/>
+<text x="1332" y="46" class="label">BF16 FFN-only</text>
+</svg>

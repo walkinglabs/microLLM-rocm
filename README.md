@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 297 traces DeepSeek's cached
-> step-0 output across all 28 blocks. The embedding is bitwise equal and block 0
-> is the first differing boundary: FP32 Linear Max is `7.62e-6`, while BF16
-> FFN-only reaches `0.003909` (512.88x). Precision and scheduler defaults remain
-> unchanged while block-0 internals are isolated. See the
-> [cached block-drift experiment](docs/optimization-log/experiments/297-cached-block-drift.md).
+> **Current optimization checkpoint:** Experiment 298 opens DeepSeek cached
+> block 0. Q/K/V and RoPE are bitwise equal; FFN norm has Max `2.98e-6`, the
+> BF16 input cast raises it to `4.88e-4`, gate reaches `0.0078125`, and down
+> projection reaches relative-L2 `0.001143`. Precision and scheduler defaults
+> remain unchanged while a block-0-only FP32 counterfactual is tested. See the
+> [block-detail experiment](docs/optimization-log/experiments/298-cached-block-zero-detail.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

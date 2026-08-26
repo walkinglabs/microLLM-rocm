@@ -18664,6 +18664,109 @@ def validate_cached_block_drift(
             str(summary.get("first_tenfold_bf16_ffn_stage", "")))
 
 
+def validate_cached_block_detail(
+        errors: list[str]) -> tuple[int, float, float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-deepseek-cached-block-detail")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    policies = {row.get("precision_island"): row
+                for row in summary.get("policy_summaries", [])}
+    fp32 = policies.get("fp32-linear", {})
+    bf16 = policies.get("bf16-ffn", {})
+    stages = {row.get("name"): row for row in bf16.get("stages", [])}
+    prefix = "inference.cached.blocks.0."
+    context = stages.get(prefix + "attention.context", {})
+    norm = stages.get(prefix + "ffn_norm", {})
+    cast = stages.get(prefix + "ffn.input_bf16", {})
+    gate = stages.get(prefix + "ffn.gate", {})
+    down = stages.get(prefix + "ffn.down", {})
+    metric = lambda row, name: row.get("b1_vs_b2_row0", {}).get(name)
+    if (summary.get("record_type") != "cached_block_detail_audit" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 4 or len(raw) != 4 or
+            summary.get("policies") != ["fp32-linear", "bf16-ffn"] or
+            summary.get("runs_per_policy") != 2 or summary.get("block") != 0 or
+            summary.get("material_maximum_threshold") != 0.001 or
+            summary.get("first_hundredfold_bf16_ffn_stage") !=
+                prefix + "ffn.gate" or
+            fp32.get("stage_count") != 18 or bf16.get("stage_count") != 20 or
+            fp32.get("all_b2_rows_bitwise_equal") is not True or
+            bf16.get("all_b2_rows_bitwise_equal") is not True):
+        errors.append("cached block detail summary/raw identity changed")
+    if (metric(stages.get(prefix + "attention.q_projection", {}), "maximum") != 0.0 or
+            metric(context, "maximum") != 0.000056160613894462585 or
+            metric(context, "relative_l2") != 0.000005735064562151671 or
+            metric(norm, "maximum") != 0.0000029802322387695312 or
+            metric(cast, "maximum") != 0.00048828125 or
+            metric(cast, "relative_l2") != 0.0001010911214033139 or
+            metric(gate, "maximum") != 0.0078125 or
+            metric(down, "relative_l2") != 0.0011428074970690246):
+        errors.append("cached block detail key stages changed")
+    if (any(row.get("status") != "pass" or row.get("context") != 2048 or
+            row.get("decode_step") != 0 or row.get("block") != 0 or
+            len(row.get("stages", [])) not in {18, 20}
+            for row in raw) or
+            sorted(row.get("trace_record_count_b1") for row in raw) !=
+                [509, 509, 565, 565] or
+            sorted(row.get("trace_record_count_b2") for row in raw) !=
+                [509, 509, 565, 565]):
+        errors.append("cached block detail raw process contract changed")
+    if (analysis.get("decision") !=
+            "test block-zero-only FP32 FFN before changing the global precision policy" or
+            analysis.get("first_low_precision_amplifier") !=
+                prefix + "ffn.input_bf16" or
+            analysis.get("bf16_input_maximum_amplification_over_ffn_norm") !=
+                163.84 or
+            analysis.get("gate_maximum_amplification_over_fp32_gate") !=
+                1008.2461538461539 or
+            analysis.get("largest_relative_l2_stage") != prefix + "ffn.down" or
+            analysis.get("precision_default_changed") is not False or
+            analysis.get("scheduler_default_admitted") is not False):
+        errors.append("cached block detail analysis changed")
+    if (check.get("measurement_commit") !=
+            "cada6dfa8595a24c23575a0269d083ee0fd7744b" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 4 or
+            check.get("fp32_stage_count") != 18 or
+            check.get("bf16_ffn_stage_count") != 20 or
+            check.get("all_b2_rows_bitwise_equal") is not True or
+            check.get("precision_default_changed") is not False or
+            check.get("scheduler_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("cached block detail verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "block-detail.svg"):
+        if not (root / name).is_file():
+            errors.append(f"cached block detail evidence missing: {name}")
+    try:
+        ET.parse(root / "block-detail.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid cached block detail SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_cached_block_detail.py").read_text(encoding="utf-8")
+    if ("trace-all-layer-details" not in runner or
+            "trace-value-filter" not in runner or
+            "first_hundredfold_bf16_ffn_stage" not in runner or
+            "b2_row0_vs_row1" not in runner):
+        errors.append("cached block detail runner contract changed")
+    return (len(raw), float(metric(context, "maximum") or 0.0),
+            float(metric(cast, "maximum") or 0.0),
+            float(metric(gate, "maximum") or 0.0),
+            float(metric(down, "relative_l2") or 0.0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19549,6 +19652,9 @@ def main() -> int:
         validate_cross_batch_precision_isolation(errors)
     cached_block_rows, cached_block_zero, cached_block_last, \
         cached_block_first = validate_cached_block_drift(errors)
+    cached_detail_rows, cached_detail_context, cached_detail_cast, \
+        cached_detail_gate, cached_detail_down = \
+        validate_cached_block_detail(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20179,6 +20285,9 @@ def main() -> int:
           f"cached_block={cached_block_rows}/"
           f"{cached_block_zero:.4f}/{cached_block_last:.4f}/"
           f"{cached_block_first} "
+          f"cached_detail={cached_detail_rows}/"
+          f"{cached_detail_context:.4e}/{cached_detail_cast:.4e}/"
+          f"{cached_detail_gate:.4f}/{cached_detail_down:.4e} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

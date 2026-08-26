@@ -4658,3 +4658,19 @@ Embedding位级相同。第一个差异出现在Block 0：FP32 Max/RMS只有7.62
 input、gate/up/activated/down，找到第一处真正的跃迁。
 
 ![Cached block drift](../../benchmarks/results/2026-08-25-deepseek-cached-block-drift/block-drift.svg)
+
+## 315. Experiment 298：不是Q/K/V，第一处低精度放大发生在FFN输入Cast
+
+我们继续打开Block 0。Attention norm、Q/K/V投影和RoPE在B1/B2间全部位级相同；materialized
+Attention context第一次产生5.62e-5 Max小差异。经过Attention输出、残差和FFN norm后，Max只剩
+2.98e-6，仍属于FP32底噪。
+
+真正的跃迁从FP32→BF16输入cast开始：Max变成0.000488，relative-L2变成0.000101，分别是前一
+边界的163.84倍和23.38倍。gate继续到0.0078125，是FP32 gate误差的约1008倍；down projection
+的relative-L2达到本层峰值0.001143。两次fresh process完全重复，B2两行仍位级相同。
+
+这仍不能证明“只修第一层就够了”。下一步保持其余27层BF16，只让Block 0 FFN使用FP32。如果完整
+logits明显收敛，才进入前N层边界搜索；若几乎没变，就拒绝层选择策略，转向每层都重复注入的cast或
+GEMM算法一致性。默认precision和scheduler不动。
+
+![Cached block-0 detail](../../benchmarks/results/2026-08-26-deepseek-cached-block-detail/block-detail.svg)

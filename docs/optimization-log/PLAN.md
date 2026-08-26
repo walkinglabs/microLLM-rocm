@@ -143,7 +143,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [112](steps/112-cross-batch-logit-audit.md) | complete | DeepSeek micro内部cross-batch logits | step0已漂移；行/重复/argmax通过；最终Max/RMS0.1978/0.0461 |
 | [113](steps/113-cross-batch-precision-isolation.md) | complete | FP32/BF16 island cross-batch隔离 | FFN-only Max 0.06299为主放大源；Attention-only 0.02097 |
 | [114](steps/114-cached-block-drift.md) | complete | cached step0 block trace | Embedding exact；Block 0首次放大，BF16/FP32 Max 512.88x |
-| [115](steps/115-cached-block-zero-detail.md) | planned | Block 0内部边界trace | attention residual到gate/up/down逐点定位 |
+| [115](steps/115-cached-block-zero-detail.md) | complete | Block 0内部边界trace | BF16 input Max放大163.84x；gate首过1e-3，down rel-L2峰值 |
+| [116](steps/116-block-zero-fp32-counterfactual.md) | planned | 仅Block 0 FFN保持FP32 | 检验早层误差是否主导28层累积 |
 
 ## 为什么按这个顺序
 

@@ -45,6 +45,35 @@ BLOCK_DETAIL_SPEC.loader.exec_module(BLOCK_DETAIL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_cached_block_detail_locates_bf16_input_cast(self):
+        root = ROOT / "benchmarks/results/2026-08-26-deepseek-cached-block-detail"
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        policies = {row["precision_island"]: row
+                    for row in summary["policy_summaries"]}
+        ffn = {row["name"]: row for row in policies["bf16-ffn"]["stages"]}
+        prefix = BLOCK_DETAIL.PREFIX + "."
+        self.assertEqual(summary["process_rows"], 4)
+        self.assertEqual(summary["first_hundredfold_bf16_ffn_stage"],
+                         prefix + "ffn.gate")
+        self.assertTrue(policies["bf16-ffn"]["all_b2_rows_bitwise_equal"])
+        self.assertEqual(ffn[prefix + "attention.q_projection"]
+                         ["b1_vs_b2_row0"]["maximum"], 0.0)
+        self.assertEqual(ffn[prefix + "attention.context"]
+                         ["b1_vs_b2_row0"]["maximum"],
+                         0.000056160613894462585)
+        self.assertEqual(ffn[prefix + "ffn.input_bf16"]
+                         ["b1_vs_b2_row0"]["maximum"], 0.00048828125)
+        self.assertEqual(ffn[prefix + "ffn.gate"]
+                         ["b1_vs_b2_row0"]["maximum"], 0.0078125)
+        self.assertEqual(analysis["first_low_precision_amplifier"],
+                         prefix + "ffn.input_bf16")
+        self.assertEqual(verification["measurement_commit"],
+                         "cada6dfa8595a24c23575a0269d083ee0fd7744b")
+        ET.parse(root / "block-detail.svg")
+
     def test_cached_block_detail_compares_rows_and_finds_material_stage(self):
         names = [
             BLOCK_DETAIL.PREFIX + ".attention_norm",

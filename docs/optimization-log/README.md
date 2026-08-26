@@ -995,6 +995,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [precision-isolation SVG](../../benchmarks/results/2026-08-25-deepseek-cross-batch-precision/precision-isolation.svg) | FP32/FFN/Attention/both完整logits漂移 |
 | [experiments/297-cached-block-drift.md](experiments/297-cached-block-drift.md) | 31个边界定位到Block 0首次放大，默认策略冻结 |
 | [cached block-drift SVG](../../benchmarks/results/2026-08-25-deepseek-cached-block-drift/block-drift.svg) | FP32 Linear与BF16 FFN-only逐层Max误差 |
+| [experiments/298-cached-block-zero-detail.md](experiments/298-cached-block-zero-detail.md) | BF16 input/gate/down逐点放大与单层FP32反驳实验 |
+| [cached block-detail SVG](../../benchmarks/results/2026-08-26-deepseek-cached-block-detail/block-detail.svg) | Block 0内部relative-L2对数图 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
