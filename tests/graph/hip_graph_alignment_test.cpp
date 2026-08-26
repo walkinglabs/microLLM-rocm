@@ -117,6 +117,38 @@ TEST(HipGraphAlignmentTest,
 }
 
 TEST(HipGraphAlignmentTest,
+     QkNormBf16ProjectionInferenceMatchesCpuWithoutTransfers) {
+    require_graph_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .attention_head_dimension = 6,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 4,
+                                    .qk_norm = true};
+    const auto tokens = Tensor::from_int32_vector({1, 2}, {1, 2});
+    model::TransformerModel cpu(config, 617);
+    (void)cpu.prepare_bf16_ffn_inference();
+    (void)cpu.prepare_bf16_attention_inference();
+    const auto expected = cpu.forward_inference(tokens).to_vector();
+
+    model::TransformerModel hip(config, 617);
+    hip.to(Device::hip(0));
+    (void)hip.prepare_bf16_ffn_inference();
+    (void)hip.prepare_bf16_attention_inference();
+    const auto device_tokens = tokens.to(Device::hip(0));
+    runtime::reset_transfer_stats();
+    const auto actual = hip.forward_inference(device_tokens);
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_graph_near(actual.to_vector(), expected, 3.0e-3F);
+}
+
+TEST(HipGraphAlignmentTest,
      AddRmsNormMatchesBranchedHipGraphAndStaysDeviceNative) {
     require_graph_gpu();
     const auto gpu = Device::hip(0);

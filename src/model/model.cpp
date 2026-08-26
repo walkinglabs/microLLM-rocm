@@ -3204,7 +3204,7 @@ Bf16WeightPreparationReport TransformerModel::prepare_bf16_attention_inference()
         named_parameters(), impl_->blocks.size() * 4U, device(),
         [](const std::string& name) {
             return name.find(".attention.") != std::string::npos &&
-                   name.ends_with(".weight");
+                   name.ends_with("_proj.weight");
         });
     impl_->bf16_attention_prepared = true;
     return report;

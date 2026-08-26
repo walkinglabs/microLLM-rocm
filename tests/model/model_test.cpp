@@ -110,6 +110,29 @@ TEST(TransformerModelTest, ExplicitHeadDimensionAndQkNormCoverForwardBackwardAnd
     expect_near(cached, full, 2.0e-4F);
 }
 
+TEST(TransformerModelTest, QkNormStaysFp32DuringBf16ProjectionPreparation) {
+    ModelConfig config{.vocabulary_size = 16,
+                       .dimension = 8,
+                       .layers = 1,
+                       .heads = 2,
+                       .kv_heads = 1,
+                       .attention_head_dimension = 6,
+                       .ffn_dimension = 16,
+                       .max_sequence_length = 8,
+                       .qk_norm = true};
+    TransformerModel model(config, 41);
+    const auto report = model.prepare_bf16_attention_inference();
+    EXPECT_EQ(report.converted_tensors, 4U);
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        if (name.ends_with("q_norm.weight") || name.ends_with("k_norm.weight")) {
+            EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+        } else if (name.find(".attention.") != std::string::npos &&
+                   name.ends_with("_proj.weight")) {
+            EXPECT_EQ(parameter->data().dtype(), DType::BFloat16) << name;
+        }
+    }
+}
+
 TEST(TransformerModelTest, SplitHalfAttentionLayoutFusionMatchesMaterializedGraph) {
     auto config = tiny_config();
     config.attention_bias = true;

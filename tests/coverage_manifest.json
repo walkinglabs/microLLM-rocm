@@ -481,6 +481,7 @@
     "python/tests/test_int8_weight_oracle.py",
     "python/tests/test_status_contract.py",
     "python/tests/test_qwen3_official_evidence.py",
+    "python/tests/test_qwen3_bf16_evidence.py",
     "python/tests/test_bf16_repeat.py",
     "python/tests/test_inference_bthd_shape_models.py",
     "python/tests/test_hf_fp8_layer_drift.py",

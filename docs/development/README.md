@@ -723,3 +723,5 @@ the next gate. Records are append-only except for factual corrections.
   separates Qwen3 runtime parameters from its byte-identical stored tied head.
 - [2026-08-26-qwen3-official-alignment.md](2026-08-26-qwen3-official-alignment.md):
   records bounded strict alias verification and complete official logits/tokens.
+- [2026-08-26-qwen3-bf16-inference.md](2026-08-26-qwen3-bf16-inference.md):
+  compares both BF16 implementations against one FP32 oracle and records speed/residency.

@@ -156,6 +156,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(HuggingFace.Qwen3OfficialEvidence PROPERTIES
         LABELS "cpu;huggingface;qwen;qwen3;model;alignment;schema")
     add_test(
+        NAME HuggingFace.Qwen3Bf16Evidence
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_qwen3_bf16_evidence.py
+    )
+    set_tests_properties(HuggingFace.Qwen3Bf16Evidence PROPERTIES
+        LABELS "cpu;huggingface;qwen;qwen3;model;bf16;performance;schema")
+    add_test(
         NAME HfCLI.BatchLogitsExport
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_hf_cli_batch_logits.py

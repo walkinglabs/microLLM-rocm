@@ -1022,12 +1022,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 429/429 | host code, Qwen3 strict alias/evidence, explicit-head/QK-Norm graph and package gates |
-| ASan/UBSan CPU | 426/426 | host lifetime, bounded alias comparison, Qwen3 state and package linking |
-| MI300X/gfx942 HIP label | 213/213 | allocator/arena/Stream/Graph, Qwen3 strict streaming and explicit-head/QK-Norm |
-| PyTorch-enabled CPU build | 431/431 | dispatcher parity, Qwen3 strict evidence and 53/53 explicit-head/QK-Norm alignment |
+| CPU Debug | 431/431 | host code, Qwen3 FP32/BF16 evidence, QK-Norm graph and package gates |
+| ASan/UBSan CPU | 428/428 | host lifetime, Qwen3 BF16/QK-Norm state and package linking |
+| MI300X/gfx942 HIP label | 214/214 | allocator/arena/Stream/Graph, Qwen3 BF16 plus FP32 QK-Norm and strict streaming |
+| PyTorch-enabled CPU build | 433/433 | dispatcher parity, Qwen3 FP32/BF16 evidence and 53/53 QK-Norm alignment |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 157 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 158 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1276,6 +1276,9 @@ is ready, while strict alias load and official logits are deliberately still pen
 [Experiment 362](docs/optimization-log/experiments/362-qwen3-official-alignment.md) verifies the
 tied alias before streaming and aligns all 151,936 logits at Max/RMS 3.86e-5/8.44e-6 plus four
 exact greedy tokens against Transformers on MI300X.
+[Experiment 363](docs/optimization-log/experiments/363-qwen3-bf16-inference.md) keeps an explicit
+single-representation BF16 policy: it is closer to the shared FP32 oracle than Transformers BF16,
+reaches 3.66× matched end-to-end throughput and reduces resident weights to 1.503GB.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

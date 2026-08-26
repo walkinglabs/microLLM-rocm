@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 429/429, ASan/UBSan 426/426, PyTorch-enabled CPU 431/431, single-GPU HIP label 213/213, RCCL label 55/55; 157 registered test files | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 431/431, ASan/UBSan 428/428, PyTorch-enabled CPU 433/433, single-GPU HIP label 214/214, RCCL label 55/55; 158 registered test files | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte and signed INT8 one-byte CPU/MI300X storage, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -23,7 +23,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Qwen2.5-0.5B | smoke-tested | official weights, tool-call chat, full-logit oracle and Release steady decode at 1.01x–3.39x PyTorch over T1–2048/B1–8/N1–64 | repeated-process full matrix and multi-step SFT |
 | DeepSeek-R1-Distill-Qwen-1.5B | smoke-tested | official 339 tensors; current T2048/B2/N64 is 1.1393x PyTorch with exact 64 tokens, 5.23/6.38GB peak and equal KV bytes | broader repeated shape matrix, longer reasoning/SFT and identical resident-weight policy |
 | Official HF fixture registry | fixture-ready | pinned Qwen2.5/DeepSeek/Qwen3 revisions; complete BF16 headers reproduce 290/339 tensors and 494,032,768/1,777,088,000 parameters; Qwen3 311 stored tensors→310 strict runtime targets after bounded exact tied-alias verification | mirrors/offline hosting and more families |
-| Qwen3-0.6B | smoke-tested | official MI300X FP32 strict load; 151,936 logits Max/RMS 3.86e-5/8.44e-6, argmax and tokens `[14582,25,16246,264]` match Transformers; 296 tok/s, 2.384GB resident | longer contexts, BF16/training and other Qwen3 scales |
+| Qwen3-0.6B | smoke-tested | FP32 strict logits/tokens aligned; explicit BF16 is closer to FP32 than Transformers BF16 (0.0724/0.0142 vs 0.188/0.0371), 216.6 vs59.2 end-to-end tok/s, 1.503GB resident | longer contexts, training and other Qwen3 scales |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |

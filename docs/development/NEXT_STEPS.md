@@ -37,6 +37,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   311-Tensor BF16 fixture, separating unique runtime parameters from stored tied payloads;
 - [x] verify the byte-identical tied lm_head alias during bounded strict streaming and
   align official Qwen3-0.6B complete logits/greedy tokens with Transformers on MI300X;
+- [x] run explicit Qwen3 FFN+Attention BF16 with FP32 QK-Norm; it is closer to the
+  shared FP32 oracle than Transformers BF16 and passes matched token/s/residency gates;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;
