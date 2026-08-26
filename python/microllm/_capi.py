@@ -198,6 +198,11 @@ for _name in ("ml_rms_norm_out_on_stream", "ml_rms_norm_bf16_out_on_stream"):
 _lib.ml_swiglu_out_on_stream.argtypes = [
     _TensorPointer, _TensorPointer, _TensorPointer, _StreamPointer]
 _lib.ml_swiglu_out_on_stream.restype = ctypes.c_int
+_lib.ml_causal_gqa_attention_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _TensorPointer,
+    _TensorPointer, _TensorPointer, _TensorPointer,
+    ctypes.c_int64, ctypes.c_float, _StreamPointer]
+_lib.ml_causal_gqa_attention_out_on_stream.restype = ctypes.c_int
 
 
 def _check(status: int) -> None:
@@ -590,6 +595,18 @@ def swiglu_out(output: Tensor, gate: Tensor, up: Tensor, *,
                stream: Stream) -> None:
     _check(_lib.ml_swiglu_out_on_stream(
         output._handle, gate._handle, up._handle, stream._handle))
+
+
+def causal_gqa_attention_out(
+        output: Tensor, scaled_query_workspace: Tensor,
+        expanded_kv_workspace: Tensor, probabilities_workspace: Tensor,
+        query: Tensor, key: Tensor, value: Tensor, *, repeats: int,
+        scale: float, stream: Stream) -> None:
+    _check(_lib.ml_causal_gqa_attention_out_on_stream(
+        output._handle, scaled_query_workspace._handle,
+        expanded_kv_workspace._handle, probabilities_workspace._handle,
+        query._handle, key._handle, value._handle, int(repeats),
+        float(scale), stream._handle))
 
 
 def hip_device_count() -> int:

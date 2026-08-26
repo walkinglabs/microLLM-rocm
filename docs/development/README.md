@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: PyTorch zero-copy MHA/GQA Attention](2026-08-26-pytorch-zero-copy-attention.md)
 - [2026-08-26: PyTorch zero-copy operator matrix](2026-08-26-pytorch-zero-copy-operator-matrix.md)
 - [2026-08-26: PyTorch zero-copy FP16/BF16](2026-08-26-pytorch-zero-copy-low-precision.md)
 - [2026-08-26: PyTorch ROCm zero-copy Tensor](2026-08-26-pytorch-zero-copy-tensor.md)

@@ -106,6 +106,22 @@ class TensorTest(unittest.TestCase):
             self.assertAlmostEqual(actual,
                                    gate / (1 + math.exp(-gate)) * up,
                                    places=5)
+        query = microllm.Tensor.from_f32([0] * 8, (1, 2, 2, 2))
+        key = microllm.Tensor.from_f32([0] * 4, (1, 1, 2, 2))
+        value = microllm.Tensor.from_f32([1, 2, 3, 4], (1, 1, 2, 2))
+        attention_output = microllm.Tensor.from_f32([0] * 8, (1, 2, 2, 2))
+        scaled_query = microllm.Tensor.from_f32([0] * 8, (1, 2, 2, 2))
+        expanded_kv = microllm.Tensor.from_f32([0] * 8, (1, 2, 2, 2))
+        probabilities = microllm.Tensor.from_f32([0] * 8, (1, 2, 2, 2))
+        microllm.causal_gqa_attention_out(
+            attention_output, scaled_query, expanded_kv, probabilities,
+            query, key, value, repeats=2, scale=0.5, stream=stream)
+        self.assertEqual(attention_output.tolist(),
+                         [1, 2, 2, 3, 1, 2, 2, 3])
+        with self.assertRaises(microllm.MicroLLMError):
+            microllm.causal_gqa_attention_out(
+                query, scaled_query, expanded_kv, probabilities,
+                query, key, value, repeats=2, scale=0.5, stream=stream)
 
     def test_external_tensor_is_zero_copy_non_owning_and_strict(self):
         left_owner = (ctypes.c_float * 4)(1, 2, 3, 4)

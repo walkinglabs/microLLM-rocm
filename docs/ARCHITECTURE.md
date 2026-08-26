@@ -101,6 +101,9 @@ back.
 The caller-owned layer also covers FP32 Softmax/RMSNorm, BF16 RMSNorm output and
 F32/F16/BF16 SwiGLU. Low-precision HIP Softmax is intentionally not routed through an
 FP32 temporary; its missing typed reduction remains visible.
+FP32 causal MHA/GQA accepts caller-owned context and three explicit workspaces. The short
+fused path and T256 hipBLASLt path share one validated interface, so switching by shape
+cannot silently change ownership.
 
 An operator implementation must not infer ownership from a data pointer. Output,
 workspace, device, and execution stream are explicit. This allows the same HIP

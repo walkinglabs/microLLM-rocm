@@ -220,8 +220,10 @@ FP32 contiguous `ml_add_out_on_stream`; unsupported layouts fail instead of copy
 External descriptors also map FP16/BF16, with caller-owned multiply/matmul paths tested
 against PyTorch ROCm. FP32 Softmax/RMSNorm, BF16 RMSNorm output and F32/F16/BF16
 SwiGLU have strict caller-owned Stream APIs. HIP low-precision Softmax is rejected until
-a typed reduction Kernel exists; no temporary FP32 copy is inserted. Attention/RoPE/loss/training outputs
-remain outside the C ABI.
+a typed reduction Kernel exists; no temporary FP32 copy is inserted. FP32 causal MHA/GQA
+also exposes caller-owned output plus scaled-Q, expanded-K/V and
+probability workspaces. Writable tensors must not alias each other or any input.
+RoPE/Embedding/loss/training outputs remain outside the C ABI.
 
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:

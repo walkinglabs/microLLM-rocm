@@ -26,6 +26,7 @@ def main() -> int:
         "144MiB exposed, 0 wrapper copy",
         "180MiB, 0 copy, all Max 0",
         "63/63 random Softmax/RMSNorm/SwiGLU rows",
+        "MHA/GQA 15/15, 105/105 Attention pointers",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -259,6 +260,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-pytorch-zero-copy-operator-matrix/analysis.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-operator-matrix/verification.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-operator-matrix/operator-matrix.svg",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-attention/summary.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-attention/analysis.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-attention/verification.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-attention/attention-matrix.svg",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -432,6 +437,25 @@ def main() -> int:
     assert groups[("swiglu", "bf16")]["maximum_error"] == 0.0625
     assert groups[("swiglu", "bf16")]["maximum_tolerance_fraction"] < 0.9
     ET.parse(operator_root / "operator-matrix.svg")
+    attention_root = ROOT / (
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-attention")
+    attention = json.loads(
+        (attention_root / "summary.json").read_text(encoding="utf-8"))
+    assert attention["status"] == "pass_with_profiler_boundary"
+    assert attention["run_count"] == 3
+    assert attention["record_count"] == 15
+    assert attention["shape_count"] == 5
+    assert attention["mha_rows"] == 3
+    assert attention["gqa_rows"] == 12
+    assert attention["pending_event_rows"] == 15
+    assert attention["pointer_matches"] == 105
+    assert attention["non_owning_wrappers"] == 105
+    assert attention["maximum_output_error"] < 8.35e-7
+    assert attention["maximum_output_rms_error"] < 6.8e-8
+    assert attention["maximum_workspace_error"] < 3.0e-8
+    assert attention["total_wrapper_copy_bytes"] == 0
+    assert attention["rocprof_performance_claim"] is False
+    ET.parse(attention_root / "attention-matrix.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

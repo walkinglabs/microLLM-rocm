@@ -616,4 +616,21 @@ ML_EXPORT ml_status ml_swiglu_out_on_stream(
     });
 }
 
+ML_EXPORT ml_status ml_causal_gqa_attention_out_on_stream(
+    ml_tensor* output, ml_tensor* scaled_query_workspace,
+    ml_tensor* expanded_kv_workspace, ml_tensor* probabilities_workspace,
+    const ml_tensor* query, const ml_tensor* key, const ml_tensor* value,
+    int64_t repeats, float scale, ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::CausalGqaAttentionWorkspace workspace{
+            .scaled_query = require_tensor(scaled_query_workspace),
+            .expanded_kv = require_tensor(expanded_kv_workspace),
+            .probabilities = require_tensor(probabilities_workspace)};
+        microllm::ops::causal_gqa_attention_out_(
+            require_tensor(output), workspace, require_tensor(query),
+            require_tensor(key), require_tensor(value), repeats, scale,
+            stream_context(stream));
+    });
+}
+
 }  // extern "C"

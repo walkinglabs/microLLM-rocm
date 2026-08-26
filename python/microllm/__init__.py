@@ -12,6 +12,7 @@ _CAPI_NAMES = {
     "Tensor",
     "add",
     "add_out",
+    "causal_gqa_attention_out",
     "hip_device_count",
     "matmul",
     "matmul_out",

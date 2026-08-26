@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass_with_profiler_boundary","process_runs":3,"mha_gqa_shapes":5,"complete_context_outputs":true,"long_workspace_outputs":true,"cpu_workspace_alias_failure":"pass","hip_caller_workspace_test":"pass","capi_symbol_count":49,"svg_parsed":true}

@@ -228,8 +228,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   multiply/matmul caller-output gates: 180MiB exposed, 0 copy, all Max 0;
 - [x] add caller-owned FP32 Softmax/RMSNorm, BF16 RMSNorm output and F32/F16/BF16
   SwiGLU; 63/63 random PyTorch rows pass with explicit Max/RMS and 0 wrapper copy;
-- [ ] extend caller-owned output to Attention/RoPE/Embedding/loss/training families and
-  implement typed low-precision Softmax before claiming zero-copy model integration.
+- [x] add caller-owned FP32 MHA/GQA Attention output/workspace; 15/15 random contexts,
+  105/105 pointers and T256 workspace pass with output Max 8.35e-7 and 0 copy;
+- [ ] extend caller-owned output to RoPE/Embedding/loss/training families and implement
+  typed low-precision Softmax before claiming zero-copy model integration.
 
 ## P2.5 — production data parallel reducer
 
