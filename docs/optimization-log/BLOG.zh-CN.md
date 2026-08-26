@@ -4743,3 +4743,16 @@ Q projection。B8 Q/K/V Max分别为9.16e-5、3.05e-5、5.01e-6，RoPE只继承�
 相同2048-row块跨M位级一致的候选才进完整模型；默认不动。
 
 ![Prefill block-0 trace](../../benchmarks/results/2026-08-26-deepseek-prefill-block0-trace/prefill-trace.svg)
+
+## 321. Experiment 304：Q十二选一，K/V二十二选五
+
+我们按真实row-major forward descriptor筛M2048/4096/8192/16384。Q的12个共同solution只有296100
+让重复2048-row块位级相同；K/V的22个共同solution有5个通过，最快是292135。两者workspace都是0。
+
+所有共同候选都通过CPU sentinel。失败候选的block误差只有2e-7到3.6e-7，但上一实验已经展示它会
+被BF16 cache边界放大。前4个heuristic甚至没有跨M交集，因此不能把每个shape局部最快直接拼成策略。
+
+下一步只做完整模型显式门：Q=296100、K/V=292135，检查raw cache、151,936 logits、吞吐、peak和
+registry计数。version-local index仍不进入默认。
+
+![FP32 QKV row invariance](../../benchmarks/results/2026-08-26-fp32-qkv-row-invariance/qkv-row-invariance.svg)

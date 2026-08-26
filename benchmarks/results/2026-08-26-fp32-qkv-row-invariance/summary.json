@@ -1,0 +1,700 @@
+{
+  "block_rows": 2048,
+  "candidates": [
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.14e-07,
+      "block_rms_error": 5e-08,
+      "event_ms_p50": [
+        0.366474986,
+        0.365673006,
+        0.656817019,
+        0.897404969
+      ],
+      "event_ms_sum": 2.28636998,
+      "index": 292090,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.9e-07,
+      "block_rms_error": 4.9e-08,
+      "event_ms_p50": [
+        0.533735991,
+        0.517298996,
+        0.542276025,
+        1.03283596
+      ],
+      "event_ms_sum": 2.626146972,
+      "index": 292221,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.7e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.99e-07,
+      "block_rms_error": 4.7e-08,
+      "event_ms_p50": [
+        0.375295997,
+        0.372087985,
+        0.690855026,
+        0.965681016
+      ],
+      "event_ms_sum": 2.403920024,
+      "index": 295617,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.06e-07,
+      "block_rms_error": 4.6e-08,
+      "event_ms_p50": [
+        0.43847999,
+        0.455116987,
+        0.492682993,
+        0.876076996
+      ],
+      "event_ms_sum": 2.262356966,
+      "index": 295619,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.99e-07,
+      "block_rms_error": 4.7e-08,
+      "event_ms_p50": [
+        0.494807988,
+        0.496771991,
+        0.55606699,
+        0.988412976
+      ],
+      "event_ms_sum": 2.536059945,
+      "index": 295621,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.14e-07,
+      "block_rms_error": 4.9e-08,
+      "event_ms_p50": [
+        0.393256009,
+        0.399630994,
+        0.737681985,
+        1.029626966
+      ],
+      "event_ms_sum": 2.560195954,
+      "index": 296014,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.348513991,
+        0.350077987,
+        0.618929982,
+        0.920578003
+      ],
+      "event_ms_sum": 2.2380999630000002,
+      "index": 296100,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.14e-07,
+      "block_rms_error": 5e-08,
+      "event_ms_p50": [
+        0.427213997,
+        0.436553985,
+        0.504911005,
+        0.856150985
+      ],
+      "event_ms_sum": 2.2248299719999998,
+      "index": 296102,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.14e-07,
+      "block_rms_error": 4.8e-08,
+      "event_ms_p50": [
+        0.470952988,
+        0.469269991,
+        0.498376012,
+        0.925990999
+      ],
+      "event_ms_sum": 2.36458999,
+      "index": 296105,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.99e-07,
+      "block_rms_error": 4.7e-08,
+      "event_ms_p50": [
+        0.447340012,
+        0.449423999,
+        0.504028976,
+        0.874273002
+      ],
+      "event_ms_sum": 2.275065989,
+      "index": 296171,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.9e-07,
+      "block_rms_error": 5.1e-08,
+      "event_ms_p50": [
+        0.558793008,
+        0.560917974,
+        0.581044018,
+        1.088961959
+      ],
+      "event_ms_sum": 2.7897169589999997,
+      "index": 300533,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.7e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.06e-07,
+      "block_rms_error": 4.6e-08,
+      "event_ms_p50": [
+        0.537626028,
+        0.543438017,
+        0.563844979,
+        1.062582016
+      ],
+      "event_ms_sum": 2.70749104,
+      "index": 300660,
+      "maximum_workspace_bytes": 0,
+      "operation": "q",
+      "sentinel_maximum_error": 8.2e-08,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 3.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9.2e-08,
+      "event_ms_p50": [
+        0.37333101,
+        0.475923985,
+        0.457843989,
+        0.463777989
+      ],
+      "event_ms_sum": 1.770876973,
+      "index": 291925,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.484423995,
+        0.479934007,
+        0.481938988,
+        0.484384
+      ],
+      "event_ms_sum": 1.93068099,
+      "index": 291992,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 8.6e-08,
+      "event_ms_p50": [
+        0.400633991,
+        0.398348004,
+        0.401515007,
+        0.40071401
+      ],
+      "event_ms_sum": 1.601211012,
+      "index": 292061,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.13e-07,
+      "block_rms_error": 8e-08,
+      "event_ms_p50": [
+        0.245318994,
+        0.255582988,
+        0.252014995,
+        0.391211987
+      ],
+      "event_ms_sum": 1.144128964,
+      "index": 292110,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.79e-07,
+      "block_rms_error": 6.7e-08,
+      "event_ms_p50": [
+        0.234173998,
+        0.228239998,
+        0.234896004,
+        0.351601005
+      ],
+      "event_ms_sum": 1.048911005,
+      "index": 292111,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.58e-07,
+      "block_rms_error": 9e-08,
+      "event_ms_p50": [
+        0.430500984,
+        0.43463099,
+        0.435351998,
+        0.445574999
+      ],
+      "event_ms_sum": 1.746058971,
+      "index": 292132,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.79e-07,
+      "block_rms_error": 6.7e-08,
+      "event_ms_p50": [
+        0.37677899,
+        0.376538008,
+        0.380748004,
+        0.386601001
+      ],
+      "event_ms_sum": 1.5206660029999999,
+      "index": 292133,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.27214101,
+        0.270617008,
+        0.267569005,
+        0.303332001
+      ],
+      "event_ms_sum": 1.113659024,
+      "index": 292135,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.79e-07,
+      "block_rms_error": 6.7e-08,
+      "event_ms_p50": [
+        0.482861012,
+        0.479452997,
+        0.482540011,
+        0.480414987
+      ],
+      "event_ms_sum": 1.925269007,
+      "index": 292145,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 7.7e-08,
+      "event_ms_p50": [
+        0.401636004,
+        0.394538999,
+        0.400433004,
+        0.400954008
+      ],
+      "event_ms_sum": 1.5975620149999998,
+      "index": 292146,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.322414994,
+        0.314276993,
+        0.320890993,
+        0.362304986
+      ],
+      "event_ms_sum": 1.319887966,
+      "index": 292147,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9.2e-08,
+      "event_ms_p50": [
+        0.543839991,
+        0.546164989,
+        0.543197989,
+        0.550816
+      ],
+      "event_ms_sum": 2.1840189690000003,
+      "index": 292240,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.79e-07,
+      "block_rms_error": 6.7e-08,
+      "event_ms_p50": [
+        0.247124001,
+        0.250371009,
+        0.251653999,
+        0.294151008
+      ],
+      "event_ms_sum": 1.043300017,
+      "index": 295615,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.13e-07,
+      "block_rms_error": 7.9e-08,
+      "event_ms_p50": [
+        0.377501011,
+        0.371486992,
+        0.375054985,
+        0.382791996
+      ],
+      "event_ms_sum": 1.5068349840000002,
+      "index": 295903,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 8.1e-08,
+      "event_ms_p50": [
+        0.459127009,
+        0.460689992,
+        0.460128993,
+        0.465259999
+      ],
+      "event_ms_sum": 1.845205993,
+      "index": 295908,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.313113987,
+        0.319889009,
+        0.325902998,
+        0.357374012
+      ],
+      "event_ms_sum": 1.316280006,
+      "index": 297273,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9e-08,
+      "event_ms_p50": [
+        0.558232009,
+        0.562120974,
+        0.561318994,
+        0.567093015
+      ],
+      "event_ms_sum": 2.248764992,
+      "index": 299830,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9e-08,
+      "event_ms_p50": [
+        0.555746973,
+        0.566250026,
+        0.562642992,
+        0.569778979
+      ],
+      "event_ms_sum": 2.2544189699999997,
+      "index": 300350,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.313234001,
+        0.321693003,
+        0.318646014,
+        0.361945003
+      ],
+      "event_ms_sum": 1.315518021,
+      "index": 300609,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 8.7e-08,
+      "event_ms_p50": [
+        0.630998969,
+        0.636851013,
+        0.642224014,
+        0.643145978
+      ],
+      "event_ms_sum": 2.553219974,
+      "index": 300611,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 8.7e-08,
+      "event_ms_p50": [
+        0.632561982,
+        0.63993901,
+        0.640941024,
+        0.64735502
+      ],
+      "event_ms_sum": 2.560797036,
+      "index": 300677,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9.3e-08,
+      "event_ms_p50": [
+        0.715710998,
+        0.723569989,
+        0.723528981,
+        0.726495981
+      ],
+      "event_ms_sum": 2.889305949,
+      "index": 300678,
+      "maximum_workspace_bytes": 0,
+      "operation": "kv",
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    }
+  ],
+  "inner": 1536,
+  "multipliers": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "operations": [
+    {
+      "block_invariant_count": 1,
+      "block_invariant_indices": [
+        296100
+      ],
+      "columns": 1536,
+      "common_candidate_count": 12,
+      "fastest_invariant_event_ms_sum": 2.2380999630000002,
+      "fastest_invariant_index": 296100,
+      "fastest_invariant_workspace_bytes": 0,
+      "maximum_block_error": 2.14e-07,
+      "maximum_sentinel_error": 8.2e-08,
+      "operation": "q",
+      "sentinel_pass_count": 12,
+      "supported_count": 12
+    },
+    {
+      "block_invariant_count": 5,
+      "block_invariant_indices": [
+        291992,
+        292135,
+        292147,
+        297273,
+        300609
+      ],
+      "columns": 256,
+      "common_candidate_count": 22,
+      "fastest_invariant_event_ms_sum": 1.113659024,
+      "fastest_invariant_index": 292135,
+      "fastest_invariant_workspace_bytes": 0,
+      "maximum_block_error": 3.58e-07,
+      "maximum_sentinel_error": 1.94e-07,
+      "operation": "kv",
+      "sentinel_pass_count": 22,
+      "supported_count": 22
+    }
+  ],
+  "record_type": "fp32_qkv_row_invariance_matrix",
+  "schema_version": 1,
+  "status": "pass",
+  "workspace_limit_bytes": 33554432
+}

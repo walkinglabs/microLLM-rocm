@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 303 locates the first
-> full-prefill difference at block-0 FP32 Q projection; embedding and Attention
-> Norm are exact. B8 Q/K/V Max is `9.16e-5/3.05e-5/5.01e-6`, then BF16 cache
-> storage amplifies Key/Value Max to `0.03125/0.0009765625`. Defaults remain
-> unchanged while large-M FP32 Q/K/V solutions are screened. See the
-> [prefill trace experiment](docs/optimization-log/experiments/303-prefill-block0-trace.md).
+> **Current optimization checkpoint:** Experiment 304 finds one block-invariant
+> FP32 Q solution (296100) and five K/V solutions across M2048–M16384; 292135
+> is the fastest K/V candidate. Both selected indices require zero workspace.
+> Defaults remain unchanged while raw cache, complete logits, throughput and
+> peak are checked in the full model. See the
+> [QKV row-invariance experiment](docs/optimization-log/experiments/304-fp32-qkv-row-invariance.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

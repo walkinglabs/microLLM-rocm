@@ -1,6 +1,6 @@
 # Step 121 — Large-M FP32 Q/K/V row invariance
 
-Status: planned
+Status: complete; model gate selected
 
 Experiment 303把第一处差异定位到Block 0 full-prefill的FP32 Q projection；K/V也在同一组大M GEMM中
 出现较小差异。这个节点只看算子。
@@ -16,3 +16,6 @@ Experiment 303把第一处差异定位到Block 0 full-prefill的FP32 Q projectio
 
 候选必须四个M support、reference门通过且第0个2048-row块位级相同，才进入完整模型。solution index
 只对当前版本有效，不写默认。若0个候选通过，转向可读保序Kernel或明确容差边界。
+
+结果：Q 12个共同候选仅296100位级通过；K/V 22个共同候选有5个通过，最快是292135。两者
+workspace均为0。Step 122进入完整DeepSeek cache/logits/性能门，仍不改默认。

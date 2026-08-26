@@ -1,0 +1,403 @@
+{
+  "block_invariant_count": 5,
+  "block_rows": 2048,
+  "candidates": [
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9.2e-08,
+      "event_ms_p50": [
+        0.37333101,
+        0.475923985,
+        0.457843989,
+        0.463777989
+      ],
+      "index": 291925,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.484423995,
+        0.479934007,
+        0.481938988,
+        0.484384
+      ],
+      "index": 291992,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 8.6e-08,
+      "event_ms_p50": [
+        0.400633991,
+        0.398348004,
+        0.401515007,
+        0.40071401
+      ],
+      "index": 292061,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.13e-07,
+      "block_rms_error": 8e-08,
+      "event_ms_p50": [
+        0.245318994,
+        0.255582988,
+        0.252014995,
+        0.391211987
+      ],
+      "index": 292110,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.79e-07,
+      "block_rms_error": 6.7e-08,
+      "event_ms_p50": [
+        0.234173998,
+        0.228239998,
+        0.234896004,
+        0.351601005
+      ],
+      "index": 292111,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.58e-07,
+      "block_rms_error": 9e-08,
+      "event_ms_p50": [
+        0.430500984,
+        0.43463099,
+        0.435351998,
+        0.445574999
+      ],
+      "index": 292132,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.79e-07,
+      "block_rms_error": 6.7e-08,
+      "event_ms_p50": [
+        0.37677899,
+        0.376538008,
+        0.380748004,
+        0.386601001
+      ],
+      "index": 292133,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.27214101,
+        0.270617008,
+        0.267569005,
+        0.303332001
+      ],
+      "index": 292135,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.79e-07,
+      "block_rms_error": 6.7e-08,
+      "event_ms_p50": [
+        0.482861012,
+        0.479452997,
+        0.482540011,
+        0.480414987
+      ],
+      "index": 292145,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 7.7e-08,
+      "event_ms_p50": [
+        0.401636004,
+        0.394538999,
+        0.400433004,
+        0.400954008
+      ],
+      "index": 292146,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.322414994,
+        0.314276993,
+        0.320890993,
+        0.362304986
+      ],
+      "index": 292147,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9.2e-08,
+      "event_ms_p50": [
+        0.543839991,
+        0.546164989,
+        0.543197989,
+        0.550816
+      ],
+      "index": 292240,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 2.79e-07,
+      "block_rms_error": 6.7e-08,
+      "event_ms_p50": [
+        0.247124001,
+        0.250371009,
+        0.251653999,
+        0.294151008
+      ],
+      "index": 295615,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.13e-07,
+      "block_rms_error": 7.9e-08,
+      "event_ms_p50": [
+        0.377501011,
+        0.371486992,
+        0.375054985,
+        0.382791996
+      ],
+      "index": 295903,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 8.1e-08,
+      "event_ms_p50": [
+        0.459127009,
+        0.460689992,
+        0.460128993,
+        0.465259999
+      ],
+      "index": 295908,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.313113987,
+        0.319889009,
+        0.325902998,
+        0.357374012
+      ],
+      "index": 297273,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9e-08,
+      "event_ms_p50": [
+        0.558232009,
+        0.562120974,
+        0.561318994,
+        0.567093015
+      ],
+      "index": 299830,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9e-08,
+      "event_ms_p50": [
+        0.555746973,
+        0.566250026,
+        0.562642992,
+        0.569778979
+      ],
+      "index": 300350,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.313234001,
+        0.321693003,
+        0.318646014,
+        0.361945003
+      ],
+      "index": 300609,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.27e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.2e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 8.7e-08,
+      "event_ms_p50": [
+        0.630998969,
+        0.636851013,
+        0.642224014,
+        0.643145978
+      ],
+      "index": 300611,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.28e-07,
+      "block_rms_error": 8.7e-08,
+      "event_ms_p50": [
+        0.632561982,
+        0.63993901,
+        0.640941024,
+        0.64735502
+      ],
+      "index": 300677,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 3.43e-07,
+      "block_rms_error": 9.3e-08,
+      "event_ms_p50": [
+        0.715710998,
+        0.723569989,
+        0.723528981,
+        0.726495981
+      ],
+      "index": 300678,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 1.94e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 4.6e-08,
+      "supported": true
+    }
+  ],
+  "columns": 256,
+  "common_candidate_count": 22,
+  "inner": 1536,
+  "multipliers": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "record_type": "fp32_forward_row_invariance",
+  "requested_algorithms": 64,
+  "schema_version": 1,
+  "sentinel_elements": 128,
+  "sentinel_pass_count": 22,
+  "shape_candidate_counts": [
+    64,
+    64,
+    64,
+    64
+  ],
+  "status": "pass",
+  "supported_count": 22,
+  "workspace_limit_bytes": 33554432
+}

@@ -149,7 +149,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [118](steps/118-bf16-operator-row-invariance.md) | complete; track closed | 64个共同solution算子row-invariance搜索 | 64/64 CPU与跨M exact；完整模型差异来自上游输入 |
 | [119](steps/119-block-zero-prefill-cache-audit.md) | complete | Block0 BF16 K/V prefill前缀 | Key Max0.03125、Value Max9.77e-4；漂移在decode前已存入 |
 | [120](steps/120-block-zero-prefill-trace.md) | complete | full-prefill Block0 QKV/rope/store trace | Embedding/Norm exact；FP32 Q projection首次非零，BF16 store再放大 |
-| [121](steps/121-fp32-qkv-row-invariance.md) | planned | M2048–16384 FP32 Q/K/V solution审计 | 相同2048-row块跨M位级门 |
+| [121](steps/121-fp32-qkv-row-invariance.md) | complete | M2048–16384 FP32 Q/K/V solution审计 | Q=296100唯一exact；KV=292135最快exact；workspace 0 |
+| [122](steps/122-fp32-qkv-model-gate.md) | planned | DeepSeek full-prefill QKV registry模型门 | raw cache、完整logits、吞吐与peak |
 
 ## 为什么按这个顺序
 

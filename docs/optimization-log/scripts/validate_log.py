@@ -19305,6 +19305,125 @@ def validate_prefill_block0_trace(
             metric(prefix + "cache_key", "maximum") or 0.0)
 
 
+def validate_fp32_qkv_row_invariance(
+        errors: list[str]) -> tuple[int, int, int, int, int]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-fp32-qkv-row-invariance")
+    q_inventory = json.loads((root / "q-inventory.json").read_text(
+        encoding="utf-8"))
+    kv_inventory = json.loads((root / "kv-inventory.json").read_text(
+        encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    operations = {row.get("operation"): row
+                  for row in summary.get("operations", [])}
+    expected = {
+        "q": (1536, 12, 12, 1, [296100], 296100,
+              2.2380999630000002, 0.000000214, 0.000000082),
+        "kv": (256, 22, 22, 5,
+               [291992, 292135, 292147, 297273, 300609], 292135,
+               1.113659024, 0.000000358, 0.000000194),
+    }
+    if (summary.get("record_type") != "fp32_qkv_row_invariance_matrix" or
+            summary.get("status") != "pass" or
+            summary.get("block_rows") != 2048 or
+            summary.get("multipliers") != [1, 2, 4, 8] or
+            summary.get("inner") != 1536 or
+            summary.get("workspace_limit_bytes") != 33554432 or
+            set(operations) != set(expected) or len(raw) != 34):
+        errors.append("FP32 QKV row-invariance summary/raw identity changed")
+    inventories = {"q": q_inventory, "kv": kv_inventory}
+    for operation, (columns, common, supported, invariant, indices,
+                    fastest, event_sum, maximum_block,
+                    maximum_sentinel) in expected.items():
+        row = operations.get(operation, {})
+        inventory = inventories[operation]
+        selected = [item for item in raw if item.get("operation") == operation]
+        if (inventory.get("record_type") != "fp32_forward_row_invariance" or
+                inventory.get("block_rows") != 2048 or
+                inventory.get("multipliers") != [1, 2, 4, 8] or
+                inventory.get("inner") != 1536 or
+                inventory.get("columns") != columns or
+                inventory.get("shape_candidate_counts") != [64, 64, 64, 64] or
+                inventory.get("common_candidate_count") != common or
+                inventory.get("supported_count") != supported or
+                inventory.get("sentinel_pass_count") != supported or
+                inventory.get("block_invariant_count") != invariant or
+                row.get("columns") != columns or
+                row.get("common_candidate_count") != common or
+                row.get("supported_count") != supported or
+                row.get("sentinel_pass_count") != supported or
+                row.get("block_invariant_count") != invariant or
+                row.get("block_invariant_indices") != indices or
+                row.get("fastest_invariant_index") != fastest or
+                row.get("fastest_invariant_event_ms_sum") != event_sum or
+                row.get("fastest_invariant_workspace_bytes") != 0 or
+                row.get("maximum_block_error") != maximum_block or
+                row.get("maximum_sentinel_error") != maximum_sentinel or
+                len(selected) != common or
+                any(item.get("supported") is not True or
+                    item.get("sentinel_passed") is not True or
+                    item.get("maximum_workspace_bytes") != 0 or
+                    len(item.get("event_ms_p50", [])) != 4
+                    for item in selected)):
+            errors.append(f"FP32 QKV row-invariance operation changed: {operation}")
+    if (analysis.get("decision") !=
+            "gate Q solution 296100 and KV solution 292135 in the complete prefill model" or
+            analysis.get("q_selected_solution_index") != 296100 or
+            analysis.get("kv_selected_solution_index") != 292135 or
+            analysis.get("q_block_invariant_count") != 1 or
+            analysis.get("kv_block_invariant_count") != 5 or
+            analysis.get("all_common_candidates_pass_cpu_sentinel") is not True or
+            analysis.get("algorithm_default_admitted") is not False):
+        errors.append("FP32 QKV row-invariance analysis changed")
+    if (check.get("measurement_commit") !=
+            "7a47f44c5f89266d38aca6feb2bce1b825e1d2b9" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("q_common_candidate_count") != 12 or
+            check.get("q_invariant_count") != 1 or
+            check.get("q_selected_solution_index") != 296100 or
+            check.get("kv_common_candidate_count") != 22 or
+            check.get("kv_invariant_count") != 5 or
+            check.get("kv_selected_solution_index") != 292135 or
+            check.get("algorithm_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 375, "total": 375} or
+            check.get("sanitizer_label") != {"passed": 373, "total": 373} or
+            check.get("hip_label") != {"passed": 195, "total": 195} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("FP32 QKV row-invariance verification changed")
+    for name in ("README.md", "q-inventory.json", "kv-inventory.json",
+                 "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "qkv-row-invariance.svg"):
+        if not (root / name).is_file():
+            errors.append(f"FP32 QKV row-invariance evidence missing: {name}")
+    try:
+        ET.parse(root / "qkv-row-invariance.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid FP32 QKV row-invariance SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "fp32_qkv_row_invariance_matrix.py").read_text(encoding="utf-8")
+    operator = (REPOSITORY / "benchmarks/micro" /
+                "benchmark_fp32_forward_row_invariance.cpp").read_text(
+                    encoding="utf-8")
+    if ("fastest_invariant_index" not in runner or
+            "register_fp32_matmul_solution" not in operator or
+            "sentinel_reference" not in operator or
+            "block_invariant_count" not in operator):
+        errors.append("FP32 QKV row-invariance source contract changed")
+    return (len(raw), operations.get("q", {}).get("block_invariant_count", 0),
+            operations.get("kv", {}).get("block_invariant_count", 0),
+            operations.get("q", {}).get("fastest_invariant_index", -1),
+            operations.get("kv", {}).get("fastest_invariant_index", -1))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -20205,6 +20324,8 @@ def main() -> int:
         prefill_cache_within = validate_prefill_cache_prefix(errors)
     prefill_trace_rows, prefill_trace_first, prefill_trace_q, \
         prefill_trace_cache = validate_prefill_block0_trace(errors)
+    fp32_qkv_rows, fp32_qkv_q_exact, fp32_qkv_kv_exact, fp32_qkv_q, \
+        fp32_qkv_kv = validate_fp32_qkv_row_invariance(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20851,6 +20972,8 @@ def main() -> int:
           f"{prefill_cache_value:.7f}/{int(prefill_cache_within)} "
           f"prefill_trace={prefill_trace_rows}/{prefill_trace_q:.5e}/"
           f"{prefill_trace_cache:.5f}/{prefill_trace_first} "
+          f"fp32_qkv={fp32_qkv_rows}/{fp32_qkv_q_exact}/"
+          f"{fp32_qkv_kv_exact}/{fp32_qkv_q}/{fp32_qkv_kv} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

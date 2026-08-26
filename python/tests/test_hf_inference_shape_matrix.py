@@ -82,6 +82,26 @@ FP32_QKV_SPEC.loader.exec_module(FP32_QKV)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_fp32_qkv_row_invariance_selects_model_candidates(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-qkv-row-invariance")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        operations = {row["operation"]: row for row in summary["operations"]}
+        self.assertEqual(operations["q"]["common_candidate_count"], 12)
+        self.assertEqual(operations["q"]["block_invariant_count"], 1)
+        self.assertEqual(operations["q"]["fastest_invariant_index"], 296100)
+        self.assertEqual(operations["kv"]["common_candidate_count"], 22)
+        self.assertEqual(operations["kv"]["block_invariant_count"], 5)
+        self.assertEqual(operations["kv"]["fastest_invariant_index"], 292135)
+        self.assertEqual(analysis["q_selected_workspace_bytes"], 0)
+        self.assertEqual(analysis["kv_selected_workspace_bytes"], 0)
+        self.assertEqual(verification["measurement_commit"],
+                         "7a47f44c5f89266d38aca6feb2bce1b825e1d2b9")
+        ET.parse(root / "qkv-row-invariance.svg")
+
     def test_fp32_qkv_summary_selects_fastest_invariant_candidate(self):
         def result(columns, rows):
             return {
