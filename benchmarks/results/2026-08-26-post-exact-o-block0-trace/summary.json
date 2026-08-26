@@ -1,0 +1,2012 @@
+{
+  "all_cache_cross_batch_bitwise_equal": true,
+  "all_repeat_metrics_equal": true,
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "cache_stage_count": 10,
+  "captured_batch_rows": 2,
+  "case_rows": 4,
+  "cases": [
+    {
+      "all_within_batch_bitwise_equal": true,
+      "batch": 1,
+      "first_nonzero_after_cache": null,
+      "first_nonzero_stage": null,
+      "maximum_error": 0.0,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.embedding_rows",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_norm",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_projection",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_projection",
+          "shape_actual": [
+            1,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.v_projection",
+          "shape_actual": [
+            1,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_rope",
+          "shape_actual": [
+            1,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_rope",
+          "shape_actual": [
+            1,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.value",
+          "shape_actual": [
+            1,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_key",
+          "shape_actual": [
+            1,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_value",
+          "shape_actual": [
+            1,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.context",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.output",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_output",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_residual",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.ffn_norm",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.ffn_output",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.output",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": false,
+      "batch": 2,
+      "first_nonzero_after_cache": "inference.cached_prefill.blocks.0.ffn_output",
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.ffn_output",
+      "maximum_error": 2.193450927734375e-05,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.embedding_rows",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_projection",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.v_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_rope",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_rope",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_key",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.context",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_residual",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.ffn_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 2.193450927734375e-05,
+            "relative_l2": 9.818617510280748e-07,
+            "rms": 6.707498617271256e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 1.9073486328125e-05,
+            "relative_l2": 1.089083116367963e-06,
+            "rms": 7.439971583610666e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.ffn_output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 2.193450927734375e-05,
+            "relative_l2": 7.062734768365438e-07,
+            "rms": 6.716598276110625e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 1.9073486328125e-05,
+            "relative_l2": 7.831829398989246e-07,
+            "rms": 7.44800049297968e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": false,
+      "batch": 4,
+      "first_nonzero_after_cache": "inference.cached_prefill.blocks.0.ffn_output",
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.ffn_output",
+      "maximum_error": 1.430511474609375e-05,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.embedding_rows",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_projection",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.v_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_rope",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_rope",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_key",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.context",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_residual",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.ffn_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 1.430511474609375e-05,
+            "relative_l2": 8.092138713680486e-07,
+            "rms": 5.528070441276112e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 2.0503997802734375e-05,
+            "relative_l2": 1.2173506058661272e-06,
+            "rms": 8.316219098760457e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.ffn_output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 1.430511474609375e-05,
+            "relative_l2": 5.823221496729e-07,
+            "rms": 5.537832121563906e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 2.002716064453125e-05,
+            "relative_l2": 8.75253492761342e-07,
+            "rms": 8.323583255589569e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": false,
+      "batch": 8,
+      "first_nonzero_after_cache": "inference.cached_prefill.blocks.0.ffn_output",
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.ffn_output",
+      "maximum_error": 1.811981201171875e-05,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.embedding_rows",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_projection",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.v_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_rope",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_rope",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_key",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.context",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_residual",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.ffn_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 1.811981201171875e-05,
+            "relative_l2": 9.27049259935985e-07,
+            "rms": 6.333052104995545e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 1.6689300537109375e-05,
+            "relative_l2": 1.1022623529528204e-06,
+            "rms": 7.530004278700872e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.ffn_output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 1.811981201171875e-05,
+            "relative_l2": 6.668617745311372e-07,
+            "rms": 6.341796474195666e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 1.621246337890625e-05,
+            "relative_l2": 7.925584042756789e-07,
+            "rms": 7.537160303085449e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.output",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        }
+      ]
+    }
+  ],
+  "context": 2048,
+  "first_nonzero_after_cache": "inference.cached_prefill.blocks.0.ffn_output",
+  "kv_solution_index": 292135,
+  "o_solution_index": 296100,
+  "process_rows": 8,
+  "pv_solution_index": 295716,
+  "q_solution_index": 296100,
+  "qk_solution_index": 304681,
+  "record_type": "post_exact_o_block0_trace_audit",
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "stage_count": 17,
+  "status": "pass"
+}

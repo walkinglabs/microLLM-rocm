@@ -4858,3 +4858,12 @@ batch和同batch全部exact。紧接着的O projection统一首差：B2/B4 Max 3
 通过row-invariance的296100。FFN先不动。
 
 ![Post exact core trace](../../benchmarks/results/2026-08-26-post-exact-core-block0-trace/post-exact-core-trace.svg)
+
+## 330. Experiment 313：O Exact以后，FFN Output接过差异
+
+给O projection独立scope并使用296100后，B2/B4/B8的context、O output、residual和FFN norm跨/内batch
+全部exact。第一处差异移动到聚合FFN output，Max为2.193e-5/1.431e-5/1.812e-5。
+
+这个结果只证明因果，不证明O值得默认。下一步先跑O完整模型门，再展开FFN的gate/up/SwiGLU/down。
+
+![Post exact O trace](../../benchmarks/results/2026-08-26-post-exact-o-block0-trace/post-exact-o-trace.svg)

@@ -39,11 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 312 uses the rejected exact-core
-> route only as a microscope. Context is bitwise equal across and within all batches;
-> the first renewed drift is O projection, with B2/B4 Max `3.3379e-5` and B8
-> `2.7657e-5`. The next counterfactual scopes invariant solution 296100 to O only.
-> See the [post-core trace](docs/optimization-log/experiments/312-post-exact-core-o-projection.md).
+> **Current optimization checkpoint:** Experiment 313 scopes O=296100 on top of
+> an exact diagnostic core. Context, O output, residual and FFN norm become bitwise
+> equal; the first renewed drift moves to aggregate FFN output (Max `1.43e-5`–
+> `2.19e-5`). O still needs a complete model/performance gate before any admission.
+> See the [post-O trace](docs/optimization-log/experiments/313-post-exact-o-ffn-output.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

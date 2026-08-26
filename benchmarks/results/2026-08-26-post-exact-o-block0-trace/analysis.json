@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "experiment": 313,
+  "status": "pass",
+  "first_nonzero_after_exact_o": "inference.cached_prefill.blocks.0.ffn_output",
+  "all_context_o_residual_norm_cross_batch_bitwise_equal": true,
+  "all_context_o_residual_norm_within_batch_bitwise_equal": true,
+  "ffn_output": {
+    "b2_maximum": 0.00002193450927734375,
+    "b2_rms": 0.0000006707498617271256,
+    "b4_maximum": 0.00001430511474609375,
+    "b4_rms": 0.0000005528070441276112,
+    "b8_maximum": 0.00001811981201171875,
+    "b8_rms": 0.0000006333052104995545
+  },
+  "within_batch_first_divergence_is_ffn_output": true,
+  "o_scope_causal_effect_supported": true,
+  "o_default_admitted": false,
+  "next_experiment": "Run complete logits and prefill for exact-core baseline versus exact-core plus O=296100, then expose gate/up/activation/down trace if needed."
+}

@@ -131,6 +131,33 @@ POST_EXACT_O_SPEC.loader.exec_module(POST_EXACT_O)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_post_exact_o_trace_locates_ffn_output(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-post-exact-o-block0-trace")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(summary["process_rows"], 8)
+        self.assertEqual(summary["first_nonzero_after_cache"],
+                         POST_EXACT_O.TRACE.PREFIX + ".ffn_output")
+        for case in summary["cases"]:
+            for suffix in ("attention.context", "attention.output",
+                           "attention_residual", "ffn_norm"):
+                stage = next(row for row in case["stages"]
+                             if row["name"].endswith(suffix))
+                self.assertTrue(stage["b1_vs_batch_row0"]["bitwise_equal"])
+                self.assertTrue(stage["batch_row0_vs_row1"]["bitwise_equal"])
+        b2 = next(case for case in summary["cases"] if case["batch"] == 2)
+        ffn = next(row for row in b2["stages"]
+                   if row["name"].endswith(".ffn_output"))
+        self.assertEqual(ffn["b1_vs_batch_row0"]["maximum"],
+                         2.193450927734375e-05)
+        self.assertTrue(analysis["o_scope_causal_effect_supported"])
+        self.assertEqual(verification["runner_commit"],
+                         "89b9bb8ea14b36089ce43bd44dfc91dfcfc86f04")
+        ET.parse(root / "post-exact-o-trace.svg")
+
     def test_post_exact_o_trace_command_and_route_are_scoped(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,
