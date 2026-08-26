@@ -5028,3 +5028,18 @@ FP16/BF16 16M只有0.598×–0.638×；1M元素的前反向分支为0.665×。
 要么把多个Torch节点融合成一次真正减少launch和中间量的Custom Op。
 
 ![PyTorch ROCm Custom Ops](assets/pytorch-rocm-custom-ops.svg)
+
+## 346. Experiment 330：向量化也必须看dtype和规模
+
+我们让一个线程用16-byte packet处理4个FP32或8个FP16/BF16。第一版“只要地址对齐就启用”
+看起来统一，却让FP32 16M相对旧scalar只剩0.845×–0.879×；4K/1M也没有稳定收益。这个版本
+完整exact，但性能策略被拒绝。
+
+最终predicate只接受FP16/BF16、至少4,194,304元素、三个pointer都16-byte aligned。其余保持
+scalar；尾部在同一Kernel逐元素收完，未对齐view不复制。
+
+三套各6进程矩阵表明，四个低精度16M格相对旧scalar提升1.277×–1.411×，FP32恢复，20格
+输出/梯度/loss仍为0误差，peak不变。它仍未超过Torch，只是把低精度差距从约0.60×–0.64×
+缩到0.82×–0.84×。
+
+![PyTorch Custom Op vector16](assets/pytorch-rocm-custom-op-vector16.svg)

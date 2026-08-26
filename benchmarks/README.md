@@ -627,3 +627,17 @@ Measure the optional PyTorch ROCm dispatcher in fresh processes with rotated ord
 The matrix covers add/multiply across FP32/FP16/BF16 at 4K/1M/16M elements and two
 Autograd branches. Speed is `Torch / microLLM`; complete Max/RMS/loss and allocator peak
 are mandatory even when the result is a performance rejection.
+
+To reproduce the scalar/broad/selective vector16 admission decision, run the same matrix
+against each build and compare their raw worker records:
+
+```bash
+python3 benchmarks/single_gpu/compare_pytorch_custom_op_vector16.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-custom-ops \
+  --broad benchmarks/results/2026-08-26-pytorch-rocm-custom-ops-vector16 \
+  --selective benchmarks/results/2026-08-26-pytorch-rocm-custom-ops-vector16-selective \
+  --output /tmp/microllm-vector16-comparison.json
+```
+
+The gate requires all values/gradients exact, equal peaks, every FP16/BF16 16M row at least
+1.05× scalar, and FP32 bandwidth non-regression. The broad result is intentionally retained.

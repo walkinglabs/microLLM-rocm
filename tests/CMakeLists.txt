@@ -561,6 +561,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.PyTorchRocmCustomOpMatrixContract PROPERTIES
         LABELS "cpu;benchmark;torch;dtype;autograd;profile;memory;schema")
     add_test(
+        NAME Benchmark.PyTorchCustomOpVector16Contract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_pytorch_custom_op_vector16.py
+    )
+    set_tests_properties(Benchmark.PyTorchCustomOpVector16Contract PROPERTIES
+        LABELS "cpu;benchmark;torch;dtype;performance;memory;schema")
+    add_test(
         NAME Benchmark.DataParallelVerificationMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py

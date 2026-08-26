@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <filesystem>
 #include <limits>
 #include <tuple>
@@ -5008,30 +5009,92 @@ TEST(HipTensorViewTest, UsesCallerOwnedBuffersAndExplicitStream) {
     EXPECT_EQ(output.to_vector(), (std::vector<float>{6, 8, 10, 12}));
 }
 
-TEST(HipTensorViewTest, LowPrecisionCallerBuffersUseExplicitStreamWithoutTransfers) {
+TEST(HipTensorViewTest, TypedVectorThresholdTailAndMisalignedFallbackAreExact) {
     require_gpu();
     const auto gpu = Device::hip();
     runtime::Stream stream(gpu);
     const auto context = OpContext::from_external_stream(gpu, stream.native_handle());
-    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
-        const auto left_cpu = Tensor::from_vector(
-            {1, -2, 3, 4, 0.25F, -0.5F}, {2, 3}, dtype);
-        const auto right_cpu = Tensor::from_vector(
-            {5, 6, -7, 0.5F, -2, 3}, {2, 3}, dtype);
-        const auto left = left_cpu.to(gpu);
-        const auto right = right_cpu.to(gpu);
-        Tensor output({2, 3}, dtype, gpu);
-        const auto* address = output.storage().data();
-        runtime::reset_transfer_stats();
-        add_out(output.view(), left.view(), right.view(), context);
-        multiply_out(output.view(), left.view(), right.view(), context);
-        stream.synchronize();
-        const auto transfers = runtime::transfer_stats();
-        EXPECT_EQ(transfers.host_to_device_calls, 0U);
-        EXPECT_EQ(transfers.device_to_host_calls, 0U);
-        EXPECT_EQ(output.storage().data(), address);
-        EXPECT_EQ(output.to_vector(), multiply(left_cpu, right_cpu).to_vector());
+    constexpr std::int64_t elements = 1027;
+    std::vector<float> left_values(elements + 1);
+    std::vector<float> right_values(elements + 1);
+    for (std::int64_t index = 0; index <= elements; ++index) {
+        left_values[static_cast<std::size_t>(index)] =
+            static_cast<float>(index % 31) * 0.03125F - 0.5F;
+        right_values[static_cast<std::size_t>(index)] =
+            static_cast<float>(index % 17) * -0.0625F + 0.25F;
     }
+    for (const auto dtype :
+         {DType::Float32, DType::Float16, DType::BFloat16}) {
+        for (const std::int64_t offset : {0, 1}) {
+            const auto left_backing_cpu = Tensor::from_vector(
+                left_values, {elements + 1}, dtype);
+            const auto right_backing_cpu = Tensor::from_vector(
+                right_values, {elements + 1}, dtype);
+            const auto left_cpu = left_backing_cpu.slice(
+                0, offset, offset + elements);
+            const auto right_cpu = right_backing_cpu.slice(
+                0, offset, offset + elements);
+            const auto left = left_backing_cpu.to(gpu).slice(
+                0, offset, offset + elements);
+            const auto right = right_backing_cpu.to(gpu).slice(
+                0, offset, offset + elements);
+            Tensor add_backing({elements + 1}, dtype, gpu);
+            Tensor multiply_backing({elements + 1}, dtype, gpu);
+            auto add_output = add_backing.slice(0, offset, offset + elements);
+            auto multiply_output = multiply_backing.slice(
+                0, offset, offset + elements);
+            if (offset == 0) {
+                EXPECT_EQ(reinterpret_cast<std::uintptr_t>(left.data()) % 16U, 0U);
+                EXPECT_EQ(reinterpret_cast<std::uintptr_t>(add_output.data()) % 16U, 0U);
+            } else {
+                EXPECT_NE(reinterpret_cast<std::uintptr_t>(left.data()) % 16U, 0U);
+                EXPECT_NE(reinterpret_cast<std::uintptr_t>(add_output.data()) % 16U, 0U);
+            }
+            runtime::reset_transfer_stats();
+            add_out(add_output.view(), left.view(), right.view(), context);
+            multiply_out(
+                multiply_output.view(), left.view(), right.view(), context);
+            stream.synchronize();
+            const auto transfers = runtime::transfer_stats();
+            EXPECT_EQ(transfers.host_to_device_calls, 0U);
+            EXPECT_EQ(transfers.device_to_host_calls, 0U);
+            EXPECT_EQ(add_output.to_vector(), add(left_cpu, right_cpu).to_vector());
+            EXPECT_EQ(multiply_output.to_vector(),
+                      multiply(left_cpu, right_cpu).to_vector());
+        }
+    }
+
+    constexpr std::int64_t large_elements = (1LL << 22) + 3;
+    std::vector<float> large_left_values(
+        static_cast<std::size_t>(large_elements));
+    std::vector<float> large_right_values(
+        static_cast<std::size_t>(large_elements));
+    for (std::int64_t index = 0; index < large_elements; ++index) {
+        large_left_values[static_cast<std::size_t>(index)] =
+            static_cast<float>(index % 31) * 0.03125F - 0.5F;
+        large_right_values[static_cast<std::size_t>(index)] =
+            static_cast<float>(index % 17) * -0.0625F + 0.25F;
+    }
+    const auto large_left_cpu = Tensor::from_vector(
+        large_left_values, {large_elements}, DType::BFloat16);
+    const auto large_right_cpu = Tensor::from_vector(
+        large_right_values, {large_elements}, DType::BFloat16);
+    const auto large_left = large_left_cpu.to(gpu);
+    const auto large_right = large_right_cpu.to(gpu);
+    Tensor large_add({large_elements}, DType::BFloat16, gpu);
+    Tensor large_multiply({large_elements}, DType::BFloat16, gpu);
+    runtime::reset_transfer_stats();
+    add_out(large_add.view(), large_left.view(), large_right.view(), context);
+    multiply_out(
+        large_multiply.view(), large_left.view(), large_right.view(), context);
+    stream.synchronize();
+    const auto large_transfers = runtime::transfer_stats();
+    EXPECT_EQ(large_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(large_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(large_add.to_vector(),
+              add(large_left_cpu, large_right_cpu).to_vector());
+    EXPECT_EQ(large_multiply.to_vector(),
+              multiply(large_left_cpu, large_right_cpu).to_vector());
 }
 
 #if MICROLLM_HAS_HIPBLASLT

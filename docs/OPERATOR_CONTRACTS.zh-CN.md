@@ -17,6 +17,9 @@
 HIP Stream的非拥有handle传给microLLM；Autograd公式明确注册，Meta dispatch只验证合同并返回
 同shape/dtype的meta输出。真实ROCm矩阵必须同时报告完整输出/梯度、Event/wall和allocator peak，
 不能把“成功注册”写成“比原生Torch快”。
+HIP Auto只在FP16/BF16、`numel >= 4,194,304`且left/right/output均16-byte aligned时使用
+vector16；尾部在同一Kernel安全处理。FP32、小Tensor或任一未对齐pointer必须走scalar，不能为了
+满足对齐条件复制。broad vector策略因FP32回退到0.845×–0.879×已经被反例拒绝。
 
 ## BF16 weight gradient
 

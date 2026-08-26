@@ -242,8 +242,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] build the optional dispatcher against PyTorch ROCm and cover FP32/FP16/BF16,
   current HIP Stream, error contracts, Autograd and Meta/fullgraph; 20/20 measured cases
   are exact with equal peaks, but 0.469×–0.973× Event rejects an elementwise speed claim;
-- [ ] vectorize typed caller-owned add/multiply only behind a complete tail/alignment/
-  PyTorch performance gate, or move the adapter boundary to a genuinely fused operator;
+- [x] vectorize typed caller-owned add/multiply behind a complete tail/alignment/PyTorch
+  gate: broad FP32 route is rejected; FP16/BF16 ≥4M aligned route improves 1.277×–1.411×
+  versus scalar with all 20 cases exact and unchanged peaks;
+- [ ] move the adapter boundary to a genuinely fused operator rather than continuing
+  packet/block/threshold tuning without a new profile hotspot;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
 
 ## P2.5 — production data parallel reducer

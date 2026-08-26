@@ -34,3 +34,10 @@ forward and forward/backward cases with complete Max/RMS/loss zero. This is an
 integration result, not a speed claim: every Event median is below native Torch
 (`0.469×–0.973×` as Torch/microLLM), with identical allocator peaks. See
 [Experiment 329](../optimization-log/experiments/329-pytorch-rocm-custom-ops.md).
+
+A follow-up packet experiment rejects universal vectorization because FP32 regresses.
+The retained Auto route is deliberately shape- and dtype-selective: aligned FP16/BF16
+tensors at or above 4,194,304 elements use 16-byte packets, while FP32, smaller tensors,
+and misaligned views remain scalar. The four 16M low-precision rows improve
+`1.277×–1.411×` versus the scalar adapter with exact outputs and unchanged peaks. See
+[Experiment 330](../optimization-log/experiments/330-pytorch-custom-op-vector16.md).

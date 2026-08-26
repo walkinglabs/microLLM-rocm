@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 387/387, ASan/UBSan 384/384, PyTorch-enabled CPU 390/390, single-GPU HIP label 201/201, RCCL label 55/55 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 388/388, ASan/UBSan 385/385, PyTorch-enabled CPU 391/391, single-GPU HIP label 201/201, RCCL label 55/55 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -94,7 +94,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Token generation | smoke-tested | deterministic sampling, cache-backed bounds and one-copy HIP greedy token history | stochastic device top-k/RNG and trained text report |
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
-| PyTorch Custom Ops | smoke-tested on CPU and MI300X ROCm | FP32/FP16/BF16 zero-copy add/multiply, current HIP Stream, Autograd and Meta/fullgraph; 6-process 20/20 exact, equal peaks | Event 0.469×–0.973× native Torch; vectorized typed kernels or larger fusion |
+| PyTorch Custom Ops | smoke-tested on CPU and MI300X ROCm | FP32/FP16/BF16 zero-copy add/multiply, current HIP Stream, Autograd and Meta/fullgraph; 6-process 20/20 exact, equal peaks; scalar Event 0.469×–0.973×; selective low-precision vector16 improves 16M by 1.277×–1.411× vs scalar | still 0.816×–0.842× native Torch at low precision; larger fusion |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled CPU build plus Tensor/graph/model/optimizer parity, package, trajectory and schema gates | broader official-model direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | external descriptors/native Stream, forward outputs and six caller-owned backward families with explicit scratch; 58 symbols | Autograd external leaf pool |

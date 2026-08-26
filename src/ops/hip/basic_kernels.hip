@@ -1,8 +1,10 @@
 #include "kernels.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 #include <hip/hip_runtime.h>
 #include <hip/hip_bfloat16.h>
@@ -540,6 +542,48 @@ __global__ void multiply_typed_kernel(const T* left, const T* right, T* output,
     if (index < elements) {
         output[index] = store_from_float<T>(load_as_float(left[index]) *
                                             load_as_float(right[index]));
+    }
+}
+
+template <typename T>
+struct alignas(16) BinaryPacket16 {
+    T values[16 / sizeof(T)];
+};
+
+struct AddTypedOperation {
+    __device__ static float apply(float left, float right) { return left + right; }
+};
+
+struct MultiplyTypedOperation {
+    __device__ static float apply(float left, float right) { return left * right; }
+};
+
+template <typename T, typename Operation>
+__global__ void binary_typed_vector16_kernel(
+    const T* left, const T* right, T* output, std::int64_t elements) {
+    constexpr auto lanes = static_cast<std::int64_t>(16 / sizeof(T));
+    const auto packet_index =
+        static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto base = packet_index * lanes;
+    if (base >= elements) return;
+    if (base + lanes <= elements) {
+        const auto left_packet =
+            reinterpret_cast<const BinaryPacket16<T>*>(left)[packet_index];
+        const auto right_packet =
+            reinterpret_cast<const BinaryPacket16<T>*>(right)[packet_index];
+        BinaryPacket16<T> output_packet{};
+#pragma unroll
+        for (std::int64_t lane = 0; lane < lanes; ++lane) {
+            output_packet.values[lane] = store_from_float<T>(Operation::apply(
+                load_as_float(left_packet.values[lane]),
+                load_as_float(right_packet.values[lane])));
+        }
+        reinterpret_cast<BinaryPacket16<T>*>(output)[packet_index] = output_packet;
+        return;
+    }
+    for (auto index = base; index < elements; ++index) {
+        output[index] = store_from_float<T>(Operation::apply(
+            load_as_float(left[index]), load_as_float(right[index])));
     }
 }
 
@@ -3092,26 +3136,54 @@ void launch_fill_typed(void* output, DType dtype, std::int64_t elements, float v
     check_launch("fill_typed_kernel");
 }
 
-#define MICROLLM_LAUNCH_BINARY_TYPED(kernel_name, operation_name)                       \
+bool aligned_to_16(const void* pointer) {
+    return reinterpret_cast<std::uintptr_t>(pointer) % 16U == 0U;
+}
+
+template <typename T, typename Operation>
+void launch_binary_typed_auto(const void* left, const void* right, void* output,
+                              std::int64_t elements, void* stream) {
+    constexpr std::int64_t kVectorMinimumElements = 1LL << 22;
+    constexpr bool kLowPrecision = !std::is_same_v<T, float>;
+    if (kLowPrecision && elements >= kVectorMinimumElements &&
+        aligned_to_16(left) && aligned_to_16(right) && aligned_to_16(output)) {
+        constexpr auto lanes = static_cast<std::int64_t>(16 / sizeof(T));
+        const auto packets = (elements + lanes - 1) / lanes;
+        hipLaunchKernelGGL((binary_typed_vector16_kernel<T, Operation>),
+                           dim3(grid_size(packets)), dim3(kBlockSize), 0,
+                           as_stream(stream), static_cast<const T*>(left),
+                           static_cast<const T*>(right), static_cast<T*>(output),
+                           elements);
+        return;
+    }
+    if constexpr (std::is_same_v<Operation, AddTypedOperation>) {
+        hipLaunchKernelGGL(add_typed_kernel<T>, dim3(grid_size(elements)),
+                           dim3(kBlockSize), 0, as_stream(stream),
+                           static_cast<const T*>(left),
+                           static_cast<const T*>(right), static_cast<T*>(output),
+                           elements);
+    } else {
+        hipLaunchKernelGGL(multiply_typed_kernel<T>, dim3(grid_size(elements)),
+                           dim3(kBlockSize), 0, as_stream(stream),
+                           static_cast<const T*>(left),
+                           static_cast<const T*>(right), static_cast<T*>(output),
+                           elements);
+    }
+}
+
+#define MICROLLM_LAUNCH_BINARY_TYPED_AUTO(operation_type, operation_name)               \
     switch (dtype) {                                                                    \
         case DType::Float32:                                                            \
-            hipLaunchKernelGGL(kernel_name<float>, grid, block, 0, as_stream(stream),  \
-                               static_cast<const float*>(left),                         \
-                               static_cast<const float*>(right),                        \
-                               static_cast<float*>(output), elements);                  \
+            launch_binary_typed_auto<float, operation_type>(                           \
+                left, right, output, elements, stream);                                 \
             break;                                                                      \
         case DType::Float16:                                                            \
-            hipLaunchKernelGGL(kernel_name<__half>, grid, block, 0, as_stream(stream), \
-                               static_cast<const __half*>(left),                        \
-                               static_cast<const __half*>(right),                       \
-                               static_cast<__half*>(output), elements);                 \
+            launch_binary_typed_auto<__half, operation_type>(                          \
+                left, right, output, elements, stream);                                 \
             break;                                                                      \
         case DType::BFloat16:                                                           \
-            hipLaunchKernelGGL(kernel_name<hip_bfloat16>, grid, block, 0,              \
-                               as_stream(stream),                                       \
-                               static_cast<const hip_bfloat16*>(left),                  \
-                               static_cast<const hip_bfloat16*>(right),                 \
-                               static_cast<hip_bfloat16*>(output), elements);           \
+            launch_binary_typed_auto<hip_bfloat16, operation_type>(                    \
+                left, right, output, elements, stream);                                 \
             break;                                                                      \
         default: throw std::invalid_argument(operation_name " requires a floating dtype"); \
     }
@@ -3119,22 +3191,18 @@ void launch_fill_typed(void* output, DType dtype, std::int64_t elements, float v
 void launch_add_typed(const void* left, const void* right, void* output, DType dtype,
                       std::int64_t elements, void* stream) {
     if (elements == 0) return;
-    const auto grid = dim3(grid_size(elements));
-    const auto block = dim3(kBlockSize);
-    MICROLLM_LAUNCH_BINARY_TYPED(add_typed_kernel, "typed add")
-    check_launch("add_typed_kernel");
+    MICROLLM_LAUNCH_BINARY_TYPED_AUTO(AddTypedOperation, "typed add")
+    check_launch("binary_typed_add_kernel");
 }
 
 void launch_multiply_typed(const void* left, const void* right, void* output, DType dtype,
                            std::int64_t elements, void* stream) {
     if (elements == 0) return;
-    const auto grid = dim3(grid_size(elements));
-    const auto block = dim3(kBlockSize);
-    MICROLLM_LAUNCH_BINARY_TYPED(multiply_typed_kernel, "typed multiply")
-    check_launch("multiply_typed_kernel");
+    MICROLLM_LAUNCH_BINARY_TYPED_AUTO(MultiplyTypedOperation, "typed multiply")
+    check_launch("binary_typed_multiply_kernel");
 }
 
-#undef MICROLLM_LAUNCH_BINARY_TYPED
+#undef MICROLLM_LAUNCH_BINARY_TYPED_AUTO
 
 void launch_scale_typed(const void* input, void* output, DType dtype,
                         std::int64_t elements, float factor, void* stream) {
