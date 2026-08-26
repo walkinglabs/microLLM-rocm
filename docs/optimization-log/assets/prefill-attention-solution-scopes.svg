@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="650" viewBox="0 0 1500 650">
+  <rect width="1500" height="650" fill="#0b1020"/>
+  <style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:25px;font-weight:700}.sub{font-size:13px;fill:#94a3b8}.head{font-size:15px;font-weight:700}.small{font-size:11px;fill:#94a3b8}</style>
+  <text x="38" y="44" class="title">Exact FP32 solution scopes in cached prefill</text>
+  <text x="38" y="70" class="sub">same shape is not same ownership · only the named operation may hit</text>
+  <rect x="70" y="125" width="260" height="90" rx="12" fill="#131b2e" stroke="#38bdf8"/><text x="200" y="160" class="head" text-anchor="middle">Q projection</text><text x="200" y="188" class="small" text-anchor="middle">PrefillQueryProjection</text>
+  <rect x="385" y="125" width="260" height="90" rx="12" fill="#131b2e" stroke="#38bdf8"/><text x="515" y="160" class="head" text-anchor="middle">K / V projection</text><text x="515" y="188" class="small" text-anchor="middle">PrefillKeyValueProjection</text>
+  <rect x="700" y="125" width="260" height="90" rx="12" fill="#131b2e" stroke="#22c55e"/><text x="830" y="160" class="head" text-anchor="middle">scaled Q × Kᵀ</text><text x="830" y="188" class="small" text-anchor="middle">PrefillAttentionQk</text>
+  <rect x="1015" y="125" width="260" height="90" rx="12" fill="#131b2e" stroke="#22c55e"/><text x="1145" y="160" class="head" text-anchor="middle">probability × V</text><text x="1145" y="188" class="small" text-anchor="middle">PrefillAttentionPv</text>
+  <rect x="1330" y="125" width="120" height="90" rx="12" fill="#131b2e" stroke="#64748b"/><text x="1390" y="160" class="head" text-anchor="middle">other</text><text x="1390" y="188" class="small" text-anchor="middle">General</text>
+  <text x="70" y="285" class="head">B1T2048 route proof</text>
+  <line x1="110" y1="350" x2="1390" y2="350" stroke="#334155" stroke-width="4"/>
+  <circle cx="250" cy="350" r="13" fill="#22c55e"/><text x="250" y="390" class="small" text-anchor="middle">4 registered</text>
+  <circle cx="520" cy="350" r="13" fill="#22c55e"/><text x="520" y="390" class="small" text-anchor="middle">4 cached</text>
+  <circle cx="790" cy="350" r="13" fill="#22c55e"/><text x="790" y="390" class="small" text-anchor="middle">140 hits</text>
+  <circle cx="1060" cy="350" r="13" fill="#22c55e"/><text x="1060" y="390" class="small" text-anchor="middle">4 cache misses</text>
+  <circle cx="1330" cy="350" r="13" fill="#22c55e"/><text x="1330" y="390" class="small" text-anchor="middle">140 dispatches</text>
+  <rect x="70" y="470" width="1380" height="110" rx="14" fill="#111827" stroke="#334155"/>
+  <text x="100" y="510" class="head">Safety boundary</text>
+  <text x="260" y="510" class="sub">CPU · BF16/FP8 · non-cache · training · decode → rejected or scope miss</text>
+  <text x="100" y="548" class="sub">No CLI flag means zero registry entries. Version-local indices remain explicit counterfactuals.</text>
+</svg>

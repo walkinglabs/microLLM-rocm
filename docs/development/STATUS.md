@@ -85,7 +85,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
 | In-process profiling | smoke-tested | TraceSession/TraceTimer, values/operator/layer passes, filtered little-endian FP32/Int32 binary export, CPU/HIP tests | async Event completion/rocprof markers/Python decorator |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
-| Profiling/autotune | smoke-tested | rocprofv3, exact registries, complete output/state before timing, real strided-batched Attention batch-invariance harness, training phase delta and Autograd/layout diagnostics | automated model regression and broader trace correlation |
+| Profiling/autotune | smoke-tested | rocprofv3, exact registries including isolated prefill projection/QK/P×V scopes, complete output/state before timing, real Attention batch-invariance harness and Autograd/layout diagnostics | automated model regression and broader trace correlation |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |

@@ -360,6 +360,24 @@ TEST(CpuOpsTest, Fp32SolutionKeyFlattensExactBatchedDescriptorWithoutAllocation)
         {2, 14, 512, 64}, {2, 14, 512, 64}, Device::cpu(),
         false, true, general_context, 0.125F);
     EXPECT_NE(general, key);
+    auto attention_qk_context = context;
+    attention_qk_context.fp32_solution_scope =
+        Fp32SolutionScope::PrefillAttentionQk;
+    auto attention_pv_context = context;
+    attention_pv_context.fp32_solution_scope =
+        Fp32SolutionScope::PrefillAttentionPv;
+    const auto attention_qk = make_fp32_matmul_solution_key(
+        {2, 14, 512, 64}, {2, 14, 512, 64}, Device::cpu(),
+        false, true, attention_qk_context, 0.125F);
+    const auto attention_pv = make_fp32_matmul_solution_key(
+        {2, 14, 512, 512}, {2, 14, 512, 64}, Device::cpu(),
+        false, false, attention_pv_context);
+    EXPECT_EQ(attention_qk.solution_scope,
+              Fp32SolutionScope::PrefillAttentionQk);
+    EXPECT_EQ(attention_pv.solution_scope,
+              Fp32SolutionScope::PrefillAttentionPv);
+    EXPECT_NE(attention_qk, key);
+    EXPECT_NE(attention_pv, general);
 
     clear_fp32_matmul_solution_registry();
     EXPECT_EQ(fp32_matmul_solution_stats().registered_entries, 0U);

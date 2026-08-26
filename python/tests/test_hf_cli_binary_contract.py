@@ -41,6 +41,10 @@ def main() -> int:
         b"--fp32-prefill-q-solution-index",
         b"--fp32-prefill-kv-solution-index",
         b"fp32_prefill_q_solution_index",
+        b"--fp32-prefill-attention-qk-solution-index",
+        b"--fp32-prefill-attention-pv-solution-index",
+        b"fp32_prefill_attention_qk_solution_index",
+        b"fp32_prefill_attention_pv_solution_index",
         b"--bf16-ffn-arena-minimum-rows",
         b"bf16_ffn_arena_bypassed_calls",
         b"--bf16-qkv-arena",
@@ -186,6 +190,18 @@ def main() -> int:
                 rejected_prefill_projection.stderr:
             raise RuntimeError(
                 "hf_infer accepted a prefill projection solution outside HIP")
+        rejected_prefill_attention = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--workload", "decode", "--new-tokens", "1", "--use-cache", "true",
+            "--cache-prefill-mode", "full",
+            "--fp32-prefill-attention-qk-solution-index", "304681",
+        ], text=True, capture_output=True, check=False)
+        if rejected_prefill_attention.returncode == 0 or \
+                "require HIP full cached decode" not in \
+                rejected_prefill_attention.stderr:
+            raise RuntimeError(
+                "hf_infer accepted a cached-prefill Attention solution outside HIP")
         independent_attention = subprocess.run([
             str(args.binary), "--config", str(missing),
             "--weights", str(missing), "--tokens", "1", "--device", "cpu",

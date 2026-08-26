@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Scoped cached-prefill Attention solutions](2026-08-26-prefill-attention-scopes.md)
 - [2026-08-26: Attention batch solution result](2026-08-26-attention-batch-solution-result.md)
 - [2026-08-26: Real Attention batch-invariance harness](2026-08-26-attention-batch-invariance-infrastructure.md)
 - [2026-08-26: T2048 prefill Attention core matrix](2026-08-26-prefill-attention-core-matrix.md)

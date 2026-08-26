@@ -4178,6 +4178,17 @@ TensorTriple causal_gqa_attention_backward_composed(
             std::move(value_gradient)};
 }
 
+std::pair<OpContext, OpContext> causal_attention_matmul_contexts(
+    const OpContext& context) {
+    auto qk = context;
+    auto pv = context;
+    if (context.fp32_solution_scope ==
+        Fp32SolutionScope::PrefillAttentionQk) {
+        pv.fp32_solution_scope = Fp32SolutionScope::PrefillAttentionPv;
+    }
+    return {std::move(qk), std::move(pv)};
+}
+
 }  // namespace
 
 Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
@@ -4266,12 +4277,14 @@ CausalGqaAttentionDiagnostics causal_gqa_attention_diagnostics(
     const auto expanded_value = repeats == 1
                                     ? value
                                     : repeat_interleave(value, 1, repeats, context);
+    auto [qk_context, pv_context] =
+        causal_attention_matmul_contexts(context);
     auto scaled_query = ops::scale(query, scale, context);
     auto scores = query.device().is_hip() && hipblaslt_available()
                       ? matmul_with_implementation(
                             scaled_query, expanded_key,
                             MatmulImplementation::HipBLASLt,
-                            false, true, context)
+                            false, true, qk_context)
                       : ops::scale(
                             matmul(
                                 query,
@@ -4283,7 +4296,7 @@ CausalGqaAttentionDiagnostics causal_gqa_attention_diagnostics(
                       ? matmul_with_implementation(
                             probabilities, expanded_value,
                             MatmulImplementation::HipBLASLt,
-                            false, false, context)
+                            false, false, pv_context)
                       : matmul(probabilities, expanded_value, context);
     return {.scaled_query = std::move(scaled_query),
             .scores = std::move(scores),
@@ -4340,6 +4353,8 @@ void causal_gqa_attention_out_(
 #if MICROLLM_HAS_HIP
     if (sequence >= 256 && sequence <= 4096 && width <= 256 &&
         hipblaslt_available()) {
+        auto [qk_context, pv_context] =
+            causal_attention_matmul_contexts(context);
         hip::launch_scale_typed(
             query.data(), workspace.scaled_query.data(), DType::Float32,
             query.numel(), scale, context.native_stream(query.device()));
@@ -4355,7 +4370,7 @@ void causal_gqa_attention_out_(
         }
         matmul_out_(
             workspace.probabilities, workspace.scaled_query, *expanded_key,
-            MatmulImplementation::HipBLASLt, false, true, context);
+            MatmulImplementation::HipBLASLt, false, true, qk_context);
         hip::launch_causal_softmax(
             static_cast<const float*>(workspace.probabilities.data()),
             static_cast<float*>(workspace.probabilities.data()),
@@ -4375,7 +4390,7 @@ void causal_gqa_attention_out_(
         }
         matmul_out_(
             output, workspace.probabilities, *expanded_value,
-            MatmulImplementation::HipBLASLt, false, false, context);
+            MatmulImplementation::HipBLASLt, false, false, pv_context);
         return;
     }
     if (sequence <= 4096 && width <= 256) {
@@ -4417,10 +4432,12 @@ TensorPair causal_gqa_attention_saved(
                                       ? key : repeat_interleave(key, 1, repeats, context);
         const auto expanded_value = repeats == 1
                                         ? value : repeat_interleave(value, 1, repeats, context);
+        auto [qk_context, pv_context] =
+            causal_attention_matmul_contexts(context);
         const auto scaled_query = ops::scale(query, scale, context);
         auto probabilities = matmul_with_implementation(
             scaled_query, expanded_key, MatmulImplementation::HipBLASLt,
-            false, true, context);
+            false, true, qk_context);
 #if MICROLLM_HAS_HIP
         // The QK scores are dead after softmax. The cooperative kernels finish
         // every score read before normalization writes, so input/output aliasing
@@ -4435,7 +4452,7 @@ TensorPair causal_gqa_attention_saved(
 #endif
         auto output = matmul_with_implementation(
             probabilities, expanded_value, MatmulImplementation::HipBLASLt,
-            context);
+            pv_context);
         return {std::move(output), std::move(probabilities)};
     }
     Tensor output(query.shape(), DType::Float32, query.device());

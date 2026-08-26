@@ -1187,6 +1187,12 @@ public:
             const auto scale =
                 1.0F / std::sqrt(static_cast<float>(
                            config_.head_dimension()));
+            ops::OpContext attention_context;
+            if (prefill_cache != nullptr) {
+                attention_context.mode = ops::OpMode::Inference;
+                attention_context.fp32_solution_scope =
+                    ops::Fp32SolutionScope::PrefillAttentionQk;
+            }
             const auto diagnostic_core = prefill_cache != nullptr &&
                 (trace_requests_value(trace_prefix + ".scaled_query") ||
                  trace_requests_value(trace_prefix + ".scores") ||
@@ -1194,7 +1200,7 @@ public:
                  trace_requests_value(trace_prefix + ".pv_output"));
             if (diagnostic_core) {
                 auto diagnostics = ops::causal_gqa_attention_diagnostics(
-                    query, key, value, repeats, scale);
+                    query, key, value, repeats, scale, attention_context);
                 trace_tensor("scaled_query", diagnostics.scaled_query);
                 trace_tensor("scores", diagnostics.scores);
                 trace_tensor("probabilities", diagnostics.probabilities);
@@ -1213,7 +1219,8 @@ public:
                         {batch * sequence, config_.dimension});
             } else {
                 context = causal_attention(
-                                query, key, value, repeats, scale)
+                                query, key, value, repeats, scale,
+                                attention_context)
                                 .transpose(1, 2)
                                 .contiguous()
                                 .reshape(
@@ -1582,7 +1589,8 @@ private:
 
     Tensor causal_attention(
         const Tensor& query, const Tensor& key, const Tensor& value,
-        std::int64_t repeats, float scale) {
+        std::int64_t repeats, float scale,
+        const ops::OpContext& context) {
         if (attention_core_arena_cache_ != nullptr) {
             auto* entry = attention_core_arena_cache_->acquire(
                 query.shape()[0], query.shape()[1], key.shape()[1],
@@ -1590,12 +1598,12 @@ private:
             if (entry != nullptr) {
                 ops::causal_gqa_attention_out_(
                     entry->output, entry->workspace, query, key, value,
-                    repeats, scale);
+                    repeats, scale, context);
                 return entry->output;
             }
         }
         return ops::causal_gqa_attention(
-            query, key, value, repeats, scale);
+            query, key, value, repeats, scale, context);
     }
 
     ModelConfig config_;
