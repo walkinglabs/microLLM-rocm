@@ -19106,6 +19106,113 @@ def validate_bf16_row_invariance(
             analysis.get("fastest_zero_workspace_candidate_index", -1))
 
 
+def validate_prefill_cache_prefix(
+        errors: list[str]) -> tuple[int, float, float, bool]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-deepseek-prefill-cache-prefix")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    tensors = {row.get("tensor"): row
+               for row in summary.get("tensor_summaries", [])}
+    cases = {(row.get("tensor"), row.get("batch")): row
+             for row in summary.get("cases", [])}
+    if (summary.get("record_type") != "prefill_cache_prefix_audit" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 8 or len(raw) != 8 or
+            summary.get("case_rows") != 8 or len(cases) != 8 or
+            summary.get("batches") != [1, 2, 4, 8] or
+            summary.get("runs_per_case") != 2 or summary.get("layer") != 0 or
+            summary.get("dtype") != "bfloat16" or
+            summary.get("shape_suffix") != [2, 2048, 128] or
+            summary.get("all_repeat_bitwise_equal") is not True or
+            summary.get("all_within_batch_bitwise_equal") is not False or
+            set(tensors) != {"key", "value"}):
+        errors.append("prefill cache-prefix summary/raw identity changed")
+    expected = {
+        "key": (0.03125, 0.00008653328750646607,
+                0.0000009039283086629726),
+        "value": (0.0009765625, 0.000015308221471746443,
+                  0.00004537524704672657),
+    }
+    for tensor, (maximum, rms, relative) in expected.items():
+        row = tensors.get(tensor, {})
+        if (row.get("maximum_cross_batch_error") != maximum or
+                row.get("maximum_cross_batch_rms_error") != rms or
+                row.get("maximum_cross_batch_relative_l2") != relative or
+                row.get("bitwise_case_count") != 1 or
+                cases.get((tensor, 1), {}).get(
+                    "complete_values_compared_per_run") != 524288 or
+                cases.get((tensor, 2), {}).get(
+                    "within_batch_bitwise_equal") is not True or
+                cases.get((tensor, 4), {}).get(
+                    "within_batch_bitwise_equal") is not False or
+                cases.get((tensor, 8), {}).get(
+                    "within_batch_bitwise_equal") is not False):
+            errors.append(f"prefill cache-prefix tensor changed: {tensor}")
+    headers = {(row.get("batch"), row.get("process_run")): row.get("header", {})
+               for row in raw}
+    if (len(headers) != 8 or
+            headers.get((1, 1), {}).get("shape") != [1, 2, 2048, 128] or
+            headers.get((8, 2), {}).get("shape") != [8, 2, 2048, 128] or
+            headers.get((1, 1), {}).get("key_bytes") != 1048576 or
+            headers.get((8, 2), {}).get("key_bytes") != 8388608 or
+            any(header.get("record_type") != "prefill_kv_cache" or
+                header.get("dtype") != "bfloat16" or
+                header.get("key_bytes") != header.get("value_bytes")
+                for header in headers.values())):
+        errors.append("prefill cache-prefix headers changed")
+    if (analysis.get("decision") !=
+            "trace block-zero full-prefill qkv and cache-store boundaries" or
+            analysis.get("row_elements_per_tensor") != 524288 or
+            analysis.get("prefill_cache_drift_present_before_decode") is not True or
+            analysis.get(
+                "decode_materialized_attention_is_first_source_supported") is not False or
+            analysis.get("precision_default_changed") is not False):
+        errors.append("prefill cache-prefix analysis changed")
+    if (check.get("measurement_commit") !=
+            "e0eda4591d0c58168d1ae32a819537d54128f6ea" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 8 or
+            check.get("row_elements_per_tensor") != 524288 or
+            check.get("b1_tensor_bytes") != 1048576 or
+            check.get("b8_tensor_bytes") != 8388608 or
+            check.get("all_repeat_bitwise_equal") is not True or
+            check.get("all_within_batch_bitwise_equal") is not False or
+            check.get("cpu_label") != {"passed": 375, "total": 375} or
+            check.get("sanitizer_label") != {"passed": 373, "total": 373} or
+            check.get("hip_label") != {"passed": 194, "total": 194} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("prefill cache-prefix verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "cache-prefix.svg"):
+        if not (root / name).is_file():
+            errors.append(f"prefill cache-prefix evidence missing: {name}")
+    try:
+        ET.parse(root / "cache-prefix.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid prefill cache-prefix SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_prefill_cache_prefix.py").read_text(encoding="utf-8")
+    app = (REPOSITORY / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    if ("prefill-cache-output" not in runner or
+            "complete_values_compared_per_run" not in runner or
+            "write_prefill_cache" not in app or
+            "prefill_kv_cache" not in app):
+        errors.append("prefill cache-prefix source contract changed")
+    return (len(raw), tensors.get("key", {}).get(
+                "maximum_cross_batch_error", 0.0),
+            tensors.get("value", {}).get("maximum_cross_batch_error", 0.0),
+            summary.get("all_within_batch_bitwise_equal", True))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -20002,6 +20109,8 @@ def main() -> int:
         validate_bf16_decode_algorithm(errors)
     bf16_invariance_rows, bf16_invariance_exact, bf16_invariance_error, \
         bf16_invariance_zero = validate_bf16_row_invariance(errors)
+    prefill_cache_rows, prefill_cache_key, prefill_cache_value, \
+        prefill_cache_within = validate_prefill_cache_prefix(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20644,6 +20753,8 @@ def main() -> int:
           f"bf16_row_invariance={bf16_invariance_rows}/"
           f"{bf16_invariance_exact}/{bf16_invariance_error:.1f}/"
           f"{bf16_invariance_zero} "
+          f"prefill_cache={prefill_cache_rows}/{prefill_cache_key:.5f}/"
+          f"{prefill_cache_value:.7f}/{int(prefill_cache_within)} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

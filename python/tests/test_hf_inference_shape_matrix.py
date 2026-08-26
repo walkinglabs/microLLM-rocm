@@ -70,6 +70,29 @@ PREFILL_CACHE_SPEC.loader.exec_module(PREFILL_CACHE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_prefill_cache_prefix_precedes_decode_drift(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-deepseek-prefill-cache-prefix")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        tensors = {row["tensor"]: row for row in summary["tensor_summaries"]}
+        cases = {(row["tensor"], row["batch"]): row
+                 for row in summary["cases"]}
+        self.assertEqual(summary["process_rows"], 8)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertFalse(summary["all_within_batch_bitwise_equal"])
+        self.assertEqual(tensors["key"]["maximum_cross_batch_error"], 0.03125)
+        self.assertEqual(tensors["value"]["maximum_cross_batch_error"],
+                         0.0009765625)
+        self.assertTrue(cases[("key", 2)]["within_batch_bitwise_equal"])
+        self.assertFalse(cases[("key", 8)]["within_batch_bitwise_equal"])
+        self.assertTrue(analysis["prefill_cache_drift_present_before_decode"])
+        self.assertEqual(verification["measurement_commit"],
+                         "e0eda4591d0c58168d1ae32a819537d54128f6ea")
+        ET.parse(root / "cache-prefix.svg")
+
     def test_prefill_cache_summary_separates_key_and_value(self):
         processes = []
         for run in (1, 2):

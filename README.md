@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 301 finds all 64 common BF16
-> gate/up solutions CPU-exact and bitwise row-invariant across M1/M2/M4/M8.
-> This closes the vendor gate/up solution search: the complete-model drift is
-> already present in the FFN input. Defaults remain unchanged while block-0
-> prefill K/V cache prefixes are audited. See the
-> [row-invariance experiment](docs/optimization-log/experiments/301-bf16-row-invariance.md).
+> **Current optimization checkpoint:** Experiment 302 shows block-0 BF16 K/V
+> cache prefixes already differ after full prefill and before decode. Key reaches
+> Max `0.03125`; value reaches `0.0009765625`; B4/B8 repeated rows also diverge.
+> Defaults remain unchanged while block-0 full-prefill Q/K/V and cache-store
+> boundaries are traced. See the
+> [cache-prefix experiment](docs/optimization-log/experiments/302-prefill-cache-prefix.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

@@ -4718,3 +4718,15 @@ batch漂移，就继续向prefill上游拆；如果cache exact，才审查decode
 solution局部路线关闭。
 
 ![BF16 row invariance](../../benchmarks/results/2026-08-26-bf16-decode-row-invariance/row-invariance.svg)
+
+## 319. Experiment 302：Decode还没开始，差异已经写进K/V Cache
+
+我们导出Block 0 full prefill后的BF16原始K/V字节。B1/2/4/8每行各有524,288个值。Key最大
+Max/RMS为0.03125/8.65e-5，Value为0.0009765625/1.53e-5。两次process完全重复；B2内部仍exact，
+B4/B8内部已经出现行差异。
+
+这把时间线再向前推了一步：decode materialized Attention读取的前缀本来就不同，它不是第一来源。
+下一步给`forward_prefill_cached`补Block 0内部trace，依次看embedding、norm、FP32 Q/K/V、RoPE和
+BF16 packed store。如果projection先变，就查大M GEMM；如果store才变，就查cast/store。默认不动。
+
+![Prefill cache prefix](../../benchmarks/results/2026-08-26-deepseek-prefill-cache-prefix/cache-prefix.svg)

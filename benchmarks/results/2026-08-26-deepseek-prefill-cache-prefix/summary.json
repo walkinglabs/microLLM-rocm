@@ -1,0 +1,137 @@
+{
+  "all_repeat_bitwise_equal": true,
+  "all_within_batch_bitwise_equal": false,
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "case_rows": 8,
+  "cases": [
+    {
+      "batch": 1,
+      "complete_values_compared_per_run": 524288,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_relative_l2": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "tensor": "key",
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "complete_values_compared_per_run": 524288,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.015625,
+      "cross_batch_maximum_relative_l2": 4.993856613302921e-07,
+      "cross_batch_maximum_rms_error": 4.780631671157553e-05,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "tensor": "key",
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "complete_values_compared_per_run": 524288,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.015625,
+      "cross_batch_maximum_relative_l2": 5.222303943330223e-07,
+      "cross_batch_maximum_rms_error": 4.9993248827749306e-05,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "tensor": "key",
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 8,
+      "complete_values_compared_per_run": 524288,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.03125,
+      "cross_batch_maximum_relative_l2": 9.039283086629726e-07,
+      "cross_batch_maximum_rms_error": 8.653328750646607e-05,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "tensor": "key",
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 1,
+      "complete_values_compared_per_run": 524288,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_relative_l2": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "tensor": "value",
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "complete_values_compared_per_run": 524288,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.0009765625,
+      "cross_batch_maximum_relative_l2": 4.537524704672657e-05,
+      "cross_batch_maximum_rms_error": 1.5308221471746443e-05,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "tensor": "value",
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "complete_values_compared_per_run": 524288,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.0009765625,
+      "cross_batch_maximum_relative_l2": 4.496435636940831e-05,
+      "cross_batch_maximum_rms_error": 1.5169599515978653e-05,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "tensor": "value",
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 8,
+      "complete_values_compared_per_run": 524288,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.0009765625,
+      "cross_batch_maximum_relative_l2": 4.4358908066977296e-05,
+      "cross_batch_maximum_rms_error": 1.4965339764097575e-05,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "tensor": "value",
+      "within_batch_bitwise_equal": false
+    }
+  ],
+  "dtype": "bfloat16",
+  "layer": 0,
+  "process_rows": 8,
+  "record_type": "prefill_cache_prefix_audit",
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "shape_suffix": [
+    2,
+    2048,
+    128
+  ],
+  "status": "pass",
+  "tensor_summaries": [
+    {
+      "bitwise_case_count": 1,
+      "maximum_cross_batch_error": 0.03125,
+      "maximum_cross_batch_relative_l2": 9.039283086629726e-07,
+      "maximum_cross_batch_rms_error": 8.653328750646607e-05,
+      "tensor": "key"
+    },
+    {
+      "bitwise_case_count": 1,
+      "maximum_cross_batch_error": 0.0009765625,
+      "maximum_cross_batch_relative_l2": 4.537524704672657e-05,
+      "maximum_cross_batch_rms_error": 1.5308221471746443e-05,
+      "tensor": "value"
+    }
+  ]
+}

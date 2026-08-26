@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1380" height="470" viewBox="0 0 1380 470">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:13px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">Block-0 BF16 prefill cache prefix</text>
+<text x="30" y="62" class="muted">DeepSeek T2048 · B1 reference · complete K/V row0 values</text>
+<text x="30" y="118" class="label">key</text>
+<text x="190" y="118" class="label">B1</text>
+<rect x="230" y="100" width="2.00" height="22" rx="4" fill="#38bdf8"/>
+<text x="247.00" y="117" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="190" y="150" class="label">B2</text>
+<rect x="230" y="132" width="390.00" height="22" rx="4" fill="#38bdf8"/>
+<text x="635.00" y="149" class="label">Max 1.562e-02 · RMS 4.781e-05</text>
+<text x="190" y="182" class="label">B4</text>
+<rect x="230" y="164" width="390.00" height="22" rx="4" fill="#38bdf8"/>
+<text x="635.00" y="181" class="label">Max 1.562e-02 · RMS 4.999e-05</text>
+<text x="190" y="214" class="label">B8</text>
+<rect x="230" y="196" width="780.00" height="22" rx="4" fill="#38bdf8"/>
+<text x="1025.00" y="213" class="label">Max 3.125e-02 · RMS 8.653e-05</text>
+<text x="30" y="288" class="label">value</text>
+<text x="190" y="288" class="label">B1</text>
+<rect x="230" y="270" width="2.00" height="22" rx="4" fill="#f97316"/>
+<text x="247.00" y="287" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="190" y="320" class="label">B2</text>
+<rect x="230" y="302" width="24.38" height="22" rx="4" fill="#f97316"/>
+<text x="269.38" y="319" class="label">Max 9.766e-04 · RMS 1.531e-05</text>
+<text x="190" y="352" class="label">B4</text>
+<rect x="230" y="334" width="24.38" height="22" rx="4" fill="#f97316"/>
+<text x="269.38" y="351" class="label">Max 9.766e-04 · RMS 1.517e-05</text>
+<text x="190" y="384" class="label">B8</text>
+<rect x="230" y="366" width="24.38" height="22" rx="4" fill="#f97316"/>
+<text x="269.38" y="383" class="label">Max 9.766e-04 · RMS 1.497e-05</text>
+</svg>
