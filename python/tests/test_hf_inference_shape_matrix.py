@@ -134,9 +134,63 @@ O_MODEL_SPEC = importlib.util.spec_from_file_location(
 O_MODEL = importlib.util.module_from_spec(O_MODEL_SPEC)
 assert O_MODEL_SPEC.loader is not None
 O_MODEL_SPEC.loader.exec_module(O_MODEL)
+EXACT_STACK_SPEC = importlib.util.spec_from_file_location(
+    "fp32_prefill_exact_stack_gate",
+    ROOT / "benchmarks/single_gpu/fp32_prefill_exact_stack_gate.py")
+EXACT_STACK = importlib.util.module_from_spec(EXACT_STACK_SPEC)
+assert EXACT_STACK_SPEC.loader is not None
+EXACT_STACK_SPEC.loader.exec_module(EXACT_STACK)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_exact_stack_routes_are_fixed_before_measurement(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        b1 = EXACT_STACK.command(
+            args, model, "batch-selective", 1, 0)
+        self.assertNotIn(
+            "--fp32-prefill-attention-qk-solution-index", b1)
+        self.assertNotIn(
+            "--fp32-prefill-attention-o-solution-index", b1)
+        b2 = EXACT_STACK.command(
+            args, model, "batch-selective", 2, 0)
+        self.assertEqual(b2[
+            b2.index("--fp32-prefill-attention-qk-solution-index") + 1],
+            "304681")
+        self.assertEqual(b2[
+            b2.index("--fp32-prefill-attention-pv-solution-index") + 1],
+            "295716")
+        self.assertEqual(b2[
+            b2.index("--fp32-prefill-attention-o-solution-index") + 1],
+            "296100")
+        b8 = EXACT_STACK.command(
+            args, model, "batch-selective", 8, 0)
+        self.assertNotIn(
+            "--fp32-prefill-attention-o-solution-index", b8)
+
+        route = {
+            "status": "pass", "batch": 2, "token_count": 2048,
+            "decode_tokens": 1, "kv_cache_dtype": "bf16",
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_prefill_attention_qk_solution_index": 304681,
+            "fp32_prefill_attention_pv_solution_index": 295716,
+            "fp32_prefill_attention_o_solution_index": 296100,
+            "fp32_solution_registered_entries": 5,
+            "fp32_solution_cached_algorithms": 5,
+            "fp32_solution_registry_hits": 168,
+            "fp32_solution_cache_misses": 5,
+            "fp32_solution_cache_hits": 163,
+            "fp32_solution_dispatches": 168,
+        }
+        EXACT_STACK.require_route(
+            route, "batch-selective", 2, 2048, 0)
+
     def test_current_o_model_gate_rejects_b1_performance(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-prefill-o-model-gate")
