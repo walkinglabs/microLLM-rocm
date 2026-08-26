@@ -182,6 +182,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [151](steps/151-pytorch-swiglu-compile.md) | complete; rejected | torch.compile/AOTAutograd反例 | compiled/eager0.584×–0.610×；cold55.8–1160.3ms |
 | [152](steps/152-pytorch-swiglu-cpp-autograd.md) | complete; keep | C++ Autograd替代Python callback | C++/Python1.286×–1.475×；FP32/native1.136×–1.144× |
 | [153](steps/153-pytorch-swiglu-typed-backward.md) | complete; keep/closed | FP16/BF16 fused backward | typed/ATen1.257×–1.319×；typed/native1.048×–1.084× |
+| [154](steps/154-pytorch-typed-softmax-baseline.md) | complete; correctness keep | direct FP16/BF16 Softmax | 10/10 zero-temp；serial w1024/4096仅0.011×/0.004× |
 
 ## 为什么按这个顺序
 

@@ -645,6 +645,11 @@ void embedding_out_(Tensor& output, const Tensor& weight,
                              const OpContext& context = {});
 void softmax_out_(Tensor& output_fp32, const Tensor& input_fp32,
                   std::int64_t dim = -1, const OpContext& context = {});
+// Direct FP16/BF16 path: reductions use FP32 and output is rounded once,
+// without allocating an FP32 Tensor-shaped temporary.
+void softmax_typed_out_(Tensor& output, const Tensor& input,
+                        std::int64_t dim = -1,
+                        const OpContext& context = {});
 [[nodiscard]] Tensor rms_norm(const Tensor& input, const Tensor& weight,
                               float epsilon = 1.0e-5F, const OpContext& context = {});
 void rms_norm_out_(Tensor& output_fp32, const Tensor& input_fp32,

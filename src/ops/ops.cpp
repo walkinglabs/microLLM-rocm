@@ -1697,18 +1697,24 @@ Tensor softmax(const Tensor& input, std::int64_t dim,
     }
     const auto width = input.shape().back();
     if (width == 0) throw std::invalid_argument("softmax dimension cannot be empty");
-    const auto rows = input.numel() / width;
+    [[maybe_unused]] const auto rows = input.numel() / width;
     if (input.device().is_hip()) {
-        if (input.dtype() != DType::Float32) {
-            throw std::invalid_argument(
-                "HIP softmax currently requires float32 input");
-        }
         require_contiguous(input, "input");
         Tensor output(input.shape(), input.dtype(), input.device());
 #if MICROLLM_HAS_HIP
-        hip::launch_softmax(static_cast<const float*>(input.data()),
-                            static_cast<float*>(output.data()), rows, width,
-                            context.native_stream(input.device()));
+        if (input.dtype() == DType::Float32) {
+            hip::launch_softmax(static_cast<const float*>(input.data()),
+                                static_cast<float*>(output.data()), rows, width,
+                                context.native_stream(input.device()));
+        } else if (input.dtype() == DType::Float16 ||
+                   input.dtype() == DType::BFloat16) {
+            hip::launch_softmax_typed(
+                input.data(), output.data(), input.dtype(), rows, width,
+                context.native_stream(input.device()));
+        } else {
+            throw std::invalid_argument(
+                "HIP softmax requires float32, float16, or bfloat16 input");
+        }
         return output;
 #else
         throw std::runtime_error("microLLM was built without HIP operator support");
@@ -1764,6 +1770,47 @@ void softmax_out_(Tensor& output_fp32, const Tensor& input_fp32,
         output_fp32.data(), output_fp32.device(), reference.data(),
         reference.device(), static_cast<std::size_t>(output_fp32.numel()) *
                                 dtype_size(output_fp32.dtype()));
+}
+
+void softmax_typed_out_(Tensor& output, const Tensor& input,
+                        std::int64_t dim,
+                        [[maybe_unused]] const OpContext& context) {
+    if ((input.dtype() != DType::Float16 &&
+         input.dtype() != DType::BFloat16) ||
+        output.dtype() != input.dtype()) {
+        throw std::invalid_argument(
+            "typed softmax requires matching float16 or bfloat16 tensors");
+    }
+    require_same_shape(input, output);
+    require_same_device(input, output);
+    require_contiguous(input, "input");
+    require_contiguous(output, "output");
+    const auto normalized = positive_dim(input, dim);
+    if (normalized != input.ndim() - 1) {
+        throw std::invalid_argument(
+            "typed softmax currently supports the last dimension");
+    }
+    const auto width = input.shape().back();
+    if (width == 0) throw std::invalid_argument("softmax dimension cannot be empty");
+    if (output.storage().data() == input.storage().data()) {
+        throw std::invalid_argument(
+            "typed softmax output must not alias input Storage");
+    }
+    [[maybe_unused]] const auto rows = input.numel() / width;
+    if (input.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_softmax_typed(
+            input.data(), output.data(), input.dtype(), rows, width,
+            context.native_stream(input.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = softmax(input, dim, context);
+    runtime::copy_bytes(
+        output.data(), output.device(), reference.data(), reference.device(),
+        static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
 }
 
 Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon,

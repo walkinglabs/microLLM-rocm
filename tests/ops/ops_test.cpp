@@ -1545,6 +1545,13 @@ TEST(CpuOpsTest, SoftmaxIsStableAndRowsSumToOne) {
     Tensor wrong_dtype(input.shape(), DType::BFloat16);
     EXPECT_THROW(softmax_out_(wrong_dtype, input), std::invalid_argument);
     EXPECT_THROW(softmax_out_(caller_output, input, 0), std::invalid_argument);
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto low_input = input.cast(dtype);
+        Tensor low_output(input.shape(), dtype);
+        softmax_typed_out_(low_output, low_input);
+        EXPECT_EQ(low_output.to_vector(), softmax(low_input).to_vector());
+    }
+    EXPECT_THROW(softmax_typed_out_(caller_output, input), std::invalid_argument);
 }
 
 TEST(CpuOpsTest, RmsNormMatchesManualCalculation) {

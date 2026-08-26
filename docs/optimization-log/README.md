@@ -1074,6 +1074,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [C++ Autograd SVG](assets/pytorch-rocm-swiglu-cpp-autograd.svg) | 三dtype速度/peak准入 |
 | [experiments/337-pytorch-swiglu-typed-backward.md](experiments/337-pytorch-swiglu-typed-backward.md) | 低精度F+B达到scoped parity |
 | [Typed backward SVG](assets/pytorch-rocm-swiglu-typed-backward.svg) | FP16/BF16 ATen/native准入 |
+| [experiments/338-pytorch-typed-softmax-baseline.md](experiments/338-pytorch-typed-softmax-baseline.md) | 无FP32临时量但serial性能失败 |
+| [Typed Softmax SVG](assets/pytorch-rocm-typed-softmax.svg) | 10格log-scale性能图 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

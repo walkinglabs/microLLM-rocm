@@ -5123,3 +5123,12 @@ FP16 Max仅2.38e-7。
 新的图/模型profile。
 
 ![Typed SwiGLU backward](assets/pytorch-rocm-swiglu-typed-backward.svg)
+
+## 354. Experiment 338：先删FP32临时量，再面对serial reduction
+
+FP16/BF16 Softmax现在直接FP32 reduction并舍入到caller输出，10格pointer/精度通过，micro peak extra
+为0。但一线程扫一行让width1024只有0.011×Torch、width4096约0.004×。这不是可发布性能。
+
+baseline保留为reference；下一步必须一block一row的并行max/sum。
+
+![Typed Softmax baseline](assets/pytorch-rocm-typed-softmax.svg)

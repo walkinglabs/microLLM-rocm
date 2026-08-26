@@ -160,6 +160,9 @@ void launch_embedding(const float* weight, const std::int32_t* indices, float* o
                       void* stream = nullptr);
 void launch_softmax(const float* input, float* output, std::int64_t rows,
                     std::int64_t width, void* stream = nullptr);
+void launch_softmax_typed(const void* input, void* output, DType dtype,
+                          std::int64_t rows, std::int64_t width,
+                          void* stream = nullptr);
 void launch_rms_norm(const float* input, const float* weight, float* output,
                      std::int64_t rows, std::int64_t width, float epsilon,
                      void* stream = nullptr);

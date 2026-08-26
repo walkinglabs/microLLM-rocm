@@ -793,6 +793,27 @@ __global__ void softmax_kernel(const float* input, float* output, std::int64_t r
     }
 }
 
+template <typename T>
+__global__ void softmax_typed_kernel(
+    const T* input, T* output, std::int64_t rows, std::int64_t width) {
+    const auto row = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (row >= rows) return;
+    const auto base = row * width;
+    float maximum = -INFINITY;
+    for (std::int64_t column = 0; column < width; ++column) {
+        maximum = fmaxf(maximum, load_as_float(input[base + column]));
+    }
+    float denominator = 0.0F;
+    for (std::int64_t column = 0; column < width; ++column) {
+        denominator += expf(load_as_float(input[base + column]) - maximum);
+    }
+    const auto inverse = 1.0F / denominator;
+    for (std::int64_t column = 0; column < width; ++column) {
+        output[base + column] = store_from_float<T>(
+            expf(load_as_float(input[base + column]) - maximum) * inverse);
+    }
+}
+
 __global__ void rms_norm_kernel(const float* input, const float* weight, float* output,
                                 std::int64_t rows, std::int64_t width, float epsilon) {
     const auto row = static_cast<std::int64_t>(blockIdx.x);
@@ -3895,6 +3916,32 @@ void launch_softmax(const float* input, float* output, std::int64_t rows,
     hipLaunchKernelGGL(softmax_kernel, dim3(grid_size(rows)), dim3(kBlockSize), 0,
                        as_stream(stream), input, output, rows, width);
     check_launch("softmax_kernel");
+}
+
+void launch_softmax_typed(const void* input, void* output, DType dtype,
+                          std::int64_t rows, std::int64_t width,
+                          void* stream) {
+    if (rows == 0) return;
+    const auto grid = dim3(grid_size(rows));
+    const auto block = dim3(kBlockSize);
+    switch (dtype) {
+        case DType::Float16:
+            hipLaunchKernelGGL(
+                softmax_typed_kernel<__half>, grid, block, 0, as_stream(stream),
+                static_cast<const __half*>(input), static_cast<__half*>(output),
+                rows, width);
+            break;
+        case DType::BFloat16:
+            hipLaunchKernelGGL(
+                softmax_typed_kernel<hip_bfloat16>, grid, block, 0,
+                as_stream(stream), static_cast<const hip_bfloat16*>(input),
+                static_cast<hip_bfloat16*>(output), rows, width);
+            break;
+        default:
+            throw std::invalid_argument(
+                "typed softmax requires float16 or bfloat16");
+    }
+    check_launch("softmax_typed_kernel");
 }
 
 void launch_rms_norm(const float* input, const float* weight, float* output,

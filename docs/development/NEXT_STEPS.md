@@ -267,7 +267,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   FP32/FP16/BF16 SwiGLU scoped line is closed;
 - [ ] define a typed low-precision SwiGLU backward contract before replacing the readable
   PyTorch fallback formulas;
-- [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
+- [x] implement direct caller-owned FP16/BF16 Softmax with FP32 reduction and no
+  Tensor-shaped FP32 temporary; 10/10 PyTorch/pointer gates pass and peak extra is zero;
+- [ ] replace the serial typed row Kernel with block-parallel max/sum before any model or
+  performance route; current width1024/4096 is only about 0.011×/0.004× Torch.
 
 ## P2.5 — production data parallel reducer
 

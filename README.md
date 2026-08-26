@@ -933,12 +933,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 395/395 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 392/392 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 396/396 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 393/393 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 201/201 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 398/398 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 399/399 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 140 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 141 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1339,6 +1339,9 @@ reach `0.799×–0.812×` and return to native-equivalent peak. The FP32 adapter
 Typed fused FP16/BF16 backward then reaches `1.048×–1.084×` native Torch at equal
 peak, improving `1.257×–1.319×` over the C++ ATen formula. BF16 gradients are exact;
 FP16 Max is `2.38e-7`. The scoped SwiGLU adapter line is now closed.
+FP16/BF16 Softmax also has a direct zero-temporary caller-owned path: all ten PyTorch
+shape/dtype rows pass with peak extra zero. Its readable serial Kernel is intentionally
+not performance-ready—width1024/4096 is only about `0.011×/0.004×` Torch—so no model route.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

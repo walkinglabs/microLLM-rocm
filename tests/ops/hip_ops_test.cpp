@@ -1812,9 +1812,27 @@ TEST(HipOpsTest, SoftmaxAndRmsNormMatchCpuReference) {
     finished.record(stream);
     finished.synchronize();
     expect_near(softmax_output.to_vector(), softmax(input_cpu).to_vector());
-    const auto low = Tensor::from_vector(
-        {1, 2, 3, 4}, {2, 2}, DType::BFloat16).to(input.device());
-    EXPECT_THROW((void)softmax(low), std::invalid_argument);
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto low_cpu = Tensor::from_vector(
+            {1000, 1000, 999, 1, 2, 3}, {2, 3}, dtype);
+        const auto low = low_cpu.to(input.device());
+        Tensor low_output(low.shape(), dtype, input.device());
+        runtime::reset_transfer_stats();
+        const auto allocations_before = runtime::allocation_stats(input.device());
+        softmax_typed_out_(low_output, low, -1, context);
+        finished.record(stream);
+        finished.synchronize();
+        const auto allocations_after = runtime::allocation_stats(input.device());
+        const auto low_transfers = runtime::transfer_stats();
+        EXPECT_EQ(low_transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(low_transfers.device_to_host_calls, 0U);
+        EXPECT_EQ(allocations_after.allocation_calls,
+                  allocations_before.allocation_calls);
+        expect_near(low_output.to_vector(), softmax(low_cpu).to_vector(),
+                    dtype == DType::Float16 ? 1.0e-3F : 8.0e-3F);
+        expect_near(softmax(low).to_vector(), softmax(low_cpu).to_vector(),
+                    dtype == DType::Float16 ? 1.0e-3F : 8.0e-3F);
+    }
     expect_near(rms_norm(input_cpu.to(Device::hip()), weight_cpu.to(Device::hip())).to_vector(),
                 rms_norm(input_cpu, weight_cpu).to_vector(), 2.0e-4F);
 }

@@ -580,9 +580,15 @@ ML_EXPORT ml_status ml_softmax_out_on_stream(ml_tensor* output,
                                              const ml_tensor* input,
                                              ml_stream* stream) {
     return guard([&] {
-        microllm::ops::softmax_out_(
-            require_tensor(output), require_tensor(input), -1,
-            stream_context(stream));
+        auto& destination = require_tensor(output);
+        const auto& source = require_tensor(input);
+        if (source.dtype() == microllm::DType::Float32) {
+            microllm::ops::softmax_out_(
+                destination, source, -1, stream_context(stream));
+        } else {
+            microllm::ops::softmax_typed_out_(
+                destination, source, -1, stream_context(stream));
+        }
     });
 }
 

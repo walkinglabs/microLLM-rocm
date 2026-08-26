@@ -69,6 +69,9 @@ For direct low-precision normalization output, compare `rms_norm_bf16_out_` agai
 FP32 RMSNorm followed by the GPU cast, not against a differently ordered CPU reduction. Both paths
 must use caller Storage so allocator work cannot masquerade as a Kernel result. Operator admission
 does not authorize the Transformer route; the latter needs a separate complete-logit model gate.
+Direct typed Softmax follows the same no-temporary rule: FP16/BF16 reductions use FP32 registers
+and round only the caller output. The initial serial-row Kernel is a readable correctness baseline,
+not an optimized implementation; width-scale evidence must stay visible until block reduction passes.
 That model gate now exists for FFN Norm: `bf16_ffn_precast_out_` consumes an already-filled Arena
 input, Qwen/DeepSeek both pass, and enabling BF16 FFN Arena enables this exact route by default.
 Keep explicit false available, and never apply the shortcut to trace, cached, training or bypassed

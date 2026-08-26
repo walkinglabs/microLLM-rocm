@@ -716,3 +716,16 @@ python3 benchmarks/single_gpu/compare_pytorch_swiglu_typed_backward.py \
 
 The gate requires ≥1.2× the ATen formula, ≥1.03× native, equal native peak and complete
 dtype-specific gradients for every FP16/BF16 row.
+
+Measure the direct caller-owned FP16/BF16 Softmax baseline:
+
+```bash
+/path/to/rocm-venv/bin/python \
+  benchmarks/single_gpu/pytorch_zero_copy_typed_softmax.py \
+  --library build/hip-release/bindings/capi/libmicrollm.so \
+  --output /tmp/microllm-typed-softmax \
+  --runs 3 --warmup 5 --repetitions 25
+```
+
+The baseline requires pointer identity, non-owning wrappers, dtype-specific Max/RMS and zero
+microLLM peak extra. Performance failure is retained as the input to block-parallel work.
