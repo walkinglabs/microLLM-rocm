@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 308 compares every block-0 T2048
-> Attention value in two fresh runs. B2 scores/probabilities are bitwise exact and
-> P×V drifts first; B4/B8 causal-visible QK scores drift first, then softmax and
-> P×V. All identical rows inside each batch remain exact. The next gate screens QK
-> and P×V hipBLASLt solutions separately; defaults remain unchanged. See the
-> [Attention-core matrix](docs/optimization-log/experiments/308-prefill-attention-core-matrix.md).
+> **Current optimization checkpoint:** Experiment 309 finds 34/34 common QK and
+> 2/2 common P×V solutions that are bitwise invariant across B1/B2/B4/B8. None
+> passes the four-batch non-regression gate: best exact minimum speedups are
+> 0.916× and 0.535×, so both admitted indices remain `-1`. The best exact pair
+> enters one scoped full-model counterfactual; defaults remain unchanged. See the
+> [Attention solution matrix](docs/optimization-log/experiments/309-fp32-attention-batch-solutions.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

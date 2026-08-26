@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="720" viewBox="0 0 1640 720">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:24px;font-weight:700}.sub{font-size:12px;fill:#94a3b8}.label{font-size:11px}</style>
+<text x="34" y="42" class="title">FP32 Attention solution invariance by request batch</text>
+<text x="34" y="66" class="sub">T2048 · backend batch 12/24/48/96 · green=exact and min speedup ≥0.95 · orange=exact with regression · red=drift</text>
+<text x="34" y="110" class="label">QK</text>
+<rect x="125" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="162" y="110" class="label" text-anchor="middle">304681</text>
+<text x="162" y="132" class="label" text-anchor="middle">exact</text>
+<text x="162" y="152" class="label" text-anchor="middle">min 0.916x</text>
+<rect x="212" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="249" y="110" class="label" text-anchor="middle">304717</text>
+<text x="249" y="132" class="label" text-anchor="middle">exact</text>
+<text x="249" y="152" class="label" text-anchor="middle">min 0.893x</text>
+<rect x="299" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="336" y="110" class="label" text-anchor="middle">305583</text>
+<text x="336" y="132" class="label" text-anchor="middle">exact</text>
+<text x="336" y="152" class="label" text-anchor="middle">min 0.900x</text>
+<rect x="386" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="423" y="110" class="label" text-anchor="middle">307418</text>
+<text x="423" y="132" class="label" text-anchor="middle">exact</text>
+<text x="423" y="152" class="label" text-anchor="middle">min 0.739x</text>
+<rect x="473" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="510" y="110" class="label" text-anchor="middle">307534</text>
+<text x="510" y="132" class="label" text-anchor="middle">exact</text>
+<text x="510" y="152" class="label" text-anchor="middle">min 0.761x</text>
+<rect x="560" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="597" y="110" class="label" text-anchor="middle">307813</text>
+<text x="597" y="132" class="label" text-anchor="middle">exact</text>
+<text x="597" y="152" class="label" text-anchor="middle">min 0.887x</text>
+<rect x="647" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="684" y="110" class="label" text-anchor="middle">307906</text>
+<text x="684" y="132" class="label" text-anchor="middle">exact</text>
+<text x="684" y="152" class="label" text-anchor="middle">min 0.867x</text>
+<rect x="734" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="771" y="110" class="label" text-anchor="middle">307908</text>
+<text x="771" y="132" class="label" text-anchor="middle">exact</text>
+<text x="771" y="152" class="label" text-anchor="middle">min 0.869x</text>
+<rect x="821" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="858" y="110" class="label" text-anchor="middle">307909</text>
+<text x="858" y="132" class="label" text-anchor="middle">exact</text>
+<text x="858" y="152" class="label" text-anchor="middle">min 0.848x</text>
+<rect x="908" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="945" y="110" class="label" text-anchor="middle">308351</text>
+<text x="945" y="132" class="label" text-anchor="middle">exact</text>
+<text x="945" y="152" class="label" text-anchor="middle">min 0.928x</text>
+<rect x="995" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1032" y="110" class="label" text-anchor="middle">308740</text>
+<text x="1032" y="132" class="label" text-anchor="middle">exact</text>
+<text x="1032" y="152" class="label" text-anchor="middle">min 0.753x</text>
+<rect x="1082" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1119" y="110" class="label" text-anchor="middle">310131</text>
+<text x="1119" y="132" class="label" text-anchor="middle">exact</text>
+<text x="1119" y="152" class="label" text-anchor="middle">min 0.856x</text>
+<rect x="1169" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1206" y="110" class="label" text-anchor="middle">310542</text>
+<text x="1206" y="132" class="label" text-anchor="middle">exact</text>
+<text x="1206" y="152" class="label" text-anchor="middle">min 0.861x</text>
+<rect x="1256" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1293" y="110" class="label" text-anchor="middle">310762</text>
+<text x="1293" y="132" class="label" text-anchor="middle">exact</text>
+<text x="1293" y="152" class="label" text-anchor="middle">min 0.891x</text>
+<rect x="1343" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1380" y="110" class="label" text-anchor="middle">311014</text>
+<text x="1380" y="132" class="label" text-anchor="middle">exact</text>
+<text x="1380" y="152" class="label" text-anchor="middle">min 0.798x</text>
+<rect x="1430" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1467" y="110" class="label" text-anchor="middle">311021</text>
+<text x="1467" y="132" class="label" text-anchor="middle">exact</text>
+<text x="1467" y="152" class="label" text-anchor="middle">min 0.827x</text>
+<rect x="1517" y="86" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1554" y="110" class="label" text-anchor="middle">311022</text>
+<text x="1554" y="132" class="label" text-anchor="middle">exact</text>
+<text x="1554" y="152" class="label" text-anchor="middle">min 0.866x</text>
+<rect x="125" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="162" y="215" class="label" text-anchor="middle">311053</text>
+<text x="162" y="237" class="label" text-anchor="middle">exact</text>
+<text x="162" y="257" class="label" text-anchor="middle">min 0.807x</text>
+<rect x="212" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="249" y="215" class="label" text-anchor="middle">311069</text>
+<text x="249" y="237" class="label" text-anchor="middle">exact</text>
+<text x="249" y="257" class="label" text-anchor="middle">min 0.709x</text>
+<rect x="299" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="336" y="215" class="label" text-anchor="middle">311083</text>
+<text x="336" y="237" class="label" text-anchor="middle">exact</text>
+<text x="336" y="257" class="label" text-anchor="middle">min 0.886x</text>
+<rect x="386" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="423" y="215" class="label" text-anchor="middle">311207</text>
+<text x="423" y="237" class="label" text-anchor="middle">exact</text>
+<text x="423" y="257" class="label" text-anchor="middle">min 0.919x</text>
+<rect x="473" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="510" y="215" class="label" text-anchor="middle">311211</text>
+<text x="510" y="237" class="label" text-anchor="middle">exact</text>
+<text x="510" y="257" class="label" text-anchor="middle">min 0.860x</text>
+<rect x="560" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="597" y="215" class="label" text-anchor="middle">311249</text>
+<text x="597" y="237" class="label" text-anchor="middle">exact</text>
+<text x="597" y="257" class="label" text-anchor="middle">min 0.799x</text>
+<rect x="647" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="684" y="215" class="label" text-anchor="middle">311259</text>
+<text x="684" y="237" class="label" text-anchor="middle">exact</text>
+<text x="684" y="257" class="label" text-anchor="middle">min 0.826x</text>
+<rect x="734" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="771" y="215" class="label" text-anchor="middle">311261</text>
+<text x="771" y="237" class="label" text-anchor="middle">exact</text>
+<text x="771" y="257" class="label" text-anchor="middle">min 0.686x</text>
+<rect x="821" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="858" y="215" class="label" text-anchor="middle">311274</text>
+<text x="858" y="237" class="label" text-anchor="middle">exact</text>
+<text x="858" y="257" class="label" text-anchor="middle">min 0.942x</text>
+<rect x="908" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="945" y="215" class="label" text-anchor="middle">311283</text>
+<text x="945" y="237" class="label" text-anchor="middle">exact</text>
+<text x="945" y="257" class="label" text-anchor="middle">min 0.869x</text>
+<rect x="995" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1032" y="215" class="label" text-anchor="middle">311302</text>
+<text x="1032" y="237" class="label" text-anchor="middle">exact</text>
+<text x="1032" y="257" class="label" text-anchor="middle">min 0.891x</text>
+<rect x="1082" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1119" y="215" class="label" text-anchor="middle">311303</text>
+<text x="1119" y="237" class="label" text-anchor="middle">exact</text>
+<text x="1119" y="257" class="label" text-anchor="middle">min 0.937x</text>
+<rect x="1169" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1206" y="215" class="label" text-anchor="middle">311312</text>
+<text x="1206" y="237" class="label" text-anchor="middle">exact</text>
+<text x="1206" y="257" class="label" text-anchor="middle">min 0.908x</text>
+<rect x="1256" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1293" y="215" class="label" text-anchor="middle">311316</text>
+<text x="1293" y="237" class="label" text-anchor="middle">exact</text>
+<text x="1293" y="257" class="label" text-anchor="middle">min 0.855x</text>
+<rect x="1343" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1380" y="215" class="label" text-anchor="middle">311338</text>
+<text x="1380" y="237" class="label" text-anchor="middle">exact</text>
+<text x="1380" y="257" class="label" text-anchor="middle">min 0.865x</text>
+<rect x="1430" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1467" y="215" class="label" text-anchor="middle">311340</text>
+<text x="1467" y="237" class="label" text-anchor="middle">exact</text>
+<text x="1467" y="257" class="label" text-anchor="middle">min 0.855x</text>
+<rect x="1517" y="191" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="1554" y="215" class="label" text-anchor="middle">311356</text>
+<text x="1554" y="237" class="label" text-anchor="middle">exact</text>
+<text x="1554" y="257" class="label" text-anchor="middle">min 0.778x</text>
+<text x="125" y="330" class="sub">common 34 · exact 34 · non-regressing 0 · selected -1</text>
+<text x="34" y="395" class="label">PV</text>
+<rect x="125" y="371" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="162" y="395" class="label" text-anchor="middle">292462</text>
+<text x="162" y="417" class="label" text-anchor="middle">exact</text>
+<text x="162" y="437" class="label" text-anchor="middle">min 0.412x</text>
+<rect x="212" y="371" width="74" height="80" rx="7" fill="#92400e"/>
+<text x="249" y="395" class="label" text-anchor="middle">295716</text>
+<text x="249" y="417" class="label" text-anchor="middle">exact</text>
+<text x="249" y="437" class="label" text-anchor="middle">min 0.535x</text>
+<text x="125" y="615" class="sub">common 2 · exact 2 · non-regressing 0 · selected -1</text>
+</svg>

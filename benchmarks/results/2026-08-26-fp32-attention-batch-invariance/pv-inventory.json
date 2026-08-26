@@ -1,0 +1,30 @@
+{
+  "common_candidate_indices": [
+    292462,
+    295716
+  ],
+  "heads": 12,
+  "k": 2048,
+  "kv_heads": 2,
+  "m": 2048,
+  "n": 128,
+  "operation": "pv",
+  "record_type": "fp32_attention_batch_inventory",
+  "request_batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "schema_version": 1,
+  "sequence": 2048,
+  "shape_candidate_counts": [
+    64,
+    64,
+    64,
+    64
+  ],
+  "status": "pass",
+  "transpose_right": false,
+  "width": 128
+}

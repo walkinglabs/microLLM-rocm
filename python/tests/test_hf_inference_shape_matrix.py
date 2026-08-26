@@ -107,6 +107,41 @@ ATTENTION_SOLUTIONS_SPEC.loader.exec_module(ATTENTION_SOLUTIONS)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_attention_solution_matrix_rejects_all_defaults(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-attention-batch-invariance")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line]
+        operations = {row["operation"]: row for row in summary["operations"]}
+        self.assertEqual(summary["backend_batch_counts"], [12, 24, 48, 96])
+        self.assertEqual(len(raw), 36)
+        self.assertEqual(operations["qk"]["common_candidate_count"], 34)
+        self.assertEqual(operations["qk"]["block_invariant_count"], 34)
+        self.assertEqual(operations["qk"]["best_exact_index"], 304681)
+        self.assertEqual(operations["qk"]["admitted_index"], -1)
+        self.assertAlmostEqual(
+            operations["qk"]["best_exact_minimum_event_speedup"],
+            0.915873395648)
+        self.assertEqual(operations["pv"]["common_candidate_count"], 2)
+        self.assertEqual(operations["pv"]["block_invariant_count"], 2)
+        self.assertEqual(operations["pv"]["best_exact_index"], 295716)
+        self.assertEqual(operations["pv"]["admitted_index"], -1)
+        self.assertAlmostEqual(
+            operations["pv"]["best_exact_minimum_event_speedup"],
+            0.535391731132)
+        self.assertFalse(operations["qk"]["default_block_invariant"])
+        self.assertFalse(operations["pv"]["default_block_invariant"])
+        self.assertFalse(analysis["default_change_admitted"])
+        self.assertEqual(verification["engine_commit"],
+                         "8317d2b455bd750b37fc90f78aaaa2d2d2436be8")
+        self.assertEqual(verification["qk_admitted_index"], -1)
+        self.assertEqual(verification["pv_admitted_index"], -1)
+        ET.parse(root / "attention-solutions.svg")
+
     def test_attention_solution_summary_prefers_exact_non_regressing_candidate(self):
         inventories = {}
         results = {}

@@ -1,0 +1,121 @@
+{
+  "backend_batch_counts": [
+    12,
+    24,
+    48,
+    96
+  ],
+  "block_invariant_count": 2,
+  "candidates": [
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "correctness_passed": true,
+      "default_maximum_error": 4.4703e-08,
+      "default_rms_error": 2.55e-09,
+      "event_ms_p50": [
+        0.310588002205,
+        0.327385991812,
+        0.766466975212,
+        1.223708987236
+      ],
+      "event_speedup_vs_default": [
+        0.412031391713,
+        0.843863194387,
+        1.122450168292,
+        1.03849612502
+      ],
+      "failure": "",
+      "finite": true,
+      "index": 292462,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 5.9605e-08,
+      "sentinel_rms_error": 1.7071e-08,
+      "supported": true,
+      "wall_ms_p50": [
+        0.31982,
+        0.337137,
+        0.776868,
+        1.232315
+      ]
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "correctness_passed": true,
+      "default_maximum_error": 4.4703e-08,
+      "default_rms_error": 2.532e-09,
+      "event_ms_p50": [
+        0.239024996758,
+        0.275388002396,
+        0.632521986961,
+        1.23894405365
+      ],
+      "event_speedup_vs_default": [
+        0.535391731132,
+        1.003199073469,
+        1.360143999816,
+        1.025725929797
+      ],
+      "failure": "",
+      "finite": true,
+      "index": 295716,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 5.9605e-08,
+      "sentinel_rms_error": 1.7071e-08,
+      "supported": true,
+      "wall_ms_p50": [
+        0.249706,
+        0.284279,
+        0.64197,
+        1.247381
+      ]
+    }
+  ],
+  "common_candidate_count": 2,
+  "complete_b1_output_elements": 3145728,
+  "correctness_passed_count": 2,
+  "cpu_sentinel_elements": 32,
+  "default_block_invariant": false,
+  "default_block_maximum_error": 1.19209e-07,
+  "default_block_rms_error": 3.09e-09,
+  "default_event_ms_p50": [
+    0.127972006798,
+    0.276268988848,
+    0.860320985317,
+    1.270817041397
+  ],
+  "default_wall_ms_p50": [
+    0.136185,
+    0.286375,
+    0.870943,
+    1.279316
+  ],
+  "heads": 12,
+  "k": 2048,
+  "kv_heads": 2,
+  "m": 2048,
+  "n": 128,
+  "operation": "pv",
+  "record_type": "fp32_attention_batch_invariance",
+  "request_batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "schema_version": 1,
+  "sequence": 2048,
+  "shape_candidate_counts": [
+    64,
+    64,
+    64,
+    64
+  ],
+  "status": "pass",
+  "transpose_right": false,
+  "width": 128,
+  "workspace_limit_bytes": 33554432
+}

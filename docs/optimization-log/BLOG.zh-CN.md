@@ -4807,3 +4807,16 @@ raw第一个差异索引2位于未来mask区，所以我们没有立刻下结论
 solution门；softmax没有独立首差。下一步分别筛两个真实descriptor，不能用一个局部修复覆盖全部batch。
 
 ![Prefill Attention core](../../benchmarks/results/2026-08-26-prefill-attention-core-matrix/attention-core.svg)
+
+## 326. Experiment 309：能让不同batch一致，不等于能免费做到
+
+真实QK descriptor有34个共同solution，34/34跨B1/2/4/8位级一致；P×V只有2个共同solution，2/2
+也一致。default面对完全相同输入仍分别出现2.98e-7和1.19e-7 Max。保序能力确实存在。
+
+性能门却全部拒绝。最佳QK 304681的B1/2/4/8为0.933/1.111/0.916/1.083x；最佳P×V 295716为
+0.535/1.003/1.360/1.026x。两者四batch最差都低于0.95，所以admitted index都是-1。
+
+这次没有把几何平均1.007x的QK写成“加速”，因为B4明确回退8.4%；也没有用P×V B4的1.36x掩盖
+B1回退46.5%。下一步只把最佳exact pair接成严格scope的整模反事实，测完整logits与端到端；默认冻结。
+
+![Attention solution matrix](../../benchmarks/results/2026-08-26-fp32-attention-batch-invariance/attention-solutions.svg)

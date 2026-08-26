@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "experiment": 309,
+  "status": "operator_performance_rejected",
+  "qk": {
+    "common_candidates": 34,
+    "exact_candidates": 34,
+    "non_regressing_candidates": 0,
+    "default_block_maximum_error": 0.000000298023,
+    "best_exact_index": 304681,
+    "best_exact_speedups_b1_b2_b4_b8": [0.932753881124, 1.11079808054, 0.915873395648, 1.083185664025],
+    "best_exact_geometric_mean_speedup": 1.0068972000125422,
+    "best_exact_minimum_speedup": 0.915873395648,
+    "admitted_index": -1
+  },
+  "pv": {
+    "common_candidates": 2,
+    "exact_candidates": 2,
+    "non_regressing_candidates": 0,
+    "default_block_maximum_error": 0.000000119209,
+    "best_exact_index": 295716,
+    "best_exact_speedups_b1_b2_b4_b8": [0.535391731132, 1.003199073469, 1.360143999816, 1.025725929797],
+    "best_exact_geometric_mean_speedup": 0.9303979644279466,
+    "best_exact_minimum_speedup": 0.535391731132,
+    "admitted_index": -1
+  },
+  "same_index_can_restore_operator_row_invariance_supported": true,
+  "same_index_is_non_regressing_for_all_batches_rejected": true,
+  "default_change_admitted": false,
+  "model_counterfactual_allowed": true,
+  "model_counterfactual": {
+    "qk_index": 304681,
+    "pv_index": 295716,
+    "reason": "End-to-end dilution and complete-logit improvement remain falsifiable even though the operator-wide performance gate failed."
+  },
+  "next_experiment": "Add exact Attention QK/PV registry scopes and run a fresh-process DeepSeek B1/B2/B4/B8 logits, cache, throughput, and peak-memory counterfactual."
+}

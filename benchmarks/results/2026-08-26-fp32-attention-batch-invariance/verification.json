@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "experiment": 309,
+  "status": "pass",
+  "engine_commit": "8317d2b455bd750b37fc90f78aaaa2d2d2436be8",
+  "runner": "benchmarks/single_gpu/fp32_attention_batch_invariance_matrix.py",
+  "sequence": 2048,
+  "request_batches": [1, 2, 4, 8],
+  "backend_batch_counts": [12, 24, 48, 96],
+  "maximum_algorithms_per_shape": 64,
+  "workspace_limit_bytes": 33554432,
+  "warmup": 1,
+  "repetitions": 3,
+  "correctness_before_timing": true,
+  "complete_output_comparison": true,
+  "admission_minimum_speedup": 0.95,
+  "qk_admitted_index": -1,
+  "pv_admitted_index": -1,
+  "full_gates": {
+    "cpu_debug": "376/376",
+    "asan_ubsan": "374/374",
+    "pytorch_enabled_cpu": "379/379",
+    "mi300x_gfx942_hip": "196/196",
+    "rccl": "53/53"
+  },
+  "attempts": [
+    {
+      "status": "invalid_schema_only",
+      "reason": "The first runner attempt rejected inventory output that omitted transpose_right; no large matrix ran."
+    },
+    {
+      "status": "pass",
+      "reason": "Descriptor identity was explicit and both complete matrices finished."
+    }
+  ],
+  "claims_not_made": [
+    "No operator solution is admitted as a default.",
+    "One-process operator timing is not an end-to-end speedup.",
+    "The best exact indices remain version-local counterfactuals."
+  ]
+}

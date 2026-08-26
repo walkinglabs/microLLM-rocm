@@ -19,6 +19,7 @@ def main() -> int:
         "PyTorch-enabled CPU 379/379",
         "single-GPU HIP label 196/196",
         "B2 first drifts at P×V",
+        "QK 34/34 and P×V 2/2",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -72,6 +73,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-prefill-attention-core-matrix/analysis.json",
         "benchmarks/results/2026-08-26-prefill-attention-core-matrix/verification.json",
         "benchmarks/results/2026-08-26-prefill-attention-core-matrix/attention-core.svg",
+        "benchmarks/results/2026-08-26-fp32-attention-batch-invariance/summary.json",
+        "benchmarks/results/2026-08-26-fp32-attention-batch-invariance/analysis.json",
+        "benchmarks/results/2026-08-26-fp32-attention-batch-invariance/verification.json",
+        "benchmarks/results/2026-08-26-fp32-attention-batch-invariance/attention-solutions.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -99,6 +104,17 @@ def main() -> int:
     assert attention["first_causal_nonzero_stage_by_batch"]["2"].endswith(
         ".pv_output")
     ET.parse(attention_root / "attention-core.svg")
+    solution_root = ROOT / (
+        "benchmarks/results/2026-08-26-fp32-attention-batch-invariance")
+    solutions = json.loads(
+        (solution_root / "summary.json").read_text(encoding="utf-8"))
+    solution_operations = {
+        row["operation"]: row for row in solutions["operations"]}
+    assert solution_operations["qk"]["block_invariant_count"] == 34
+    assert solution_operations["pv"]["block_invariant_count"] == 2
+    assert solution_operations["qk"]["admitted_index"] == -1
+    assert solution_operations["pv"]["admitted_index"] == -1
+    ET.parse(solution_root / "attention-solutions.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 

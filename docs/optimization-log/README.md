@@ -1017,6 +1017,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Attention-core diagnostics SVG](../../benchmarks/results/2026-08-26-prefill-attention-core-diagnostics/diagnostics.svg) | 生产/诊断双路径与五组回归证据 |
 | [experiments/308-prefill-attention-core-matrix.md](experiments/308-prefill-attention-core-matrix.md) | B2 P×V与B4/B8 QK双首差、causal-visible完整值门 |
 | [Attention-core matrix SVG](../../benchmarks/results/2026-08-26-prefill-attention-core-matrix/attention-core.svg) | 8进程三阶段完整二进制比较 |
+| [experiments/309-fp32-attention-batch-solutions.md](experiments/309-fp32-attention-batch-solutions.md) | QK/P×V exact能力与四batch性能拒绝 |
+| [Attention solution SVG](../../benchmarks/results/2026-08-26-fp32-attention-batch-invariance/attention-solutions.svg) | 34+2候选的exact/最差speedup矩阵 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

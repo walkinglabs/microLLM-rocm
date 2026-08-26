@@ -1,6 +1,6 @@
 # Step 125 — Prefill Attention dual GEMM solution matrix
 
-Status: planned
+Status: completed by Experiment 309
 
 Experiment 308证明T2048有两个首差descriptor，不能只优化一个：
 
@@ -15,3 +15,7 @@ Experiment 308证明T2048有两个首差descriptor，不能只优化一个：
 每个候选依次通过：support → 完整CPU/默认reference → 跨batch row bitwise → 同batch重复行 bitwise →
 HIP Event/wall。correctness失败者不计时。只把共同、零/可接受workspace、完整值通过的候选送入
 DeepSeek模型反驳。QK与P×V允许需要不同solution；version-local index保持显式，默认不变。
+
+结果：QK 34/34、P×V 2/2跨batch exact，但四batch最差speedup≥0.95的候选均为0。
+operator默认拒绝；best exact QK=304681、P×V=295716只进入完整模型反驳。详见
+[`Experiment 309`](../experiments/309-fp32-attention-batch-solutions.md)。
