@@ -355,6 +355,9 @@ def main() -> int:
     assert grouped_model["tokens_equal"] is True
     assert grouped_model["throughput_speedup"] < 1.01
     assert grouped_model["candidate_admitted"] is False
+    assert not (ROOT / "benchmarks/single_gpu/grouped_gate_up_decode_model_gate.py").exists()
+    app_source = (ROOT / "apps/hf_infer.cpp").read_text(encoding="utf-8")
+    assert "requires HIP BF16 FFN Arena prefill or decode" not in app_source
     assert not (ROOT / "benchmarks/single_gpu/native128_finalize_matrix.py").exists()
     native_sources = "\n".join(
         (ROOT / relative).read_text(encoding="utf-8")

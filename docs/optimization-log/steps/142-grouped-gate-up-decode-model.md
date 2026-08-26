@@ -7,3 +7,5 @@ step命中每层一次。固定DeepSeek T2048/B2/N64、Arena baseline与Arena+65
 要求64 token相同、吞吐≥1.01×、资源与dispatch计数通过。失败撤回decode扩展，成功也保持显式。
 
 结果：180.19/178.46 tok/s=1.00968×，低于1.01；tokens相同，候选拒绝并撤回decode扩展。
+
+清理完成：CLI恢复prefill-only，cached-decode runner和route测试删除。

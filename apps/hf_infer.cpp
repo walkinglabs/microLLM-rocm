@@ -711,11 +711,10 @@ Options options(int argc, char** argv) {
     }
     if (result.bf16_grouped_gate_up_algorithm_index < -1 ||
         (result.bf16_grouped_gate_up_algorithm_index >= 0 &&
-         (result.device != "hip" ||
-          (result.workload != "prefill" && result.workload != "decode") ||
+         (result.device != "hip" || result.workload != "prefill" ||
           !result.bf16_ffn || !result.bf16_ffn_arena))) {
         throw std::invalid_argument(
-            "--bf16-grouped-gate-up-algorithm-index requires HIP BF16 FFN Arena prefill or decode");
+            "--bf16-grouped-gate-up-algorithm-index requires HIP BF16 FFN Arena prefill");
     }
     if (result.bf16_grouped_gate_up_swish &&
         result.bf16_grouped_gate_up_algorithm_index < 0) {
@@ -1640,10 +1639,8 @@ int main(int argc, char** argv) {
             microllm::ops::clear_bf16_grouped_gate_up_registry();
             const auto key =
                 microllm::ops::make_bf16_grouped_gate_up_key(
-                    command.workload == "decode"
-                        ? command.batch
-                        : command.batch *
-                              static_cast<std::int64_t>(ids.size()),
+                    command.batch *
+                        static_cast<std::int64_t>(ids.size()),
                     external.model.dimension,
                     external.model.ffn_dimension, device);
             microllm::ops::register_bf16_grouped_gate_up_algorithm(

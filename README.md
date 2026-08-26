@@ -49,8 +49,8 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > closed. The GEMM audit finds an unmeasured decode rows2 grouped gate/up shape:
 > DeepSeek is exact at `1.814x` Event / `1.519x` wall with stable solution 65193.
 > The model gate reaches only `1.00968x` versus the declared `1.01x`; tokens are
-> equal, but the route is rejected and scheduled for removal.
-> See the [native128 rejection](docs/optimization-log/experiments/324-native128-finalize-reject.md).
+> equal; the decode extension and runner have been removed.
+> See the [grouped decode rejection](docs/optimization-log/experiments/326-grouped-decode-model-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
