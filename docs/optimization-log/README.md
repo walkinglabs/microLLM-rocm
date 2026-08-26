@@ -1023,6 +1023,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Attention model-gate SVG](../../benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/model-gate.svg) | 32进程完整core/logits/prefill门 |
 | [experiments/311-batch-selective-attention-reject.md](experiments/311-batch-selective-attention-reject.md) | 性能/RMS通过但Max/B2拒绝与路线关闭 |
 | [Selective gate SVG](../../benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/selective-gate.svg) | batch-local index的完整logits/性能矩阵 |
+| [experiments/312-post-exact-core-o-projection.md](experiments/312-post-exact-core-o-projection.md) | exact context后的O projection首差 |
+| [Post-exact-core SVG](../../benchmarks/results/2026-08-26-post-exact-core-block0-trace/post-exact-core-trace.svg) | 8进程17边界完整trace |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

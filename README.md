@@ -39,12 +39,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 311's batch-selective policy
-> passes every performance gate (minimum 0.994×) and improves global logit RMS
-> 21.6%, but global Max improves only 6.1% and B2 regresses. It is rejected and
-> the QK/P×V solution track is closed. The next diagnostic starts after an exact
-> core to locate O projection or FFN drift. See the
-> [selective rejection](docs/optimization-log/experiments/311-batch-selective-attention-reject.md).
+> **Current optimization checkpoint:** Experiment 312 uses the rejected exact-core
+> route only as a microscope. Context is bitwise equal across and within all batches;
+> the first renewed drift is O projection, with B2/B4 Max `3.3379e-5` and B8
+> `2.7657e-5`. The next counterfactual scopes invariant solution 296100 to O only.
+> See the [post-core trace](docs/optimization-log/experiments/312-post-exact-core-o-projection.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

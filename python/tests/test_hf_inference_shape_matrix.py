@@ -125,6 +125,35 @@ POST_EXACT_CORE_SPEC.loader.exec_module(POST_EXACT_CORE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_post_exact_core_trace_locates_o_projection(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-post-exact-core-block0-trace")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(summary["process_rows"], 8)
+        self.assertEqual(summary["stage_count"], 17)
+        self.assertEqual(summary["first_nonzero_after_cache"],
+                         POST_EXACT_CORE.BASE.PREFIX + ".attention.output")
+        for case in summary["cases"]:
+            context = next(stage for stage in case["stages"]
+                           if stage["name"].endswith(".attention.context"))
+            self.assertTrue(context["b1_vs_batch_row0"]["bitwise_equal"])
+            self.assertTrue(context["batch_row0_vs_row1"]["bitwise_equal"])
+        b2 = next(case for case in summary["cases"] if case["batch"] == 2)
+        output = next(stage for stage in b2["stages"]
+                      if stage["name"].endswith(".attention.output"))
+        self.assertEqual(output["b1_vs_batch_row0"]["maximum"],
+                         3.337860107421875e-05)
+        self.assertFalse(output["batch_row0_vs_row1"]["bitwise_equal"])
+        self.assertTrue(analysis["all_context_cross_batch_bitwise_equal"])
+        self.assertTrue(analysis[
+            "within_batch_first_divergence_is_attention_output"])
+        self.assertEqual(verification["runner_commit"],
+                         "836543746efed32bcc72b231ec195bef456fe3ea")
+        ET.parse(root / "post-exact-core-trace.svg")
+
     def test_post_exact_core_trace_command_and_route_are_scoped(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,

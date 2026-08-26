@@ -4847,3 +4847,14 @@ speedup为1.001/0.994/1.020/1.013x，peak和allocation不变。
 FFN定位第一处新差异。
 
 ![Batch-selective rejection](../../benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/selective-gate.svg)
+
+## 329. Experiment 312：把Core固定后，O Projection成为第一处差异
+
+same-index core route不适合默认，但适合做显微镜。8个fresh process显示B2/B4/B8的Attention context跨
+batch和同batch全部exact。紧接着的O projection统一首差：B2/B4 Max 3.3379e-5，B8 2.7657e-5；
+同batch两行也从这里分叉。
+
+这把QK/P×V路线与新问题切开。下一步只给O projection增加独立scope，并复用相同1536×1536 shape已
+通过row-invariance的296100。FFN先不动。
+
+![Post exact core trace](../../benchmarks/results/2026-08-26-post-exact-core-block0-trace/post-exact-core-trace.svg)

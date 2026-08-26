@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "experiment": 312,
+  "status": "pass",
+  "first_nonzero_after_exact_core": "inference.cached_prefill.blocks.0.attention.output",
+  "all_context_cross_batch_bitwise_equal": true,
+  "all_context_within_batch_bitwise_equal": true,
+  "attention_output": {
+    "b2_maximum": 0.00003337860107421875,
+    "b2_rms": 0.0000004473898907324611,
+    "b4_maximum": 0.00003337860107421875,
+    "b4_rms": 0.0000004473898907324611,
+    "b8_maximum": 0.00002765655517578125,
+    "b8_rms": 0.00000044137800031682134
+  },
+  "within_batch_first_divergence_is_attention_output": true,
+  "qk_pv_solution_track_reopened": false,
+  "next_experiment": "Add a PrefillAttentionOutputProjection scope and gate invariant solution 296100 on O projection only."
+}

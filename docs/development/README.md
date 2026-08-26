@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: O projection after exact core](2026-08-26-post-exact-core-o-projection.md)
 - [2026-08-26: Post-exact-core block trace runner](2026-08-26-post-exact-core-trace-infrastructure.md)
 - [2026-08-26: Batch-selective Attention rejection](2026-08-26-batch-selective-attention-reject.md)
 - [2026-08-26: Batch-selective Attention gate runner](2026-08-26-batch-selective-attention-gate.md)

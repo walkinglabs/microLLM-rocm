@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "experiment": 312,
+  "status": "pass",
+  "engine_commit": "6a31cfeed33bf76456e6ad81f4d3b87fbd8076a7",
+  "runner_commit": "836543746efed32bcc72b231ec195bef456fe3ea",
+  "context": 2048,
+  "batches": [1, 2, 4, 8],
+  "runs_per_case": 2,
+  "process_rows": 8,
+  "stage_count": 17,
+  "captured_batch_rows": 2,
+  "q_solution_index": 296100,
+  "kv_solution_index": 292135,
+  "qk_solution_index": 304681,
+  "pv_solution_index": 295716,
+  "full_gates": {
+    "cpu_debug": "376/376",
+    "asan_ubsan": "374/374",
+    "pytorch_enabled_cpu": "379/379",
+    "mi300x_gfx942_hip": "196/196",
+    "rccl": "53/53"
+  },
+  "claims_not_made": [
+    "The exact core is not a retained performance route.",
+    "This trace does not time O projection.",
+    "No O projection solution is registered yet."
+  ]
+}

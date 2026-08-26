@@ -22,6 +22,7 @@ def main() -> int:
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
         "all prefill speeds ≥0.994× and RMS improves 21.6%",
+        "O projection is first drift at Max 2.77e-5–3.34e-5",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -87,6 +88,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/analysis.json",
         "benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/verification.json",
         "benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/selective-gate.svg",
+        "benchmarks/results/2026-08-26-post-exact-core-block0-trace/summary.json",
+        "benchmarks/results/2026-08-26-post-exact-core-block0-trace/analysis.json",
+        "benchmarks/results/2026-08-26-post-exact-core-block0-trace/verification.json",
+        "benchmarks/results/2026-08-26-post-exact-core-block0-trace/post-exact-core-trace.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -141,6 +146,13 @@ def main() -> int:
     assert selective["robust_logit_max_improvement"] is False
     assert selective["candidate_admitted"] is False
     ET.parse(selective_root / "selective-gate.svg")
+    post_core_root = ROOT / (
+        "benchmarks/results/2026-08-26-post-exact-core-block0-trace")
+    post_core = json.loads(
+        (post_core_root / "summary.json").read_text(encoding="utf-8"))
+    assert post_core["first_nonzero_after_cache"].endswith(
+        ".attention.output")
+    ET.parse(post_core_root / "post-exact-core-trace.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 
