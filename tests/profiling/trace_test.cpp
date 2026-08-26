@@ -129,8 +129,13 @@ TEST(TraceSessionTest, SerializesNonFiniteValuesAsExplicitJsonStrings) {
 }
 
 TEST(TraceSessionTest, ValueFiltersKeepMetadataButCaptureOnlyMatchingNames) {
+    const auto binary_directory = std::filesystem::temp_directory_path() /
+                                  "microllm-trace-binary-test";
+    std::error_code ignored;
+    std::filesystem::remove_all(binary_directory, ignored);
     TraceOptions options;
     options.value_name_filters = {"ffn.activated"};
+    options.binary_value_directory = binary_directory;
     TraceSession session("microllm", "filtered", options);
     const auto tensor = Tensor::from_vector({-2.0F, 3.0F}, {2});
     session.record(TraceKind::Layer, "blocks.0.attention_norm", tensor);
@@ -143,9 +148,39 @@ TEST(TraceSessionTest, ValueFiltersKeepMetadataButCaptureOnlyMatchingNames) {
     EXPECT_EQ(session.records()[1].statistics.finite_count, 2);
     EXPECT_DOUBLE_EQ(session.records()[1].statistics.minimum, -2.0);
     EXPECT_DOUBLE_EQ(session.records()[1].statistics.maximum, 3.0);
+    EXPECT_TRUE(session.records()[0].binary_values_file.empty());
+    EXPECT_EQ(session.records()[1].binary_values_dtype, "float32");
+    EXPECT_EQ(session.records()[1].binary_values_byte_order, "little");
+    EXPECT_EQ(session.records()[1].binary_values_count, 2U);
+    EXPECT_EQ(session.records()[1].binary_values_bytes, 2U * sizeof(float));
+    const auto binary_path =
+        binary_directory / session.records()[1].binary_values_file;
+    std::ifstream binary(binary_path, std::ios::binary);
+    std::vector<float> binary_values(2);
+    binary.read(reinterpret_cast<char*>(binary_values.data()),
+                static_cast<std::streamsize>(binary_values.size() * sizeof(float)));
+    EXPECT_TRUE(binary.good());
+    EXPECT_EQ(binary_values, (std::vector<float>{-2.0F, 3.0F}));
+    const auto json_path = binary_directory / "trace.jsonl";
+    session.write_jsonl(json_path);
+    std::ifstream json(json_path);
+    std::string first_line;
+    std::string second_line;
+    std::getline(json, first_line);
+    std::getline(json, second_line);
+    EXPECT_NE(first_line.find("\"binary_values\":null"), std::string::npos);
+    EXPECT_NE(second_line.find("\"binary_values\":{\"file\":"),
+              std::string::npos);
+    EXPECT_NE(second_line.find("\"dtype\":\"float32\""),
+              std::string::npos);
     options.value_name_filters = {""};
     EXPECT_THROW((void)TraceSession("microllm", "bad-filter", options),
                  std::invalid_argument);
+    options.value_name_filters = {"ffn.activated"};
+    options.capture_values = false;
+    EXPECT_THROW((void)TraceSession("microllm", "no-values", options),
+                 std::invalid_argument);
+    std::filesystem::remove_all(binary_directory, ignored);
 }
 
 }  // namespace microllm::profiling

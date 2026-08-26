@@ -1,6 +1,8 @@
 #include <microllm/profiling/trace.h>
 
 #include <algorithm>
+#include <bit>
+#include <cctype>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -38,23 +40,8 @@ std::string escape_json(std::string_view value) {
     return output;
 }
 
-std::vector<double> tensor_values(const Tensor& tensor) {
-    std::vector<double> output;
-    if (is_floating_point(tensor.dtype())) {
-        const auto values = tensor.to_vector();
-        output.assign(values.begin(), values.end());
-    } else if (tensor.dtype() == DType::Int32) {
-        const auto values = tensor.to_int32_vector();
-        output.reserve(values.size());
-        for (const auto value : values) output.push_back(static_cast<double>(value));
-    } else {
-        throw std::invalid_argument(
-            "trace value capture does not support this tensor dtype");
-    }
-    return output;
-}
-
-TensorStatistics statistics(const std::vector<double>& values,
+template <typename T>
+TensorStatistics statistics(const std::vector<T>& values,
                             std::int64_t declared_numel) {
     TensorStatistics output;
     output.numel = declared_numel;
@@ -64,12 +51,13 @@ TensorStatistics statistics(const std::vector<double>& values,
     double sum = 0.0;
     double squared_sum = 0.0;
     for (const auto value : values) {
-        if (!std::isfinite(value)) continue;
+        const auto numeric = static_cast<double>(value);
+        if (!std::isfinite(numeric)) continue;
         ++output.finite_count;
-        output.minimum = std::min(output.minimum, value);
-        output.maximum = std::max(output.maximum, value);
-        sum += value;
-        squared_sum += value * value;
+        output.minimum = std::min(output.minimum, numeric);
+        output.maximum = std::max(output.maximum, numeric);
+        sum += numeric;
+        squared_sum += numeric * numeric;
     }
     if (output.finite_count == 0) {
         output.minimum = 0.0;
@@ -79,6 +67,46 @@ TensorStatistics statistics(const std::vector<double>& values,
     output.mean = sum / static_cast<double>(output.finite_count);
     output.l2_norm = std::sqrt(squared_sum);
     return output;
+}
+
+std::string safe_file_component(std::string_view value) {
+    std::string output;
+    output.reserve(value.size());
+    for (const auto character : value) {
+        const auto byte = static_cast<unsigned char>(character);
+        output.push_back(std::isalnum(byte) || character == '-' ||
+                                 character == '_' || character == '.'
+                             ? character
+                             : '_');
+    }
+    return output.empty() ? "trace" : output;
+}
+
+template <typename T>
+std::string write_binary_values(
+    const std::filesystem::path& directory, std::string_view run_id,
+    std::uint64_t sequence, std::string_view name, std::string_view dtype,
+    const std::vector<T>& values) {
+    std::filesystem::create_directories(directory);
+    const auto filename = safe_file_component(run_id) + "-" +
+        std::to_string(sequence) + "-" + safe_file_component(name) + "." +
+        std::string(dtype) + ".bin";
+    const auto path = directory / filename;
+    std::ofstream output(path, std::ios::binary | std::ios::trunc);
+    if (!output) {
+        throw std::runtime_error(
+            "cannot open trace binary output: " + path.string());
+    }
+    if (!values.empty()) {
+        output.write(
+            reinterpret_cast<const char*>(values.data()),
+            static_cast<std::streamsize>(values.size() * sizeof(T)));
+    }
+    if (!output) {
+        throw std::runtime_error(
+            "failed while writing trace binary output: " + path.string());
+    }
+    return filename;
 }
 
 }  // namespace
@@ -107,6 +135,22 @@ TraceSession::TraceSession(std::string framework, std::string run_id,
                     options_.value_name_filters.end(),
                     [](const auto& value) { return value.empty(); })) {
         throw std::invalid_argument("trace value filters cannot be empty");
+    }
+    if (!options_.binary_value_directory.empty() &&
+        !options_.capture_values) {
+        throw std::invalid_argument(
+            "trace binary output requires value capture");
+    }
+    if (!options_.binary_value_directory.empty() &&
+        std::endian::native != std::endian::little) {
+        throw std::invalid_argument(
+            "trace binary output currently requires a little-endian host");
+    }
+    if (!options_.binary_value_directory.empty() &&
+        std::filesystem::exists(options_.binary_value_directory) &&
+        !std::filesystem::is_directory(options_.binary_value_directory)) {
+        throw std::invalid_argument(
+            "trace binary output path must be a directory");
     }
 }
 
@@ -151,11 +195,49 @@ void TraceSession::record(TraceKind kind, std::string name, const Tensor& tensor
     record.device = tensor.device();
     record.wall_ms = wall_ms;
     if (capture_record_values) {
-        auto values = tensor_values(tensor);
-        record.statistics = statistics(values, tensor.numel());
-        const auto captured = std::min(values.size(), options_.max_captured_elements);
-        record.values.assign(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(captured));
-        record.values_truncated = captured != values.size();
+        if (is_floating_point(tensor.dtype())) {
+            const auto values = tensor.to_vector();
+            record.statistics = statistics(values, tensor.numel());
+            const auto captured =
+                std::min(values.size(), options_.max_captured_elements);
+            record.values.reserve(captured);
+            for (std::size_t index = 0; index < captured; ++index) {
+                record.values.push_back(static_cast<double>(values[index]));
+            }
+            record.values_truncated = captured != values.size();
+            if (!options_.binary_value_directory.empty()) {
+                record.binary_values_file = write_binary_values(
+                    options_.binary_value_directory, run_id_, record.sequence,
+                    record.name, "f32", values);
+                record.binary_values_dtype = "float32";
+                record.binary_values_byte_order = "little";
+                record.binary_values_count = values.size();
+                record.binary_values_bytes = values.size() * sizeof(float);
+            }
+        } else if (tensor.dtype() == DType::Int32) {
+            const auto values = tensor.to_int32_vector();
+            record.statistics = statistics(values, tensor.numel());
+            const auto captured =
+                std::min(values.size(), options_.max_captured_elements);
+            record.values.reserve(captured);
+            for (std::size_t index = 0; index < captured; ++index) {
+                record.values.push_back(static_cast<double>(values[index]));
+            }
+            record.values_truncated = captured != values.size();
+            if (!options_.binary_value_directory.empty()) {
+                record.binary_values_file = write_binary_values(
+                    options_.binary_value_directory, run_id_, record.sequence,
+                    record.name, "i32", values);
+                record.binary_values_dtype = "int32";
+                record.binary_values_byte_order = "little";
+                record.binary_values_count = values.size();
+                record.binary_values_bytes =
+                    values.size() * sizeof(std::int32_t);
+            }
+        } else {
+            throw std::invalid_argument(
+                "trace value capture does not support this tensor dtype");
+        }
     } else {
         record.statistics.numel = tensor.numel();
     }
@@ -190,7 +272,19 @@ void TraceSession::write_jsonl(const std::filesystem::path& path) const {
                << ",\"mean\":" << record.statistics.mean
                << ",\"l2_norm\":" << record.statistics.l2_norm
                << "},\"values_truncated\":"
-               << (record.values_truncated ? "true" : "false") << ",\"values\":[";
+               << (record.values_truncated ? "true" : "false")
+               << ",\"binary_values\":";
+        if (record.binary_values_file.empty()) {
+            output << "null";
+        } else {
+            output << "{\"file\":" << escape_json(record.binary_values_file)
+                   << ",\"dtype\":" << escape_json(record.binary_values_dtype)
+                   << ",\"byte_order\":"
+                   << escape_json(record.binary_values_byte_order)
+                   << ",\"count\":" << record.binary_values_count
+                   << ",\"bytes\":" << record.binary_values_bytes << '}';
+        }
+        output << ",\"values\":[";
         for (std::size_t index = 0; index < record.values.size(); ++index) {
             if (index != 0) output << ',';
             const auto value = record.values[index];

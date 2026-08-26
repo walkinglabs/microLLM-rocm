@@ -206,6 +206,16 @@ def main() -> int:
                 "one selected cached decode step" not in rejected_decode_trace.stderr:
             raise RuntimeError(
                 "hf_infer accepted an unselected cached decode trace")
+        rejected_binary_trace = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--trace-binary-directory", str(Path(temporary) / "binary-values"),
+        ], text=True, capture_output=True, check=False)
+        if rejected_binary_trace.returncode == 0 or \
+                "requires --trace-output and an explicit --trace-value-filter" \
+                not in rejected_binary_trace.stderr:
+            raise RuntimeError(
+                "hf_infer accepted unscoped binary trace output")
     print("hf_infer binary contract: pass")
     return 0
 

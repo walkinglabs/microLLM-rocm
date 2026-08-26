@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import struct
+import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -91,9 +92,67 @@ POST_CACHE_SPEC = importlib.util.spec_from_file_location(
 POST_CACHE = importlib.util.module_from_spec(POST_CACHE_SPEC)
 assert POST_CACHE_SPEC.loader is not None
 POST_CACHE_SPEC.loader.exec_module(POST_CACHE)
+ATTENTION_CORE_SPEC = importlib.util.spec_from_file_location(
+    "audit_prefill_attention_core",
+    ROOT / "benchmarks/single_gpu/audit_prefill_attention_core.py")
+ATTENTION_CORE = importlib.util.module_from_spec(ATTENTION_CORE_SPEC)
+assert ATTENTION_CORE_SPEC.loader is not None
+ATTENTION_CORE_SPEC.loader.exec_module(ATTENTION_CORE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_prefill_attention_core_binary_comparison_and_summary(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            left = root / "left.bin"
+            exact = root / "exact.bin"
+            changed = root / "changed.bin"
+            left.write_bytes(struct.pack("<4f", 1.0, 2.0, 3.0, 4.0))
+            exact.write_bytes(struct.pack("<4f", 1.0, 2.0, 3.0, 4.0))
+            changed.write_bytes(struct.pack("<4f", 1.0, 2.0, 3.5, 4.0))
+            self.assertTrue(ATTENTION_CORE.difference_binary(
+                left, exact, 4)["bitwise_equal"])
+            difference = ATTENTION_CORE.difference_binary(left, changed, 4)
+            self.assertFalse(difference["bitwise_equal"])
+            self.assertEqual(difference["first_bitwise_index"], 2)
+            self.assertEqual(difference["first_numeric_index"], 2)
+            self.assertEqual(difference["maximum"], 0.5)
+
+        processes = []
+        for run in (1, 2):
+            for batch in ATTENTION_CORE.BATCHES:
+                stages = []
+                for index, name in enumerate(ATTENTION_CORE.STAGES):
+                    differs = batch > 1 and index == 2
+                    metric = {
+                        "elements": 4,
+                        "bitwise_equal": not differs,
+                        "first_bitwise_index": 2 if differs else None,
+                        "first_numeric_index": 2 if differs else None,
+                        "maximum": 0.5 if differs else 0.0,
+                        "rms": 0.25 if differs else 0.0,
+                        "relative_l2": 0.1 if differs else 0.0,
+                    }
+                    stages.append({
+                        "name": name,
+                        "b1_vs_batch_row0": metric,
+                        "batch_row0_vs_row1": {
+                            **metric, "bitwise_equal": True,
+                            "first_bitwise_index": None,
+                            "first_numeric_index": None,
+                            "maximum": 0.0, "rms": 0.0,
+                            "relative_l2": 0.0,
+                        },
+                    })
+                processes.append({"batch": batch, "process_run": run,
+                                  "stages": stages})
+        summary = ATTENTION_CORE.summarize(processes)
+        self.assertTrue(summary["all_scores_bitwise_equal"])
+        self.assertTrue(summary["all_probabilities_bitwise_equal"])
+        self.assertEqual(summary["first_nonzero_stage"],
+                         ATTENTION_CORE.STAGES[2])
+        ET.fromstring(ATTENTION_CORE.render(summary))
+
     def test_current_post_cache_trace_locates_attention_context(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-post-cache-block0-trace")

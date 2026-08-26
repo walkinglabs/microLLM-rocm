@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -100,6 +101,7 @@ struct Options {
     bool continuous_diagnostics = false;
     bool continuous_bucket_overflow = false;
     std::filesystem::path trace_output;
+    std::filesystem::path trace_binary_directory;
     std::int64_t trace_max_elements = 4096;
     bool trace_all_layer_details = false;
     std::string trace_value_filter;
@@ -327,6 +329,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--trace-output") {
             result.trace_output = argv[index + 1];
+        }
+        else if (name == "--trace-binary-directory") {
+            result.trace_binary_directory = argv[index + 1];
         }
         else if (name == "--trace-max-elements") {
             result.trace_max_elements = std::stoll(argv[index + 1]);
@@ -659,6 +664,11 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--trace-value-filter requires --trace-output");
     }
+    if (!result.trace_binary_directory.empty() &&
+        (result.trace_output.empty() || result.trace_value_filter.empty())) {
+        throw std::invalid_argument(
+            "--trace-binary-directory requires --trace-output and an explicit --trace-value-filter");
+    }
     if (result.bf16_algorithm_index < -1 ||
         (result.bf16_algorithm_index >= 0 &&
          (result.workload != "prefill" || !result.bf16_ffn))) {
@@ -794,7 +804,20 @@ microllm::profiling::TraceOptions trace_options(const Options& command) {
     }
     options.max_captured_elements =
         static_cast<std::size_t>(command.trace_max_elements);
+    options.binary_value_directory = command.trace_binary_directory;
     return options;
+}
+
+std::pair<std::size_t, std::uint64_t> trace_binary_counts(
+    const microllm::profiling::TraceSession& session) {
+    std::size_t records = 0;
+    std::uint64_t bytes = 0;
+    for (const auto& record : session.records()) {
+        if (record.binary_values_file.empty()) continue;
+        ++records;
+        bytes += record.binary_values_bytes;
+    }
+    return {records, bytes};
 }
 
 std::string fp8_compute_policy(const Options& command) {
@@ -2060,6 +2083,8 @@ int main(int argc, char** argv) {
         microllm::Tensor logits_tensor;
         double forward_ms = 0.0;
         std::size_t trace_record_count = 0;
+        std::size_t trace_binary_record_count = 0;
+        std::uint64_t trace_binary_bytes = 0;
         microllm::runtime::AllocationSourceDiagnostics allocation_sources;
         microllm::runtime::StridedCopyDiagnostics strided_copies;
         const auto run_prefill = command.workload != "decode";
@@ -2114,6 +2139,8 @@ int main(int argc, char** argv) {
             if (trace_session != nullptr) {
                 trace_session->write_jsonl(command.trace_output);
                 trace_record_count = trace_session->records().size();
+                std::tie(trace_binary_record_count, trace_binary_bytes) =
+                    trace_binary_counts(*trace_session);
             }
             forward_ms = std::chrono::duration<double, std::milli>(
                              forward_finish - forward_start).count();
@@ -2301,9 +2328,13 @@ int main(int argc, char** argv) {
             if (decode_trace_session != nullptr) {
                 decode_trace_session->write_jsonl(command.trace_output);
                 trace_record_count = decode_trace_session->records().size();
+                std::tie(trace_binary_record_count, trace_binary_bytes) =
+                    trace_binary_counts(*decode_trace_session);
             } else if (prefill_trace_session != nullptr) {
                 prefill_trace_session->write_jsonl(command.trace_output);
                 trace_record_count = prefill_trace_session->records().size();
+                std::tie(trace_binary_record_count, trace_binary_bytes) =
+                    trace_binary_counts(*prefill_trace_session);
             }
             if (tokenizer.has_value()) generated_text = tokenizer->decode(generated_suffix);
         }
@@ -2342,6 +2373,10 @@ int main(int argc, char** argv) {
                   << ",\"architecture\":\"" << info.architecture << "\""
                   << ",\"trace_record_count\":"
                   << trace_record_count
+                  << ",\"trace_binary_record_count\":"
+                  << trace_binary_record_count
+                  << ",\"trace_binary_bytes\":"
+                  << trace_binary_bytes
                   << ",\"inference_bthd_attention\":"
                   << (command.inference_bthd_attention ? "true" : "false")
                   << ",\"inference_bthd_online_attention\":"

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="690" viewBox="0 0 1480 690">
+  <rect width="1480" height="690" fill="#0b1020"/>
+  <style>
+    text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}
+    .title{font-size:26px;font-weight:700}.sub{font-size:14px;fill:#94a3b8}
+    .head{font-size:17px;font-weight:700}.body{font-size:13px}.small{font-size:12px;fill:#94a3b8}
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#38bdf8"/>
+    </marker>
+  </defs>
+  <text x="40" y="46" class="title">Filtered binary TraceSession export</text>
+  <text x="40" y="74" class="sub">Complete values for one named Tensor · bounded JSON · no production timing claim</text>
+
+  <rect x="55" y="130" width="270" height="120" rx="14" fill="#131b2e" stroke="#64748b" stroke-width="2"/>
+  <text x="190" y="168" class="head" text-anchor="middle">explicit value filter</text>
+  <text x="190" y="198" class="body" text-anchor="middle">block0.attention.scores</text>
+  <text x="190" y="224" class="small" text-anchor="middle">no filter → CLI rejects binary dump</text>
+  <line x1="325" y1="190" x2="405" y2="190" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="420" y="130" width="290" height="120" rx="14" fill="#131b2e" stroke="#f97316" stroke-width="2"/>
+  <text x="565" y="168" class="head" text-anchor="middle">logical Tensor copy</text>
+  <text x="565" y="198" class="body" text-anchor="middle">50,331,648 FP32 values</text>
+  <text x="565" y="224" class="small" text-anchor="middle">synchronous diagnosis · never benchmark</text>
+  <line x1="710" y1="190" x2="790" y2="190" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="805" y="105" width="290" height="145" rx="14" fill="#131b2e" stroke="#22c55e" stroke-width="2"/>
+  <text x="950" y="145" class="head" text-anchor="middle">compact binary</text>
+  <text x="950" y="178" class="body" text-anchor="middle">201,326,592 bytes</text>
+  <text x="950" y="205" class="small" text-anchor="middle">float32 · little endian · complete</text>
+  <text x="950" y="228" class="small" text-anchor="middle">deleted after comparison</text>
+  <line x1="1095" y1="190" x2="1175" y2="190" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="1190" y="130" width="235" height="120" rx="14" fill="#131b2e" stroke="#22c55e" stroke-width="2"/>
+  <text x="1308" y="168" class="head" text-anchor="middle">small evidence</text>
+  <text x="1308" y="198" class="body" text-anchor="middle">Max · RMS · first index</text>
+  <text x="1308" y="224" class="small" text-anchor="middle">raw metrics + SVG retained</text>
+
+  <text x="55" y="330" class="head">Why the full value matters</text>
+  <line x1="90" y1="410" x2="1390" y2="410" stroke="#334155" stroke-width="4"/>
+  <circle cx="240" cy="410" r="11" fill="#64748b"/>
+  <text x="240" y="448" class="body" text-anchor="middle">200,000-value prefix</text>
+  <text x="240" y="472" class="small" text-anchor="middle">B1/B2 exact, incomplete evidence</text>
+  <circle cx="610" cy="410" r="14" fill="#22c55e"/>
+  <text x="610" y="448" class="body" text-anchor="middle">50,331,648 values</text>
+  <text x="610" y="472" class="small" text-anchor="middle">complete bitwise comparison</text>
+  <circle cx="980" cy="410" r="14" fill="#22c55e"/>
+  <text x="980" y="448" class="body" text-anchor="middle">JSON metadata checked</text>
+  <text x="980" y="472" class="small" text-anchor="middle">dtype · endian · count · bytes</text>
+  <circle cx="1320" cy="410" r="14" fill="#22c55e"/>
+  <text x="1320" y="448" class="body" text-anchor="middle">temporary files = 0</text>
+  <text x="1320" y="472" class="small" text-anchor="middle">repository stays small</text>
+
+  <rect x="55" y="535" width="1370" height="100" rx="14" fill="#111827" stroke="#334155"/>
+  <text x="82" y="572" class="head" fill="#22c55e">Five complete gates</text>
+  <text x="280" y="572" class="body">CPU 376/376 · ASan 374/374 · PyTorch 379/379 · HIP 195/195 · RCCL 53/53</text>
+  <text x="82" y="605" class="sub">Keep the export mechanism; commit numerical conclusions separately from infrastructure.</text>
+</svg>

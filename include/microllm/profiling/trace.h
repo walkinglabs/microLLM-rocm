@@ -23,6 +23,7 @@ struct TraceOptions {
     bool record_all_layer_details = false;
     std::vector<std::string> value_name_filters;
     std::size_t max_captured_elements = 4096;
+    std::filesystem::path binary_value_directory;
 };
 
 struct TensorStatistics {
@@ -46,6 +47,11 @@ struct TraceRecord {
     TensorStatistics statistics;
     std::vector<double> values;
     bool values_truncated = false;
+    std::string binary_values_file;
+    std::string binary_values_dtype;
+    std::string binary_values_byte_order;
+    std::uint64_t binary_values_count = 0;
+    std::uint64_t binary_values_bytes = 0;
 };
 
 class TraceSession {

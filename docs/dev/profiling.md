@@ -28,6 +28,22 @@ Official-model value diagnosis can opt into every Transformer block's detail rec
 全层trace会同步并把诊断值带回CPU，所以只能回答数值范围问题，不能作为性能数据。默认仍只记录
 block 0细节，旧trace的数量和名字不会改变。
 
+当完整 Tensor 太大，不应把几亿个数字写成 JSON。给同一个命令增加一个空目录：
+
+```bash
+  --trace-max-elements 1 \
+  --trace-value-filter inference.cached_prefill.blocks.0.attention.scores \
+  --trace-binary-directory /tmp/attention-values
+```
+
+只有 filter 命中的记录会在该目录写一个紧凑二进制文件。JSON 中的 `binary_values` 会记录
+文件名、逻辑 dtype、little-endian、元素数和字节数；浮点 Tensor 统一解码成 FP32，Int32 保持
+Int32。`trace-max-elements` 仍只控制 JSON 样例，不截断二进制。CLI 要求同时提供
+`--trace-output` 和明确的 `--trace-value-filter`，避免意外导出全模型。
+
+二进制导出仍会同步设备、复制完整值并占用磁盘，因此也是数值诊断，不是性能测量。正式 runner
+应在比较后删除大文件，只把 shape、Max/RMS、首个差异位置和复现命令写入结果目录。
+
 Cached decode可以只追踪一个明确step：
 
 ```bash
