@@ -776,3 +776,14 @@ python3 docs/optimization-log/scripts/render_pytorch_fp16_wave_softmax.py \
   --candidate benchmarks/results/2026-08-26-pytorch-rocm-fp16-wave-softmax \
   --output docs/optimization-log/assets/pytorch-rocm-fp16-wave-softmax.svg
 ```
+
+The following FP16 fast-exp candidate passes precision but is rejected at only
+1.045×/1.034× Event/wall. Evidence is in
+`benchmarks/results/2026-08-26-pytorch-rocm-fast-exp-softmax-reject`; render it with:
+
+```bash
+python3 docs/optimization-log/scripts/render_pytorch_fast_exp_softmax_reject.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-fp16-wave-softmax \
+  --candidate benchmarks/results/2026-08-26-pytorch-rocm-fast-exp-softmax-reject \
+  --output docs/optimization-log/assets/pytorch-rocm-fast-exp-softmax-reject.svg
+```

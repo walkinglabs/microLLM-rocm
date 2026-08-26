@@ -5180,3 +5180,13 @@ cached shared-tree保持默认。若继续，只能新建FP16-only谓词实验�
 继续有效。FP16/PyTorch仍只有0.615×，下一步必须重新profile，不能宣称wide parity。
 
 ![FP16-only wave typed Softmax](assets/pytorch-rocm-fp16-wave-softmax.svg)
+
+## 359. Experiment 343：近似数学没有自动获得豁免
+
+FP16 selective Kernel把`expf`替换成HIP fast intrinsic。10格精度、pointer和peak合同都通过，说明
+低精度舍入掩盖了当前输入上的近似差异；但候选相对当前FP16 wave只有1.045× Event、1.034× wall。
+
+两项都没过1.05，所以近似代码删除。不能拿相对PyTorch的0.659×代替候选前后门。下一步测量
+128/256/512线程，而不是继续放宽数学。
+
+![Fast-exp typed Softmax rejection](assets/pytorch-rocm-fast-exp-softmax-reject.svg)

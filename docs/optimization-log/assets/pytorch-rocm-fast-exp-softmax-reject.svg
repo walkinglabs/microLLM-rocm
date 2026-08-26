@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620">
+<rect width="1120" height="620" fill="#f7f9fc"/>
+<text x="560" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">Fast Exp Is Accurate but Below the Keep Gate</text>
+<text x="560" y="79" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">FP16 width4096 · retained wave / fast-exp candidate · six MI300X processes</text>
+<line x1="110" y1="505.0" x2="660" y2="505.0" stroke="#dbe1ea"/>
+<text x="96" y="510.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.00×</text>
+<line x1="110" y1="441.7" x2="660" y2="441.7" stroke="#dbe1ea"/>
+<text x="96" y="446.7" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.01×</text>
+<line x1="110" y1="378.3" x2="660" y2="378.3" stroke="#dbe1ea"/>
+<text x="96" y="383.3" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.02×</text>
+<line x1="110" y1="315.0" x2="660" y2="315.0" stroke="#dbe1ea"/>
+<text x="96" y="320.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.03×</text>
+<line x1="110" y1="251.7" x2="660" y2="251.7" stroke="#dbe1ea"/>
+<text x="96" y="256.7" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.04×</text>
+<line x1="110" y1="188.3" x2="660" y2="188.3" stroke="#dbe1ea"/>
+<text x="96" y="193.3" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.05×</text>
+<line x1="110" y1="125.0" x2="660" y2="125.0" stroke="#dbe1ea"/>
+<text x="96" y="130.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.06×</text>
+<line x1="110" y1="188.3" x2="660" y2="188.3" stroke="#b42335" stroke-width="2" stroke-dasharray="8 7"/>
+<rect x="227" y="218.8" width="96" height="286.2" rx="9" fill="#b42335"/>
+<text x="275" y="206.8" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">1.045×</text>
+<text x="275" y="540" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">Event</text>
+<rect x="447" y="287.4" width="96" height="217.6" rx="9" fill="#b42335"/>
+<text x="495" y="275.4" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">1.034×</text>
+<text x="495" y="540" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">wall</text>
+<rect x="710" y="125" width="360" height="380" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="740" y="168" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Decision</text>
+<text x="740" y="216" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ 10 / 10 precision + resources</text>
+<text x="740" y="251" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ FP16 maximum error = 1.19e-7</text>
+<text x="740" y="301" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335">✗ Event 1.045× &lt; 1.05×</text>
+<text x="740" y="334" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335">✗ wall 1.034× &lt; 1.05×</text>
+<text x="740" y="384" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#b42335">candidate removed</text>
+<text x="740" y="431" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">retained path remains expf</text>
+<text x="740" y="462" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">next: thread-count matrix</text>
+<text x="560" y="590" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">Do not trade approximation for a sub-threshold gain</text>
+</svg>

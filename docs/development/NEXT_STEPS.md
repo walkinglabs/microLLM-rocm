@@ -280,8 +280,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   two-dtype 1.05 gate;
 - [x] admit an explicit FP16-only wave predicate: width4096 Event/wall improves
   1.077×/1.080×, while compile-time BF16 fallback remains 1.002×/1.004× baseline;
-- [ ] profile the remaining FP16 width4096 0.615× PyTorch gap before another local
-  candidate; broad BF16 wave remains closed.
+- [x] reject FP16 fast-exp despite precision passing: width4096 Event/wall is only
+  1.045×/1.034× versus the retained wave path, below the 1.05 gate;
+- [ ] measure FP16 cached/wave block sizes 128/256/512 before changing another
+  instruction; current 0.615× PyTorch may be an occupancy/scheduling gap.
 
 ## P2.5 — production data parallel reducer
 

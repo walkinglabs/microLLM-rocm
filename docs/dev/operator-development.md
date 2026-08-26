@@ -79,6 +79,8 @@ reduction was removed because BF16 wall improved only 1.033× even though FP16 p
 declare a dtype-specific predicate before measurement rather than averaging those rows. The accepted
 retry uses a compile-time boolean: FP16 cached rows select wave reduction and BF16 instantiates the
 same Kernel with the shared tree. Do not turn this back into runtime dtype guessing or broad promotion.
+The FP16 path continues to use precise `expf`: the fast intrinsic passed the current low-precision
+oracle but improved Event/wall only 1.045×/1.034×, so approximation was not admitted.
 That model gate now exists for FFN Norm: `bf16_ffn_precast_out_` consumes an already-filled Arena
 input, Qwen/DeepSeek both pass, and enabling BF16 FFN Arena enables this exact route by default.
 Keep explicit false available, and never apply the shortcut to trace, cached, training or bypassed
