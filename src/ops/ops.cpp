@@ -4256,6 +4256,41 @@ Tensor causal_gqa_attention(const Tensor& query, const Tensor& key,
     return from_values(std::move(output), query.shape());
 }
 
+CausalGqaAttentionDiagnostics causal_gqa_attention_diagnostics(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context) {
+    validate_causal_gqa(query, key, value, repeats, scale);
+    const auto expanded_key = repeats == 1
+                                  ? key
+                                  : repeat_interleave(key, 1, repeats, context);
+    const auto expanded_value = repeats == 1
+                                    ? value
+                                    : repeat_interleave(value, 1, repeats, context);
+    auto scaled_query = ops::scale(query, scale, context);
+    auto scores = query.device().is_hip() && hipblaslt_available()
+                      ? matmul_with_implementation(
+                            scaled_query, expanded_key,
+                            MatmulImplementation::HipBLASLt,
+                            false, true, context)
+                      : ops::scale(
+                            matmul(
+                                query,
+                                expanded_key.transpose(-2, -1).contiguous(),
+                                context),
+                            scale, context);
+    auto probabilities = causal_softmax(scores, context);
+    auto output = query.device().is_hip() && hipblaslt_available()
+                      ? matmul_with_implementation(
+                            probabilities, expanded_value,
+                            MatmulImplementation::HipBLASLt,
+                            false, false, context)
+                      : matmul(probabilities, expanded_value, context);
+    return {.scaled_query = std::move(scaled_query),
+            .scores = std::move(scores),
+            .probabilities = std::move(probabilities),
+            .output = std::move(output)};
+}
+
 void causal_gqa_attention_out_(
     Tensor& output, CausalGqaAttentionWorkspace& workspace,
     const Tensor& query, const Tensor& key, const Tensor& value,

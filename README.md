@@ -39,12 +39,13 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 306 keeps Q/K/V and block-0
-> BF16 cache bitwise equal, then locates the first renewed drift at full-prefill
-> Attention context. B4/B8 context Max is `0.00033218`; same-batch context rows
-> remain exact until output projection. Defaults remain unchanged while QK,
-> causal softmax and P×V are decomposed. See the
-> [post-cache trace](docs/optimization-log/experiments/306-post-cache-block0-trace.md).
+> **Current optimization checkpoint:** Experiment 307 adds an opt-in diagnostic
+> decomposition for full-prefill Attention: scaled Q, QK scores, causal-softmax
+> probabilities and P×V output. Ordinary inference remains on the production path;
+> the diagnostic path is entered only by an explicit value filter and is forbidden
+> for timing because it preserves another T×T tensor. CPU, HIP, sanitizer, PyTorch
+> and RCCL gates pass. See the
+> [Attention-core diagnostics](docs/optimization-log/experiments/307-prefill-attention-core-diagnostics.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
@@ -885,10 +886,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 374/374 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 372/372 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 192/192 | allocator/arena/Stream/Graph, complete cached-Attention stages, BF16/FP8 and model paths |
-| PyTorch-enabled CPU build | 377/377 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| CPU Debug | 376/376 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| ASan/UBSan CPU | 374/374 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 195/195 | allocator/arena/Stream/Graph, complete cached-Attention stages, BF16/FP8 and model paths |
+| PyTorch-enabled CPU build | 379/379 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 53/53 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure and package gates |
 | Registered test files | 129 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |

@@ -1013,6 +1013,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [FP32 QKV model-gate SVG](../../benchmarks/results/2026-08-26-fp32-qkv-model-gate/model-gate.svg) | raw cache、完整logits和无导出性能 |
 | [experiments/306-post-cache-block0-trace.md](experiments/306-post-cache-block0-trace.md) | exact cache后的Attention context首差与core拆解 |
 | [post-cache trace SVG](../../benchmarks/results/2026-08-26-post-cache-block0-trace/post-cache-trace.svg) | 17个Block0边界的跨/内batch误差 |
+| [experiments/307-prefill-attention-core-diagnostics.md](experiments/307-prefill-attention-core-diagnostics.md) | opt-in QK/softmax/P×V诊断边界与默认路径非侵入门 |
+| [Attention-core diagnostics SVG](../../benchmarks/results/2026-08-26-prefill-attention-core-diagnostics/diagnostics.svg) | 生产/诊断双路径与五组回归证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

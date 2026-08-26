@@ -2215,8 +2215,11 @@ TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) 
             Tensor actual;
             TensorTriple actual_backward;
             Tensor plain_long_forward;
+            CausalGqaAttentionDiagnostics diagnostics;
             if (sequence >= 256) {
                 plain_long_forward = causal_gqa_attention(
+                    device_query, device_key, device_value, repeats, 0.25F);
+                diagnostics = causal_gqa_attention_diagnostics(
                     device_query, device_key, device_value, repeats, 0.25F);
                 auto saved = causal_gqa_attention_saved(
                     device_query, device_key, device_value, repeats, 0.25F);
@@ -2238,6 +2241,13 @@ TEST(HipFullAttentionTest, CausalMhaGqaForwardBackwardMatchCpuWithoutTransfers) 
             expect_near(actual.to_vector(), expected.to_vector(), 8.0e-4F);
             if (plain_long_forward.defined()) {
                 expect_near(plain_long_forward.to_vector(), expected.to_vector(), 8.0e-4F);
+                EXPECT_EQ(diagnostics.scaled_query.shape(), device_query.shape());
+                EXPECT_EQ(diagnostics.scores.shape(),
+                          (Shape{1, heads, sequence, sequence}));
+                EXPECT_EQ(diagnostics.probabilities.shape(),
+                          diagnostics.scores.shape());
+                EXPECT_EQ(diagnostics.output.to_vector(),
+                          plain_long_forward.to_vector());
             }
             expect_near(actual_backward.first.to_vector(),
                         expected_backward.first.to_vector(), 1.5e-3F);

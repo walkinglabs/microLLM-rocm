@@ -317,6 +317,13 @@ struct CausalGqaAttentionWorkspace {
     Tensor probabilities;
 };
 
+struct CausalGqaAttentionDiagnostics {
+    Tensor scaled_query;
+    Tensor scores;
+    Tensor probabilities;
+    Tensor output;
+};
+
 [[nodiscard]] ScaledTensor quantize_fp8(const Tensor& input, DType fp8_dtype,
                                         float scale, const OpContext& context = {});
 [[nodiscard]] ScaledTensor quantize_fp8_with_scale(
@@ -779,6 +786,12 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
                                           const Tensor& value,
                                           std::int64_t repeats, float scale,
                                           const OpContext& context = {});
+// Diagnostic-only composed path. It preserves QK scores before softmax and
+// therefore uses additional T*T storage; callers must never use it for timing.
+[[nodiscard]] CausalGqaAttentionDiagnostics
+causal_gqa_attention_diagnostics(
+    const Tensor& query, const Tensor& key, const Tensor& value,
+    std::int64_t repeats, float scale, const OpContext& context = {});
 void causal_gqa_attention_out_(
     Tensor& output, CausalGqaAttentionWorkspace& workspace,
     const Tensor& query, const Tensor& key, const Tensor& value,

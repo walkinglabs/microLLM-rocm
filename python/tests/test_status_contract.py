@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Prevent the public evidence table from drifting behind measured results."""
 
+import json
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -12,10 +14,10 @@ def main() -> int:
     text = STATUS.read_text(encoding="utf-8")
     for token in (
         "RCCL label 53/53",
-        "CPU 374/374",
-        "ASan/UBSan 372/372",
-        "PyTorch-enabled CPU 377/377",
-        "single-GPU HIP label 192/192",
+        "CPU 376/376",
+        "ASan/UBSan 374/374",
+        "PyTorch-enabled CPU 379/379",
+        "single-GPU HIP label 195/195",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -38,6 +40,10 @@ def main() -> int:
         assert token in text
     for stale in (
         "RCCL label 49/49",
+        "CPU 374/374",
+        "ASan/UBSan 372/372",
+        "single-GPU HIP label 192/192",
+        "PyTorch-enabled CPU 377/377",
         "PyTorch-enabled build 323/323",
         "experiments through 287",
         "scale-before-ready weighted overlap ordering",
@@ -58,8 +64,25 @@ def main() -> int:
         "docs/optimization-log/assets/ranked-weighted-overlap-discard.svg",
         "docs/optimization-log/assets/ranked-bucket-weighting.svg",
         "docs/optimization-log/assets/ranked-gather-scale-discard.svg",
+        "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics/verification.json",
+        "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics/diagnostics.svg",
     ):
         assert (ROOT / relative).is_file()
+    diagnostic_root = ROOT / (
+        "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
+    diagnostic = json.loads(
+        (diagnostic_root / "verification.json").read_text(encoding="utf-8"))
+    assert diagnostic["experiment"] == 307
+    assert diagnostic["default_dispatch_changed"] is False
+    assert diagnostic["focused_gates"]["hip_t256_output_exact"] is True
+    assert diagnostic["full_gates"] == {
+        "cpu_debug": "376/376",
+        "asan_ubsan": "374/374",
+        "pytorch_enabled_cpu": "379/379",
+        "mi300x_gfx942_hip": "195/195",
+        "rccl": "53/53",
+    }
+    ET.parse(diagnostic_root / "diagnostics.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 

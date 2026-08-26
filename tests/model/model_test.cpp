@@ -302,10 +302,95 @@ TEST(TransformerModelTest, TraceAllLayerDetailsExposesEveryLinearInputBoundary) 
         EXPECT_TRUE(prefill_has(prefix + ".attention.k_rope"));
         EXPECT_TRUE(prefill_has(prefix + ".attention.cache_key"));
         EXPECT_TRUE(prefill_has(prefix + ".attention.cache_value"));
+        EXPECT_FALSE(prefill_has(prefix + ".attention.scaled_query"));
+        EXPECT_FALSE(prefill_has(prefix + ".attention.scores"));
+        EXPECT_FALSE(prefill_has(prefix + ".attention.probabilities"));
+        EXPECT_FALSE(prefill_has(prefix + ".attention.pv_output"));
         EXPECT_TRUE(prefill_has(prefix + ".attention.context"));
         EXPECT_TRUE(prefill_has(prefix + ".ffn_output"));
         EXPECT_TRUE(prefill_has(prefix + ".output"));
     }
+}
+
+TEST(TransformerModelTest,
+     CachedPrefillTraceCapturesRequestedAttentionCoreWithoutChangingOutput) {
+    const auto config = tiny_config();
+    TransformerModel model(config, 37);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3}, {1, 3});
+    inference::KVCache baseline_cache(
+        config.layers, config.max_sequence_length, 1, DType::BFloat16);
+    const auto baseline =
+        model.forward_prefill_cached(tokens, baseline_cache).to_vector();
+
+    profiling::TraceOptions options;
+    options.record_operators = false;
+    options.record_all_layer_details = true;
+    options.capture_values = true;
+    options.value_name_filters = {
+        "inference.cached_prefill.blocks.0.attention.scores"};
+    options.max_captured_elements = 64;
+    profiling::TraceSession trace(
+        "microllm", "cached-prefill-attention-core", options);
+    inference::KVCache diagnostic_cache(
+        config.layers, config.max_sequence_length, 1, DType::BFloat16);
+    std::vector<float> diagnostic;
+    {
+        profiling::ScopedTraceSession active(trace);
+        diagnostic =
+            model.forward_prefill_cached(tokens, diagnostic_cache).to_vector();
+    }
+    expect_near(diagnostic, baseline, 1.0e-6F);
+
+    const auto find = [&](const std::string& name) -> const profiling::TraceRecord* {
+        const auto found = std::find_if(
+            trace.records().begin(), trace.records().end(),
+            [&](const auto& record) { return record.name == name; });
+        return found == trace.records().end() ? nullptr : &*found;
+    };
+    const std::string prefix =
+        "inference.cached_prefill.blocks.0.attention.";
+    const auto* scaled_query = find(prefix + "scaled_query");
+    const auto* scores = find(prefix + "scores");
+    const auto* probabilities = find(prefix + "probabilities");
+    const auto* pv_output = find(prefix + "pv_output");
+    ASSERT_NE(scaled_query, nullptr);
+    ASSERT_NE(scores, nullptr);
+    ASSERT_NE(probabilities, nullptr);
+    ASSERT_NE(pv_output, nullptr);
+    EXPECT_EQ(scaled_query->shape, (Shape{1, 2, 3, 4}));
+    EXPECT_EQ(scores->shape, (Shape{1, 2, 3, 3}));
+    EXPECT_EQ(probabilities->shape, scores->shape);
+    EXPECT_EQ(pv_output->shape, scaled_query->shape);
+    EXPECT_TRUE(scaled_query->values.empty());
+    EXPECT_EQ(scores->values.size(), 18U);
+    EXPECT_TRUE(probabilities->values.empty());
+    EXPECT_TRUE(pv_output->values.empty());
+    EXPECT_EQ(baseline_cache.layer(0).key.to_vector(),
+              diagnostic_cache.layer(0).key.to_vector());
+    EXPECT_EQ(baseline_cache.layer(0).value.to_vector(),
+              diagnostic_cache.layer(0).value.to_vector());
+
+    options.capture_values = false;
+    profiling::TraceSession metadata_only_trace(
+        "microllm", "cached-prefill-attention-core-metadata", options);
+    inference::KVCache metadata_only_cache(
+        config.layers, config.max_sequence_length, 1, DType::BFloat16);
+    std::vector<float> metadata_only;
+    {
+        profiling::ScopedTraceSession active(metadata_only_trace);
+        metadata_only =
+            model.forward_prefill_cached(tokens, metadata_only_cache).to_vector();
+    }
+    expect_near(metadata_only, baseline, 1.0e-6F);
+    EXPECT_FALSE(std::any_of(
+        metadata_only_trace.records().begin(),
+        metadata_only_trace.records().end(),
+        [&](const auto& record) {
+            return record.name == prefix + "scaled_query" ||
+                   record.name == prefix + "scores" ||
+                   record.name == prefix + "probabilities" ||
+                   record.name == prefix + "pv_output";
+        }));
 }
 
 TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceOnly) {

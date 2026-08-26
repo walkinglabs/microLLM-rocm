@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760">
+  <rect width="1600" height="760" fill="#0b1020"/>
+  <style>
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fill: #e5e7eb; }
+    .title { font-size: 28px; font-weight: 700; }
+    .sub { font-size: 15px; fill: #94a3b8; }
+    .lane { font-size: 18px; font-weight: 700; }
+    .node { fill: #141b2d; stroke-width: 2; rx: 12; }
+    .nodeText { font-size: 15px; font-weight: 600; text-anchor: middle; }
+    .small { font-size: 12px; fill: #94a3b8; text-anchor: middle; }
+    .gate { font-size: 13px; text-anchor: middle; }
+  </style>
+  <defs>
+    <marker id="arrowGrey" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <text x="42" y="48" class="title">Experiment 307 · Prefill Attention core diagnostics</text>
+  <text x="42" y="76" class="sub">Production stays unchanged · explicit value filter opens a diagnostic-only T×T path</text>
+
+  <text x="42" y="142" class="lane" fill="#cbd5e1">default / timing path</text>
+  <rect x="250" y="112" width="190" height="72" class="node" stroke="#64748b"/>
+  <text x="345" y="143" class="nodeText">scaled Q × Kᵀ</text>
+  <text x="345" y="165" class="small">hipBLASLt QK</text>
+  <line x1="440" y1="148" x2="530" y2="148" stroke="#64748b" stroke-width="3" marker-end="url(#arrowGrey)"/>
+  <rect x="540" y="112" width="220" height="72" class="node" stroke="#64748b"/>
+  <text x="650" y="143" class="nodeText">causal softmax</text>
+  <text x="650" y="165" class="small">scores overwritten in place</text>
+  <line x1="760" y1="148" x2="850" y2="148" stroke="#64748b" stroke-width="3" marker-end="url(#arrowGrey)"/>
+  <rect x="860" y="112" width="190" height="72" class="node" stroke="#64748b"/>
+  <text x="955" y="143" class="nodeText">P × V</text>
+  <text x="955" y="165" class="small">production context</text>
+  <rect x="1120" y="112" width="330" height="72" class="node" stroke="#22c55e"/>
+  <text x="1285" y="143" class="nodeText">no extra records or T×T copy</text>
+  <text x="1285" y="165" class="small">no filter · metadata only · normal inference</text>
+
+  <text x="42" y="282" class="lane" fill="#fb923c">selected diagnostic path</text>
+  <rect x="250" y="244" width="190" height="82" class="node" stroke="#f97316"/>
+  <text x="345" y="278" class="nodeText">scaled_query</text>
+  <text x="345" y="301" class="small">explicit trace boundary</text>
+  <line x1="440" y1="285" x2="515" y2="285" stroke="#f97316" stroke-width="3" marker-end="url(#arrowOrange)"/>
+  <rect x="525" y="244" width="190" height="82" class="node" stroke="#f97316"/>
+  <text x="620" y="278" class="nodeText">scores</text>
+  <text x="620" y="301" class="small">QK result preserved</text>
+  <line x1="715" y1="285" x2="790" y2="285" stroke="#f97316" stroke-width="3" marker-end="url(#arrowOrange)"/>
+  <rect x="800" y="244" width="210" height="82" class="node" stroke="#f97316"/>
+  <text x="905" y="278" class="nodeText">probabilities</text>
+  <text x="905" y="301" class="small">same Kernel, separate output</text>
+  <line x1="1010" y1="285" x2="1085" y2="285" stroke="#f97316" stroke-width="3" marker-end="url(#arrowOrange)"/>
+  <rect x="1095" y="244" width="190" height="82" class="node" stroke="#f97316"/>
+  <text x="1190" y="278" class="nodeText">pv_output</text>
+  <text x="1190" y="301" class="small">P×V diagnostic context</text>
+  <rect x="1325" y="244" width="125" height="82" class="node" stroke="#22c55e"/>
+  <text x="1388" y="278" class="nodeText">exact</text>
+  <text x="1388" y="301" class="small">HIP T256</text>
+
+  <text x="42" y="408" class="lane">Evidence gates</text>
+  <line x1="155" y1="500" x2="1410" y2="500" stroke="#334155" stroke-width="4"/>
+  <polyline points="190,500 460,500 730,500 1000,500 1270,500" fill="none" stroke="#22c55e" stroke-width="4"/>
+  <circle cx="190" cy="500" r="12" fill="#22c55e"/>
+  <circle cx="460" cy="500" r="12" fill="#22c55e"/>
+  <circle cx="730" cy="500" r="12" fill="#22c55e"/>
+  <circle cx="1000" cy="500" r="12" fill="#22c55e"/>
+  <circle cx="1270" cy="500" r="12" fill="#22c55e"/>
+  <text x="190" y="540" class="gate">CPU</text>
+  <text x="190" y="562" class="small">376 / 376</text>
+  <text x="460" y="540" class="gate">ASan + UBSan</text>
+  <text x="460" y="562" class="small">374 / 374</text>
+  <text x="730" y="540" class="gate">PyTorch-enabled</text>
+  <text x="730" y="562" class="small">379 / 379</text>
+  <text x="1000" y="540" class="gate">MI300X HIP</text>
+  <text x="1000" y="562" class="small">195 / 195</text>
+  <text x="1270" y="540" class="gate">RCCL</text>
+  <text x="1270" y="562" class="small">53 / 53</text>
+
+  <rect x="42" y="620" width="1508" height="92" rx="14" fill="#111827" stroke="#334155"/>
+  <text x="72" y="655" class="lane" fill="#fbbf24">Decision</text>
+  <text x="190" y="655" class="sub">keep the opt-in microscope; never time it; next compare complete block-0 stages at T2048 B1/B2/B4/B8</text>
+  <text x="72" y="687" class="sub">The chart records a decision boundary, not a throughput win. No default optimization changed.</text>
+</svg>

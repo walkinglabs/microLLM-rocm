@@ -72,6 +72,18 @@ void trace_prefill_rows(const std::string& prefix, const char* suffix,
     trace_detail(prefix, suffix, logical);
 }
 
+bool trace_requests_value(const std::string& name) {
+    const auto* trace = profiling::TraceSession::current();
+    if (trace == nullptr || !trace->options().capture_values ||
+        trace->options().value_name_filters.empty()) {
+        return false;
+    }
+    return std::any_of(
+        trace->options().value_name_filters.begin(),
+        trace->options().value_name_filters.end(),
+        [&](const auto& filter) { return name.find(filter) != std::string::npos; });
+}
+
 Tensor clone_tensor(const Tensor& source, Device target) {
     const auto packed = source.is_contiguous() ? source : source.contiguous();
     Tensor copy(packed.shape(), packed.dtype(), target);
@@ -1175,7 +1187,23 @@ public:
             const auto scale =
                 1.0F / std::sqrt(static_cast<float>(
                            config_.head_dimension()));
-            if (online_bthd_attention) {
+            const auto diagnostic_core = prefill_cache != nullptr &&
+                (trace_requests_value(trace_prefix + ".scaled_query") ||
+                 trace_requests_value(trace_prefix + ".scores") ||
+                 trace_requests_value(trace_prefix + ".probabilities") ||
+                 trace_requests_value(trace_prefix + ".pv_output"));
+            if (diagnostic_core) {
+                auto diagnostics = ops::causal_gqa_attention_diagnostics(
+                    query, key, value, repeats, scale);
+                trace_tensor("scaled_query", diagnostics.scaled_query);
+                trace_tensor("scores", diagnostics.scores);
+                trace_tensor("probabilities", diagnostics.probabilities);
+                trace_tensor("pv_output", diagnostics.output);
+                context = diagnostics.output
+                              .transpose(1, 2)
+                              .contiguous()
+                              .reshape({batch * sequence, config_.dimension});
+            } else if (online_bthd_attention) {
                 context = ops::online_causal_gqa_attention_bthd(
                     query, key, value, repeats, scale).reshape(
                         {batch * sequence, config_.dimension});

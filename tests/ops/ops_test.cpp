@@ -871,6 +871,17 @@ TEST(CpuOpsTest, CausalGqaAttentionMatchesComposedForwardAndBackward) {
     const auto expected = matmul(probabilities, expanded_value);
     expect_near(causal_gqa_attention(query, key, value, repeats, scale_factor).to_vector(),
                 expected.to_vector(), 1.0e-6F);
+    const auto diagnostics = causal_gqa_attention_diagnostics(
+        query, key, value, repeats, scale_factor);
+    EXPECT_EQ(diagnostics.scaled_query.shape(), query.shape());
+    EXPECT_EQ(diagnostics.scores.shape(), (Shape{1, 4, 3, 3}));
+    EXPECT_EQ(diagnostics.probabilities.shape(), diagnostics.scores.shape());
+    expect_near(diagnostics.scaled_query.to_vector(),
+                scale(query, scale_factor).to_vector(), 1.0e-6F);
+    expect_near(diagnostics.scores.to_vector(), scores.to_vector(), 1.0e-6F);
+    expect_near(diagnostics.probabilities.to_vector(),
+                probabilities.to_vector(), 1.0e-6F);
+    expect_near(diagnostics.output.to_vector(), expected.to_vector(), 1.0e-6F);
     CausalGqaAttentionWorkspace workspace{
         .scaled_query = Tensor(query.shape()),
         .expanded_kv = Tensor(query.shape()),
@@ -904,6 +915,9 @@ TEST(CpuOpsTest, CausalGqaAttentionMatchesComposedForwardAndBackward) {
     expect_near(actual_backward.second.to_vector(), expected_key.to_vector(), 1.0e-6F);
     expect_near(actual_backward.third.to_vector(), expected_value.to_vector(), 1.0e-6F);
     EXPECT_THROW((void)causal_gqa_attention(query, key, value, 3, scale_factor),
+                 std::invalid_argument);
+    EXPECT_THROW((void)causal_gqa_attention_diagnostics(
+                     query, key, value, 3, scale_factor),
                  std::invalid_argument);
 }
 

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "experiment": 307,
+  "status": "infrastructure_keep",
+  "default_dispatch_changed": false,
+  "diagnostic_only": true,
+  "stages": [
+    "scaled_query",
+    "scores",
+    "probabilities",
+    "pv_output"
+  ],
+  "focused_gates": {
+    "cpu_stage_alignment": "pass",
+    "cpu_model_output_tolerance": 0.000001,
+    "cpu_cache_exact": true,
+    "metadata_only_non_intrusive": true,
+    "hip_t256_output_exact": true
+  },
+  "full_gates": {
+    "cpu_debug": "376/376",
+    "asan_ubsan": "374/374",
+    "pytorch_enabled_cpu": "379/379",
+    "mi300x_gfx942_hip": "195/195",
+    "rccl": "53/53"
+  },
+  "limitations": [
+    "The diagnostic path allocates an additional T-by-T score tensor.",
+    "Diagnostic timings are invalid and must not be compared with production timings.",
+    "The first drifting T2048 Attention stage is not yet identified."
+  ]
+}
