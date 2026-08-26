@@ -234,8 +234,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   36/36 random outputs and 108/108 pointers pass with Max ≤9.54e-7 and 0 copy;
 - [x] add caller-owned backward for Softmax/RMSNorm/SwiGLU/RoPE/CrossEntropy and
   Embedding accumulation; 114/114 PyTorch gradients and 285/285 pointers pass;
-- [ ] bind Autograd leaf gradients to an external pool and run full Transformer
-  forward/backward before claiming zero-copy training integration;
+- [x] add explicit leaf-only Autograd gradient-buffer binding; CPU and MI300X tests prove
+  address stability, repeated accumulation, zeroing and error boundaries;
+- [ ] bind every Tiny/Model-S leaf to one external pool and pass complete parameter Max/RMS,
+  address, allocation, peak-memory and Event/wall gates before claiming zero-copy training;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
 
 ## P2.5 — production data parallel reducer

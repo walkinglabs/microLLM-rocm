@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Autograd external gradient buffer](2026-08-26-autograd-external-gradient-buffer.md)
 - [2026-08-26: PyTorch zero-copy backward matrix](2026-08-26-pytorch-zero-copy-backward.md)
 - [2026-08-26: PyTorch zero-copy RoPE/Embedding/loss](2026-08-26-pytorch-zero-copy-sequence-loss.md)
 - [2026-08-26: PyTorch zero-copy MHA/GQA Attention](2026-08-26-pytorch-zero-copy-attention.md)

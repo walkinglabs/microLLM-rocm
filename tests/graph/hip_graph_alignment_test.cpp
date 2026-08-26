@@ -412,4 +412,46 @@ TEST(HipGraphAlignmentTest, Bf16LinearInferenceMatchesCpuAndStaysDeviceNative) {
     EXPECT_GT(core_stats.capacity_bytes, 0U);
 }
 
+TEST(HipGraphAlignmentTest,
+     ExplicitGradientBufferPreservesHipAddressAndMatchesCpu) {
+    require_graph_gpu();
+    const auto gpu = Device::hip(0);
+    const auto input_data = Tensor::from_vector({1, 2, 3}, {3});
+
+    Value cpu_input(input_data, true);
+    sum(add(scale(cpu_input, 2.0F), scale(cpu_input, 3.0F))).backward();
+
+    Tensor owner({3}, DType::Float32, gpu);
+    const auto expected_address = owner.storage().data();
+    auto external_storage = Storage::from_external(
+        expected_address, owner.storage().num_bytes(), gpu);
+    auto external_buffer = Tensor::from_storage(
+        external_storage, {3}, {1}, 0, DType::Float32);
+    Value hip_input(input_data.to(gpu), true);
+    hip_input.bind_grad_buffer(external_buffer);
+
+    runtime::reset_transfer_stats();
+    const auto loss = sum(add(scale(hip_input, 2.0F),
+                              scale(hip_input, 3.0F)));
+    loss.backward();
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    ASSERT_TRUE(hip_input.grad_buffer_bound());
+    EXPECT_EQ(hip_input.grad().storage().data(), expected_address);
+    expect_graph_near(hip_input.grad().to_vector(),
+                      cpu_input.grad().to_vector(), 1.0e-6F);
+
+    hip_input.zero_grad();
+    runtime::synchronize(gpu);
+    EXPECT_EQ(hip_input.grad().storage().data(), expected_address);
+    EXPECT_EQ(hip_input.grad().to_vector(), (std::vector<float>{0, 0, 0}));
+    loss.backward();
+    runtime::synchronize(gpu);
+    EXPECT_EQ(hip_input.grad().storage().data(), expected_address);
+    expect_graph_near(hip_input.grad().to_vector(),
+                      cpu_input.grad().to_vector(), 1.0e-6F);
+}
+
 }  // namespace microllm::autograd

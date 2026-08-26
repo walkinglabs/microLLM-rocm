@@ -127,6 +127,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > (Event 0.976×–1.035×, wall 0.991×–1.018×). The Autograd route is removed;
 > the independently faster caller-owned operator remains.
 
+> External integration now has an explicit leaf-gradient destination: callers may bind an exact
+> FP32 contiguous buffer, keep its address across `zero_grad`, and unbind it deliberately. CPU and
+> MI300X lifecycle/parity tests pass. This is not a speed claim or a default model policy; the next
+> gate binds every Tiny/Model-S parameter and measures complete gradients, allocations, peak memory
+> and Event/wall time.
+
 > Model-S gradient-ready order now supplies the next architecture-scale evidence:
 > 3 processes × 3 steps × 2 ranks all match exact reverse parameter order.
 > Natural 25 MiB buckets complete at 57/57, 35/57 and 1/57, so two have a

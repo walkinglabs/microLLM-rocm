@@ -42,6 +42,11 @@ public:
     [[nodiscard]] bool has_grad() const noexcept;
     [[nodiscard]] const Tensor& grad() const;
     void set_grad(Tensor gradient);
+    // Explicit caller-owned leaf gradient destination. Contributions are
+    // accumulated in-place even when another owner retains the Storage.
+    void bind_grad_buffer(Tensor gradient, bool zero = true);
+    void unbind_grad_buffer() noexcept;
+    [[nodiscard]] bool grad_buffer_bound() const noexcept;
     void set_gradient_ready_hook(std::function<void()> hook);
     void clear_gradient_ready_hook() noexcept;
     void zero_grad();

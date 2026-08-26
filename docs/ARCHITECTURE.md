@@ -109,7 +109,7 @@ result and row-reduction workspace explicit. The same validation runs on CPU eve
 the simple reference does not consume workspace payload.
 Backward caller outputs cover Softmax, RMSNorm, SwiGLU, RoPE, CrossEntropy and Embedding
 accumulation. This is an operator seam; the eager graph still owns ordinary leaf gradient
-Storage until a separate external-pool contract is enabled.
+Storage unless a caller explicitly binds a leaf gradient buffer.
 
 An operator implementation must not infer ownership from a data pointer. Output,
 workspace, device, and execution stream are explicit. This allows the same HIP
@@ -137,10 +137,16 @@ does not remove add Kernel or backend-allocation work after the exact-size cache
 default is therefore false. This seam is evidence infrastructure for a future graph-wide
 liveness planner, not permission to mutate an arbitrary Tensor.
 
-Experiments 259 and 261 tested explicit leaf targets and producer overwrite state, then removed
-both Autograd routes after full-step and backward-only gates failed. Ordinary first assignment
-already adopts the producer Tensor. Caller-owned operator outputs remain public, but Autograd has
-no preinstalled-gradient target API.
+Experiments 259 and 261 tested automatic leaf targets and producer overwrite state, then removed
+both automatic routes after full-step and backward-only gates failed. Ordinary first assignment
+already adopts the producer Tensor. Caller-owned operator outputs remain public.
+
+External integration has a narrower, explicit contract. `Value::bind_grad_buffer` accepts only an
+FP32 contiguous leaf buffer with the exact parameter shape and device. Every later contribution is
+added in place, `zero_grad` preserves the address, and `unbind_grad_buffer` restores ordinary
+ownership. Binding a non-leaf, rebinding, or replacing a bound gradient is rejected. This gives a
+foreign runtime or a future model-level pool a stable destination without making it the default:
+the caller owns lifetime and synchronization, and the full-model performance gate remains separate.
 
 Gradient-ready hooks are a separate diagnostic contract. Backward counts incoming graph edges for
 hooked leaves before traversal, decrements only after each contribution is accumulated, and calls

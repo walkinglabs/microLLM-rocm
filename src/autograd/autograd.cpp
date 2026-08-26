@@ -23,6 +23,7 @@ struct Value::Node {
     Tensor gradient;
     std::string operation = "leaf";
     bool requires_grad = false;
+    bool gradient_buffer_bound = false;
     std::function<void()> gradient_ready_hook;
     std::vector<std::shared_ptr<Node>> parents;
     std::function<void(const Tensor&)> backward;
@@ -135,7 +136,9 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
         }
     }
     if (needs_materialization) prepared = prepared.contiguous();
-    if (!node->gradient.defined()) {
+    if (node->gradient_buffer_bound) {
+        ops::add_in_place_(node->gradient, prepared);
+    } else if (!node->gradient.defined()) {
         node->gradient = prepared;
     } else if (unique_gradient_inplace_add && unique_dense_destination) {
         ops::add_in_place_(node->gradient, prepared);
@@ -148,6 +151,11 @@ void accumulate(const std::shared_ptr<Value::Node>& node, const Tensor& gradient
 void accumulate_embedding(const std::shared_ptr<Value::Node>& node,
                           const Tensor& gradient, const Tensor& indices,
                           std::int64_t vocabulary) {
+    if (node->requires_grad && node->gradient_buffer_bound) {
+        ops::embedding_backward_add_(node->gradient, gradient, indices);
+        notify_gradient_contribution(node);
+        return;
+    }
     if (tied_embedding_sparse_add && node->requires_grad &&
         node->gradient.defined() &&
         node->gradient.shape() == Shape({vocabulary, gradient.shape().back()}) &&
@@ -285,7 +293,38 @@ void Value::set_grad(Tensor gradient) {
         gradient.device() != node_->data.device()) {
         throw std::invalid_argument("assigned gradient must match parameter shape/device/dtype");
     }
+    if (node_->gradient_buffer_bound) {
+        throw std::logic_error("unbind the caller-owned gradient buffer before set_grad");
+    }
     node_->gradient = gradient.is_contiguous() ? std::move(gradient) : gradient.contiguous();
+}
+void Value::bind_grad_buffer(Tensor gradient, bool zero) {
+    if (!node_ || !node_->requires_grad || !node_->parents.empty()) {
+        throw std::logic_error(
+            "caller-owned gradient buffers require a differentiable leaf Value");
+    }
+    if (node_->gradient_buffer_bound) {
+        throw std::logic_error(
+            "caller-owned gradient buffer is already bound; unbind before replacing it");
+    }
+    if (gradient.shape() != node_->data.shape() ||
+        gradient.dtype() != DType::Float32 ||
+        gradient.device() != node_->data.device() ||
+        !gradient.is_contiguous()) {
+        throw std::invalid_argument(
+            "caller-owned gradient buffer must match leaf shape/device/dtype and be contiguous");
+    }
+    node_->gradient = std::move(gradient);
+    node_->gradient_buffer_bound = true;
+    if (zero) ops::fill_(node_->gradient, 0.0F);
+}
+void Value::unbind_grad_buffer() noexcept {
+    if (!node_) return;
+    node_->gradient = Tensor();
+    node_->gradient_buffer_bound = false;
+}
+bool Value::grad_buffer_bound() const noexcept {
+    return node_ && node_->gradient_buffer_bound;
 }
 void Value::set_gradient_ready_hook(std::function<void()> hook) {
     if (!node_ || !node_->requires_grad || !node_->parents.empty()) {
@@ -299,7 +338,12 @@ void Value::clear_gradient_ready_hook() noexcept {
     if (node_) node_->gradient_ready_hook = {};
 }
 void Value::zero_grad() {
-    if (node_) node_->gradient = Tensor();
+    if (!node_) return;
+    if (node_->gradient_buffer_bound) {
+        ops::fill_(node_->gradient, 0.0F);
+    } else {
+        node_->gradient = Tensor();
+    }
 }
 
 void Value::backward() const {

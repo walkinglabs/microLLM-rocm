@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <vector>
 
@@ -524,6 +525,52 @@ TEST(AutogradDiagnosticsTest, DenseAddEligibilityRequiresUniqueDestinationStorag
     EXPECT_FALSE(unique_gradient_inplace_add_enabled());
     enable_gradient_accumulation_diagnostics(false);
     reset_gradient_accumulation_diagnostics();
+}
+
+TEST(AutogradTest, ExplicitGradientBufferPreservesCallerAddressAndLifecycle) {
+    std::array<float, 3> values{9, 9, 9};
+    auto storage = Storage::from_external(
+        values.data(), sizeof(values), Device::cpu());
+    auto buffer = Tensor::from_storage(
+        storage, {3}, {1}, 0, DType::Float32);
+    Value input(Tensor::from_vector({1, 2, 3}, {3}), true);
+    input.bind_grad_buffer(buffer);
+    EXPECT_TRUE(input.grad_buffer_bound());
+    EXPECT_EQ(input.grad().storage().data(), values.data());
+    EXPECT_EQ(values, (std::array<float, 3>{0, 0, 0}));
+    const auto loss = sum(add(scale(input, 2.0F), scale(input, 3.0F)));
+    loss.backward();
+    EXPECT_EQ(values, (std::array<float, 3>{5, 5, 5}));
+    EXPECT_EQ(input.grad().storage().data(), values.data());
+    input.zero_grad();
+    EXPECT_TRUE(input.grad_buffer_bound());
+    EXPECT_EQ(values, (std::array<float, 3>{0, 0, 0}));
+    loss.backward();
+    EXPECT_EQ(values, (std::array<float, 3>{5, 5, 5}));
+    EXPECT_THROW(input.set_grad(Tensor::from_vector({1, 1, 1}, {3})),
+                 std::logic_error);
+    EXPECT_THROW(input.bind_grad_buffer(buffer), std::logic_error);
+    auto nonleaf = scale(input, 2.0F);
+    EXPECT_THROW(nonleaf.bind_grad_buffer(Tensor({3})), std::logic_error);
+    input.unbind_grad_buffer();
+    EXPECT_FALSE(input.grad_buffer_bound());
+    EXPECT_FALSE(input.has_grad());
+    EXPECT_THROW(input.bind_grad_buffer(Tensor({2})), std::invalid_argument);
+}
+
+TEST(AutogradTest, ExplicitEmbeddingGradientBufferAccumulatesRepeatedRows) {
+    std::array<float, 8> values{};
+    auto storage = Storage::from_external(
+        values.data(), sizeof(values), Device::cpu());
+    auto buffer = Tensor::from_storage(
+        storage, {4, 2}, {2, 1}, 0, DType::Float32);
+    Value weight(Tensor::from_vector(
+        {0, 1, 2, 3, 4, 5, 6, 7}, {4, 2}), true);
+    weight.bind_grad_buffer(buffer);
+    const auto indices = Tensor::from_int32_vector({2, 0, 2}, {3});
+    sum(embedding(weight, indices)).backward();
+    EXPECT_EQ(values, (std::array<float, 8>{1, 1, 0, 0, 2, 2, 0, 0}));
+    EXPECT_EQ(weight.grad().storage().data(), values.data());
 }
 
 }  // namespace microllm::autograd
