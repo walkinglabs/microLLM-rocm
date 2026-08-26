@@ -162,7 +162,9 @@ void validate_fp32_solution_key(const Fp32MatmulSolutionKey& key) {
          key.solution_scope !=
              Fp32SolutionScope::PrefillKeyValueProjection &&
          key.solution_scope != Fp32SolutionScope::PrefillAttentionQk &&
-         key.solution_scope != Fp32SolutionScope::PrefillAttentionPv)) {
+         key.solution_scope != Fp32SolutionScope::PrefillAttentionPv &&
+         key.solution_scope !=
+             Fp32SolutionScope::PrefillAttentionOutputProjection)) {
         throw std::invalid_argument("FP32 solution key is incomplete");
     }
     const auto rows = key.transpose_left ? key.left_columns : key.left_rows;

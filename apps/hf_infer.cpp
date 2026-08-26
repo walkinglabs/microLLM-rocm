@@ -117,6 +117,7 @@ struct Options {
     int fp32_prefill_kv_solution_index = -1;
     int fp32_prefill_attention_qk_solution_index = -1;
     int fp32_prefill_attention_pv_solution_index = -1;
+    int fp32_prefill_attention_o_solution_index = -1;
     bool allocation_source_diagnostics = false;
     bool strided_copy_diagnostics = false;
     bool inference_bthd_attention = false;
@@ -401,6 +402,10 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp32-prefill-attention-pv-solution-index") {
             result.fp32_prefill_attention_pv_solution_index =
+                std::stoi(argv[index + 1]);
+        }
+        else if (name == "--fp32-prefill-attention-o-solution-index") {
+            result.fp32_prefill_attention_o_solution_index =
                 std::stoi(argv[index + 1]);
         }
         else if (name == "--allocation-source-diagnostics") {
@@ -740,9 +745,11 @@ Options options(int argc, char** argv) {
     }
     const auto fp32_prefill_attention_requested =
         result.fp32_prefill_attention_qk_solution_index >= 0 ||
-        result.fp32_prefill_attention_pv_solution_index >= 0;
+        result.fp32_prefill_attention_pv_solution_index >= 0 ||
+        result.fp32_prefill_attention_o_solution_index >= 0;
     if (result.fp32_prefill_attention_qk_solution_index < -1 ||
         result.fp32_prefill_attention_pv_solution_index < -1 ||
+        result.fp32_prefill_attention_o_solution_index < -1 ||
         (fp32_prefill_attention_requested &&
          (result.device != "hip" || result.workload != "decode" ||
           !result.use_cache || result.cache_prefill_mode != "full" ||
@@ -1661,7 +1668,8 @@ int main(int argc, char** argv) {
             command.fp32_prefill_q_solution_index >= 0 ||
             command.fp32_prefill_kv_solution_index >= 0 ||
             command.fp32_prefill_attention_qk_solution_index >= 0 ||
-            command.fp32_prefill_attention_pv_solution_index >= 0) {
+            command.fp32_prefill_attention_pv_solution_index >= 0 ||
+            command.fp32_prefill_attention_o_solution_index >= 0) {
             microllm::ops::clear_fp32_matmul_solution_registry();
             const auto sequence = static_cast<std::int64_t>(ids.size());
             const auto heads = external.model.heads;
@@ -1705,6 +1713,19 @@ int main(int argc, char** argv) {
                     attention_pv_context);
                 microllm::ops::register_fp32_matmul_solution(
                     key, command.fp32_prefill_attention_pv_solution_index);
+            }
+            if (command.fp32_prefill_attention_o_solution_index >= 0) {
+                microllm::ops::OpContext output_context;
+                output_context.mode = microllm::ops::OpMode::Inference;
+                output_context.fp32_solution_scope =
+                    microllm::ops::Fp32SolutionScope::PrefillAttentionOutputProjection;
+                const auto rows = command.batch * sequence;
+                const auto key = microllm::ops::make_fp32_matmul_solution_key(
+                    {rows, external.model.dimension},
+                    {external.model.dimension, external.model.dimension},
+                    device, false, false, output_context);
+                microllm::ops::register_fp32_matmul_solution(
+                    key, command.fp32_prefill_attention_o_solution_index);
             }
             const auto rows = command.batch * sequence;
             microllm::ops::OpContext query_context;
@@ -2527,6 +2548,8 @@ int main(int argc, char** argv) {
                   << command.fp32_prefill_attention_qk_solution_index
                   << ",\"fp32_prefill_attention_pv_solution_index\":"
                   << command.fp32_prefill_attention_pv_solution_index
+                  << ",\"fp32_prefill_attention_o_solution_index\":"
+                  << command.fp32_prefill_attention_o_solution_index
                   << ",\"fp32_solution_registered_entries\":"
                   << fp32_solution_stats.registered_entries
                   << ",\"fp32_solution_cached_algorithms\":"

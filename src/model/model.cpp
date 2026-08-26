@@ -1232,7 +1232,13 @@ public:
         {
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::AttentionOutput);
-            output = output_.forward_tensor(context).reshape(
+            ops::OpContext output_context;
+            if (prefill_cache != nullptr) {
+                output_context.mode = ops::OpMode::Inference;
+                output_context.fp32_solution_scope =
+                    ops::Fp32SolutionScope::PrefillAttentionOutputProjection;
+            }
+            output = output_.forward_tensor(context, output_context).reshape(
                 {batch, sequence, config_.dimension});
         }
         trace_tensor("output", output);
