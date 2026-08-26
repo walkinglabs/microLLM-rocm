@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1510" height="680" viewBox="0 0 1510 680">
+  <rect width="1510" height="680" fill="#0b1020"/>
+  <style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:25px;font-weight:700}.sub{font-size:12px;fill:#94a3b8}.head{font-size:15px;font-weight:700}.small{font-size:11px;fill:#94a3b8}</style>
+  <text x="38" y="44" class="title">Scoped prefill Attention · complete model gate</text>
+  <text x="38" y="70" class="sub">same upstream Q/K/V · exact core + complete logits + end-to-end prefill</text>
+  <rect x="70" y="120" width="310" height="105" rx="12" fill="#131b2e" stroke="#64748b"/><text x="225" y="158" class="head" text-anchor="middle">upstream-exact</text><text x="225" y="185" class="small" text-anchor="middle">Q296100 · KV292135</text><text x="225" y="207" class="small" text-anchor="middle">default QK / P×V</text>
+  <rect x="440" y="120" width="310" height="105" rx="12" fill="#131b2e" stroke="#22c55e"/><text x="595" y="158" class="head" text-anchor="middle">attention-exact</text><text x="595" y="185" class="small" text-anchor="middle">same upstream</text><text x="595" y="207" class="small" text-anchor="middle">QK304681 · PV295716</text>
+  <text x="830" y="145" class="head">B1 · B2 · B4 · B8</text><text x="830" y="180" class="small">two fresh processes</text><text x="830" y="205" class="small">alternating performance order</text>
+  <text x="70" y="310" class="head">Three independent admission gates</text>
+  <rect x="90" y="350" width="380" height="130" rx="12" fill="#111827" stroke="#22c55e"/><text x="280" y="388" class="head" text-anchor="middle">core</text><text x="280" y="420" class="small" text-anchor="middle">scores · probabilities · P×V</text><text x="280" y="446" class="small" text-anchor="middle">complete bitwise across / within batch</text>
+  <rect x="565" y="350" width="380" height="130" rx="12" fill="#111827" stroke="#38bdf8"/><text x="755" y="388" class="head" text-anchor="middle">complete output</text><text x="755" y="420" class="small" text-anchor="middle">151,936 logits + BF16 cache</text><text x="755" y="446" class="small" text-anchor="middle">Max/RMS/top1 · ≥10% robust gain</text>
+  <rect x="1040" y="350" width="380" height="130" rx="12" fill="#111827" stroke="#f97316"/><text x="1230" y="388" class="head" text-anchor="middle">end-to-end</text><text x="1230" y="420" class="small" text-anchor="middle">full cached prefill wall / tokens/s</text><text x="1230" y="446" class="small" text-anchor="middle">every batch ≥0.95× · peak recorded</text>
+  <line x1="280" y1="545" x2="1230" y2="545" stroke="#334155" stroke-width="4"/><circle cx="280" cy="545" r="12" fill="#22c55e"/><circle cx="755" cy="545" r="12" fill="#22c55e"/><circle cx="1230" cy="545" r="12" fill="#22c55e"/>
+  <rect x="610" y="585" width="290" height="55" rx="10" fill="#131b2e" stroke="#64748b"/><text x="755" y="618" class="head" text-anchor="middle">all three → admit</text>
+</svg>

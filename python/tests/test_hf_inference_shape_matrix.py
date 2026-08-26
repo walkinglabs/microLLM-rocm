@@ -104,9 +104,102 @@ ATTENTION_SOLUTIONS_SPEC = importlib.util.spec_from_file_location(
 ATTENTION_SOLUTIONS = importlib.util.module_from_spec(ATTENTION_SOLUTIONS_SPEC)
 assert ATTENTION_SOLUTIONS_SPEC.loader is not None
 ATTENTION_SOLUTIONS_SPEC.loader.exec_module(ATTENTION_SOLUTIONS)
+ATTENTION_MODEL_SPEC = importlib.util.spec_from_file_location(
+    "fp32_prefill_attention_model_gate",
+    ROOT / "benchmarks/single_gpu/fp32_prefill_attention_model_gate.py")
+ATTENTION_MODEL = importlib.util.module_from_spec(ATTENTION_MODEL_SPEC)
+assert ATTENTION_MODEL_SPEC.loader is not None
+ATTENTION_MODEL_SPEC.loader.exec_module(ATTENTION_MODEL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_attention_model_gate_requires_core_logits_and_performance(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        candidate = ATTENTION_MODEL.command(
+            args, model, "attention-exact", 2, 0)
+        self.assertEqual(candidate[
+            candidate.index("--fp32-prefill-attention-qk-solution-index") + 1],
+            "304681")
+        self.assertEqual(candidate[
+            candidate.index("--fp32-prefill-attention-pv-solution-index") + 1],
+            "295716")
+        route = {
+            "status": "pass", "batch": 2, "token_count": 2048,
+            "decode_tokens": 1, "kv_cache_dtype": "bf16",
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_prefill_attention_qk_solution_index": 304681,
+            "fp32_prefill_attention_pv_solution_index": 295716,
+            "fp32_solution_registered_entries": 4,
+            "fp32_solution_cached_algorithms": 4,
+            "fp32_solution_registry_hits": 280,
+            "fp32_solution_cache_misses": 4,
+            "fp32_solution_cache_hits": 276,
+            "fp32_solution_dispatches": 280,
+        }
+        ATTENTION_MODEL.require_route(
+            route, "attention-exact", 2, 2048, 1)
+
+        precision = []
+        performance = []
+        exact_metric = {"bitwise_equal": True, "maximum": 0.0, "rms": 0.0}
+        for policy in ATTENTION_MODEL.POLICIES:
+            for batch in ATTENTION_MODEL.BATCHES:
+                for run in (1, 2):
+                    changed = policy == "upstream-exact" and batch > 1
+                    logit_metric = {
+                        "bitwise_equal": not changed,
+                        "maximum": 0.01 if changed else 0.001 if batch > 1 else 0.0,
+                        "rms": 0.005 if changed else 0.0005 if batch > 1 else 0.0,
+                    }
+                    core = []
+                    if policy == "attention-exact":
+                        core = [{
+                            "name": name,
+                            "b1_vs_batch_row0": exact_metric,
+                            "batch_row0_vs_row1": exact_metric,
+                        } for name in ATTENTION_MODEL.CORE.STAGES]
+                    precision.append({
+                        "policy": policy, "batch": batch,
+                        "process_run": run,
+                        "key_cross_batch": exact_metric,
+                        "value_cross_batch": exact_metric,
+                        "logits_cross_batch": logit_metric,
+                        "key_vs_upstream": exact_metric,
+                        "value_vs_upstream": exact_metric,
+                        "logits_vs_upstream": exact_metric,
+                        "key_within_batch_bitwise_equal": True,
+                        "value_within_batch_bitwise_equal": True,
+                        "logits_within_batch_bitwise_equal": True,
+                        "core_stages": core,
+                    })
+                    base_ms = 100.0 * batch
+                    prefill_ms = (base_ms if policy == "upstream-exact"
+                                  else base_ms * 0.96)
+                    performance.append({
+                        "policy": policy, "batch": batch,
+                        "process_run": run,
+                        "prefill_ms": prefill_ms,
+                        "prefill_tokens_per_second":
+                            batch * 2048 * 1000.0 / prefill_ms,
+                        "engine_peak_bytes": 1000,
+                        "engine_backend_allocation_calls": 10,
+                        "generated_tokens": [1],
+                    })
+        summary = ATTENTION_MODEL.summarize(precision, performance)
+        self.assertTrue(summary["candidate_core_bitwise_equal"])
+        self.assertTrue(summary["robust_logit_max_improvement"])
+        self.assertTrue(summary["robust_logit_rms_improvement"])
+        self.assertTrue(summary["performance_gate_passed"])
+        self.assertTrue(summary["candidate_admitted"])
+        ET.fromstring(ATTENTION_MODEL.render(summary))
+
     def test_current_attention_solution_matrix_rejects_all_defaults(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-attention-batch-invariance")

@@ -42,6 +42,14 @@ The reproducible two-operation driver is
 An exact solution is not automatically admitted: the matrix separately requires its
 minimum speedup across all requested batch sizes to remain at least 0.95.
 
+After operator screening, the scoped model counterfactual is run by
+[`fp32_prefill_attention_model_gate.py`](single_gpu/fp32_prefill_attention_model_gate.py).
+Both policies keep the invariant Q/K/V projection solutions; only the candidate adds
+QK/P×V indices. Candidate precision runs also export complete block-0 core values, while
+paired performance runs alternate policy and batch order. Admission requires core
+bitwise equality, robust complete-logit improvement, and at least 0.95× prefill speed in
+every batch.
+
 When rocWMMA 2.2 and OpenMP are available, the benchmark-only QK capability target
 compares complete BF16×BF16→FP32 outputs against CPU, scalar HIP and hipBLASLt:
 
