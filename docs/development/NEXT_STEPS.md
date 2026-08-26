@@ -272,9 +272,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] replace the serial typed row Kernel above width32 with 64/128/256-thread block
   max/sum; width128/1024 reaches 1.213×–1.252×/1.103×–1.114× Torch and the same
   10 precision/pointer/zero-temporary gates pass;
-- [ ] isolate the remaining typed Softmax wide-row gap: width4096 improves
-  145.826×–148.896× over serial but remains 0.430×–0.464× Torch; test a bounded
-  block-local FP32 exponential cache without adding a Tensor-shaped allocation.
+- [x] cache FP32 exponentials in bounded width2048–8192 block-local LDS without a
+  Tensor allocation; width4096 Event/wall improves 1.217×–1.244×/1.193×–1.226×,
+  with 2047/2048 and 8192/8193 correctness/resource boundaries;
+- [ ] replace the two eight-barrier full-block reductions with a wave-level reduction;
+  cached width4096 still reaches only 0.550×–0.576× Torch.
 
 ## P2.5 — production data parallel reducer
 

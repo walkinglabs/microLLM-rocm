@@ -72,8 +72,9 @@ does not authorize the Transformer route; the latter needs a separate complete-l
 Direct typed Softmax follows the same no-temporary rule: FP16/BF16 reductions use FP32 registers
 and round only the caller output. Widths through 32 retain the readable serial row; wider rows use
 64/128/256-thread block reductions. Dispatch-boundary tests must cover 32/33, 64/65 and 128/129,
-and performance claims must keep the width4096 counterexample visible until its repeated `expf`
-cost is measured or removed.
+while widths 2048–8192 may retain FP32 exponentials in bounded block-local LDS. Tests must also
+cover 2047/2048 and 8192/8193 so an unsupported width cannot request excess shared memory.
+Performance claims must keep the remaining width4096 reduction-barrier counterexample visible.
 That model gate now exists for FFN Norm: `bf16_ffn_precast_out_` consumes an already-filled Arena
 input, Qwen/DeepSeek both pass, and enabling BF16 FFN Arena enables this exact route by default.
 Keep explicit false available, and never apply the shortcut to trace, cached, training or bypassed

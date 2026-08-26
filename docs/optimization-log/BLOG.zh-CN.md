@@ -5146,3 +5146,16 @@ maximum和denominator，32/33、64/65、128/129边界都由HIP测试覆盖。
 “提高一百多倍”偷换成“所有shape已经对齐”。
 
 ![Block typed Softmax](assets/pytorch-rocm-block-softmax.svg)
+
+## 356. Experiment 340：LDS记住exp，但只解决了一部分
+
+width4096的block已经并行，却为每个元素算两次`expf`。新候选只在width2048–8192使用最多32KiB
+动态LDS，第一次计算后保存FP32 exponential；范围之外不改变旧路由。
+
+HIP边界扩到2047/2048与8192/8193，10格PyTorch资源/精度门继续通过。正式六进程结果中，BF16
+Event/wall提高1.244×/1.226×，FP16提高1.217×/1.193×；相对PyTorch来到0.550×/0.576×。
+
+因此cache保留，但不能宣布wide parity。剩下两次256线程归约各有八轮全block barrier，下一节点
+转向wave-level reduction；如果它不能稳定改善，就关闭这条local Kernel线。
+
+![Cached typed Softmax](assets/pytorch-rocm-cached-softmax.svg)

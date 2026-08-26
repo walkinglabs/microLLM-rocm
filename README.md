@@ -231,6 +231,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > `145.826×–148.896×` faster than the serial baseline but remains only
 > `0.430×–0.464×` PyTorch, so wide-row exponential reuse is the next isolated test.
 
+> That isolated test now caches FP32 exponentials in block-local LDS for widths
+> 2048–8192. Width4096 Event/wall improves `1.217×–1.244×`/`1.193×–1.226×`,
+> with precision and allocator evidence unchanged. It still reaches only
+> `0.550×–0.576×` PyTorch, so wave-level reduction is the next bounded hypothesis.
+
 </details>
 
 ## Why this project exists
@@ -939,12 +944,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 397/397 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 394/394 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 398/398 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 395/395 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 202/202 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 400/400 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 401/401 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 142 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 143 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1348,7 +1353,8 @@ FP16 Max is `2.38e-7`. The scoped SwiGLU adapter line is now closed.
 FP16/BF16 Softmax also has a direct zero-temporary caller-owned path: all ten PyTorch
 shape/dtype rows pass with peak extra zero. Widths above 32 now use a block reduction;
 width128/1024 reaches `1.213×–1.252×`/`1.103×–1.114×` Torch. The width4096 counterexample
-remains at `0.430×–0.464×`, so repeated exponentials are still an open measured gap.
+uses a bounded FP32 shared exponential cache and improves another `1.217×–1.244×`, but
+remains at `0.550×–0.576×`; full-block reduction barriers are still an open measured gap.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

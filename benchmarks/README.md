@@ -740,3 +740,15 @@ python3 docs/optimization-log/scripts/render_pytorch_block_softmax.py \
   --candidate benchmarks/results/2026-08-26-pytorch-rocm-block-softmax \
   --output docs/optimization-log/assets/pytorch-rocm-block-softmax.svg
 ```
+
+The follow-up keeps each FP32 exponential in bounded block-local shared memory for widths
+2048–8192. Its committed matrix is
+`benchmarks/results/2026-08-26-pytorch-rocm-cached-softmax`; width4096 Event improves
+1.217×–1.244× over the block baseline but remains 0.550×–0.576× PyTorch. Render it with:
+
+```bash
+python3 docs/optimization-log/scripts/render_pytorch_cached_softmax.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-block-softmax \
+  --candidate benchmarks/results/2026-08-26-pytorch-rocm-cached-softmax \
+  --output docs/optimization-log/assets/pytorch-rocm-cached-softmax.svg
+```

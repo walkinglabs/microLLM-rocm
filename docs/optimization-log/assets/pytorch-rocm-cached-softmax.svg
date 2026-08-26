@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="700" viewBox="0 0 1320 700">
+<rect width="1320" height="700" fill="#f7f9fc"/>
+<text x="660" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">Caching FP32 Exponentials Helps Wide Typed Softmax</text>
+<text x="660" y="79" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">width4096 Event time · lower is better · six fresh MI300X processes</text>
+<line x1="110" y1="565.0" x2="880" y2="565.0" stroke="#dbe1ea"/>
+<text x="96" y="570.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">0 μs</text>
+<line x1="110" y1="455.0" x2="880" y2="455.0" stroke="#dbe1ea"/>
+<text x="96" y="460.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">3 μs</text>
+<line x1="110" y1="345.0" x2="880" y2="345.0" stroke="#dbe1ea"/>
+<text x="96" y="350.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">6 μs</text>
+<line x1="110" y1="235.0" x2="880" y2="235.0" stroke="#dbe1ea"/>
+<text x="96" y="240.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">9 μs</text>
+<line x1="110" y1="125.0" x2="880" y2="125.0" stroke="#dbe1ea"/>
+<text x="96" y="130.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">12 μs</text>
+<rect x="189" y="390.0" width="58" height="175.0" rx="7" fill="#4776c5"/>
+<text x="218" y="381.0" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">4.77</text>
+<text x="218" y="592" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">torch</text>
+<rect x="281" y="168.0" width="58" height="397.0" rx="7" fill="#aab3c2"/>
+<text x="310" y="159.0" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">10.83</text>
+<text x="310" y="592" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">block</text>
+<rect x="373" y="245.9" width="58" height="319.1" rx="7" fill="#198754"/>
+<text x="402" y="236.9" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">8.70</text>
+<text x="402" y="592" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">cache</text>
+<text x="310" y="628" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">BF16</text>
+<rect x="579" y="392.8" width="58" height="172.2" rx="7" fill="#4776c5"/>
+<text x="608" y="383.8" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">4.70</text>
+<text x="608" y="592" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">torch</text>
+<rect x="671" y="201.3" width="58" height="363.7" rx="7" fill="#aab3c2"/>
+<text x="700" y="192.3" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">9.92</text>
+<text x="700" y="592" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">block</text>
+<rect x="763" y="266.2" width="58" height="298.8" rx="7" fill="#198754"/>
+<text x="792" y="257.2" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">8.15</text>
+<text x="792" y="592" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">cache</text>
+<text x="700" y="628" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">FP16</text>
+<rect x="925" y="125" width="345" height="440" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="955" y="168" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Evidence</text>
+<text x="955" y="214" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ 10 / 10 precision + pointers</text>
+<text x="955" y="247" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ zero Tensor / allocator bytes</text>
+<text x="955" y="298" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#172033">BF16 Event / wall 1.244× / 1.226×</text>
+<text x="955" y="331" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#172033">FP16 Event / wall 1.217× / 1.193×</text>
+<text x="955" y="382" font-family="Inter,Arial,sans-serif" font-size="16" fill="#e28b22">△ still 0.550× / 0.576× Torch</text>
+<text x="955" y="429" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">cache only width 2048–8192</text>
+<text x="955" y="456" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">outside range keeps no-cache block</text>
+<text x="955" y="503" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">next: replace 8 full-block barriers</text>
+<text x="955" y="528" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">with wave-level reduction</text>
+<text x="660" y="670" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">Keep bounded cache · wide-row parity remains open</text>
+</svg>

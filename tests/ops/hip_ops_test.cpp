@@ -1844,7 +1844,8 @@ TEST(HipOpsTest, TypedSoftmaxDispatchBoundariesMatchCpuWithoutTransfers) {
     const auto context = OpContext::from_external_stream(gpu, stream.native_handle());
     runtime::Event finished(gpu, false);
     const std::vector<std::int64_t> widths{
-        1, 17, 32, 33, 64, 65, 128, 129, 1024, 4096};
+        1, 17, 32, 33, 64, 65, 128, 129, 1024,
+        2047, 2048, 4096, 8192, 8193};
     constexpr std::int64_t rows = 3;
 
     for (const auto dtype : {DType::Float16, DType::BFloat16}) {
