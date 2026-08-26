@@ -52,6 +52,10 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > equal; the decode extension and runner have been removed.
 > See the [grouped decode rejection](docs/optimization-log/experiments/326-grouped-decode-model-reject.md).
 
+> **Local saturation:** this fixed DeepSeek workload now has no untested adjacent
+> local route with material upside. The next useful scale is serving concurrency,
+> training architecture, or Radeon/backend-version validation.
+
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
 > See the [generated training map](docs/optimization-log/assets/current-training-profile.svg).

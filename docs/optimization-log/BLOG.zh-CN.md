@@ -4988,4 +4988,9 @@ native128完整输出16/16通过，但T2048 Event/wall只有约1.003×，0/4过�
 DeepSeek B2 decode每步只有2行。三轮rows2 probe中solution65193稳定、64/64 exact，Event/wall为
 1.814/1.519×。下一步只做固定T2048/B2/N64模型门。
 
+## 343. Experiment 327：固定长上下文局部搜索停止
+
+整模最终只有1.00968×，未过1.01并已清理。结合finalize六条关闭路线和cast 4.11%上限，当前固定
+workload不再有值得继续的小改动。下一阶段必须换到serving、训练架构或新硬件/版本矩阵。
+
 ![Native128 result](../../benchmarks/results/2026-08-26-native128-finalize/native128.svg)

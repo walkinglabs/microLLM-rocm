@@ -52,6 +52,7 @@ def main() -> int:
         "stable 65193",
         "Event/wall 1.814×/1.519×",
         "1.00968× below 1.01",
+        "1.1393× PyTorch; finalize routes closed",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",
@@ -180,6 +181,8 @@ def main() -> int:
         "benchmarks/results/2026-08-26-grouped-gate-up-decode-model/summary.json",
         "benchmarks/results/2026-08-26-grouped-gate-up-decode-model/analysis.json",
         "benchmarks/results/2026-08-26-grouped-gate-up-decode-model/model-gate.svg",
+        "benchmarks/results/2026-08-26-clean-deepseek-local-saturation/analysis.json",
+        "benchmarks/results/2026-08-26-clean-deepseek-local-saturation/local-saturation.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (

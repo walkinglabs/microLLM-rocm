@@ -171,6 +171,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [140](steps/140-native-128-finalize.md) | complete; rejected | native128 finalize operator | accuracy过；T2048约1.003×，0/4性能过门 |
 | [141](steps/141-finalize-cleanup-gemm-gap.md) | complete | 删除candidate并审计GEMM 33.25% | rows2 Deep 1.814×/1.519× exact |
 | [142](steps/142-grouped-gate-up-decode-model.md) | complete; rejected | Deep T2048/B2/N64 grouped decode模型门 | 1.00968×低于1.01；撤回route |
+| [143](steps/143-clean-deepseek-local-saturation.md) | complete | clean固定workload局部饱和 | 下一步必须改变架构/负载/硬件尺度 |
 
 ## 为什么按这个顺序
 
