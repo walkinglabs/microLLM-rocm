@@ -829,3 +829,15 @@ Measure the functional C++ PyTorch Custom Op with:
 The retained no-grad gate improves FP16 width4096 by 1.158× over the initial adapter.
 Width1024 reaches native parity; width4096 remains 0.795×/0.529× for FP16/BF16. Peak bytes
 equal native in all ten rows.
+
+Measure the caller-owned mutation schema against native `out=` with:
+
+```bash
+/path/to/rocm-venv/bin/python \
+  benchmarks/single_gpu/pytorch_custom_op_softmax_out.py \
+  --library build-torch-rocm/bindings/torch/libmicrollm_torch_ops.so \
+  --output /tmp/microllm-custom-op-softmax-out
+```
+
+Both sides allocate before timing. All ten peak deltas are zero; width1024 FP16/BF16 is
+1.116×/1.087× native out, while width4096 remains 0.813×/0.467×.

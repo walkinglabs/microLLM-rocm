@@ -5224,3 +5224,13 @@ adapter作为生态能力保留，不写成全面加速。caller-owned out若要
 Autograd合同，不能偷偷拿ctypes的预分配优势替换functional口径。
 
 ![PyTorch Custom Op Softmax](assets/pytorch-rocm-custom-op-softmax.svg)
+
+## 363. Experiment 347：out口径消除了分配争论
+
+`softmax_out`用`Tensor(a!)`声明mutation/alias，返回pointer必须等于caller。requires-grad直接拒绝，
+可微路径仍由functional op负责。性能对照改成`torch.softmax(...,out=...)`，两边都预分配。
+
+10格精度、pointer、零peak门通过。width1024 FP16/BF16达到1.116×/1.087×native out；width4096
+仍只有0.813×/0.467×。所以API保留，模型宽度有收益，wide失败也不再能归因于output allocation。
+
+![PyTorch Custom Op Softmax out](assets/pytorch-rocm-custom-op-softmax-out.svg)

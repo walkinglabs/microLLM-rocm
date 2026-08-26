@@ -89,6 +89,8 @@ The C++ validation layer is only 1.011× raw; optimize the adapter boundary befo
 The functional PyTorch Softmax adapter now has a no-grad dispatch gate. It reaches native parity at
 width1024 but not width4096; do not compare its allocated output directly with the caller-owned ctypes
 path without an explicit out-schema aliasing contract.
+That out schema now exists and returns the exact caller pointer with zero peak-extra bytes. It is
+inference-only by design; alias, shape, dtype, device and contiguous errors must remain explicit.
 That model gate now exists for FFN Norm: `bf16_ffn_precast_out_` consumes an already-filled Arena
 input, Qwen/DeepSeek both pass, and enabling BF16 FFN Arena enables this exact route by default.
 Keep explicit false available, and never apply the shortcut to trace, cached, training or bypassed

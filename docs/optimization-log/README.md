@@ -1092,6 +1092,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Softmax attribution SVG](assets/pytorch-rocm-softmax-attribution.svg) | 四层Event中位数与边界比值 |
 | [experiments/346-pytorch-custom-op-softmax.md](experiments/346-pytorch-custom-op-softmax.md) | C++ Custom Op与no-grad门 |
 | [Custom Op Softmax SVG](assets/pytorch-rocm-custom-op-softmax.svg) | 十格native比与wide反例 |
+| [experiments/347-pytorch-custom-op-softmax-out.md](experiments/347-pytorch-custom-op-softmax-out.md) | caller-owned mutation/alias合同 |
+| [Custom Op Softmax out SVG](assets/pytorch-rocm-custom-op-softmax-out.svg) | native out十格与零peak |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

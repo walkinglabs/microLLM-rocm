@@ -60,6 +60,12 @@ def softmax(input):
     return torch.ops.microllm.softmax(input)
 
 
+def softmax_out(input, output):
+    import torch
+
+    return torch.ops.microllm.softmax_out(input, output)
+
+
 def swiglu(gate, up):
     import torch
 

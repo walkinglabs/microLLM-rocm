@@ -291,8 +291,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] register C++ PyTorch Softmax for CPU/ROCm/Meta/C++ Autograd; an inference gate
   improves FP16 width4096 by 1.158× and width1024 reaches 1.026×/0.993× native for
   FP16/BF16;
-- [ ] define a caller-owned PyTorch out schema with explicit mutation/alias and
-  Autograd rules before using the remaining width4096 0.795×/0.529× gap as a target.
+- [x] add caller-owned `Tensor(a!)` Softmax out with exact pointer, inference-only
+  gradient rejection and zero peak; width1024 FP16/BF16 reaches 1.116×/1.087× native out;
+- [ ] profile BF16 width4096 scheduling separately: caller-owned FP16/BF16 remains
+  0.813×/0.467×, and the rejected broad-wave result forbids one shared policy.
 
 ## P2.5 — production data parallel reducer
 

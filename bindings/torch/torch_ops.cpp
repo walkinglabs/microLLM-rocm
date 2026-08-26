@@ -168,6 +168,52 @@ at::Tensor meta_softmax(const at::Tensor& input) {
     return at::empty_like(input);
 }
 
+void validate_softmax_out(const at::Tensor& input, const at::Tensor& output) {
+    validate_softmax(input);
+    TORCH_CHECK(input.scalar_type() == output.scalar_type(),
+                "Softmax input/output dtypes must match");
+    TORCH_CHECK(input.sizes() == output.sizes(),
+                "Softmax input/output shapes must match");
+    TORCH_CHECK(input.device() == output.device(),
+                "Softmax input/output devices must match");
+    TORCH_CHECK(output.is_contiguous(), "Softmax output must be contiguous");
+    TORCH_CHECK(input.numel() == 0 ||
+                    input.const_data_ptr() != output.const_data_ptr(),
+                "Softmax output must not alias input");
+}
+
+at::Tensor& softmax_out(const at::Tensor& input, at::Tensor& output) {
+    validate_softmax_out(input, output);
+    if (input.numel() == 0) return output;
+    auto output_tensor = external_tensor(output);
+    const auto input_tensor = external_tensor(input);
+    const auto context = input.device().is_cpu()
+                             ? microllm::ops::OpContext{}
+                             : microllm::ops::OpContext::from_external_stream(
+                                   microllm_device(input), current_stream(input));
+    if (input.scalar_type() == at::kFloat) {
+        microllm::ops::softmax_out_(
+            output_tensor, input_tensor, -1, context);
+    } else {
+        microllm::ops::softmax_typed_out_(
+            output_tensor, input_tensor, -1, context);
+    }
+    return output;
+}
+
+at::Tensor& meta_softmax_out(const at::Tensor& input, at::Tensor& output) {
+    TORCH_CHECK(input.scalar_type() == at::kFloat ||
+                    input.scalar_type() == at::kHalf ||
+                    input.scalar_type() == at::kBFloat16,
+                "input must be float32, float16, or bfloat16");
+    TORCH_CHECK(input.dim() >= 1, "Softmax input must have at least one dimension");
+    TORCH_CHECK(input.scalar_type() == output.scalar_type(),
+                "Softmax input/output dtypes must match");
+    TORCH_CHECK(input.sizes() == output.sizes(),
+                "Softmax input/output shapes must match");
+    return output;
+}
+
 at::Tensor swiglu(const at::Tensor& gate, const at::Tensor& up) {
     TORCH_CHECK(gate.scalar_type() == at::kFloat ||
                     gate.scalar_type() == at::kHalf ||
@@ -426,12 +472,22 @@ at::Tensor softmax_autograd(const at::Tensor& input) {
     return SoftmaxAutogradFunction::apply(input);
 }
 
+at::Tensor& softmax_out_autograd(
+    const at::Tensor& input, at::Tensor& output) {
+    TORCH_CHECK(!at::GradMode::is_enabled() ||
+                    (!input.requires_grad() && !output.requires_grad()),
+                "softmax_out is inference-only and rejects tensors requiring gradients");
+    return softmax_out(input, output);
+}
+
 }  // namespace
 
 TORCH_LIBRARY(microllm, library) {
     library.def("add(Tensor left, Tensor right) -> Tensor");
     library.def("multiply(Tensor left, Tensor right) -> Tensor");
     library.def("softmax(Tensor input) -> Tensor");
+    library.def(
+        "softmax_out(Tensor input, Tensor(a!) output) -> Tensor(a!)");
     library.def("swiglu(Tensor gate, Tensor up) -> Tensor");
     library.def(
         "swiglu_backward(Tensor gate, Tensor up, Tensor gradient) -> (Tensor, Tensor)");
@@ -445,6 +501,7 @@ TORCH_LIBRARY_IMPL(microllm, CPU, library) {
     library.impl("add", &add);
     library.impl("multiply", &multiply);
     library.impl("softmax", &softmax);
+    library.impl("softmax_out", &softmax_out);
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
     library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
@@ -455,6 +512,7 @@ TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
     library.impl("add", &add);
     library.impl("multiply", &multiply);
     library.impl("softmax", &softmax);
+    library.impl("softmax_out", &softmax_out);
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
     library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
@@ -463,6 +521,7 @@ TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
 
 TORCH_LIBRARY_IMPL(microllm, Autograd, library) {
     library.impl("softmax", &softmax_autograd);
+    library.impl("softmax_out", &softmax_out_autograd);
     library.impl("swiglu", &swiglu_autograd);
 }
 
@@ -470,6 +529,7 @@ TORCH_LIBRARY_IMPL(microllm, Meta, library) {
     library.impl("add", &meta_binary);
     library.impl("multiply", &meta_binary);
     library.impl("softmax", &meta_softmax);
+    library.impl("softmax_out", &meta_softmax_out);
     library.impl("swiglu", &meta_binary);
     library.impl("swiglu_backward", &meta_swiglu_backward);
     library.impl(

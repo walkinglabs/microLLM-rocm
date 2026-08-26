@@ -265,6 +265,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > width1024 reaches `1.026×/0.993×` native for FP16/BF16. Functional width4096 remains
 > `0.795×/0.529×`, so integration is kept without a universal speed claim.
 
+> The explicit caller-owned `softmax_out` now declares `Tensor(a!)` mutation and
+> rejects requires-grad inputs. All ten pointer/precision/zero-peak gates pass;
+> width1024 FP16/BF16 reaches `1.116×/1.087×` native out, while width4096 remains
+> `0.813×/0.467×` and stays visible as the next dtype-specific scheduling problem.
+
 </details>
 
 ## Why this project exists
@@ -973,12 +978,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 404/404 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 401/401 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 405/405 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 402/402 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 203/203 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 407/407 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 408/408 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 149 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 150 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1396,6 +1401,8 @@ Raw/C++/Python attribution then measures `4.764/4.815/5.086 μs` against PyTorch
 `4.530 μs`; both the Kernel and bridge own a bounded part of the residual.
 The C++ Custom Op closes the model-width path to parity after a no-grad gate, while
 retaining the width4096 functional counterexample at `0.795×/0.529×`.
+The caller-owned out variant removes allocation ambiguity and reaches
+`1.116×/1.087×` at width1024; its width4096 ratios remain `0.813×/0.467×`.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

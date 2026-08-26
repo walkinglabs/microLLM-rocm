@@ -155,6 +155,8 @@ formula graph. FP32 retains the general/scalar-seed producers.
 The same adapter registers last-dimension Softmax for FP32/FP16/BF16 with CPU, ROCm,
 Meta/fullgraph and C++ Autograd. Inputs without gradients bypass `Function::apply`; the
 functional output still follows PyTorch allocation semantics.
+An explicit `softmax_out` Custom Op accepts caller Storage through a `Tensor(a!)`
+mutation schema. It is inference-only; use functional `softmax` when gradients are required.
 
 ## RCCL build
 

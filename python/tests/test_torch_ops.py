@@ -34,6 +34,8 @@ class TorchOpsTest(unittest.TestCase):
                     actual_add = torch_ops.add(left, right)
                     actual_multiply = torch_ops.multiply(left, right)
                     actual_softmax = torch_ops.softmax(left)
+                    caller_softmax = torch.empty_like(left)
+                    returned_softmax = torch_ops.softmax_out(left, caller_softmax)
                     actual_swiglu = torch_ops.swiglu(left, right)
                     if left.numel() != 0:
                         self.assertNotEqual(actual_add.data_ptr(), left.data_ptr())
@@ -46,6 +48,10 @@ class TorchOpsTest(unittest.TestCase):
                                          5.0e-4 if dtype == torch.float16 else 4.0e-3)
                     torch.testing.assert_close(
                         actual_softmax, torch.softmax(left, dim=-1),
+                        rtol=0, atol=softmax_tolerance)
+                    self.assertEqual(returned_softmax.data_ptr(), caller_softmax.data_ptr())
+                    torch.testing.assert_close(
+                        caller_softmax, torch.softmax(left, dim=-1),
                         rtol=0, atol=softmax_tolerance)
                     tolerance = (1.0e-6 if dtype == torch.float32 else
                                  4.0e-3 if dtype == torch.float16 else 6.25e-2)
@@ -66,6 +72,16 @@ class TorchOpsTest(unittest.TestCase):
             torch_ops.softmax(torch.ones(2, 3).transpose(0, 1))
         with self.assertRaisesRegex(RuntimeError, "at least one dimension"):
             torch_ops.softmax(torch.tensor(1.0))
+        with self.assertRaisesRegex(RuntimeError, "dtypes must match"):
+            torch_ops.softmax_out(
+                torch.ones(2, 3), torch.empty(2, 3, dtype=torch.float16))
+        with self.assertRaisesRegex(RuntimeError, "shapes must match"):
+            torch_ops.softmax_out(torch.ones(2, 3), torch.empty(3, 2))
+        alias = torch.ones(2, 3)
+        with self.assertRaisesRegex(RuntimeError, "must not alias"):
+            torch_ops.softmax_out(alias, alias)
+        with self.assertRaisesRegex(RuntimeError, "output must be contiguous"):
+            torch_ops.softmax_out(torch.ones(2, 3), torch.empty(3, 2).transpose(0, 1))
         with self.assertRaisesRegex(RuntimeError, "shapes must match"):
             torch_ops.swiglu(torch.ones(3), torch.ones(4))
 
@@ -109,6 +125,9 @@ class TorchOpsTest(unittest.TestCase):
                 torch.testing.assert_close(
                     custom_softmax_input.grad, native_softmax_input.grad,
                     rtol=0, atol=softmax_tolerance)
+                with self.assertRaisesRegex(RuntimeError, "inference-only"):
+                    torch_ops.softmax_out(
+                        custom_softmax_input, torch.empty_like(custom_softmax_input))
 
     def test_compile_fullgraph_uses_meta_contract(self):
         if not hasattr(torch, "compile"):
@@ -171,10 +190,17 @@ class TorchOpsTest(unittest.TestCase):
         with torch.cuda.stream(stream):
             actual = torch_ops.add(left, right)
             actual_softmax = torch_ops.softmax(left.reshape(8, 128))
+            caller_softmax = torch.empty(8, 128, device=device)
+            returned_softmax = torch_ops.softmax_out(
+                left.reshape(8, 128), caller_softmax)
         stream.synchronize()
         torch.testing.assert_close(actual, left + right)
         torch.testing.assert_close(
             actual_softmax, torch.softmax(left.reshape(8, 128), dim=-1),
+            rtol=0, atol=2.0e-6)
+        self.assertEqual(returned_softmax.data_ptr(), caller_softmax.data_ptr())
+        torch.testing.assert_close(
+            caller_softmax, torch.softmax(left.reshape(8, 128), dim=-1),
             rtol=0, atol=2.0e-6)
 
 
