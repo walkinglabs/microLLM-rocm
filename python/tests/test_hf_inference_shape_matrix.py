@@ -170,8 +170,8 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
             command.index("--trace-binary-directory") + 1], "values")
         route = {
             "status": "pass", "batch": 4, "token_count": 2048,
-            "trace_record_count": 56,
-            "trace_binary_record_count": 8,
+            "trace_record_count": 55,
+            "trace_binary_record_count": 7,
             "fp32_prefill_q_solution_index": 296100,
             "fp32_prefill_kv_solution_index": 292135,
             "fp32_prefill_attention_qk_solution_index": 304681,

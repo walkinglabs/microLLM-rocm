@@ -32,7 +32,6 @@ BATCHES = PARENT.BATCHES
 PREFIX = "inference.cached_prefill.blocks.0"
 STAGES = (
     PREFIX + ".ffn_norm",
-    PREFIX + ".ffn.input_bf16",
     PREFIX + ".ffn.gate",
     PREFIX + ".ffn.up",
     PREFIX + ".ffn.activated",
@@ -75,7 +74,7 @@ def command(args: argparse.Namespace, model: dict, batch: int,
 def require_route(record: dict, batch: int) -> None:
     expected = {
         "status": "pass", "batch": batch, "token_count": 2048,
-        "trace_record_count": 56, "trace_binary_record_count": len(STAGES),
+        "trace_record_count": 55, "trace_binary_record_count": len(STAGES),
         "fp32_prefill_q_solution_index": PARENT.TRACE.Q_SOLUTION,
         "fp32_prefill_kv_solution_index": PARENT.TRACE.KV_SOLUTION,
         "fp32_prefill_attention_qk_solution_index": PARENT.PARENT.QK_SOLUTION,
@@ -103,7 +102,7 @@ def load_trace(trace: Path, directory: Path, batch: int,
         raise ValueError("prefill FFN binary stages changed")
     captured = min(batch, 2)
     for name, row in selected.items():
-        width = 8960 if name in STAGES[2:5] else 1536
+        width = 8960 if name.endswith((".gate", ".up", ".activated")) else 1536
         shape = [captured, context, width]
         binary = row.get("binary_values")
         if (row.get("shape") != shape or row.get("values") is None or
