@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"roctx_marker_capture_complete","finished_range_count":1,"destructor_range_count":1,"all_ranges_closed":true,"default_enabled":false,"runtime_library_resolution":true,"json_trace_records_unchanged":true,"next_gap":"merge marker, kernel and Python spans into one Perfetto timeline"}

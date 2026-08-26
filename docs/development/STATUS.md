@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 379/379, ASan/UBSan 376/376, PyTorch-enabled CPU 382/382, single-GPU HIP label 197/197, RCCL label 53/53 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 380/380, ASan/UBSan 377/377, PyTorch-enabled CPU 383/383, single-GPU HIP label 197/197, RCCL label 53/53 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -100,7 +100,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client plus build-tree and relocated-install C-only Config consumers | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error plus sync/async `@profile` and nested scope JSONL | packaging/broader ops |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
-| In-process profiling | smoke-tested | C++ TraceSession plus Python decorator/scope and Perfetto Trace Event export, filtered binary values, CPU/HIP tests | async Event completion and rocprof marker correlation |
+| In-process profiling | smoke-tested | C++ TraceSession with optional ROCTX, Python decorator/scope, Perfetto export, filtered values; rocprof captures closed ranges | async Event completion and unified CPU/GPU Perfetto merge |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
 | Profiling/autotune | smoke-tested | rocprofv3, exact registries including isolated prefill Q/K/V/QK/P×V/O scopes, complete output/state before timing, real Attention batch-invariance harness and Autograd/layout diagnostics | automated model regression and broader trace correlation |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |

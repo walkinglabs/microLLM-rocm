@@ -1,0 +1,3 @@
+"Name","Calls","TotalDurationNs","AverageNs","Percentage","MinNs","MaxNs","StdDev"
+"microllm.test.finished",1,5291,5291.000000,71.50,5291,5291,0.00000000e+00
+"microllm.test.destructor",1,2109,2109.000000,28.50,2109,2109,0.00000000e+00

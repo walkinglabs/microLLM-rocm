@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass","infrastructure_commit":"2a94ee1e","rocprof":"rocprofv3 --marker-trace --stats","marker_trace_rows":2,"marker_stats_rows":2,"focused_gtest":"pass","cpu_debug":"380/380","asan_ubsan":"377/377","pytorch_enabled_cpu":"383/383","mi300x_gfx942_hip":"197/197","rccl":"53/53"}

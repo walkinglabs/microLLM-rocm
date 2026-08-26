@@ -5,4 +5,5 @@
 pop，普通JSONL记录不变。`roctx_markers_available()`暴露能力。
 
 pilot用rocprofv3 `--marker-trace`捕获finished/destructor两个range，各1条且边界闭合。正式raw证据在基础
-设施提交后重新生成。
+设施提交后重新生成并保存在
+[`benchmarks/results/2026-08-26-roctx-marker-correlation`](../../benchmarks/results/2026-08-26-roctx-marker-correlation/README.md)。

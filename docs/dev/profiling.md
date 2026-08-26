@@ -545,4 +545,8 @@ markers and support asynchronous HIP Event completion. Use
 `export_perfetto("trace.jsonl", "trace.json")` to create a Chrome Trace Event file;
 this is a format conversion, not GPU correlation.
 
+Set `TraceOptions.emit_roctx_ranges=true` to mirror active `TraceTimer` spans into
+ROCTX. rocprofv3 `--marker-trace` then records the same names; unfinished timers are
+closed by the destructor. The option is default-off and loads ROCTX at runtime.
+
 Ad-hoc wall-clock timing around asynchronous kernels is not accepted evidence.
