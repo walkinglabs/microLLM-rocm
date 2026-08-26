@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Safetensors mmap visits](2026-08-26-safetensors-mmap.md)
 - [2026-08-26: Indexed HIP weight streaming](2026-08-26-indexed-streaming.md)
 - [2026-08-26: Multi-shard HIP weight streaming](2026-08-26-multishard-streaming.md)
 - [2026-08-26: Grouped cached-decode cleanup](2026-08-26-grouped-decode-cleanup.md)

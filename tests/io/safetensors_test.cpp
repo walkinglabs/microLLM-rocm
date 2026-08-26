@@ -89,14 +89,20 @@ TEST(SafetensorsTest, InspectAndVisitExposeOrderedBoundedRawPayloads) {
     }
     std::vector<std::string> visited;
     std::uint64_t visited_bytes = 0;
-    visit_safetensors(path, [&](const SafetensorsTensorInfo& info,
-                                std::span<const std::byte> bytes) {
+    const auto visit_report = visit_safetensors(
+        path, [&](const SafetensorsTensorInfo& info,
+                  std::span<const std::byte> bytes) {
         visited.push_back(info.name);
         EXPECT_EQ(bytes.size(), info.data_bytes);
         visited_bytes += bytes.size();
     });
     ASSERT_EQ(visited.size(), metadata.size());
     EXPECT_EQ(visited_bytes, expected_bytes);
+    EXPECT_EQ(visit_report.tensors, metadata.size());
+    EXPECT_EQ(visit_report.payload_bytes, expected_bytes);
+#if defined(__unix__) || defined(__APPLE__)
+    EXPECT_TRUE(visit_report.memory_mapped);
+#endif
     EXPECT_THROW(visit_safetensors(path, {}), std::invalid_argument);
 }
 

@@ -29,6 +29,11 @@ struct SafetensorsTensorInfo {
     Shape shape;
     std::uint64_t data_bytes = 0;
 };
+struct SafetensorsVisitReport {
+    bool memory_mapped = false;
+    std::size_t tensors = 0;
+    std::uint64_t payload_bytes = 0;
+};
 
 using SafetensorsTensorVisitor =
     std::function<void(const SafetensorsTensorInfo&, std::span<const std::byte>)>;
@@ -37,8 +42,9 @@ using SafetensorsTensorVisitor =
     const std::filesystem::path& path);
 // The byte span is valid only for the duration of the callback. Tensors are
 // visited in payload-offset order so callers can stream large checkpoints.
-void visit_safetensors(const std::filesystem::path& path,
-                       const SafetensorsTensorVisitor& visitor);
+SafetensorsVisitReport visit_safetensors(
+    const std::filesystem::path& path,
+    const SafetensorsTensorVisitor& visitor);
 [[nodiscard]] SafetensorsIndex inspect_safetensors_index(
     const std::filesystem::path& index_path);
 

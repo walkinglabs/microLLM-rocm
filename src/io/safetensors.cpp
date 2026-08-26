@@ -19,8 +19,51 @@
 #include <utility>
 #include <variant>
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 namespace microllm::io {
 namespace {
+
+class ReadOnlyMapping {
+public:
+    explicit ReadOnlyMapping(const std::filesystem::path& path) {
+#if defined(__unix__) || defined(__APPLE__)
+        descriptor_ = ::open(path.c_str(), O_RDONLY);
+        if (descriptor_ < 0) return;
+        struct stat status {};
+        if (::fstat(descriptor_, &status) != 0 || status.st_size <= 0) return;
+        bytes_ = static_cast<std::size_t>(status.st_size);
+        data_ = ::mmap(nullptr, bytes_, PROT_READ, MAP_PRIVATE, descriptor_, 0);
+        if (data_ == MAP_FAILED) data_ = nullptr;
+#else
+        (void)path;
+#endif
+    }
+    ~ReadOnlyMapping() {
+#if defined(__unix__) || defined(__APPLE__)
+        if (data_ != nullptr) (void)::munmap(data_, bytes_);
+        if (descriptor_ >= 0) (void)::close(descriptor_);
+#endif
+    }
+    ReadOnlyMapping(const ReadOnlyMapping&) = delete;
+    ReadOnlyMapping& operator=(const ReadOnlyMapping&) = delete;
+    [[nodiscard]] bool valid() const noexcept { return data_ != nullptr; }
+    [[nodiscard]] const std::byte* data() const noexcept {
+        return static_cast<const std::byte*>(data_);
+    }
+    [[nodiscard]] std::size_t size() const noexcept { return bytes_; }
+private:
+    void* data_ = nullptr;
+    std::size_t bytes_ = 0;
+#if defined(__unix__) || defined(__APPLE__)
+    int descriptor_ = -1;
+#endif
+};
 
 struct Json;
 using JsonObject = std::map<std::string, Json>;
@@ -565,14 +608,36 @@ std::vector<SafetensorsTensorInfo> inspect_safetensors(
     return output;
 }
 
-void visit_safetensors(const std::filesystem::path& path,
-                       const SafetensorsTensorVisitor& visitor) {
+SafetensorsVisitReport visit_safetensors(
+    const std::filesystem::path& path,
+    const SafetensorsTensorVisitor& visitor) {
     if (!visitor) throw std::invalid_argument("safetensors visitor must be callable");
     std::ifstream input(path, std::ios::binary);
     if (!input) throw std::runtime_error("cannot open safetensors file: " + path.string());
     auto parsed = parse_file_header(input, path);
     std::sort(parsed.tensors.begin(), parsed.tensors.end(),
               [](const auto& left, const auto& right) { return left.begin < right.begin; });
+    SafetensorsVisitReport report;
+    report.tensors = parsed.tensors.size();
+    for (const auto& tensor : parsed.tensors) {
+        report.payload_bytes += tensor.end - tensor.begin;
+    }
+    ReadOnlyMapping mapping(path);
+    if (mapping.valid()) {
+        if (parsed.data_start > mapping.size() ||
+            report.payload_bytes > mapping.size() - parsed.data_start) {
+            throw std::runtime_error("mapped safetensors payload exceeds file");
+        }
+        report.memory_mapped = true;
+        for (const auto& tensor : parsed.tensors) {
+            const auto byte_count = static_cast<std::size_t>(tensor.end - tensor.begin);
+            visitor({tensor.name, tensor_dtype(tensor.dtype), tensor.shape, byte_count},
+                    std::span<const std::byte>(
+                        mapping.data() + parsed.data_start + tensor.begin,
+                        byte_count));
+        }
+        return report;
+    }
     const auto maximum = std::max_element(
         parsed.tensors.begin(), parsed.tensors.end(), [](const auto& left, const auto& right) {
             return left.end - left.begin < right.end - right.begin;
@@ -589,6 +654,7 @@ void visit_safetensors(const std::filesystem::path& path,
         visitor({tensor.name, tensor_dtype(tensor.dtype), tensor.shape, byte_count},
                 std::span<const std::byte>(buffer.data(), byte_count));
     }
+    return report;
 }
 
 StateDict load_safetensors(const std::filesystem::path& path, Device target) {

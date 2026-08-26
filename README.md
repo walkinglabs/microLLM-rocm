@@ -1182,7 +1182,7 @@ loading, Hugging Face-style name/transpose mapping, and single or sharded safete
 For an uninitialized HIP model, the single-file path preflights metadata and streams the
 original low-precision payload through bounded staging directly into parameter Storage.
 Pinned MI300X measurements are 0.580 s for Qwen2.5-0.5B and a 1.356 s median for DeepSeek
-Distill 1.5B; multi-shard and indexed HIP streaming are implemented, while mmap remains future work.
+Distill 1.5B; multi-shard/indexed HIP streaming and read-only mmap payload visits are implemented.
 
 ```cpp
 #include <microllm/model/model.h>

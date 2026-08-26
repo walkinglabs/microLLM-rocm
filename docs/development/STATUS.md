@@ -38,7 +38,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | smoke-tested | BPE round-trip + immutable licensed range + Model-S smoke | full corpus/reference train |
 | Weight/state API | smoke-tested | independent state_dict, atomic load, Qwen mapping, single/multi/index transactional HIP streaming | mmap and model-specific architecture validation |
-| safetensors | smoke-tested | F32/BF16/F16, shards/index/corruption/CPU-HIP, Python interop, bounded single/multi/index HIP streaming | FP8/quantized formats and memory mapping |
+| safetensors | smoke-tested | F32/BF16/F16, shards/index/corruption/CPU-HIP, Python interop, transactional streaming and read-only mmap visits | FP8/quantized formats |
 | C++ training CLI | smoke-tested | CPU save/resume fixture and Model-S HIP real-text steps | validation/report CLI |
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |

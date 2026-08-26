@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"mmap_payload_visit_complete","mapping":"read-only private","callback_span_lifetime":"callback only","tensor_count_verified":true,"payload_bytes_verified":true,"fallback":"single reusable read buffer","multishard_and_index_streaming_unchanged":true}

@@ -12,7 +12,7 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 - [x] single-file low-precision streaming into an uninitialized HIP model;
 - [x] multi-shard streaming with whole-set preflight and bounded HIP staging;
 - [x] indexed weight-map streaming with declared-shard membership preflight;
-- [ ] memory-mapped payload visits;
+- [x] read-only memory-mapped payload visits with portable buffered fallback;
 - [ ] FP8/INT8/INT4 tensors and quantization metadata;
 - [ ] official Qwen checkpoint fixture and tokenizer files.
 
