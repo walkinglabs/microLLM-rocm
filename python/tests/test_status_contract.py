@@ -14,9 +14,9 @@ def main() -> int:
     text = STATUS.read_text(encoding="utf-8")
     for token in (
         "RCCL label 53/53",
-        "CPU 377/377",
-        "ASan/UBSan 375/375",
-        "PyTorch-enabled CPU 380/380",
+        "CPU 378/378",
+        "ASan/UBSan 376/376",
+        "PyTorch-enabled CPU 381/381",
         "single-GPU HIP label 197/197",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
@@ -76,13 +76,16 @@ def main() -> int:
         "RCCL label 49/49",
         "CPU 374/374",
         "CPU 376/376",
+        "CPU 377/377",
         "ASan/UBSan 374/374",
+        "ASan/UBSan 375/375",
         "ASan/UBSan 372/372",
         "single-GPU HIP label 192/192",
         "single-GPU HIP label 195/195",
         "single-GPU HIP label 196/196",
         "PyTorch-enabled CPU 377/377",
         "PyTorch-enabled CPU 379/379",
+        "PyTorch-enabled CPU 380/380",
         "PyTorch-enabled build 323/323",
         "experiments through 287",
         "current T2048/B2/N64 is 0.8158x",
@@ -193,6 +196,9 @@ def main() -> int:
         "benchmarks/results/2026-08-26-safetensors-mmap/analysis.json",
         "benchmarks/results/2026-08-26-safetensors-mmap/verification.json",
         "benchmarks/results/2026-08-26-safetensors-mmap/mmap-visit.svg",
+        "benchmarks/results/2026-08-26-qwen-tool-chat/analysis.json",
+        "benchmarks/results/2026-08-26-qwen-tool-chat/verification.json",
+        "benchmarks/results/2026-08-26-qwen-tool-chat/tool-chat.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (

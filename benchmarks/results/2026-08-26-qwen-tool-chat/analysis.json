@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"qwen_tool_chat_complete","tool_schema_system_block":true,"multiple_assistant_calls":true,"tool_response_role":true,"json_name_escaping":true,"arguments_object_boundary":true,"orphan_response_rejected":true,"python_dependency":false}

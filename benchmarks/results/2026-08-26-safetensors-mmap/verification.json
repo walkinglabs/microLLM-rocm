@@ -1,1 +1,1 @@
-{"schema_version":1,"status":"pass","cpu_mmap_report":"pass","cpu_index_and_payload":"2/2","mi300x_indexed_multishard_stream":"pass","portable_fallback_retained":true}
+{"schema_version":1,"status":"pass","cpu_mmap_report":"pass","cpu_index_and_payload":"2/2","mi300x_indexed_multishard_stream":"pass","portable_fallback_retained":true,"cpu_debug":"378/378","asan_ubsan":"376/376","pytorch_enabled_cpu":"381/381","mi300x_gfx942_hip":"197/197","rccl":"53/53"}

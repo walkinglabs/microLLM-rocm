@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 377/377, ASan/UBSan 375/375, PyTorch-enabled CPU 380/380, single-GPU HIP label 197/197, RCCL label 53/53 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 378/378, ASan/UBSan 376/376, PyTorch-enabled CPU 381/381, single-GPU HIP label 197/197, RCCL label 53/53 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -19,7 +19,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Parallel HIP RMSNorm | smoke-tested | rows 1/3/32 × widths 16/384/512/896/1536; forward/backward/PyTorch gates; RMSNorm 75.85ms→1.55ms; score 0.479227→0.885816 | low-precision path and fusion |
 | MI300X precision capabilities | smoke-tested | 4096 FP8 477 TFLOPS/18.25% peak; raw INT8xINT8→INT32 416 TOPS/15.91% peak with exact CPU samples | public weight-only INT8 Tensor/scale contract, official-model FP8 policy and packed INT4 software path |
 | FP8 training/inference | smoke-tested | native E4 path, dynamic activation amax, O-only column weights and full official logits; Exp153 rejects model E5 while retaining mixed-format primitives | four full precision gates still fail; layer calibration and full training curve |
-| Qwen2.5-0.5B | smoke-tested | official weights, full-logit oracle and Release steady decode at 1.01x–3.39x PyTorch over T1–2048/B1–8/N1–64 | repeated-process full matrix, tool chat and multi-step SFT |
+| Qwen2.5-0.5B | smoke-tested | official weights, tool-call chat, full-logit oracle and Release steady decode at 1.01x–3.39x PyTorch over T1–2048/B1–8/N1–64 | repeated-process full matrix and multi-step SFT |
 | DeepSeek-R1-Distill-Qwen-1.5B | smoke-tested | official 339 tensors; current T2048/B2/N64 is 1.1393x PyTorch with exact 64 tokens, 5.23/6.38GB peak and equal KV bytes | broader repeated shape matrix, longer reasoning/SFT and identical resident-weight policy |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |

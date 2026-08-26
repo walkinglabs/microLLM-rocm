@@ -89,7 +89,7 @@ TEST(HuggingFaceBpeTokenizerTest, LoadsByteUnicodeVocabularyAndRankedMerges) {
     std::filesystem::remove(merges, ignored);
 }
 
-TEST(ChatTemplateTest, RendersBasicQwenConversationAndRejectsToolRole) {
+TEST(ChatTemplateTest, RendersBasicQwenConversation) {
     const auto prompt = render_qwen2_chat({{"user", "Hello"}});
     EXPECT_EQ(prompt,
               "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a "
@@ -98,7 +98,31 @@ TEST(ChatTemplateTest, RendersBasicQwenConversationAndRejectsToolRole) {
     EXPECT_EQ(render_qwen2_chat({{"system", "Be concise"}, {"user", "Hi"}}, false),
               "<|im_start|>system\nBe concise<|im_end|>\n"
               "<|im_start|>user\nHi<|im_end|>\n");
-    EXPECT_THROW((void)render_qwen2_chat({{"tool", "result"}}), std::invalid_argument);
+}
+
+TEST(ChatTemplateTest, RendersQwenToolCallAndResponseBranches) {
+    const std::vector<ChatMessage> messages{
+        {"user", "Weather?", {}},
+        {"assistant", "", {{"get_weather", "{\"city\":\"Hangzhou\"}"}}},
+        {"tool", "{\"temperature\":22}", {}},
+    };
+    const auto prompt = render_qwen2_chat(
+        messages, true, "Use tools carefully",
+        {"{\"name\":\"get_weather\",\"description\":\"Weather\"}"});
+    EXPECT_NE(prompt.find("# Tools\n<tools>\n"), std::string::npos);
+    EXPECT_NE(prompt.find(
+        "<tool_call>\n{\"name\":\"get_weather\",\"arguments\":"
+        "{\"city\":\"Hangzhou\"}}\n</tool_call>"), std::string::npos);
+    EXPECT_NE(prompt.find(
+        "<|im_start|>user\n<tool_response>\n{\"temperature\":22}"
+        "\n</tool_response><|im_end|>"), std::string::npos);
+    EXPECT_TRUE(prompt.ends_with("<|im_start|>assistant\n"));
+    EXPECT_THROW((void)render_qwen2_chat({{"tool", "result", {}}}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)render_qwen2_chat(
+                     {{"user", "x", {}},
+                      {"assistant", "", {{"bad", "[]"}}}}),
+                 std::invalid_argument);
 }
 
 TEST(ChatTemplateTest, RendersDeepSeekDistillReasoningPrompt) {
