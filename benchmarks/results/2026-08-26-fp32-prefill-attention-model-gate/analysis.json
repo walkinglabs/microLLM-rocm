@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "experiment": 310,
+  "status": "model_rejected",
+  "candidate_core_bitwise_equal": true,
+  "candidate_cache_bitwise_equal": true,
+  "upstream_logit_maximum": 0.0012532472610473633,
+  "candidate_logit_maximum": 0.0015616416931152344,
+  "maximum_ratio_candidate_over_upstream": 1.2460762865024255,
+  "upstream_logit_rms": 0.00029083847119404496,
+  "candidate_logit_rms": 0.00031047795979430954,
+  "rms_ratio_candidate_over_upstream": 1.067527134631241,
+  "candidate_prefill_speedup_by_batch": {
+    "1": 0.9495440415562535,
+    "2": 0.9967205307821229,
+    "4": 1.0126643780587037,
+    "8": 1.0029143808107615
+  },
+  "candidate_minimum_prefill_speedup": 0.9495440415562535,
+  "peak_memory_changed": false,
+  "backend_allocation_count_changed": false,
+  "candidate_admitted": false,
+  "same_index_exact_core_implies_better_complete_logits_rejected": true,
+  "next_experiment": "Use descriptor-specific near-default fast indices: keep B1 default, select PV for B2 and batch-local QK/PV winners for B4/B8, then rerun complete logits and prefill."
+}

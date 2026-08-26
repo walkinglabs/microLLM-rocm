@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "experiment": 310,
+  "status": "pass",
+  "engine_commit": "6a31cfeed33bf76456e6ad81f4d3b87fbd8076a7",
+  "runner_commit": "22aa57af5fa656cc0e601a72279b5ef389a59f8f",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "context": 2048,
+  "batches": [1, 2, 4, 8],
+  "runs_per_case": 2,
+  "precision_process_rows": 16,
+  "performance_process_rows": 16,
+  "complete_logits_per_row": 151936,
+  "complete_core_binary_comparison": true,
+  "binary_files_retained": 0,
+  "q_solution_index": 296100,
+  "kv_solution_index": 292135,
+  "qk_solution_index": 304681,
+  "pv_solution_index": 295716,
+  "admission": {
+    "core_bitwise_required": true,
+    "logit_max_rms_improvement_required": 0.1,
+    "minimum_prefill_speedup_required": 0.95,
+    "passed": false
+  },
+  "full_gates": {
+    "cpu_debug": "376/376",
+    "asan_ubsan": "374/374",
+    "pytorch_enabled_cpu": "379/379",
+    "mi300x_gfx942_hip": "196/196",
+    "rccl": "53/53"
+  },
+  "claims_not_made": [
+    "The exact pair is not admitted as a default.",
+    "Block-0 core equality is not complete-model equality.",
+    "A two-process median is not generalized to other software or GPUs."
+  ]
+}

@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 309 finds 34/34 common QK and
-> 2/2 common P×V solutions that are bitwise invariant across B1/B2/B4/B8. None
-> passes the four-batch non-regression gate: best exact minimum speedups are
-> 0.916× and 0.535×, so both admitted indices remain `-1`. The best exact pair
-> enters one scoped full-model counterfactual; defaults remain unchanged. See the
-> [Attention solution matrix](docs/optimization-log/experiments/309-fp32-attention-batch-solutions.md).
+> **Current optimization checkpoint:** Experiment 310 makes block-0 QK, softmax,
+> P×V and cache bitwise equal across B1/B2/B4/B8, but complete-logit Max/RMS
+> regress 1.246×/1.068× and B1 prefill is 0.94954×. The same-index model route is
+> rejected. One final batch-selective near-default counterfactual remains before
+> closing this Attention solution track. See the
+> [complete model rejection](docs/optimization-log/experiments/310-prefill-attention-model-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

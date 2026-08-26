@@ -1,0 +1,1721 @@
+{
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "candidate_admitted": false,
+  "candidate_core_bitwise_equal": true,
+  "candidate_minimum_prefill_speedup": 0.9495440415562535,
+  "candidate_prefill_speedup_by_batch": {
+    "1": 0.9495440415562535,
+    "2": 0.9967205307821229,
+    "4": 1.0126643780587037,
+    "8": 1.0029143808107615
+  },
+  "cases": [
+    {
+      "batch": 1,
+      "core_stages": [],
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 7477495808,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": true,
+      "policy": "upstream-exact",
+      "prefill_ms_median": 78.73645400000001,
+      "prefill_tokens_per_second_median": 26011.42150327421,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "core_stages": [],
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 7846639616,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0007469654083251953,
+        "rms": 0.00014329354397004355
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "upstream-exact",
+      "prefill_ms_median": 139.7664825,
+      "prefill_tokens_per_second_median": 29306.51933771153,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "core_stages": [],
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 8584927232,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012532472610473633,
+        "rms": 0.00029083847119404496
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "upstream-exact",
+      "prefill_ms_median": 284.33353950000003,
+      "prefill_tokens_per_second_median": 28811.23517574015,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 8,
+      "core_stages": [],
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 10061502464,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012269020080566406,
+        "rms": 0.00022805871308424733
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "upstream-exact",
+      "prefill_ms_median": 530.7941415,
+      "prefill_tokens_per_second_median": 30868.7284219079,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 1,
+      "core_stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.scores",
+          "shape_actual": [
+            1,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+          "shape_actual": [
+            1,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+          "shape_actual": [
+            1,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        }
+      ],
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 7477495808,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012265592813491821,
+        "rms": 0.0002406589697183267
+      },
+      "logits_within_batch_bitwise_equal": true,
+      "policy": "attention-exact",
+      "prefill_ms_median": 82.920276,
+      "prefill_tokens_per_second_median": 24698.424906638706,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "core_stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.scores",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        }
+      ],
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 7846639616,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0015616416931152344,
+        "rms": 0.00031047795979430954
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0014546513557434082,
+        "rms": 0.00029020929260013177
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "attention-exact",
+      "prefill_ms_median": 140.2263505,
+      "prefill_tokens_per_second_median": 29209.96210958789,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "core_stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.scores",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        }
+      ],
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 8584927232,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012039542198181152,
+        "rms": 0.00022382045329677968
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.001333475112915039,
+        "rms": 0.00025356203376422344
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "attention-exact",
+      "prefill_ms_median": 280.77766499999996,
+      "prefill_tokens_per_second_median": 29176.118799850017,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 8,
+      "core_stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.scores",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        }
+      ],
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 10061502464,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0008225440979003906,
+        "rms": 0.0001615387205474841
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0006046295166015625,
+        "rms": 0.00016502841513138958
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "attention-exact",
+      "prefill_ms_median": 529.2517005,
+      "prefill_tokens_per_second_median": 30969.192194473253,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    }
+  ],
+  "context": 2048,
+  "kv_solution_index": 292135,
+  "performance_gate_passed": false,
+  "performance_process_rows": 16,
+  "policy_summaries": [
+    {
+      "all_cache_cross_batch_bitwise_equal": true,
+      "all_core_cross_batch_bitwise_equal": null,
+      "all_within_batch_logits_bitwise_equal": false,
+      "cases": [
+        {
+          "batch": 1,
+          "core_stages": [],
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 7477495808,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": true,
+          "policy": "upstream-exact",
+          "prefill_ms_median": 78.73645400000001,
+          "prefill_tokens_per_second_median": 26011.42150327421,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 2,
+          "core_stages": [],
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 7846639616,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0007469654083251953,
+            "rms": 0.00014329354397004355
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "upstream-exact",
+          "prefill_ms_median": 139.7664825,
+          "prefill_tokens_per_second_median": 29306.51933771153,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 4,
+          "core_stages": [],
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 8584927232,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012532472610473633,
+            "rms": 0.00029083847119404496
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "upstream-exact",
+          "prefill_ms_median": 284.33353950000003,
+          "prefill_tokens_per_second_median": 28811.23517574015,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 8,
+          "core_stages": [],
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 10061502464,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012269020080566406,
+            "rms": 0.00022805871308424733
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "upstream-exact",
+          "prefill_ms_median": 530.7941415,
+          "prefill_tokens_per_second_median": 30868.7284219079,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        }
+      ],
+      "maximum_logit_cross_batch_error": 0.0012532472610473633,
+      "maximum_logit_cross_batch_rms_error": 0.00029083847119404496,
+      "maximum_logit_vs_upstream_error": 0.0,
+      "policy": "upstream-exact"
+    },
+    {
+      "all_cache_cross_batch_bitwise_equal": true,
+      "all_core_cross_batch_bitwise_equal": true,
+      "all_within_batch_logits_bitwise_equal": false,
+      "cases": [
+        {
+          "batch": 1,
+          "core_stages": [
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.scores",
+              "shape_actual": [
+                1,
+                12,
+                2048,
+                2048
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                2048
+              ]
+            },
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+              "shape_actual": [
+                1,
+                12,
+                2048,
+                2048
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                2048
+              ]
+            },
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 3145728,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 3145728,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+              "shape_actual": [
+                1,
+                12,
+                2048,
+                128
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                128
+              ]
+            }
+          ],
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 7477495808,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012265592813491821,
+            "rms": 0.0002406589697183267
+          },
+          "logits_within_batch_bitwise_equal": true,
+          "policy": "attention-exact",
+          "prefill_ms_median": 82.920276,
+          "prefill_tokens_per_second_median": 24698.424906638706,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 2,
+          "core_stages": [
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.scores",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                2048
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                2048
+              ]
+            },
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                2048
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                2048
+              ]
+            },
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 3145728,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 3145728,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                128
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                128
+              ]
+            }
+          ],
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 7846639616,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0015616416931152344,
+            "rms": 0.00031047795979430954
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0014546513557434082,
+            "rms": 0.00029020929260013177
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "attention-exact",
+          "prefill_ms_median": 140.2263505,
+          "prefill_tokens_per_second_median": 29209.96210958789,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 4,
+          "core_stages": [
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.scores",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                2048
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                2048
+              ]
+            },
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                2048
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                2048
+              ]
+            },
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 3145728,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 3145728,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                128
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                128
+              ]
+            }
+          ],
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 8584927232,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012039542198181152,
+            "rms": 0.00022382045329677968
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.001333475112915039,
+            "rms": 0.00025356203376422344
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "attention-exact",
+          "prefill_ms_median": 280.77766499999996,
+          "prefill_tokens_per_second_median": 29176.118799850017,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 8,
+          "core_stages": [
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.scores",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                2048
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                2048
+              ]
+            },
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 50331648,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                2048
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                2048
+              ]
+            },
+            {
+              "b1_vs_batch_row0": {
+                "bitwise_equal": true,
+                "elements": 3145728,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "batch_row0_vs_row1": {
+                "bitwise_equal": true,
+                "elements": 3145728,
+                "first_bitwise_index": null,
+                "first_numeric_index": null,
+                "maximum": 0.0,
+                "relative_l2": 0.0,
+                "rms": 0.0
+              },
+              "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+              "shape_actual": [
+                2,
+                12,
+                2048,
+                128
+              ],
+              "shape_b1": [
+                1,
+                12,
+                2048,
+                128
+              ]
+            }
+          ],
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 10061502464,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0008225440979003906,
+            "rms": 0.0001615387205474841
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0006046295166015625,
+            "rms": 0.00016502841513138958
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "attention-exact",
+          "prefill_ms_median": 529.2517005,
+          "prefill_tokens_per_second_median": 30969.192194473253,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        }
+      ],
+      "maximum_logit_cross_batch_error": 0.0015616416931152344,
+      "maximum_logit_cross_batch_rms_error": 0.00031047795979430954,
+      "maximum_logit_vs_upstream_error": 0.0014546513557434082,
+      "policy": "attention-exact"
+    }
+  ],
+  "precision_process_rows": 16,
+  "pv_solution_index": 295716,
+  "q_solution_index": 296100,
+  "qk_solution_index": 304681,
+  "record_type": "prefill_attention_model_gate",
+  "robust_logit_max_improvement": false,
+  "robust_logit_rms_improvement": false,
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "status": "pass"
+}

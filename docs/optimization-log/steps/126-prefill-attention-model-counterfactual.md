@@ -1,6 +1,6 @@
 # Step 126 — Scoped prefill Attention model counterfactual
 
-Status: planned
+Status: completed by Experiment 310
 
 Experiment 309的best exact index是QK=304681、P×V=295716，但operator admission均失败。下一步不是
 默认优化，而是一次可删除的完整模型反驳。
@@ -18,3 +18,6 @@ Experiment 309的best exact index是QK=304681、P×V=295716，但operator admiss
 
 若完整logits没有明显改善，或任一batch端到端回退>5%，删除模型/CLI路由。即使通过，也只能作为
 当前gfx942/ROCm/hipBLASLt的显式策略，不能硬编码通用默认。
+
+结果：candidate block-0 core与cache全exact，但全局logit Max/RMS分别恶化1.246×/1.068×，B1 prefill
+0.94954×，因此拒绝。详见[`Experiment 310`](../experiments/310-prefill-attention-model-reject.md)。

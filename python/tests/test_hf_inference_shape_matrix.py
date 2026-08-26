@@ -113,6 +113,53 @@ ATTENTION_MODEL_SPEC.loader.exec_module(ATTENTION_MODEL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_prefill_attention_model_gate_rejects_exact_pair(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-prefill-attention-model-gate")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        precision = [json.loads(line) for line in
+                     (root / "precision-raw.jsonl").read_text(
+                         encoding="utf-8").splitlines() if line]
+        performance = [json.loads(line) for line in
+                       (root / "performance-raw.jsonl").read_text(
+                           encoding="utf-8").splitlines() if line]
+        policies = {row["policy"]: row for row in summary["policy_summaries"]}
+        self.assertEqual((len(precision), len(performance)), (16, 16))
+        self.assertTrue(summary["candidate_core_bitwise_equal"])
+        self.assertFalse(summary["candidate_admitted"])
+        self.assertFalse(summary["robust_logit_max_improvement"])
+        self.assertFalse(summary["robust_logit_rms_improvement"])
+        self.assertFalse(summary["performance_gate_passed"])
+        self.assertEqual(
+            policies["upstream-exact"]["maximum_logit_cross_batch_error"],
+            0.0012532472610473633)
+        self.assertEqual(
+            policies["attention-exact"]["maximum_logit_cross_batch_error"],
+            0.0015616416931152344)
+        self.assertAlmostEqual(summary["candidate_minimum_prefill_speedup"],
+                               0.9495440415562535)
+        for batch in summary["batches"]:
+            base = next(row for row in summary["cases"]
+                        if row["policy"] == "upstream-exact" and
+                        row["batch"] == batch)
+            candidate = next(row for row in summary["cases"]
+                             if row["policy"] == "attention-exact" and
+                             row["batch"] == batch)
+            self.assertEqual(base["engine_peak_bytes_maximum"],
+                             candidate["engine_peak_bytes_maximum"])
+            self.assertEqual(base["engine_backend_allocation_calls_maximum"],
+                             candidate["engine_backend_allocation_calls_maximum"])
+        self.assertFalse(analysis["candidate_admitted"])
+        self.assertEqual(verification["engine_commit"],
+                         "6a31cfeed33bf76456e6ad81f4d3b87fbd8076a7")
+        self.assertEqual(verification["runner_commit"],
+                         "22aa57af5fa656cc0e601a72279b5ef389a59f8f")
+        self.assertFalse(any(root.glob("*.bin")))
+        ET.parse(root / "model-gate.svg")
+
     def test_attention_model_gate_requires_core_logits_and_performance(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,

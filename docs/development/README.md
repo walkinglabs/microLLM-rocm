@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Prefill Attention model rejection](2026-08-26-prefill-attention-model-reject.md)
 - [2026-08-26: Prefill Attention model-gate runner](2026-08-26-prefill-attention-model-gate-infrastructure.md)
 - [2026-08-26: Scoped cached-prefill Attention solutions](2026-08-26-prefill-attention-scopes.md)
 - [2026-08-26: Attention batch solution result](2026-08-26-attention-batch-solution-result.md)

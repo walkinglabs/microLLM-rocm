@@ -20,6 +20,7 @@ def main() -> int:
         "single-GPU HIP label 196/196",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
+        "complete-logit Max/RMS worsen 1.246×/1.068×",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -77,6 +78,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-fp32-attention-batch-invariance/analysis.json",
         "benchmarks/results/2026-08-26-fp32-attention-batch-invariance/verification.json",
         "benchmarks/results/2026-08-26-fp32-attention-batch-invariance/attention-solutions.svg",
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/summary.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/analysis.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/verification.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/model-gate.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -115,6 +120,14 @@ def main() -> int:
     assert solution_operations["qk"]["admitted_index"] == -1
     assert solution_operations["pv"]["admitted_index"] == -1
     ET.parse(solution_root / "attention-solutions.svg")
+    model_gate_root = ROOT / (
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate")
+    model_gate = json.loads(
+        (model_gate_root / "summary.json").read_text(encoding="utf-8"))
+    assert model_gate["candidate_core_bitwise_equal"] is True
+    assert model_gate["candidate_admitted"] is False
+    assert model_gate["performance_gate_passed"] is False
+    ET.parse(model_gate_root / "model-gate.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 

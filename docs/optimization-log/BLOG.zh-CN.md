@@ -4820,3 +4820,17 @@ solution门；softmax没有独立首差。下一步分别筛两个真实descript
 B1回退46.5%。下一步只把最佳exact pair接成严格scope的整模反事实，测完整logits与端到端；默认冻结。
 
 ![Attention solution matrix](../../benchmarks/results/2026-08-26-fp32-attention-batch-invariance/attention-solutions.svg)
+
+## 327. Experiment 310：Core全Exact，完整Logits仍然可以更差
+
+两种policy都固定Q=296100、K/V=292135；candidate再加QK=304681、P×V=295716。16个precision进程
+证明candidate block-0 scores、probabilities、P×V和cache在B1/2/4/8全exact。
+
+完整151,936 logits却否决方案：全局Max从0.001253增到0.001562（1.246x），RMS从0.000291增到
+0.000310（1.068x）。B2最明显地恶化；B4/B8局部改善不能掩盖它。B1 prefill为0.94954x，也刚好低于
+0.95门。peak和allocation不变。
+
+这说明局部exact只控制当前core；O projection、FFN和后续层仍会读取已经变化的输入。下一步最后测试
+batch-selective近default方案：B1不换，B2/B4/B8用各自更快index。若仍不能稳健改善，就关闭此路线。
+
+![Attention model rejection](../../benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/model-gate.svg)
