@@ -304,6 +304,33 @@ int main(int argc, char** argv) {
         context.mode = microllm::ops::OpMode::Inference;
         microllm::runtime::Event start(device);
         microllm::runtime::Event finish(device);
+        microllm::ops::clear_fp32_matmul_solution_registry();
+        std::vector<double> default_event_p50;
+        default_event_p50.reserve(inputs.size());
+        for (const auto& input : inputs) {
+            auto output = microllm::ops::matmul_with_implementation(
+                input, weight, microllm::ops::MatmulImplementation::HipBLASLt,
+                false, false, context);
+            for (int iteration = 0; iteration < command.warmup; ++iteration) {
+                output = microllm::ops::matmul_with_implementation(
+                    input, weight,
+                    microllm::ops::MatmulImplementation::HipBLASLt,
+                    false, false, context);
+            }
+            microllm::runtime::synchronize(device);
+            std::vector<double> times;
+            for (int iteration = 0; iteration < command.repetitions; ++iteration) {
+                start.record_default_stream();
+                output = microllm::ops::matmul_with_implementation(
+                    input, weight,
+                    microllm::ops::MatmulImplementation::HipBLASLt,
+                    false, false, context);
+                finish.record_default_stream();
+                finish.synchronize();
+                times.push_back(finish.elapsed_ms_since(start));
+            }
+            default_event_p50.push_back(median(std::move(times)));
+        }
 
         std::size_t supported_count = 0;
         std::size_t sentinel_pass_count = 0;
@@ -331,6 +358,12 @@ int main(int argc, char** argv) {
         std::cout << "]"
                   << ",\"common_candidate_count\":" << common.size()
                   << ",\"sentinel_elements\":" << cpu_sentinel.size()
+                  << ",\"default_event_ms_p50\":[";
+        for (std::size_t index = 0; index < default_event_p50.size(); ++index) {
+            if (index != 0) std::cout << ',';
+            std::cout << default_event_p50[index];
+        }
+        std::cout << "]"
                   << ",\"candidates\":[";
 
         for (const auto candidate : common) {
@@ -438,6 +471,12 @@ int main(int argc, char** argv) {
             for (std::size_t index = 0; index < event_p50.size(); ++index) {
                 if (index != 0) std::cout << ',';
                 std::cout << event_p50[index];
+            }
+            std::cout << "]";
+            std::cout << ",\"speedup_vs_default\":[";
+            for (std::size_t index = 0; index < event_p50.size(); ++index) {
+                if (index != 0) std::cout << ',';
+                std::cout << default_event_p50[index] / event_p50[index];
             }
             std::cout << "]";
             if (!failure.empty()) std::cout << ",\"failure\":\"candidate_failed\"";

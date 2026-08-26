@@ -146,9 +146,45 @@ FFN_STAGES_SPEC = importlib.util.spec_from_file_location(
 FFN_STAGES = importlib.util.module_from_spec(FFN_STAGES_SPEC)
 assert FFN_STAGES_SPEC.loader is not None
 FFN_STAGES_SPEC.loader.exec_module(FFN_STAGES)
+FFN_SOLUTIONS_SPEC = importlib.util.spec_from_file_location(
+    "fp32_ffn_row_invariance_matrix",
+    ROOT / "benchmarks/single_gpu/fp32_ffn_row_invariance_matrix.py")
+FFN_SOLUTIONS = importlib.util.module_from_spec(FFN_SOLUTIONS_SPEC)
+assert FFN_SOLUTIONS_SPEC.loader is not None
+FFN_SOLUTIONS_SPEC.loader.exec_module(FFN_SOLUTIONS)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_ffn_solution_summary_requires_exact_and_every_m_performance(self):
+        candidates = []
+        for index, exact, speeds in (
+                (10, True, [1.01, 1.02, 1.03, 1.04]),
+                (11, True, [1.20, 1.10, 0.94, 1.30]),
+                (12, False, [2.0, 2.0, 2.0, 2.0])):
+            candidates.append({
+                "index": index, "maximum_workspace_bytes": 0,
+                "supported": True, "sentinel_passed": True,
+                "block_invariant": exact,
+                "sentinel_maximum_error": 0.0,
+                "sentinel_rms_error": 0.0,
+                "block_maximum_error": 0.0 if exact else 0.01,
+                "block_rms_error": 0.0 if exact else 0.001,
+                "event_ms_p50": [10.0 / value for value in speeds],
+                "speedup_vs_default": speeds,
+            })
+        inventory = {
+            "default_event_ms_p50": [10.0] * 4,
+            "common_candidate_count": 3, "supported_count": 3,
+            "sentinel_pass_count": 3, "block_invariant_count": 2,
+            "candidates": candidates,
+        }
+        summary = FFN_SOLUTIONS.summarize(inventory)
+        self.assertEqual(summary["block_invariant_indices"], [10, 11])
+        self.assertEqual(summary["performance_admitted_indices"], [10])
+        self.assertEqual(summary["recommended_index"], 10)
+        self.assertAlmostEqual(summary["recommended_minimum_speedup"], 1.01)
+        ET.fromstring(FFN_SOLUTIONS.render(summary))
+
     def test_current_prefill_ffn_trace_selects_gate_and_up(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-prefill-ffn-stage-trace")

@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: FP32 FFN row-invariance runner](2026-08-26-fp32-ffn-row-invariance-runner.md)
 - [2026-08-26: FFN gate/up first-drift result](2026-08-26-prefill-ffn-gate-up-result.md)
 - [2026-08-26: Complete-value prefill FFN runner](2026-08-26-prefill-ffn-stage-runner.md)
 - [2026-08-26: Cached-prefill FFN detail trace](2026-08-26-prefill-ffn-detail-trace.md)
