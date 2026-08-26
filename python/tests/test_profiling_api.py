@@ -4,7 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from microllm.profiling import export_perfetto, profile, profile_scope
+from microllm.profiling import (export_perfetto, merge_rocprof_perfetto,
+                                profile, profile_scope)
 
 
 class ProfilingApiTest(unittest.TestCase):
@@ -65,6 +66,27 @@ class ProfilingApiTest(unittest.TestCase):
             output.write_text("\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "empty"):
                 export_perfetto(output, Path(directory) / "empty.json")
+
+    def test_rocprof_marker_kernel_merge_uses_correlation_flow(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            marker = root / "marker.csv"
+            kernel = root / "kernel.csv"
+            marker.write_text(
+                '"Function","Process_Id","Thread_Id","Correlation_Id",'
+                '"Start_Timestamp","End_Timestamp"\n'
+                '"span",7,8,2,1000,2000\n', encoding="utf-8")
+            kernel.write_text(
+                '"Agent_Id","Queue_Id","Kernel_Name","Correlation_Id",'
+                '"Start_Timestamp","End_Timestamp"\n'
+                '"Agent 2",1,"add",2,2010,2100\n', encoding="utf-8")
+            output = root / "merged.json"
+            report = merge_rocprof_perfetto(marker, kernel, output)
+            self.assertEqual(report["correlated_ids"], 1)
+            self.assertEqual(report["trace_events"], 4)
+            events = json.loads(output.read_text())["traceEvents"]
+            self.assertEqual([event["ph"] for event in events].count("s"), 1)
+            self.assertEqual([event["ph"] for event in events].count("f"), 1)
 
 
 if __name__ == "__main__":

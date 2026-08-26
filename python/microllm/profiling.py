@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextvars
+import csv
 import functools
 import inspect
 import json
@@ -143,4 +144,68 @@ def export_perfetto(input_jsonl: str | Path,
             "origin_ns": origin}
 
 
-__all__ = ["ProfileScope", "export_perfetto", "profile", "profile_scope"]
+def merge_rocprof_perfetto(marker_csv: str | Path,
+                           kernel_csv: str | Path,
+                           output_json: str | Path) -> dict[str, Any]:
+    """Merge rocprof marker/kernel CSV using correlation IDs and trace flows."""
+    with Path(marker_csv).open(newline="", encoding="utf-8") as stream:
+        markers = list(csv.DictReader(stream))
+    with Path(kernel_csv).open(newline="", encoding="utf-8") as stream:
+        kernels = list(csv.DictReader(stream))
+    if not markers or not kernels:
+        raise ValueError("rocprof marker and kernel traces must both be non-empty")
+    required_marker = {"Function", "Process_Id", "Thread_Id", "Correlation_Id",
+                       "Start_Timestamp", "End_Timestamp"}
+    required_kernel = {"Agent_Id", "Queue_Id", "Kernel_Name", "Correlation_Id",
+                       "Start_Timestamp", "End_Timestamp"}
+    if required_marker - markers[0].keys() or required_kernel - kernels[0].keys():
+        raise ValueError("rocprof CSV schema is incompatible")
+    starts = [int(row["Start_Timestamp"]) for row in markers + kernels]
+    origin = min(starts)
+    events: list[dict[str, Any]] = []
+    marker_ids = {int(row["Correlation_Id"]) for row in markers}
+    kernel_ids = {int(row["Correlation_Id"]) for row in kernels}
+    linked = marker_ids & kernel_ids
+    for row in markers:
+        correlation = int(row["Correlation_Id"])
+        start = int(row["Start_Timestamp"])
+        events.append({"name": row["Function"], "cat": "roctx", "ph": "X",
+                       "ts": (start-origin)/1000.0,
+                       "dur": (int(row["End_Timestamp"])-start)/1000.0,
+                       "pid": int(row["Process_Id"]),
+                       "tid": int(row["Thread_Id"]),
+                       "args": {"correlation_id": correlation}})
+        if correlation in linked:
+            events.append({"name": "ROCTX to HIP", "cat": "correlation",
+                           "ph": "s", "ts": (start-origin)/1000.0,
+                           "pid": int(row["Process_Id"]),
+                           "tid": int(row["Thread_Id"]), "id": correlation})
+    for row in kernels:
+        correlation = int(row["Correlation_Id"])
+        start = int(row["Start_Timestamp"])
+        gpu_tid = 1_000_000 + int(row["Queue_Id"])
+        events.append({"name": row["Kernel_Name"], "cat": "gpu_kernel", "ph": "X",
+                       "ts": (start-origin)/1000.0,
+                       "dur": (int(row["End_Timestamp"])-start)/1000.0,
+                       "pid": 0, "tid": gpu_tid,
+                       "args": {"agent": row["Agent_Id"],
+                                "correlation_id": correlation}})
+        if correlation in linked:
+            events.append({"name": "ROCTX to HIP", "cat": "correlation",
+                           "ph": "f", "ts": (start-origin)/1000.0,
+                           "pid": 0, "tid": gpu_tid, "id": correlation})
+    document = {"traceEvents": events, "displayTimeUnit": "ms",
+                "metadata": {"source": "microllm-rocprof-merge",
+                             "schema_version": 1}}
+    destination = Path(output_json)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(destination.name + ".tmp")
+    temporary.write_text(json.dumps(document, sort_keys=True)+"\n", encoding="utf-8")
+    temporary.replace(destination)
+    return {"marker_events": len(markers), "kernel_events": len(kernels),
+            "correlated_ids": len(linked), "trace_events": len(events),
+            "output": str(destination)}
+
+
+__all__ = ["ProfileScope", "export_perfetto", "merge_rocprof_perfetto",
+           "profile", "profile_scope"]

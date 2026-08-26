@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: rocprof to Perfetto correlation merge](2026-08-26-rocprof-perfetto-merge.md)
 - [2026-08-26: Optional ROCTX TraceTimer ranges](2026-08-26-roctx-trace-ranges.md)
 - [2026-08-26: Python Perfetto export](2026-08-26-python-perfetto-export.md)
 - [2026-08-26: Python profile decorator](2026-08-26-python-profile-api.md)
