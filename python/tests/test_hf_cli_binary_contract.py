@@ -161,6 +161,27 @@ def main() -> int:
         if rejected_logit_step.returncode == 0 or \
                 "requires an output" not in rejected_logit_step.stderr:
             raise RuntimeError("hf_infer accepted a logits step without output")
+        rejected_forced_decode = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1",
+            "--device", "cpu", "--forced-decode-inputs", "1",
+        ], text=True, capture_output=True, check=False)
+        if rejected_forced_decode.returncode == 0 or \
+                "requires one zero-warmup steady cached decode" not in \
+                rejected_forced_decode.stderr:
+            raise RuntimeError(
+                "hf_infer accepted forced inputs outside diagnostic decode")
+        rejected_forced_count = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--workload", "decode", "--use-cache", "true",
+            "--decode-mode", "steady", "--warmup", "0", "--steps", "1",
+            "--new-tokens", "2", "--forced-decode-inputs", "1",
+        ], text=True, capture_output=True, check=False)
+        if rejected_forced_count.returncode == 0 or \
+                "must contain one ID per new token" not in \
+                rejected_forced_count.stderr:
+            raise RuntimeError("hf_infer accepted the wrong forced-input count")
         rejected_cache_layer = subprocess.run([
             str(args.binary), "--config", str(missing),
             "--weights", str(missing), "--tokens", "1", "--device", "cpu",

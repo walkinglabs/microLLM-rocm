@@ -8,12 +8,20 @@ ROOT = Path(__file__).resolve().parents[2]
 SUMMARY = ROOT / "benchmarks/results/2026-08-26-qwen3-bf16-inference/summary.json"
 DIVERGENCE_ROOT = (ROOT / "benchmarks/results" /
                    "2026-08-26-qwen3-bf16-first-divergence")
+SWEEP_ROOT = (ROOT / "benchmarks/results" /
+              "2026-08-26-qwen3-bf16-oracle-sweep")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
 RUNNER = importlib.util.module_from_spec(RUNNER_SPEC)
 assert RUNNER_SPEC.loader is not None
 RUNNER_SPEC.loader.exec_module(RUNNER)
+SWEEP_SPEC = importlib.util.spec_from_file_location(
+    "qwen3_bf16_oracle_sweep",
+    ROOT / "benchmarks/single_gpu/qwen3_bf16_oracle_sweep.py")
+SWEEP = importlib.util.module_from_spec(SWEEP_SPEC)
+assert SWEEP_SPEC.loader is not None
+SWEEP_SPEC.loader.exec_module(SWEEP)
 
 def main():
     row = json.loads(SUMMARY.read_text())
@@ -55,6 +63,36 @@ def main():
     maximum, rms, bitwise = RUNNER.error([1.0, 2.0], [1.0, 3.0])
     assert maximum == 1.0 and math.isclose(rms, math.sqrt(0.5)) and not bitwise
     assert RUNNER.top_tokens([0.0, 3.0, 2.0]) == [1, 2, 0]
+    sweep = json.loads((SWEEP_ROOT / "summary.json").read_text())
+    sweep_raw = [json.loads(line) for line in
+                 (SWEEP_ROOT / "raw.jsonl").read_text().splitlines() if line]
+    assert sweep["status"] == "pass_all_mismatches_attributed"
+    assert sweep["unique_oracle_cases"] == len(SWEEP.CASES) == 5
+    assert sweep["matrix_mismatch_rows"] == 8
+    assert sweep["micro_oracle_case_wins"] == 4
+    assert sweep["torch_oracle_case_wins"] == 1
+    assert sweep["micro_oracle_matrix_rows"] == 7
+    assert sweep["torch_oracle_matrix_rows"] == 1
+    case_rows = {item["name"]: item for item in sweep["case_rows"]}
+    expected = {
+        "t32-b1-step1": (374, 374, 323),
+        "t32-b2-step1": (374, 374, 323),
+        "t128-b2-step8": (320, 25, 320),
+        "t512-b1-step2": (2955, 2955, 1096),
+        "t512-b2-step8-forced": (1273, 1273, 4285),
+    }
+    assert {name: (item["oracle_argmax"], item["micro_mixed_argmax"],
+                   item["torch_bf16_argmax"])
+            for name, item in case_rows.items()} == expected
+    forced = case_rows["t512-b2-step8-forced"]["forced_inputs"]
+    assert forced == [14582, 198, 262, 1096, 374, 279, 2038, 374, 264]
+    assert len(sweep_raw) == 28 and all(item["status"] == "pass"
+                                        for item in sweep_raw)
+    forced_raw = [item for item in sweep_raw
+                  if item["oracle_case"] == "t512-b2-step8-forced"]
+    assert len(forced_raw) == 4
+    assert all(item["forced_decode_inputs"] is True and
+               item["forced_decode_input_count"] == 9 for item in forced_raw)
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

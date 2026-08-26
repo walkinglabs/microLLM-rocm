@@ -5395,3 +5395,13 @@ Transformers整网BF16把两项都变成14.1875，tie后选较小索引323；mic
 precision limit；下一步对剩余分叉重复共同oracle门。
 
 ![Qwen3 first BF16 divergence](assets/qwen3-bf16-first-divergence.svg)
+
+## 382. Experiment 366：第一个case赢了，剩余case仍能反驳
+
+8个mismatch去重为5个首次分叉。统一full-logit oracle得到T32/B1、T32/B2、T512/B1、T512/B2
+由microLLM mixed匹配FP32，T128/B2由Transformers BF16匹配。case为4:1，映射回矩阵为7:1。
+
+T512/B2的自然FP32更早分叉，因此C++/PyTorch都使用相同9-token forced input；不同轨迹不再硬比。
+T128反例证明全局Max/RMS小不保证top-2顺序正确。全部row继续是precision limit，不设通用winner。
+
+![Qwen3 BF16 oracle sweep](assets/qwen3-bf16-oracle-sweep.svg)

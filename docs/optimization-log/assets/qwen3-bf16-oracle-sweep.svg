@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="780" viewBox="0 0 1500 780">
+  <rect width="1500" height="780" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 BF16 · all first-divergence oracle cases</text>
+  <text x="60" y="103" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Five unique states represent eight matrix mismatch rows · complete 151,936 logits</text>
+
+  <rect x="55" y="145" width="1390" height="420" rx="20" fill="#ffffff" stroke="#d7dce6" stroke-width="2"/>
+  <text x="110" y="195" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#172033">Case</text>
+  <text x="510" y="195" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#172033">FP32 / mixed / full-BF16 argmax</text>
+  <text x="1190" y="195" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#172033">FP32 match</text>
+
+  <text x="110" y="255" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T32 · B1 · step1</text>
+  <text x="510" y="255" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">374 / 374 / 323</text>
+  <rect x="1120" y="227" width="250" height="40" rx="9" fill="#dcfce7"/>
+  <text x="1245" y="254" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#166534">microLLM mixed</text>
+
+  <text x="110" y="325" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T32 · B2 · step1</text>
+  <text x="510" y="325" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">374 / 374 / 323</text>
+  <rect x="1120" y="297" width="250" height="40" rx="9" fill="#dcfce7"/>
+  <text x="1245" y="324" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#166534">microLLM mixed</text>
+
+  <text x="110" y="395" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T128 · B2 · step8</text>
+  <text x="510" y="395" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">320 / 25 / 320</text>
+  <rect x="1120" y="367" width="250" height="40" rx="9" fill="#dbeafe"/>
+  <text x="1245" y="394" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#1d4ed8">Transformers BF16</text>
+
+  <text x="110" y="465" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T512 · B1 · step2</text>
+  <text x="510" y="465" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">2955 / 2955 / 1096</text>
+  <rect x="1120" y="437" width="250" height="40" rx="9" fill="#dcfce7"/>
+  <text x="1245" y="464" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#166534">microLLM mixed</text>
+
+  <text x="110" y="535" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T512 · B2 · step8 · forced</text>
+  <text x="510" y="535" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">1273 / 1273 / 4285</text>
+  <rect x="1120" y="507" width="250" height="40" rx="9" fill="#dcfce7"/>
+  <text x="1245" y="534" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#166534">microLLM mixed</text>
+
+  <rect x="55" y="610" width="670" height="115" rx="18" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>
+  <text x="390" y="655" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700" fill="#166534">Unique cases 4 : 1</text>
+  <text x="390" y="695" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">matrix rows 7 : 1 · mixed : full BF16</text>
+
+  <rect x="775" y="610" width="670" height="115" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+  <text x="1110" y="655" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#b45309">No universal winner</text>
+  <text x="1110" y="695" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">T128/B2 is the counterexample · keep all precision limits</text>
+</svg>

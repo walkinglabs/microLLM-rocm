@@ -91,6 +91,7 @@ struct Options {
     std::string prefill_logits_mode = "last";
     std::string batch_argmax_mode = "device";
     std::string decode_mode = "generation";
+    std::string forced_decode_inputs;
     std::string kv_cache_dtype = "fp32";
     std::string kv_cache_fp32_layers;
     std::int64_t cache_capacity = 0;
@@ -156,6 +157,9 @@ Options options(int argc, char** argv) {
         else if (name == "--vocab") result.vocabulary = argv[index + 1];
         else if (name == "--merges") result.merges = argv[index + 1];
         else if (name == "--new-tokens") result.new_tokens = std::stoll(argv[index + 1]);
+        else if (name == "--forced-decode-inputs") {
+            result.forced_decode_inputs = argv[index + 1];
+        }
         else if (name == "--warmup") result.warmup = std::stoi(argv[index + 1]);
         else if (name == "--steps") result.steps = std::stoi(argv[index + 1]);
         else if (name == "--prefill-warmup") {
@@ -803,6 +807,13 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--cache-logits-step requires an output and must be below new tokens");
     }
+    if (!result.forced_decode_inputs.empty() &&
+        (!result.use_cache || result.workload != "decode" ||
+         result.decode_mode != "steady" || result.warmup != 0 ||
+         result.steps != 1)) {
+        throw std::invalid_argument(
+            "--forced-decode-inputs requires one zero-warmup steady cached decode");
+    }
     if (result.prefill_cache_layer < 0 ||
         (result.prefill_cache_layer_explicit &&
          result.prefill_cache_output.empty()) ||
@@ -1075,14 +1086,17 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
                             std::int64_t new_tokens, bool steady = false,
                             std::int64_t capture_step = -1,
                             microllm::Tensor* captured_logits = nullptr,
-                            microllm::profiling::TraceSession* trace_session = nullptr) {
+                            microllm::profiling::TraceSession* trace_session = nullptr,
+                            const std::vector<std::int32_t>& forced_inputs = {}) {
     GenerationRun run;
     run.kv_cache_capacity_tokens = state.cache.max_sequence_length();
     const auto batch = state.logits.shape()[0];
     microllm::Tensor history(
         {new_tokens, batch}, microllm::DType::Int32, state.logits.device());
     microllm::Tensor next_tensor;
-    if (steady) next_tensor = microllm::ops::argmax_last_dim(state.logits);
+    if (steady && forced_inputs.empty()) {
+        next_tensor = microllm::ops::argmax_last_dim(state.logits);
+    }
     for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
         std::unique_ptr<microllm::profiling::ScopedTraceSession> trace_scope;
         if (trace_session != nullptr && generated == capture_step) {
@@ -1092,7 +1106,19 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
         }
         auto history_slot = history.slice(0, generated, generated + 1)
                                 .reshape({batch, 1});
-        if (steady) state.logits = model.forward_cached(next_tensor, state.cache);
+        if (steady) {
+            if (!forced_inputs.empty()) {
+                const std::vector<std::int32_t> rows(
+                    static_cast<std::size_t>(batch),
+                    forced_inputs[static_cast<std::size_t>(generated)]);
+                next_tensor = microllm::Tensor::from_int32_vector(
+                    rows, {batch, 1});
+                if (state.logits.device().is_hip()) {
+                    next_tensor = next_tensor.to(state.logits.device());
+                }
+            }
+            state.logits = model.forward_cached(next_tensor, state.cache);
+        }
         if (captured_logits != nullptr && generated == capture_step) {
             *captured_logits = state.logits;
         }
@@ -1107,10 +1133,10 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
     for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
         const auto offset = static_cast<std::size_t>(generated * batch);
         const auto next = selected[offset];
-        if (next < 0 || std::any_of(
+        if (next < 0 || (forced_inputs.empty() && std::any_of(
                             selected.begin() + static_cast<std::ptrdiff_t>(offset),
                             selected.begin() + static_cast<std::ptrdiff_t>(offset + batch),
-                            [next](std::int32_t value) { return value != next; })) {
+                            [next](std::int32_t value) { return value != next; }))) {
             throw std::runtime_error(
                 "cached identical batch rows produced invalid or different tokens");
         }
@@ -1479,6 +1505,17 @@ ContinuousOfficialRun run_continuous_official(
 int main(int argc, char** argv) {
     try {
         const auto command = options(argc, argv);
+        const auto forced_decode_inputs = command.forced_decode_inputs.empty()
+            ? std::vector<std::int32_t>{}
+            : nonnegative_values(
+                  command.forced_decode_inputs,
+                  "--forced-decode-inputs must be comma-separated nonnegative IDs");
+        if (!forced_decode_inputs.empty() &&
+            forced_decode_inputs.size() !=
+                static_cast<std::size_t>(command.new_tokens)) {
+            throw std::invalid_argument(
+                "--forced-decode-inputs must contain one ID per new token");
+        }
         auto external = microllm::model::load_huggingface_config(command.config);
         if (command.fp8_linear) {
             external.model.linear_precision =
@@ -1673,6 +1710,14 @@ int main(int argc, char** argv) {
         }
         if (ids.size() > static_cast<std::size_t>(external.model.max_sequence_length)) {
             throw std::invalid_argument("token sequence exceeds model context");
+        }
+        if (!forced_decode_inputs.empty() &&
+            std::any_of(forced_decode_inputs.begin(), forced_decode_inputs.end(),
+                        [&](std::int32_t token) {
+                            return token >= external.model.vocabulary_size;
+                        })) {
+            throw std::invalid_argument(
+                "--forced-decode-inputs must contain in-vocabulary IDs");
         }
         if (ids.empty()) throw std::invalid_argument("token sequence cannot be empty");
         if (command.bf16_algorithm_index >= 0) {
@@ -2426,7 +2471,8 @@ int main(int argc, char** argv) {
                         command.decode_mode == "steady", capture_step,
                         iteration == 0 && !command.cache_logits_output.empty()
                             ? &cache_logits_evidence : nullptr,
-                        iteration == 0 ? decode_trace_session.get() : nullptr);
+                        iteration == 0 ? decode_trace_session.get() : nullptr,
+                        forced_decode_inputs);
                     microllm::runtime::synchronize(device);
                     const auto decode_finish = std::chrono::steady_clock::now();
                     generation_ms += std::chrono::duration<double, std::milli>(
@@ -2878,6 +2924,10 @@ int main(int argc, char** argv) {
                   << ",\"batch_argmax_mode\":\""
                   << command.batch_argmax_mode << "\""
                   << ",\"decode_mode\":\"" << command.decode_mode << "\""
+                  << ",\"forced_decode_inputs\":"
+                  << (forced_decode_inputs.empty() ? "false" : "true")
+                  << ",\"forced_decode_input_count\":"
+                  << forced_decode_inputs.size()
                   << ",\"decode_tokens\":" << command.new_tokens
                   << ",\"warmup\":" << command.warmup
                   << ",\"steps\":" << command.steps

@@ -190,6 +190,20 @@ PyTorch：整模型BF16
 两个worker并以非零状态退出，不再为每个shape重复同一个环境错误。visible-device变量应只使用
 一套逻辑；同一物理编号同时交给ROCR和HIP过滤可能造成二次过滤。
 
+### 分叉后的轨迹不能直接比较
+
+如果两种低精度在第3个token已经共同离开FP32，却到第9个token才彼此分开，那么三者第9步的
+自然输入已经不同。此时比较logits是在比较三个问题。诊断CLI允许显式固定每次forward输入：
+
+```bash
+--decode-mode steady --use-cache true --workload decode \
+--warmup 0 --steps 1 --new-tokens 3 \
+--forced-decode-inputs 10,20,30
+```
+
+列表必须恰好等于`new-tokens`，每项必须在词表内。这个接口只用于一次zero-warmup cached诊断，
+JSON会写`forced_decode_inputs`和数量；它不是生成API，也不能用于吞吐结论。
+
 正式大模型矩阵之外，CI还有一套很小但真的执行计算的回归：
 
 ```text
@@ -238,3 +252,5 @@ Qwen3双计数fixture、64/64执行成功却有8个token分叉，以及修正后
 [Experiment 364](../optimization-log/experiments/364-qwen3-fixture-shape-matrix.md)。
 第一个T32/B1分叉的六policy完整logit与共同FP32 oracle见
 [Experiment 365](../optimization-log/experiments/365-qwen3-bf16-first-divergence.md)。
+五个唯一分叉状态、T512强制共同输入和T128反例见
+[Experiment 366](../optimization-log/experiments/366-qwen3-bf16-oracle-sweep.md)。

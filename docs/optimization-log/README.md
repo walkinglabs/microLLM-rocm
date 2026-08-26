@@ -1130,6 +1130,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 fixture matrix SVG](assets/qwen3-fixture-shape-matrix.svg) | 64/64执行、24 pass与8个精度边界 |
 | [experiments/365-qwen3-bf16-first-divergence.md](experiments/365-qwen3-bf16-first-divergence.md) | 第一个BF16分叉的共同FP32 oracle归因 |
 | [Qwen3 first divergence SVG](assets/qwen3-bf16-first-divergence.svg) | 低margin、整网BF16 tie与mixed BF16保留 |
+| [experiments/366-qwen3-bf16-oracle-sweep.md](experiments/366-qwen3-bf16-oracle-sweep.md) | 全部8行分叉的五case共同oracle |
+| [Qwen3 BF16 oracle sweep SVG](assets/qwen3-bf16-oracle-sweep.svg) | mixed/full BF16的4:1 case与T128反例 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

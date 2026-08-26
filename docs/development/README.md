@@ -731,3 +731,5 @@ the next gate. Records are append-only except for factual corrections.
   keeps successful execution separate from eight cross-framework token divergences.
 - [2026-08-26-qwen3-bf16-first-divergence.md](2026-08-26-qwen3-bf16-first-divergence.md):
   attributes the first low-margin split to full-model BF16 top-logit rounding.
+- [2026-08-26-qwen3-bf16-oracle-sweep.md](2026-08-26-qwen3-bf16-oracle-sweep.md):
+  applies one common-input FP32 gate to all five unique mismatch states.

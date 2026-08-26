@@ -1,0 +1,201 @@
+{
+  "boundary": "argmax attribution at the first shared-input split; cross-framework precision_mismatch rows remain visible and no performance claim is made",
+  "case_rows": [
+    {
+      "batch": 1,
+      "capture_step": 1,
+      "context": 32,
+      "forced_inputs": [],
+      "matrix_decode_lengths": [
+        4,
+        32
+      ],
+      "micro_mixed_argmax": 374,
+      "micro_mixed_margin": 0.031258583068847656,
+      "micro_mixed_oracle_maximum_error": 0.15636682510375977,
+      "micro_mixed_oracle_rms_error": 0.036528183025481054,
+      "micro_mixed_within_batch_maximum_error": 0.0,
+      "name": "t32-b1-step1",
+      "oracle_argmax": 374,
+      "oracle_margin": 0.03260040283203125,
+      "oracle_matching_policy": "micro-bf16-bf16",
+      "torch_bf16_argmax": 323,
+      "torch_bf16_margin": 0.0,
+      "torch_bf16_oracle_maximum_error": 0.30522751808166504,
+      "torch_bf16_oracle_rms_error": 0.065858614490601,
+      "torch_bf16_within_batch_maximum_error": 0.0
+    },
+    {
+      "batch": 2,
+      "capture_step": 1,
+      "context": 32,
+      "forced_inputs": [],
+      "matrix_decode_lengths": [
+        4,
+        32
+      ],
+      "micro_mixed_argmax": 374,
+      "micro_mixed_margin": 0.07916927337646484,
+      "micro_mixed_oracle_maximum_error": 0.1182781457901001,
+      "micro_mixed_oracle_rms_error": 0.027222674210327293,
+      "micro_mixed_within_batch_maximum_error": 0.0,
+      "name": "t32-b2-step1",
+      "oracle_argmax": 374,
+      "oracle_margin": 0.03259849548339844,
+      "oracle_matching_policy": "micro-bf16-bf16",
+      "torch_bf16_argmax": 323,
+      "torch_bf16_margin": 0.0625,
+      "torch_bf16_oracle_maximum_error": 0.2449331283569336,
+      "torch_bf16_oracle_rms_error": 0.04731422731056275,
+      "torch_bf16_within_batch_maximum_error": 0.0
+    },
+    {
+      "batch": 2,
+      "capture_step": 8,
+      "context": 128,
+      "forced_inputs": [],
+      "matrix_decode_lengths": [
+        32
+      ],
+      "micro_mixed_argmax": 25,
+      "micro_mixed_margin": 0.006739616394042969,
+      "micro_mixed_oracle_maximum_error": 0.1164621114730835,
+      "micro_mixed_oracle_rms_error": 0.0249322394781904,
+      "micro_mixed_within_batch_maximum_error": 0.0,
+      "name": "t128-b2-step8",
+      "oracle_argmax": 320,
+      "oracle_margin": 0.06830215454101562,
+      "oracle_matching_policy": "torch-bf16",
+      "torch_bf16_argmax": 320,
+      "torch_bf16_margin": 0.4375,
+      "torch_bf16_oracle_maximum_error": 0.8897943496704102,
+      "torch_bf16_oracle_rms_error": 0.19523813845991803,
+      "torch_bf16_within_batch_maximum_error": 0.0
+    },
+    {
+      "batch": 1,
+      "capture_step": 2,
+      "context": 512,
+      "forced_inputs": [],
+      "matrix_decode_lengths": [
+        4,
+        32
+      ],
+      "micro_mixed_argmax": 2955,
+      "micro_mixed_margin": 0.005862236022949219,
+      "micro_mixed_oracle_maximum_error": 0.26525354385375977,
+      "micro_mixed_oracle_rms_error": 0.0500015378174993,
+      "micro_mixed_within_batch_maximum_error": 0.0,
+      "name": "t512-b1-step2",
+      "oracle_argmax": 2955,
+      "oracle_margin": 0.03442668914794922,
+      "oracle_matching_policy": "micro-bf16-bf16",
+      "torch_bf16_argmax": 1096,
+      "torch_bf16_margin": 0.0,
+      "torch_bf16_oracle_maximum_error": 0.2884407043457031,
+      "torch_bf16_oracle_rms_error": 0.06328383899242986,
+      "torch_bf16_within_batch_maximum_error": 0.0
+    },
+    {
+      "batch": 2,
+      "capture_step": 8,
+      "context": 512,
+      "forced_inputs": [
+        14582,
+        198,
+        262,
+        1096,
+        374,
+        279,
+        2038,
+        374,
+        264
+      ],
+      "matrix_decode_lengths": [
+        32
+      ],
+      "micro_mixed_argmax": 1273,
+      "micro_mixed_margin": 0.04891204833984375,
+      "micro_mixed_oracle_maximum_error": 0.12119388580322266,
+      "micro_mixed_oracle_rms_error": 0.025751207836215907,
+      "micro_mixed_within_batch_maximum_error": 0.0,
+      "name": "t512-b2-step8-forced",
+      "oracle_argmax": 1273,
+      "oracle_margin": 0.058272361755371094,
+      "oracle_matching_policy": "micro-bf16-bf16",
+      "torch_bf16_argmax": 4285,
+      "torch_bf16_margin": 0.0625,
+      "torch_bf16_oracle_maximum_error": 0.2959761619567871,
+      "torch_bf16_oracle_rms_error": 0.08515682931893402,
+      "torch_bf16_within_batch_maximum_error": 0.0
+    }
+  ],
+  "matrix_mismatch_rows": 8,
+  "matrix_rows": [
+    {
+      "batch": 1,
+      "context": 32,
+      "decode_tokens": 4,
+      "first_difference": 1,
+      "oracle_matching_policy": "micro-bf16-bf16"
+    },
+    {
+      "batch": 1,
+      "context": 32,
+      "decode_tokens": 32,
+      "first_difference": 1,
+      "oracle_matching_policy": "micro-bf16-bf16"
+    },
+    {
+      "batch": 2,
+      "context": 32,
+      "decode_tokens": 4,
+      "first_difference": 1,
+      "oracle_matching_policy": "micro-bf16-bf16"
+    },
+    {
+      "batch": 2,
+      "context": 32,
+      "decode_tokens": 32,
+      "first_difference": 1,
+      "oracle_matching_policy": "micro-bf16-bf16"
+    },
+    {
+      "batch": 2,
+      "context": 128,
+      "decode_tokens": 32,
+      "first_difference": 8,
+      "oracle_matching_policy": "torch-bf16"
+    },
+    {
+      "batch": 1,
+      "context": 512,
+      "decode_tokens": 4,
+      "first_difference": 2,
+      "oracle_matching_policy": "micro-bf16-bf16"
+    },
+    {
+      "batch": 1,
+      "context": 512,
+      "decode_tokens": 32,
+      "first_difference": 2,
+      "oracle_matching_policy": "micro-bf16-bf16"
+    },
+    {
+      "batch": 2,
+      "context": 512,
+      "decode_tokens": 32,
+      "first_difference": 8,
+      "oracle_matching_policy": "micro-bf16-bf16"
+    }
+  ],
+  "micro_oracle_case_wins": 4,
+  "micro_oracle_matrix_rows": 7,
+  "model": "Qwen/Qwen3-0.6B",
+  "record_type": "qwen3_bf16_oracle_sweep",
+  "schema_version": 1,
+  "status": "pass_all_mismatches_attributed",
+  "torch_oracle_case_wins": 1,
+  "torch_oracle_matrix_rows": 1,
+  "unique_oracle_cases": 5
+}

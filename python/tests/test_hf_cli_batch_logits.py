@@ -71,6 +71,37 @@ def cache_export(binary: Path, fixture: Path, output: Path) -> tuple[dict, bytes
     return header, payload
 
 
+def forced_decode(binary: Path, fixture: Path, output: Path) -> None:
+    base = [
+        str(binary), "--config", str(fixture / "config.json"),
+        "--weights", str(fixture / "model.safetensors"),
+        "--tokens", "1,2", "--device", "cpu", "--top-k", "1",
+        "--batch", "2", "--workload", "decode", "--new-tokens", "2",
+        "--use-cache", "true", "--cache-prefill-mode", "full",
+        "--kv-cache-dtype", "fp32", "--cache-capacity", "4",
+        "--decode-mode", "steady", "--warmup", "0", "--steps", "1",
+        "--prefill-warmup", "0", "--prefill-steps", "1",
+        "--cache-logits-output", str(output), "--cache-logits-step", "1",
+    ]
+    completed = subprocess.run(
+        base + ["--forced-decode-inputs", "3,4"],
+        text=True, capture_output=True, check=False)
+    if completed.returncode != 0:
+        raise AssertionError(completed.stdout + completed.stderr)
+    record = json.loads(completed.stdout.splitlines()[-1])
+    assert record["forced_decode_inputs"] is True
+    assert record["forced_decode_input_count"] == 2
+    assert record["decode_mode"] == "steady"
+    assert len(record["generated_tokens"]) == 2
+    assert len(floats(output)) == 16
+
+    rejected = subprocess.run(
+        base + ["--forced-decode-inputs", "3,8"],
+        text=True, capture_output=True, check=False)
+    assert rejected.returncode != 0
+    assert "must contain in-vocabulary IDs" in rejected.stderr
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", required=True, type=Path)
@@ -104,6 +135,7 @@ def main() -> int:
         assert len(payload) == header["key_bytes"] + header["value_bytes"]
         assert key[:row_bytes] == key[row_bytes:]
         assert value[:row_bytes] == value[row_bytes:]
+        forced_decode(args.binary, fixture, root / "forced-logits.bin")
     print("hf_infer batch logits export: pass")
     return 0
 

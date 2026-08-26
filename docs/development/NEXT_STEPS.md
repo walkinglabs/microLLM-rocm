@@ -46,8 +46,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] capture all 151,936 logits at the first Qwen3 BF16 T32/B1 divergence: both FP32
   implementations and mixed BF16 choose 374, while full BF16 rounds 374/323 to an exact
   14.1875 tie and chooses 323; no microLLM code change is admitted from this case;
-- [ ] apply the same common-FP32 full-logit gate to the remaining seven T32/T128/T512
-  mismatches before reclassifying any matrix row or changing a precision policy;
+- [x] apply the common-input FP32 full-logit gate to all five unique T32/T128/T512
+  mismatch states; mixed/full BF16 match FP32 in 4/1 cases and 7/1 matrix rows, with
+  a forced nine-token T512/B2 audit where natural FP32 had already left the trajectory;
+- [ ] isolate the sole T128/B2 mixed-BF16 failure across weight and Cache policies at
+  the top-2 logits; do not infer a universal winner from the 7/1 aggregate;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;
