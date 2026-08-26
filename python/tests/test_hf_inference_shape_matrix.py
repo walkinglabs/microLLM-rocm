@@ -119,6 +119,60 @@ ATTENTION_SELECTIVE_SPEC.loader.exec_module(ATTENTION_SELECTIVE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_selective_attention_gate_closes_solution_track(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-prefill-attention-selective-gate")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        precision = [json.loads(line) for line in
+                     (root / "precision-raw.jsonl").read_text(
+                         encoding="utf-8").splitlines() if line]
+        performance = [json.loads(line) for line in
+                       (root / "performance-raw.jsonl").read_text(
+                           encoding="utf-8").splitlines() if line]
+        policies = {row["policy"]: row for row in summary["policy_summaries"]}
+        self.assertEqual((len(precision), len(performance)), (16, 16))
+        self.assertTrue(summary["performance_gate_passed"])
+        self.assertFalse(summary["robust_logit_max_improvement"])
+        self.assertTrue(summary["robust_logit_rms_improvement"])
+        self.assertFalse(summary["candidate_admitted"])
+        self.assertAlmostEqual(summary["candidate_minimum_prefill_speedup"],
+                               0.9941303826374912)
+        self.assertEqual(
+            policies["upstream-exact"]["maximum_logit_cross_batch_error"],
+            0.0012532472610473633)
+        self.assertEqual(
+            policies["batch-selective"]["maximum_logit_cross_batch_error"],
+            0.0011773109436035156)
+        self.assertEqual(
+            policies["batch-selective"]["maximum_logit_cross_batch_rms_error"],
+            0.0002281133416539806)
+        b2_base = next(row for row in summary["cases"]
+                       if row["policy"] == "upstream-exact" and row["batch"] == 2)
+        b2_candidate = next(row for row in summary["cases"]
+                            if row["policy"] == "batch-selective" and row["batch"] == 2)
+        self.assertGreater(b2_candidate["logits_cross_batch"]["maximum"],
+                           b2_base["logits_cross_batch"]["maximum"])
+        for batch in summary["batches"]:
+            base = next(row for row in summary["cases"]
+                        if row["policy"] == "upstream-exact" and
+                        row["batch"] == batch)
+            candidate = next(row for row in summary["cases"]
+                             if row["policy"] == "batch-selective" and
+                             row["batch"] == batch)
+            self.assertEqual(base["engine_peak_bytes_maximum"],
+                             candidate["engine_peak_bytes_maximum"])
+            self.assertEqual(base["engine_backend_allocation_calls_maximum"],
+                             candidate["engine_backend_allocation_calls_maximum"])
+        self.assertTrue(analysis["attention_solution_track_closed"])
+        self.assertEqual(verification["engine_commit"],
+                         "6a31cfeed33bf76456e6ad81f4d3b87fbd8076a7")
+        self.assertEqual(verification["runner_commit"],
+                         "61d9e839aec2d85eaa735befe59d7cc23dc26f7b")
+        ET.parse(root / "selective-gate.svg")
+
     def test_selective_attention_gate_checks_exact_batch_routes(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,

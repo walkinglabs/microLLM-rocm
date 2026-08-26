@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1540" height="650" viewBox="0 0 1540 650">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:24px;font-weight:700}.sub{font-size:12px;fill:#94a3b8}.label{font-size:12px}</style>
+<text x="36" y="42" class="title">Batch-selective prefill Attention · model gate</text>
+<text x="36" y="66" class="sub">B1 default · B2 PV · B4/B8 local QK/PV winners · two fresh processes</text>
+<text x="235" y="118" class="label" text-anchor="middle">B1</text>
+<rect x="170" y="380.00" width="52" height="2.00" fill="#64748b"/>
+<rect x="248" y="380.00" width="52" height="2.00" fill="#38bdf8"/>
+<text x="235" y="415" class="sub" text-anchor="middle">1.001x</text>
+<text x="235" y="440" class="sub" text-anchor="middle">QK -1 · PV -1</text>
+<text x="565" y="118" class="label" text-anchor="middle">B2</text>
+<rect x="500" y="254.83" width="52" height="125.17" fill="#64748b"/>
+<rect x="578" y="234.08" width="52" height="145.92" fill="#38bdf8"/>
+<text x="565" y="415" class="sub" text-anchor="middle">0.994x</text>
+<text x="565" y="440" class="sub" text-anchor="middle">QK -1 · PV 295716</text>
+<text x="895" y="118" class="label" text-anchor="middle">B4</text>
+<rect x="830" y="170.00" width="52" height="210.00" fill="#64748b"/>
+<rect x="908" y="182.72" width="52" height="197.28" fill="#38bdf8"/>
+<text x="895" y="415" class="sub" text-anchor="middle">1.020x</text>
+<text x="895" y="440" class="sub" text-anchor="middle">QK 311274 · PV 295716</text>
+<text x="1225" y="118" class="label" text-anchor="middle">B8</text>
+<rect x="1160" y="174.41" width="52" height="205.59" fill="#64748b"/>
+<rect x="1238" y="190.47" width="52" height="189.53" fill="#38bdf8"/>
+<text x="1225" y="415" class="sub" text-anchor="middle">1.013x</text>
+<text x="1225" y="440" class="sub" text-anchor="middle">QK 311303 · PV 292462</text>
+<text x="80" y="520" class="label">max improved: false</text>
+<text x="420" y="520" class="label">RMS improved: true</text>
+<text x="760" y="520" class="label">min speed: 0.994x</text>
+<text x="1100" y="520" class="label">admitted: false</text>
+<rect x="60" y="570" width="1420" height="50" rx="10" fill="#111827" stroke="#334155"/>
+<text x="90" y="601" class="sub">Both global logit Max/RMS must improve ≥10% and every batch must keep ≥0.95x prefill.</text>
+</svg>

@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Batch-selective Attention rejection](2026-08-26-batch-selective-attention-reject.md)
 - [2026-08-26: Batch-selective Attention gate runner](2026-08-26-batch-selective-attention-gate.md)
 - [2026-08-26: Prefill Attention model rejection](2026-08-26-prefill-attention-model-reject.md)
 - [2026-08-26: Prefill Attention model-gate runner](2026-08-26-prefill-attention-model-gate-infrastructure.md)

@@ -4834,3 +4834,16 @@ B1回退46.5%。下一步只把最佳exact pair接成严格scope的整模反事�
 batch-selective近default方案：B1不换，B2/B4/B8用各自更快index。若仍不能稳健改善，就关闭此路线。
 
 ![Attention model rejection](../../benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/model-gate.svg)
+
+## 328. Experiment 311：性能全过、RMS改善，也不能掩盖B2和Max
+
+最后的batch-selective policy让B1保持default，B2只换PV，B4/B8使用各自最快QK/PV。四个prefill
+speedup为1.001/0.994/1.020/1.013x，peak和allocation不变。
+
+全局RMS改善21.6%，但Max只改善6.1%，低于10%门；B2 Max/RMS反而恶化16.6%/15.6%。因此仍拒绝。
+这次失败关闭QK/P×V solution路线：同index数值整齐但局部回退，batch-local性能好但数值不够稳健。
+
+下一步换问题，不再筛Attention solution。利用exact-core candidate作诊断显微镜，继续向O projection和
+FFN定位第一处新差异。
+
+![Batch-selective rejection](../../benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/selective-gate.svg)

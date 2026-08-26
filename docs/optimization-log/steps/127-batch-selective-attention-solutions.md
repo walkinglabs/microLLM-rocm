@@ -1,6 +1,6 @@
 # Step 127 — Batch-selective near-default Attention solutions
 
-Status: planned
+Status: completed by Experiment 311
 
 同一index策略失败的原因之一是B1/P×V 295716只有0.535×，而每个descriptor其实有自己的快候选。
 下一反驳policy保持B1 default，并从Experiment 309选择：
@@ -14,3 +14,6 @@ Status: planned
 
 使用Experiment 310相同的完整cache/logits、两个fresh process、交错性能、peak/allocation门。若全局
 Max/RMS不同时改善至少10%，或任一batch prefill<0.95×，拒绝并关闭Attention solution路线。
+
+结果：性能最差0.994×，RMS改善21.6%，但Max只改善6.1%且B2恶化，故拒绝并关闭路线。详见
+[`Experiment 311`](../experiments/311-batch-selective-attention-reject.md)。

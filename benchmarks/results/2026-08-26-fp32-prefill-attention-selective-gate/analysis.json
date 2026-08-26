@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "experiment": 311,
+  "status": "model_rejected",
+  "upstream_logit_maximum": 0.0012532472610473633,
+  "candidate_logit_maximum": 0.0011773109436035156,
+  "maximum_improvement_fraction": 0.06059164843527065,
+  "upstream_logit_rms": 0.00029083847119404496,
+  "candidate_logit_rms": 0.0002281133416539806,
+  "rms_improvement_fraction": 0.21566998782019686,
+  "b2_maximum_ratio_candidate_over_upstream": 1.1658155122885414,
+  "b2_rms_ratio_candidate_over_upstream": 1.1557301586513016,
+  "candidate_prefill_speedup_by_batch": {
+    "1": 1.0014200053240405,
+    "2": 0.9941303826374912,
+    "4": 1.019682336666561,
+    "8": 1.013134441039672
+  },
+  "candidate_minimum_prefill_speedup": 0.9941303826374912,
+  "performance_gate_passed": true,
+  "robust_logit_max_improvement": false,
+  "robust_logit_rms_improvement": true,
+  "peak_memory_changed": false,
+  "backend_allocation_count_changed": false,
+  "candidate_admitted": false,
+  "attention_solution_track_closed": true,
+  "next_experiment": "Use the rejected exact-core policy only as a diagnostic control and trace the first post-core block-0 boundary, expected at output projection."
+}

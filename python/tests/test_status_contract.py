@@ -21,6 +21,7 @@ def main() -> int:
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
+        "all prefill speeds ≥0.994× and RMS improves 21.6%",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -82,6 +83,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/analysis.json",
         "benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/verification.json",
         "benchmarks/results/2026-08-26-fp32-prefill-attention-model-gate/model-gate.svg",
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/summary.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/analysis.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/verification.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate/selective-gate.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -128,6 +133,14 @@ def main() -> int:
     assert model_gate["candidate_admitted"] is False
     assert model_gate["performance_gate_passed"] is False
     ET.parse(model_gate_root / "model-gate.svg")
+    selective_root = ROOT / (
+        "benchmarks/results/2026-08-26-fp32-prefill-attention-selective-gate")
+    selective = json.loads(
+        (selective_root / "summary.json").read_text(encoding="utf-8"))
+    assert selective["performance_gate_passed"] is True
+    assert selective["robust_logit_max_improvement"] is False
+    assert selective["candidate_admitted"] is False
+    ET.parse(selective_root / "selective-gate.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 
