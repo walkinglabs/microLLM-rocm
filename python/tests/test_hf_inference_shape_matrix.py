@@ -85,9 +85,40 @@ FP32_QKV_MODEL_SPEC = importlib.util.spec_from_file_location(
 FP32_QKV_MODEL = importlib.util.module_from_spec(FP32_QKV_MODEL_SPEC)
 assert FP32_QKV_MODEL_SPEC.loader is not None
 FP32_QKV_MODEL_SPEC.loader.exec_module(FP32_QKV_MODEL)
+POST_CACHE_SPEC = importlib.util.spec_from_file_location(
+    "audit_post_cache_block0_trace",
+    ROOT / "benchmarks/single_gpu/audit_post_cache_block0_trace.py")
+POST_CACHE = importlib.util.module_from_spec(POST_CACHE_SPEC)
+assert POST_CACHE_SPEC.loader is not None
+POST_CACHE_SPEC.loader.exec_module(POST_CACHE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_post_cache_trace_summary_skips_exact_cache_boundary(self):
+        processes = []
+        for run in (1, 2):
+            for batch in POST_CACHE.BATCHES:
+                stages = []
+                for index, name in enumerate(POST_CACHE.STAGES):
+                    changed = batch > 1 and index == len(POST_CACHE.BASE.STAGES)
+                    maximum = 0.01 if changed else 0.0
+                    stages.append({
+                        "name": name,
+                        "b1_vs_batch_row0": {
+                            "maximum": maximum, "rms": maximum / 2,
+                            "relative_l2": maximum / 4,
+                            "bitwise_equal": not changed},
+                        "batch_row0_vs_row1": {
+                            "maximum": 0.0, "rms": 0.0, "relative_l2": 0.0,
+                            "bitwise_equal": True},
+                    })
+                processes.append({"batch": batch, "process_run": run,
+                                  "stages": stages})
+        summary = POST_CACHE.summarize(processes)
+        self.assertTrue(summary["all_cache_cross_batch_bitwise_equal"])
+        self.assertEqual(summary["first_nonzero_after_cache"],
+                         POST_CACHE.PREFIX + ".attention.context")
+
     def test_current_fp32_qkv_model_gate_rejects_default(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-qkv-model-gate")
