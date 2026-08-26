@@ -5273,3 +5273,102 @@ Qwen最大relative-L2为2.89e-5，logits Max/RMS 8.01e-5/1.01e-5；DeepSeek分�
 分别988MB/3.554GB，均为BF16。生成manifest供C++/PyTorch共用，可提交evidence不含本机payload路径。
 
 ![Official HF fixtures](assets/official-hf-fixtures.svg)
+
+## 368. Experiment 352：硬件会算 INT8，不等于框架已有 INT8
+
+MI300X 的原始 INT8 GEMM probe 已经执行过，但用户还不能保存、加载或解释一份量化权重。
+这一节点补齐一字节 Tensor、同设备 FP32 scale、最近偶数舍入、CPU/HIP 量化反量化和
+safetensors/PyTorch 互操作。大 Tensor payload 理论减少约 75%，执行窗 0 H2D/0 D2H。
+
+这里只保留格式与正确性合同，没有把“能存一字节”写成“模型已经更快”。
+
+![INT8 weight contract](assets/int8-weight-contract.svg)
+
+## 369. Experiment 353：优化前先固定完整输出基线
+
+第一条 `int8_weight_matmul` 故意还原完整浮点 `[K,N]` 再调用现有 GEMM。它很慢、会分配临时
+weight，却让 CPU、HIP 和 PyTorch 对同一量化权重逐项比较完整 `[M,N]`，把 shape、scale、
+舍入错误与后续融合 Kernel 分开。
+
+![INT8 matmul baseline](assets/int8-weight-matmul-baseline.svg)
+
+## 370. Experiment 354：M=1 融合路线赢了反量化，却没有赢常驻 GEMM
+
+一个 block 负责一个输出列，直接读取 I8 weight 和 scale。相对显式反量化，Qwen/DeepSeek
+Event 提高 14.09×/7.51×，且删除 17.4/55.1MB 临时 weight；但相对 PyTorch 常驻 FP32 GEMM
+只有 0.916×/0.494×。所以显式 decode 路线保留，Auto 不切换。
+
+![INT8 fused decode](assets/int8-fused-decode.svg)
+
+## 371. Experiment 355：单算子 M=1 结论被整模 prefill 推翻
+
+Model-S 全部 43 个 Linear 事务式量化后，context1 为 1.719×，context4 却只有 0.472×。
+常驻下降 59.8%，准备峰值反而上升 19.5%。这证明 decode、省显存和 prefill 是三项不同指标；
+整模 API 保持显式研究状态。
+
+![Model-S INT8 boundary](assets/model-s-int8-boundary.svg)
+
+## 372. Experiment 356：准备和显存都通过，官方精度仍可一票否决
+
+GPU amax 扫描 168 个 Qwen Linear 只需 18.5ms，常驻从 1.976GB 降到 0.903GB。但完整
+151,936 logits Max/RMS 达到 15.203/3.467，argmax 与两个 token 都改变。device preparation
+primitive 保留，官方整模路线拒绝。
+
+![Official INT8 rejection](assets/official-int8-device-amax-reject.svg)
+
+## 373. Experiment 357：逐输出通道改善很多，仍然没有越过答案门
+
+逐列 scale 把 Max/RMS 改善到 5.061/1.286，并恢复第二个 token；第一个 token 和 argmax 仍错。
+column primitive 值得保留，但继续调同一 Kernel 速度不能修复量化误差，官方 weight-only 路线
+仍然拒绝。
+
+![INT8 column rejection](assets/official-int8-column-reject.svg)
+
+## 374. Experiment 358：把误差切成 FFN 和 Attention 两个岛
+
+预先固定 Max≤0.1、RMS≤0.02、token exact。FFN-only 为 5.153/1.294，直接关闭；
+Attention-only 恢复 token，却仍为 0.161/0.0346。只允许最后一次 QKV/O 拆分，不在结果出来后
+改变阈值。
+
+![INT8 scope matrix](assets/official-int8-scope-matrix.svg)
+
+## 375. Experiment 359：只差一点也不能事后放宽门
+
+QKV-only 为 0.1355/0.0293，O-only 为 0.1076/0.02004；token 都完全一致，但两项仍越过
+固定完整-logit 门。因此当前官方 PTQ weight-only INT8 线饱和关闭。以后重开必须引入校准、
+混合 bit-width 或 QAT，而不是给失败方案改分数线。
+
+![Final INT8 split](assets/official-int8-attention-split-saturation.svg)
+
+## 376. Experiment 360：故意让 Attention 宽度不等于 hidden
+
+合成图使用 hidden8、heads2、head_dim6，让 Q 宽度变成 12，旧的“二者总相等”假设无法隐藏。
+CPU/HIP/cache 与 PyTorch 53/53 全部通过，Q/K-Norm 梯度也有独立证据。结构能力保留，官方
+checkpoint 在下一节点单独验收。
+
+![Explicit head and QK-Norm](assets/explicit-head-qk-norm.svg)
+
+## 377. Experiment 361：文件参数量为什么比模型公式多 1.55 亿
+
+Qwen3-0.6B runtime 有 596,049,920 个独立参数和 310 个 mapping 目标，但文件保存
+311 Tensor、751,632,384 个值。原因是 embedding 和 lm_head 各序列化 311,164,928 字节，
+内容逐字节相同。此时只完成 parser/fixture，不提前宣称 strict load。
+
+![Qwen3 fixture parser](assets/qwen3-fixture-parser.svg)
+
+## 378. Experiment 362：跳过 tied payload 之前必须先证明它真的相同
+
+strict streaming 用 1MiB buffer 分块比较两份 311.2MB payload；相同才加载 310 个 runtime
+参数，损坏则在零 H2D 前失败。官方 FP32 的 151,936 logits Max/RMS 为
+3.86e-5/8.44e-6，四个 greedy token 完全一致。
+
+![Qwen3 official alignment](assets/qwen3-official-alignment.svg)
+
+## 379. Experiment 363：两个 BF16 归约树不同，要回到同一个 FP32 证人
+
+microLLM 与 Transformers BF16 都生成 `[14582,25,16246,264]`，但 logits 不 bit-exact。
+相对共同 FP32 oracle，microLLM Max/RMS 为 0.0724/0.0142，Transformers 为
+0.188/0.0371。匹配 2+5 端到端速度为 216.6/59.2 tok/s，常驻降到 1.503GB。
+固定 Qwen3 显式策略保留，不推广到长上下文或训练。
+
+![Qwen3 BF16 inference](assets/qwen3-bf16-inference.svg)
