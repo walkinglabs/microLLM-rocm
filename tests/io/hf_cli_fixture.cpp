@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
             << "\"torch_dtype\":\"float32\","
             << "\"use_cache\":true,"
             << "\"tie_word_embeddings\":true,"
-            << "\"attention_bias\":false}\n";
+            << "\"attention_bias\":true}\n";
         if (!output) {
             throw std::runtime_error(
                 "failed writing hf_cli_fixture config");

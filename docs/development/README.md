@@ -719,3 +719,5 @@ the next gate. Records are append-only except for factual corrections.
   keeps the fixed gate and closes the current official PTQ weight-only INT8 line.
 - [2026-08-26-explicit-head-qk-norm.md](2026-08-26-explicit-head-qk-norm.md):
   records the non-equal Attention width and full CPU/HIP/PyTorch graph gate.
+- [2026-08-26-qwen3-fixture-parser.md](2026-08-26-qwen3-fixture-parser.md):
+  separates Qwen3 runtime parameters from its byte-identical stored tied head.

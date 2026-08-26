@@ -4,6 +4,7 @@
 #include <cmath>
 #include <fstream>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
@@ -101,6 +102,19 @@ std::string_view member(std::string_view text, std::string_view wanted) {
     throw std::runtime_error("Hugging Face config is missing " + std::string(wanted));
 }
 
+std::optional<std::string_view> optional_member(
+    std::string_view text, std::string_view wanted) {
+    try {
+        return member(text, wanted);
+    } catch (const std::runtime_error& error) {
+        if (error.what() ==
+            "Hugging Face config is missing " + std::string(wanted)) {
+            return std::nullopt;
+        }
+        throw;
+    }
+}
+
 std::int64_t integer(std::string_view text, std::string_view key) {
     const auto value = member(text, key);
     std::int64_t output = 0;
@@ -128,6 +142,21 @@ bool boolean(std::string_view text, std::string_view key) {
     throw std::runtime_error(std::string(key) + " must be boolean");
 }
 
+bool optional_boolean(std::string_view text, std::string_view key,
+                      bool fallback) {
+    const auto value = optional_member(text, key);
+    if (!value) return fallback;
+    if (*value == "true") return true;
+    if (*value == "false") return false;
+    throw std::runtime_error(std::string(key) + " must be boolean");
+}
+
+std::int64_t optional_integer(std::string_view text, std::string_view key,
+                              std::int64_t fallback) {
+    if (!optional_member(text, key)) return fallback;
+    return integer(text, key);
+}
+
 std::string string_value(std::string_view text, std::string_view key) {
     const auto value = member(text, key);
     std::size_t position = 0;
@@ -150,20 +179,29 @@ HuggingFaceModelConfig load_huggingface_config(const std::filesystem::path& path
     }
     HuggingFaceModelConfig output;
     output.model_type = string_value(text, "model_type");
-    if (output.model_type != "qwen2") {
-        throw std::invalid_argument("first Hugging Face target requires model_type=qwen2");
+    if (output.model_type != "qwen2" && output.model_type != "qwen3") {
+        throw std::invalid_argument("Hugging Face target requires model_type=qwen2 or qwen3");
     }
     if (string_value(text, "hidden_act") != "silu") {
         throw std::invalid_argument("Qwen2 hidden_act must be silu");
     }
-    if (boolean(text, "use_sliding_window") || boolean(text, "use_mrope")) {
+    if (boolean(text, "use_sliding_window") ||
+        optional_boolean(text, "use_mrope", false)) {
         throw std::invalid_argument("sliding-window and MRoPE Qwen variants are not supported");
     }
+    if (const auto rope_scaling = optional_member(text, "rope_scaling");
+        rope_scaling && *rope_scaling != "null") {
+        throw std::invalid_argument("non-null RoPE scaling is not supported");
+    }
+    const auto hidden = integer(text, "hidden_size");
+    const auto heads = integer(text, "num_attention_heads");
     output.model = {.vocabulary_size = integer(text, "vocab_size"),
-                    .dimension = integer(text, "hidden_size"),
+                    .dimension = hidden,
                     .layers = integer(text, "num_hidden_layers"),
-                    .heads = integer(text, "num_attention_heads"),
+                    .heads = heads,
                     .kv_heads = integer(text, "num_key_value_heads"),
+                    .attention_head_dimension = output.model_type == "qwen3"
+                        ? optional_integer(text, "head_dim", hidden / heads) : 0,
                     .ffn_dimension = integer(text, "intermediate_size"),
                     .max_sequence_length = integer(text, "max_position_embeddings"),
                     .rope_base = static_cast<float>(number(text, "rope_theta")),
@@ -175,7 +213,9 @@ HuggingFaceModelConfig load_huggingface_config(const std::filesystem::path& path
                     .fp8_weight_scale_mode = Fp8WeightScaleMode::Fixed,
                     .fp8_activation_scale_mode = Fp8ActivationScaleMode::Fixed,
                     .rms_norm_epsilon = static_cast<float>(number(text, "rms_norm_eps")),
-                    .attention_bias = true,
+                    .attention_bias = optional_boolean(
+                        text, "attention_bias", output.model_type == "qwen2"),
+                    .qk_norm = output.model_type == "qwen3",
                     .rope_layout = RopeLayout::SplitHalf};
     output.torch_dtype = string_value(text, "torch_dtype");
     output.bos_token_id = integer(text, "bos_token_id");

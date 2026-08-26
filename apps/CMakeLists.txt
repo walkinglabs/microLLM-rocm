@@ -67,6 +67,11 @@ if(BUILD_TESTING)
                      ${PROJECT_SOURCE_DIR}/tests/fixtures/qwen25-0.5b-config.json)
     set_tests_properties(HuggingFace.Qwen25Config PROPERTIES
                          LABELS "cpu;huggingface;qwen;integration")
+    add_test(NAME HuggingFace.Qwen3Config
+             COMMAND microllm_hf_inspect --config
+                     ${PROJECT_SOURCE_DIR}/tests/fixtures/qwen3-0.6b-config.json)
+    set_tests_properties(HuggingFace.Qwen3Config PROPERTIES
+                         LABELS "cpu;huggingface;qwen;qwen3;integration")
     add_test(NAME HuggingFace.DeepSeekDistillQwenConfig
              COMMAND microllm_hf_inspect --config
                      ${PROJECT_SOURCE_DIR}/tests/fixtures/deepseek-r1-distill-qwen-1.5b-config.json)

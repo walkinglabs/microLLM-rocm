@@ -1,0 +1,20 @@
+{
+  "model": "Qwen/Qwen3-0.6B",
+  "revision": "c916fa4defd319b7d4e4da17604ca7338f4d99f5",
+  "license": "Apache-2.0",
+  "config_unique_parameter_count": 596049920,
+  "checkpoint_tensor_count": 311,
+  "checkpoint_stored_parameter_values": 751632384,
+  "checkpoint_weight_bytes": 1503300328,
+  "checkpoint_dtype": "BF16",
+  "embedding_bytes": 311164928,
+  "lm_head_bytes": 311164928,
+  "embedding_lm_head_byte_identical": true,
+  "mapping_targets": 310,
+  "head_dimension": 128,
+  "query_dimension": 2048,
+  "kv_dimension": 1024,
+  "qk_norm": true,
+  "attention_bias": false,
+  "state": "fixture_and_parser_ready_strict_alias_pending"
+}

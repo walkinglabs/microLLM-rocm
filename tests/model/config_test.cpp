@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include <microllm/model/config.h>
 #include <microllm/model/huggingface.h>
+#include <microllm/model/model.h>
 
 namespace microllm::model {
 
@@ -206,6 +207,27 @@ TEST(HuggingFaceConfigTest, ParsesPinnedDeepSeekDistillQwenParameterContract) {
     EXPECT_EQ(parsed.model.ffn_dimension, 8960);
     EXPECT_FALSE(parsed.model.tie_embeddings);
     EXPECT_EQ(parsed.model.parameter_count(), 1'777'088'000U);
+}
+
+TEST(HuggingFaceConfigTest, ParsesPinnedQwen3ExplicitHeadAndQkNormContract) {
+    const auto path = std::filesystem::path(MICROLLM_SOURCE_DIR) /
+                      "tests/fixtures/qwen3-0.6b-config.json";
+    const auto parsed = load_huggingface_config(path);
+    EXPECT_EQ(parsed.model_type, "qwen3");
+    EXPECT_EQ(parsed.model.dimension, 1024);
+    EXPECT_EQ(parsed.model.heads, 16);
+    EXPECT_EQ(parsed.model.kv_heads, 8);
+    EXPECT_EQ(parsed.model.head_dimension(), 128);
+    EXPECT_EQ(parsed.model.query_dimension(), 2048);
+    EXPECT_EQ(parsed.model.kv_dimension(), 1024);
+    EXPECT_TRUE(parsed.model.qk_norm);
+    EXPECT_FALSE(parsed.model.attention_bias);
+    EXPECT_TRUE(parsed.model.tie_embeddings);
+    EXPECT_EQ(parsed.model.parameter_count(), 596'049'920U);
+    const auto mapping = qwen_style_weight_mapping(parsed.model);
+    EXPECT_EQ(mapping.size(), 11U * 28U + 2U);
+    EXPECT_TRUE(mapping.contains("blocks.0.attention.q_norm.weight"));
+    EXPECT_FALSE(mapping.contains("blocks.0.attention.q_proj.bias"));
 }
 
 }  // namespace microllm::model
