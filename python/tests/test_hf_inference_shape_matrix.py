@@ -67,9 +67,58 @@ PREFILL_CACHE_SPEC = importlib.util.spec_from_file_location(
 PREFILL_CACHE = importlib.util.module_from_spec(PREFILL_CACHE_SPEC)
 assert PREFILL_CACHE_SPEC.loader is not None
 PREFILL_CACHE_SPEC.loader.exec_module(PREFILL_CACHE)
+PREFILL_TRACE_SPEC = importlib.util.spec_from_file_location(
+    "audit_prefill_block0_trace",
+    ROOT / "benchmarks/single_gpu/audit_prefill_block0_trace.py")
+PREFILL_TRACE = importlib.util.module_from_spec(PREFILL_TRACE_SPEC)
+assert PREFILL_TRACE_SPEC.loader is not None
+PREFILL_TRACE_SPEC.loader.exec_module(PREFILL_TRACE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_prefill_block0_trace_summary_finds_first_projection(self):
+        processes = []
+        for run in (1, 2):
+            for batch in PREFILL_TRACE.BATCHES:
+                stages = []
+                for index, name in enumerate(PREFILL_TRACE.STAGES):
+                    changed = batch > 1 and index >= 2
+                    maximum = 0.01 if changed else 0.0
+                    stages.append({
+                        "name": name,
+                        "b1_vs_batch_row0": {
+                            "maximum": maximum, "rms": maximum / 2,
+                            "relative_l2": maximum / 4,
+                            "bitwise_equal": not changed},
+                        "batch_row0_vs_row1": {
+                            "maximum": 0.0, "rms": 0.0, "relative_l2": 0.0,
+                            "bitwise_equal": True},
+                    })
+                processes.append({
+                    "batch": batch, "process_run": run, "stages": stages,
+                })
+        summary = PREFILL_TRACE.summarize(processes)
+        self.assertEqual(summary["process_rows"], 8)
+        self.assertEqual(summary["stage_count"], 10)
+        self.assertEqual(summary["first_nonzero_stage"],
+                         PREFILL_TRACE.PREFIX + ".attention.q_projection")
+        self.assertTrue(summary["all_repeat_metrics_equal"])
+
+    def test_prefill_block0_trace_command_bounds_two_rows(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        command = PREFILL_TRACE.command(
+            args, model, 8, Path("trace.jsonl"), Path("cache.bin"))
+        self.assertEqual(command[command.index("--trace-max-elements") + 1],
+                         str(2 * 2048 * 1536))
+        self.assertEqual(command[command.index("--trace-value-filter") + 1],
+                         ",".join(PREFILL_TRACE.STAGES))
+
     def test_current_prefill_cache_prefix_precedes_decode_drift(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-deepseek-prefill-cache-prefix")
