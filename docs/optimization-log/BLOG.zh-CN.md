@@ -4879,3 +4879,14 @@ O=296100让完整logits的全局Max/RMS改善24.7%/32.6%，说明Experiment 313�
 多么容易拼接，都必须用fresh process得到完整模型结果。
 
 ![O model gate](../../benchmarks/results/2026-08-26-fp32-prefill-o-model-gate/o-model-gate.svg)
+
+## 332. Experiment 315：不要从旧表格拼出一个“胜利”
+
+最后一次组合先固定策略再重跑：B1 upstream，B2/B4 exact core+O，B8 exact core-only。Release四个
+prefill比值为0.997/0.987/1.020/1.008×，性能与资源门都过了。
+
+完整数值仍然否决它。全局Max从0.001253升到0.001340，恶化6.9%；RMS只改善2.5%。局部exact并不
+单调传递成整模改善。继续按旧结果挑batch会变成事后搜索，因此Q/K/V、QK、P×V、O的solution组合线
+正式关闭。下一步把FFN聚合输出拆成gate、up、SwiGLU和down完整值trace。
+
+![Exact stack gate](../../benchmarks/results/2026-08-26-fp32-prefill-exact-stack-gate/exact-stack-gate.svg)

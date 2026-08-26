@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 314 measures O=296100 on top of
-> the exact diagnostic Attention core. Complete-logit Max/RMS improve by
-> `24.7%/32.6%`, but B1 prefill falls to `0.944x`; the candidate is rejected by the
-> every-batch performance gate. The next experiment compares the real upstream
-> baseline with a batch-selective exact stack before expanding the FFN trace.
-> See the [complete O model gate](docs/optimization-log/experiments/314-prefill-o-model-reject.md).
+> **Current optimization checkpoint:** Experiment 315 compares the real upstream
+> route with a fixed batch-selective exact stack. Every Release prefill ratio passes
+> at `0.987x–1.020x`, but complete-logit Max worsens by `6.9%` and RMS improves only
+> `2.5%`; the candidate is rejected and the exact Linear solution-composition track
+> is closed. The next diagnostic expands block-0 FFN gate/up/SwiGLU/down values.
+> See the [exact-stack rejection](docs/optimization-log/experiments/315-prefill-exact-stack-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

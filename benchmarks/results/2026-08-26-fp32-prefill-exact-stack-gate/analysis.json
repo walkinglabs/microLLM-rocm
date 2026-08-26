@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "experiment": 315,
+  "status": "model_rejected_track_closed",
+  "upstream_logit_maximum": 0.0012532472610473633,
+  "candidate_logit_maximum": 0.0013401508331298828,
+  "maximum_change_fraction": 0.06934271853895169,
+  "upstream_logit_rms": 0.00029083847119404496,
+  "candidate_logit_rms": 0.00028359068535986507,
+  "rms_improvement_fraction": 0.02492031334239908,
+  "candidate_prefill_speedup_by_batch": {
+    "1": 0.9974854010629917,
+    "2": 0.9867002251579743,
+    "4": 1.0204022902973595,
+    "8": 1.0079937133141248
+  },
+  "candidate_minimum_prefill_speedup": 0.9867002251579743,
+  "robust_logit_improvement_passed": false,
+  "performance_gate_passed": true,
+  "peak_memory_changed": false,
+  "candidate_admitted": false,
+  "track_closed": "exact Q/K/V/QK/PxV/O solution composition",
+  "next_experiment": "Trace block-0 FFN gate, up, SwiGLU activation, and down output after the exact diagnostic Attention stack."
+}

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1540" height="650" viewBox="0 0 1540 650">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:24px;font-weight:700}.sub{font-size:12px;fill:#94a3b8}.label{font-size:12px}</style>
+<text x="36" y="42" class="title">Batch-selective exact prefill stack · model gate</text>
+<text x="36" y="66" class="sub">B1 upstream · B2/B4 core+O · B8 core-only · two fresh processes</text>
+<text x="235" y="118" class="label" text-anchor="middle">B1</text>
+<rect x="170" y="380.00" width="52" height="2.00" fill="#64748b"/>
+<rect x="248" y="380.00" width="52" height="2.00" fill="#38bdf8"/>
+<text x="235" y="415" class="sub" text-anchor="middle">0.997x</text>
+<text x="235" y="440" class="sub" text-anchor="middle">QK -1 · PV -1 · O -1</text>
+<text x="565" y="118" class="label" text-anchor="middle">B2</text>
+<rect x="500" y="262.95" width="52" height="117.05" fill="#64748b"/>
+<rect x="578" y="170.00" width="52" height="210.00" fill="#38bdf8"/>
+<text x="565" y="415" class="sub" text-anchor="middle">0.987x</text>
+<text x="565" y="440" class="sub" text-anchor="middle">QK 304681 · PV 295716 · O -1 · O 296100 · O 296100</text>
+<text x="895" y="118" class="label" text-anchor="middle">B4</text>
+<rect x="830" y="183.62" width="52" height="196.38" fill="#64748b"/>
+<rect x="908" y="189.24" width="52" height="190.76" fill="#38bdf8"/>
+<text x="895" y="415" class="sub" text-anchor="middle">1.020x</text>
+<text x="895" y="440" class="sub" text-anchor="middle">QK 304681 · PV 295716 · O -1 · O 296100 · O 296100</text>
+<text x="1225" y="118" class="label" text-anchor="middle">B8</text>
+<rect x="1160" y="187.75" width="52" height="192.25" fill="#64748b"/>
+<rect x="1238" y="190.16" width="52" height="189.84" fill="#38bdf8"/>
+<text x="1225" y="415" class="sub" text-anchor="middle">1.008x</text>
+<text x="1225" y="440" class="sub" text-anchor="middle">QK 304681 · PV 295716 · O -1 · O 296100 · O 296100</text>
+<text x="80" y="520" class="label">max improved: false</text>
+<text x="420" y="520" class="label">RMS improved: false</text>
+<text x="760" y="520" class="label">min speed: 0.987x</text>
+<text x="1100" y="520" class="label">admitted: false</text>
+<rect x="60" y="570" width="1420" height="50" rx="10" fill="#111827" stroke="#334155"/>
+<text x="90" y="601" class="sub">Both global logit Max/RMS must improve ≥10% and every batch must keep ≥0.95x prefill.</text>
+</svg>

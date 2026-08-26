@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "experiment": 315,
+  "status": "pass",
+  "build_type": "Release",
+  "engine_commit": "0529c136ceba299a30853ed4c030cc24cf12b996",
+  "runner_commit": "4a9b28e45a2f092738cfeeded4aca6aac32e3f47",
+  "context": 2048,
+  "batches": [1, 2, 4, 8],
+  "runs_per_case": 2,
+  "precision_process_rows": 16,
+  "performance_process_rows": 16,
+  "admission": {
+    "logit_max_rms_improvement_required": 0.1,
+    "minimum_prefill_speedup_required": 0.95,
+    "passed": false
+  },
+  "full_gates": {
+    "cpu_debug": "376/376",
+    "asan_ubsan": "374/374",
+    "pytorch_enabled_cpu": "379/379",
+    "mi300x_gfx942_hip": "196/196",
+    "rccl": "53/53"
+  },
+  "claims_not_made": [
+    "The selective stack is not admitted as a default.",
+    "A passing performance gate does not override failed numerical gates.",
+    "Debug absolute timing is not mixed with this Release result."
+  ]
+}

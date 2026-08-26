@@ -143,6 +143,53 @@ EXACT_STACK_SPEC.loader.exec_module(EXACT_STACK)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_exact_stack_gate_closes_composition_track(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-prefill-exact-stack-gate")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        precision = [json.loads(line) for line in
+                     (root / "precision-raw.jsonl").read_text(
+                         encoding="utf-8").splitlines() if line]
+        performance = [json.loads(line) for line in
+                       (root / "performance-raw.jsonl").read_text(
+                           encoding="utf-8").splitlines() if line]
+        policies = {row["policy"]: row for row in summary["policy_summaries"]}
+        self.assertEqual((len(precision), len(performance)), (16, 16))
+        self.assertFalse(summary["robust_logit_max_improvement"])
+        self.assertFalse(summary["robust_logit_rms_improvement"])
+        self.assertTrue(summary["performance_gate_passed"])
+        self.assertFalse(summary["candidate_admitted"])
+        self.assertAlmostEqual(summary["candidate_minimum_prefill_speedup"],
+                               0.9867002251579743)
+        self.assertEqual(
+            policies["upstream-exact"]["maximum_logit_cross_batch_error"],
+            0.0012532472610473633)
+        self.assertEqual(
+            policies["batch-selective"]["maximum_logit_cross_batch_error"],
+            0.0013401508331298828)
+        self.assertAlmostEqual(analysis["maximum_change_fraction"],
+                               0.06934271853895169)
+        self.assertAlmostEqual(analysis["rms_improvement_fraction"],
+                               0.02492031334239908)
+        for batch in summary["batches"]:
+            baseline = next(row for row in summary["cases"]
+                            if row["policy"] == "upstream-exact" and
+                            row["batch"] == batch)
+            candidate = next(row for row in summary["cases"]
+                             if row["policy"] == "batch-selective" and
+                             row["batch"] == batch)
+            self.assertEqual(baseline["engine_peak_bytes_maximum"],
+                             candidate["engine_peak_bytes_maximum"])
+            self.assertEqual(
+                baseline["engine_backend_allocation_calls_maximum"],
+                candidate["engine_backend_allocation_calls_maximum"])
+        self.assertEqual(verification["build_type"], "Release")
+        self.assertFalse(verification["admission"]["passed"])
+        ET.parse(root / "exact-stack-gate.svg")
+
     def test_exact_stack_routes_are_fixed_before_measurement(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,

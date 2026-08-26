@@ -1,0 +1,954 @@
+{
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "candidate_admitted": false,
+  "candidate_minimum_prefill_speedup": 0.9867002251579743,
+  "candidate_prefill_speedup_by_batch": {
+    "1": 0.9974854010629917,
+    "2": 0.9867002251579743,
+    "4": 1.0204022902973595,
+    "8": 1.0079937133141248
+  },
+  "cases": [
+    {
+      "batch": 1,
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 7477495808,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": true,
+      "policy": "upstream-exact",
+      "prefill_ms_median": 78.347422,
+      "prefill_tokens_per_second_median": 26139.97944325699,
+      "pv_solution_index": -1,
+      "qk_solution_index": -1,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 7846639616,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0007469654083251953,
+        "rms": 0.00014329354397004355
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "upstream-exact",
+      "prefill_ms_median": 139.03435050000002,
+      "prefill_tokens_per_second_median": 29460.426220296846,
+      "pv_solution_index": -1,
+      "qk_solution_index": -1,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 8584927232,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012532472610473633,
+        "rms": 0.00029083847119404496
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "upstream-exact",
+      "prefill_ms_median": 281.79584750000004,
+      "prefill_tokens_per_second_median": 29070.720190214943,
+      "pv_solution_index": -1,
+      "qk_solution_index": -1,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 8,
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 10061502464,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012269020080566406,
+        "rms": 0.00022805871308424733
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "upstream-exact",
+      "prefill_ms_median": 522.4878295000001,
+      "prefill_tokens_per_second_median": 31357.917476085044,
+      "pv_solution_index": -1,
+      "qk_solution_index": -1,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 1,
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 7477495808,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": true,
+      "policy": "batch-selective",
+      "prefill_ms_median": 78.54493099999999,
+      "prefill_tokens_per_second_median": 26074.627862522586,
+      "pv_solution_index": -1,
+      "qk_solution_index": -1,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 7846639616,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0013401508331298828,
+        "rms": 0.00028359068535986507
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012868642807006836,
+        "rms": 0.000287602477225604
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "batch-selective",
+      "prefill_ms_median": 140.9084005,
+      "prefill_tokens_per_second_median": 29069.10663784744,
+      "pv_solution_index": 295716,
+      "qk_solution_index": 304681,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 8584927232,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012173652648925781,
+        "rms": 0.00024815891660316376
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0005776882171630859,
+        "rms": 0.00012527253498900167
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "batch-selective",
+      "prefill_ms_median": 276.16152,
+      "prefill_tokens_per_second_median": 29670.082010835667,
+      "pv_solution_index": 295716,
+      "qk_solution_index": 304681,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 8,
+      "engine_backend_allocation_calls_maximum": 93,
+      "engine_peak_bytes_maximum": 10061502464,
+      "generated_tokens_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012115240097045898,
+        "rms": 0.00023022594976891732
+      },
+      "logits_vs_upstream": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0006046295166015625,
+        "rms": 0.00016502841513138958
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "batch-selective",
+      "prefill_ms_median": 518.3443335,
+      "prefill_tokens_per_second_median": 31608.810502729986,
+      "pv_solution_index": 295716,
+      "qk_solution_index": 304681,
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_upstream": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    }
+  ],
+  "context": 2048,
+  "kv_solution_index": 292135,
+  "performance_gate_passed": true,
+  "performance_process_rows": 16,
+  "policy_summaries": [
+    {
+      "all_cache_cross_batch_bitwise_equal": true,
+      "all_within_batch_logits_bitwise_equal": false,
+      "cases": [
+        {
+          "batch": 1,
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 7477495808,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": true,
+          "policy": "upstream-exact",
+          "prefill_ms_median": 78.347422,
+          "prefill_tokens_per_second_median": 26139.97944325699,
+          "pv_solution_index": -1,
+          "qk_solution_index": -1,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 2,
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 7846639616,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0007469654083251953,
+            "rms": 0.00014329354397004355
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "upstream-exact",
+          "prefill_ms_median": 139.03435050000002,
+          "prefill_tokens_per_second_median": 29460.426220296846,
+          "pv_solution_index": -1,
+          "qk_solution_index": -1,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 4,
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 8584927232,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012532472610473633,
+            "rms": 0.00029083847119404496
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "upstream-exact",
+          "prefill_ms_median": 281.79584750000004,
+          "prefill_tokens_per_second_median": 29070.720190214943,
+          "pv_solution_index": -1,
+          "qk_solution_index": -1,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 8,
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 10061502464,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012269020080566406,
+            "rms": 0.00022805871308424733
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "upstream-exact",
+          "prefill_ms_median": 522.4878295000001,
+          "prefill_tokens_per_second_median": 31357.917476085044,
+          "pv_solution_index": -1,
+          "qk_solution_index": -1,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        }
+      ],
+      "maximum_logit_cross_batch_error": 0.0012532472610473633,
+      "maximum_logit_cross_batch_rms_error": 0.00029083847119404496,
+      "maximum_logit_vs_upstream_error": 0.0,
+      "policy": "upstream-exact"
+    },
+    {
+      "all_cache_cross_batch_bitwise_equal": true,
+      "all_within_batch_logits_bitwise_equal": false,
+      "cases": [
+        {
+          "batch": 1,
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 7477495808,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 151936,
+            "maximum": 0.0,
+            "rms": 0.0
+          },
+          "logits_within_batch_bitwise_equal": true,
+          "policy": "batch-selective",
+          "prefill_ms_median": 78.54493099999999,
+          "prefill_tokens_per_second_median": 26074.627862522586,
+          "pv_solution_index": -1,
+          "qk_solution_index": -1,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 2,
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 7846639616,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0013401508331298828,
+            "rms": 0.00028359068535986507
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012868642807006836,
+            "rms": 0.000287602477225604
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "batch-selective",
+          "prefill_ms_median": 140.9084005,
+          "prefill_tokens_per_second_median": 29069.10663784744,
+          "pv_solution_index": 295716,
+          "qk_solution_index": 304681,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 4,
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 8584927232,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012173652648925781,
+            "rms": 0.00024815891660316376
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0005776882171630859,
+            "rms": 0.00012527253498900167
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "batch-selective",
+          "prefill_ms_median": 276.16152,
+          "prefill_tokens_per_second_median": 29670.082010835667,
+          "pv_solution_index": 295716,
+          "qk_solution_index": 304681,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        },
+        {
+          "batch": 8,
+          "engine_backend_allocation_calls_maximum": 93,
+          "engine_peak_bytes_maximum": 10061502464,
+          "generated_tokens_equal": true,
+          "key_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "key_within_batch_bitwise_equal": true,
+          "logits_cross_batch": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0012115240097045898,
+            "rms": 0.00023022594976891732
+          },
+          "logits_vs_upstream": {
+            "bitwise_equal": false,
+            "elements": 151936,
+            "maximum": 0.0006046295166015625,
+            "rms": 0.00016502841513138958
+          },
+          "logits_within_batch_bitwise_equal": false,
+          "policy": "batch-selective",
+          "prefill_ms_median": 518.3443335,
+          "prefill_tokens_per_second_median": 31608.810502729986,
+          "pv_solution_index": 295716,
+          "qk_solution_index": 304681,
+          "runs": 2,
+          "value_cross_batch": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_vs_upstream": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "value_within_batch_bitwise_equal": true
+        }
+      ],
+      "maximum_logit_cross_batch_error": 0.0013401508331298828,
+      "maximum_logit_cross_batch_rms_error": 0.00028359068535986507,
+      "maximum_logit_vs_upstream_error": 0.0012868642807006836,
+      "policy": "batch-selective"
+    }
+  ],
+  "precision_process_rows": 16,
+  "q_solution_index": 296100,
+  "record_type": "prefill_exact_stack_model_gate",
+  "robust_logit_max_improvement": false,
+  "robust_logit_rms_improvement": false,
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "selective_indices": {
+    "1": {
+      "o": -1,
+      "pv": -1,
+      "qk": -1
+    },
+    "2": {
+      "o": 296100,
+      "pv": 295716,
+      "qk": 304681
+    },
+    "4": {
+      "o": 296100,
+      "pv": 295716,
+      "qk": 304681
+    },
+    "8": {
+      "o": -1,
+      "pv": 295716,
+      "qk": 304681
+    }
+  },
+  "status": "pass"
+}
