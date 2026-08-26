@@ -127,6 +127,17 @@ if(Python3_Interpreter_FOUND)
         )
         set_tests_properties(Int8Weight.PyTorchOracle PROPERTIES
             LABELS "cpu;pytorch;precision;int8;weights")
+        add_test(
+            NAME Alignment.ExplicitHeadQkNorm
+            COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/alignment/run.py
+                    --microllm-binary $<TARGET_FILE:microllm_alignment>
+                    --python ${Python3_EXECUTABLE}
+                    --output ${PROJECT_BINARY_DIR}/alignment-explicit-qk-norm
+                    --microllm-device cpu --pytorch-device cpu
+                    --warmup 1 --repetitions 2 --explicit-qk-norm --overwrite
+        )
+        set_tests_properties(Alignment.ExplicitHeadQkNorm PROPERTIES
+            LABELS "cpu;pytorch;alignment;model;qk_norm;gradient")
     endif()
 
     add_test(

@@ -31,7 +31,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] load core Qwen special tokens and basic system/user/assistant chat template;
 - [x] support tool-call/tool-response branches of the instruction chat template;
 - [x] add Q/K/V bias parameters, backward, HIP Kernel, and strict weight mapping;
-- [ ] add explicit attention head dimension and QK-Norm where required;
+- [x] add explicit attention head dimension and shared Q/K-Norm with CPU/HIP/PyTorch
+  forward, loss, all-gradient, cache and mapping gates; official parser remains separate;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

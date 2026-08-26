@@ -126,6 +126,27 @@ TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     EXPECT_THROW(config.validate(), std::invalid_argument);
 }
 
+TEST(ModelConfigTest, ExplicitHeadDimensionAndQkNormChangeProjectionBudget) {
+    ModelConfig config{.vocabulary_size = 16,
+                       .dimension = 8,
+                       .layers = 1,
+                       .heads = 2,
+                       .kv_heads = 1,
+                       .attention_head_dimension = 6,
+                       .ffn_dimension = 16,
+                       .max_sequence_length = 8,
+                       .qk_norm = true};
+    config.validate();
+    EXPECT_EQ(config.head_dimension(), 6);
+    EXPECT_EQ(config.query_dimension(), 12);
+    EXPECT_EQ(config.kv_dimension(), 6);
+    EXPECT_EQ(config.parameter_count(), 964U);
+    EXPECT_NE(config.summary().find("head_dim=6"), std::string::npos);
+    EXPECT_NE(config.summary().find("qk_norm=true"), std::string::npos);
+    config.attention_head_dimension = 5;
+    EXPECT_THROW(config.validate(), std::invalid_argument);
+}
+
 TEST(HuggingFaceConfigTest, ParsesPinnedQwen25AndMatchesCheckpointParameterCount) {
     const auto path = std::filesystem::temp_directory_path() / "microllm-qwen25-config.json";
     std::ofstream(path) << R"({

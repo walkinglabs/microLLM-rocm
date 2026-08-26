@@ -63,6 +63,53 @@ TEST(TransformerModelTest, AttentionBiasAddsNamedTrainableParameters) {
     EXPECT_TRUE(names.contains("blocks.0.attention.v_proj.bias"));
 }
 
+TEST(TransformerModelTest, ExplicitHeadDimensionAndQkNormCoverForwardBackwardAndCache) {
+    ModelConfig config{.vocabulary_size = 16,
+                       .dimension = 8,
+                       .layers = 1,
+                       .heads = 2,
+                       .kv_heads = 1,
+                       .attention_head_dimension = 6,
+                       .ffn_dimension = 16,
+                       .max_sequence_length = 8,
+                       .rope_base = 10000.0F,
+                       .tie_embeddings = false,
+                       .qk_norm = true};
+    TransformerModel model(config, 37);
+    const auto named = model.named_parameters();
+    const auto find_shape = [&](const std::string& wanted) {
+        const auto found = std::find_if(named.begin(), named.end(),
+            [&](const auto& item) { return item.first == wanted; });
+        if (found == named.end()) throw std::runtime_error("missing parameter");
+        return found->second->data().shape();
+    };
+    EXPECT_EQ(find_shape("blocks.0.attention.q_proj.weight"), (Shape{8, 12}));
+    EXPECT_EQ(find_shape("blocks.0.attention.k_proj.weight"), (Shape{8, 6}));
+    EXPECT_EQ(find_shape("blocks.0.attention.o_proj.weight"), (Shape{12, 8}));
+    EXPECT_EQ(find_shape("blocks.0.attention.q_norm.weight"), (Shape{6}));
+    EXPECT_EQ(find_shape("blocks.0.attention.k_norm.weight"), (Shape{6}));
+
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3}, {1, 3});
+    const auto targets = Tensor::from_int32_vector({2, 3, 4}, {1, 3});
+    const auto loss = model.loss(tokens, targets);
+    EXPECT_TRUE(std::isfinite(loss.data().to_vector()[0]));
+    loss.backward();
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        EXPECT_TRUE(parameter->has_grad()) << name;
+    }
+    const auto full = model.forward_inference(tokens).to_vector();
+    inference::KVCache cache(config.layers, 3);
+    std::vector<float> cached;
+    for (std::int64_t position = 0; position < 3; ++position) {
+        const auto step = model.forward_cached(
+            Tensor::from_int32_vector(
+                {static_cast<std::int32_t>(position + 1)}, {1, 1}), cache);
+        const auto values = step.to_vector();
+        cached.insert(cached.end(), values.begin(), values.end());
+    }
+    expect_near(cached, full, 2.0e-4F);
+}
+
 TEST(TransformerModelTest, SplitHalfAttentionLayoutFusionMatchesMaterializedGraph) {
     auto config = tiny_config();
     config.attention_bias = true;

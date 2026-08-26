@@ -20,6 +20,7 @@ struct Options {
     std::uint64_t warmup = 2;
     std::uint64_t repetitions = 10;
     std::size_t max_captured_elements = 4096;
+    bool explicit_qk_norm = false;
 };
 
 std::uint64_t parse_unsigned(std::string_view value, const char* name) {
@@ -47,6 +48,12 @@ Options parse_options(int argc, char** argv) {
         } else if (argument == "--max-captured-elements") {
             options.max_captured_elements = static_cast<std::size_t>(
                 parse_unsigned(next("--max-captured-elements"), "max captured elements"));
+        } else if (argument == "--explicit-qk-norm") {
+            const auto value = next("--explicit-qk-norm");
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("explicit qk norm must be true or false");
+            }
+            options.explicit_qk_norm = value == "true";
         } else {
             throw std::invalid_argument("unknown argument: " + argument);
         }
@@ -59,16 +66,18 @@ Options parse_options(int argc, char** argv) {
     return options;
 }
 
-microllm::model::ModelConfig tiny_config() {
+microllm::model::ModelConfig tiny_config(bool explicit_qk_norm) {
     return {.vocabulary_size = 8,
             .dimension = 8,
             .layers = 1,
             .heads = 2,
             .kv_heads = 1,
+            .attention_head_dimension = explicit_qk_norm ? 6 : 0,
             .ffn_dimension = 16,
             .max_sequence_length = 4,
             .rope_base = 10000.0F,
-            .tie_embeddings = false};
+            .tie_embeddings = false,
+            .qk_norm = explicit_qk_norm};
 }
 
 microllm::Device parse_device(const Options& options) {
@@ -101,6 +110,8 @@ void write_run_metadata(const std::filesystem::path& path, const Options& option
            << "    \"layers\": " << config.layers << ",\n"
            << "    \"heads\": " << config.heads << ",\n"
            << "    \"kv_heads\": " << config.kv_heads << ",\n"
+           << "    \"head_dimension\": " << config.head_dimension() << ",\n"
+           << "    \"qk_norm\": " << (config.qk_norm ? "true" : "false") << ",\n"
            << "    \"ffn_dimension\": " << config.ffn_dimension << ",\n"
            << "    \"max_sequence_length\": " << config.max_sequence_length << ",\n"
            << "    \"rope_base\": " << config.rope_base << "\n"
@@ -114,7 +125,7 @@ int main(int argc, char** argv) {
     try {
         const auto options = parse_options(argc, argv);
         const auto device = parse_device(options);
-        const auto config = tiny_config();
+        const auto config = tiny_config(options.explicit_qk_norm);
         std::filesystem::create_directories(options.output_directory);
 
         microllm::model::TransformerModel model(config, options.seed);

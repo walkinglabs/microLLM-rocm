@@ -114,18 +114,27 @@ def model_forward(session, parameters, tokens, config):
                     lambda: rms_norm(hidden_state, parameters[f"{prefix}.attention_norm.weight"]),
                 )
                 flat = op("reshape", lambda: normalized.reshape(-1, config["dimension"]))
+                head_dimension = config.get(
+                    "head_dimension", config["dimension"] // config["heads"])
                 query = op("matmul", lambda: flat @ parameters[f"{prefix}.attention.q_proj.weight"])
                 query = op("reshape", lambda: query.reshape(
                     tokens.shape[0], tokens.shape[1], config["heads"],
-                    config["dimension"] // config["heads"]))
+                    head_dimension))
                 key = op("matmul", lambda: flat @ parameters[f"{prefix}.attention.k_proj.weight"])
                 key = op("reshape", lambda: key.reshape(
                     tokens.shape[0], tokens.shape[1], config["kv_heads"],
-                    config["dimension"] // config["heads"]))
+                    head_dimension))
                 value = op("matmul", lambda: flat @ parameters[f"{prefix}.attention.v_proj.weight"])
                 value = op("reshape", lambda: value.reshape(
                     tokens.shape[0], tokens.shape[1], config["kv_heads"],
-                    config["dimension"] // config["heads"]))
+                    head_dimension))
+                if config.get("qk_norm", False):
+                    query = op("rms_norm", lambda: rms_norm(
+                        query, parameters[f"{prefix}.attention.q_norm.weight"],
+                        config.get("rms_norm_epsilon", 1.0e-5)))
+                    key = op("rms_norm", lambda: rms_norm(
+                        key, parameters[f"{prefix}.attention.k_norm.weight"],
+                        config.get("rms_norm_epsilon", 1.0e-5)))
                 query = op("transpose", lambda: query.transpose(1, 2))
                 query = op("rope", lambda: rope(query, base=config["rope_base"]))
                 key = op("transpose", lambda: key.transpose(1, 2))
@@ -135,9 +144,10 @@ def model_forward(session, parameters, tokens, config):
                     "causal_gqa_attention_bthd",
                     lambda: causal_gqa_attention_bthd(
                         query, key, value, repeats,
-                        1.0 / math.sqrt(config["dimension"] // config["heads"])),
+                        1.0 / math.sqrt(head_dimension)),
                 )
-                context = op("reshape", lambda: context.reshape(-1, config["dimension"]))
+                context = op("reshape", lambda: context.reshape(
+                    -1, config["heads"] * head_dimension))
                 attention = op("matmul", lambda: context @ parameters[f"{prefix}.attention.o_proj.weight"])
                 attention = op("reshape", lambda: attention.reshape(
                     tokens.shape[0], tokens.shape[1], config["dimension"]))

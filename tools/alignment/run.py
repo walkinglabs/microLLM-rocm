@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--repetitions", type=int, default=10)
     parser.add_argument("--max-captured-elements", type=int, default=4096)
+    parser.add_argument("--explicit-qk-norm", action="store_true")
     parser.add_argument("--atol", type=float, default=3.0e-5)
     parser.add_argument("--rtol", type=float, default=3.0e-5)
     parser.add_argument("--overwrite", action="store_true")
@@ -117,6 +118,7 @@ def main():
             "warmup": args.warmup,
             "repetitions": args.repetitions,
             "max_captured_elements": args.max_captured_elements,
+            "explicit_qk_norm": args.explicit_qk_norm,
             "atol": args.atol,
             "rtol": args.rtol,
         },
@@ -133,6 +135,7 @@ def main():
         "--warmup", str(args.warmup),
         "--repetitions", str(args.repetitions),
         "--max-captured-elements", str(args.max_captured_elements),
+        "--explicit-qk-norm", "true" if args.explicit_qk_norm else "false",
     ]
     torch_command = [
         args.python,

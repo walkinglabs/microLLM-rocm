@@ -1118,6 +1118,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [INT8 scope SVG](assets/official-int8-scope-matrix.svg) | 固定Max/RMS/token门 |
 | [experiments/359-official-int8-attention-split-saturation.md](experiments/359-official-int8-attention-split-saturation.md) | QKV/O最终拆分与饱和停止 |
 | [Final INT8 split SVG](assets/official-int8-attention-split-saturation.svg) | 不事后放宽门槛的拒绝证据 |
+| [experiments/360-explicit-head-qk-norm.md](experiments/360-explicit-head-qk-norm.md) | hidden与Attention宽度解耦及QK-Norm全图门 |
+| [Explicit head/QK SVG](assets/explicit-head-qk-norm.svg) | 投影shape与53/53独立证据 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

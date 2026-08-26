@@ -29,7 +29,12 @@ void ModelConfig::validate() const {
         kv_heads <= 0 || ffn_dimension <= 0 || max_sequence_length <= 0) {
         throw std::invalid_argument("all integral model dimensions must be positive");
     }
-    if (dimension % heads != 0) throw std::invalid_argument("dimension must divide into heads");
+    if (attention_head_dimension < 0) {
+        throw std::invalid_argument("attention head dimension cannot be negative");
+    }
+    if (attention_head_dimension == 0 && dimension % heads != 0) {
+        throw std::invalid_argument("dimension must divide into heads when head dimension is derived");
+    }
     if (heads % kv_heads != 0) throw std::invalid_argument("heads must divide into kv_heads groups");
     if (head_dimension() % 2 != 0) throw std::invalid_argument("RoPE head dimension must be even");
     if (!(rope_base > 0.0F)) throw std::invalid_argument("RoPE base must be positive");
@@ -66,6 +71,7 @@ void ModelConfig::validate() const {
 }
 
 std::int64_t ModelConfig::head_dimension() const {
+    if (attention_head_dimension > 0) return attention_head_dimension;
     if (heads <= 0 || dimension % heads != 0) {
         throw std::invalid_argument("invalid head configuration");
     }
@@ -77,6 +83,14 @@ std::int64_t ModelConfig::kv_dimension() const {
     return head_dimension() * kv_heads;
 }
 
+std::int64_t ModelConfig::query_dimension() const {
+    if (heads <= 0 || head_dimension() >
+            std::numeric_limits<std::int64_t>::max() / heads) {
+        throw std::overflow_error("query dimension overflow");
+    }
+    return heads * head_dimension();
+}
+
 std::uint64_t ModelConfig::parameter_count() const {
     validate();
     const auto vocab = static_cast<std::uint64_t>(vocabulary_size);
@@ -84,15 +98,22 @@ std::uint64_t ModelConfig::parameter_count() const {
     const auto layer_count = static_cast<std::uint64_t>(layers);
     const auto feed_forward = static_cast<std::uint64_t>(ffn_dimension);
     const auto key_value = static_cast<std::uint64_t>(kv_dimension());
+    const auto query_width = static_cast<std::uint64_t>(query_dimension());
 
     const auto embedding = checked_product(vocab, dim);
-    const auto query_and_output = checked_product(2, checked_product(dim, dim));
+    const auto query_and_output = checked_product(
+        2, checked_product(dim, query_width));
     const auto key_and_value = checked_product(2, checked_product(dim, key_value));
     const auto attention = checked_add(query_and_output, key_and_value);
-    const auto attention_biases = attention_bias ? checked_add(dim, checked_product(2, key_value)) : 0;
+    const auto attention_biases = attention_bias
+        ? checked_add(query_width, checked_product(2, key_value)) : 0;
+    const auto qk_norm_parameters = qk_norm
+        ? checked_product(2, static_cast<std::uint64_t>(head_dimension())) : 0;
     const auto ffn = checked_product(3, checked_product(dim, feed_forward));
     const auto norms = checked_product(2, dim);
-    const auto per_layer = checked_add(checked_add(checked_add(attention, attention_biases), ffn), norms);
+    const auto per_layer = checked_add(
+        checked_add(checked_add(checked_add(attention, attention_biases),
+                                qk_norm_parameters), ffn), norms);
     auto total = checked_add(embedding, checked_product(layer_count, per_layer));
     total = checked_add(total, dim);  // final RMSNorm
     if (!tie_embeddings) total = checked_add(total, checked_product(dim, vocab));
@@ -108,6 +129,7 @@ std::string ModelConfig::summary() const {
     std::ostringstream output;
     output << "vocab=" << vocabulary_size << ",dim=" << dimension << ",layers=" << layers
            << ",heads=" << heads << ",kv_heads=" << kv_heads << ",ffn=" << ffn_dimension
+           << ",head_dim=" << head_dimension()
            << ",max_seq=" << max_sequence_length << ",rope_base=" << rope_base
            << ",tie_embeddings=" << (tie_embeddings ? "true" : "false")
            << ",linear_precision="
@@ -147,6 +169,7 @@ std::string ModelConfig::summary() const {
     output
            << ",rms_eps=" << rms_norm_epsilon
            << ",attention_bias=" << (attention_bias ? "true" : "false")
+           << ",qk_norm=" << (qk_norm ? "true" : "false")
            << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")
            << ",parameters=" << parameter_count();
     return output.str();

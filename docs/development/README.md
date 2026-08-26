@@ -717,3 +717,5 @@ the next gate. Records are append-only except for factual corrections.
   rejects FFN and withholds Attention pending one final QKV/O decomposition.
 - [2026-08-26-official-int8-attention-split.md](2026-08-26-official-int8-attention-split.md):
   keeps the fixed gate and closes the current official PTQ weight-only INT8 line.
+- [2026-08-26-explicit-head-qk-norm.md](2026-08-26-explicit-head-qk-norm.md):
+  records the non-equal Attention width and full CPU/HIP/PyTorch graph gate.

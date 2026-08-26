@@ -25,6 +25,9 @@ struct ModelConfig {
     std::int64_t layers = 0;
     std::int64_t heads = 0;
     std::int64_t kv_heads = 0;
+    // Zero derives dimension / heads. A positive value permits attention
+    // projection width to differ from the residual-stream dimension.
+    std::int64_t attention_head_dimension = 0;
     std::int64_t ffn_dimension = 0;
     std::int64_t max_sequence_length = 0;
     float rope_base = 10000.0F;
@@ -41,10 +44,12 @@ struct ModelConfig {
     std::vector<std::int64_t> fp8_fp32_layers = {};
     float rms_norm_epsilon = 1.0e-5F;
     bool attention_bias = false;
+    bool qk_norm = false;
     RopeLayout rope_layout = RopeLayout::Interleaved;
 
     void validate() const;
     [[nodiscard]] std::int64_t head_dimension() const;
+    [[nodiscard]] std::int64_t query_dimension() const;
     [[nodiscard]] std::int64_t kv_dimension() const;
     [[nodiscard]] std::uint64_t parameter_count() const;
     [[nodiscard]] std::uint64_t weight_bytes(std::uint64_t bytes_per_parameter) const;

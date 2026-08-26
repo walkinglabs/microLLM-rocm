@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 421/421, ASan/UBSan 418/418, PyTorch-enabled CPU 422/422, single-GPU HIP label 211/211, RCCL label 55/55; 156 registered test files | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 424/424, ASan/UBSan 421/421, PyTorch-enabled CPU 426/426, single-GPU HIP label 212/212, RCCL label 55/55; 156 registered test files | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte and signed INT8 one-byte CPU/MI300X storage, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -36,7 +36,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Model-S HIP forward | smoke-tested | MI300X/gfx942 8192-logit CPU comparison | multi-token/preallocated cache |
 | Tiny HIP training | smoke-tested | 5-step finite loss/grad trajectory on MI300X | device-native AdamW |
 | Model-M HIP train step | smoke-tested | 31.3M params, finite backward/update, 518.8MB engine peak | multi-step/real corpus |
-| Decoder Transformer structure | smoke-tested | tiny GQA graph topology, PyTorch logits/loss/all-gradient parity, CPU/HIP parity | overfit/full recipe |
+| Decoder Transformer structure | smoke-tested | tiny GQA plus explicit head_dim/QK-Norm; PyTorch 53/53, logits Max2.68e-7, exact loss/all gradients; CPU/HIP/cache parity | official Qwen3 parser/checkpoint and broader families |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | smoke-tested | BPE round-trip + immutable licensed range + Model-S smoke | full corpus/reference train |
 | Weight/state API | smoke-tested | independent state_dict, atomic load, Qwen mapping, mixed I8/F32 state pairs, single/multi/index transactional HIP streaming | model-bound INT8 routing and architecture validation |

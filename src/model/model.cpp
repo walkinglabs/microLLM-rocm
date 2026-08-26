@@ -1007,14 +1007,18 @@ public:
     Attention(const ModelConfig& config, std::mt19937_64& generator,
               ParameterInitialization initialization)
         : config_(config),
-          query_(config.dimension, config.dimension, generator, config, initialization,
+          query_(config.dimension, config.query_dimension(), generator, config, initialization,
                  config.attention_bias),
           key_(config.dimension, config.kv_dimension(), generator, config, initialization,
                config.attention_bias),
           value_(config.dimension, config.kv_dimension(), generator, config, initialization,
                  config.attention_bias),
-          output_(config.dimension, config.dimension, generator, config, initialization,
-                  false, false, true) {}
+          output_(config.query_dimension(), config.dimension, generator, config, initialization,
+                  false, false, true),
+          query_norm_(config.qk_norm ? std::make_unique<Norm>(
+              config.head_dimension(), config.rms_norm_epsilon, initialization) : nullptr),
+          key_norm_(config.qk_norm ? std::make_unique<Norm>(
+              config.head_dimension(), config.rms_norm_epsilon, initialization) : nullptr) {}
 
     Value forward(const Value& input) {
         if (input.data().ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
@@ -1022,9 +1026,9 @@ public:
         const auto sequence = input.data().shape()[1];
         const auto flat = autograd::reshape(input, {batch * sequence, config_.dimension});
         const auto fuse_query_bias = config_.rope_layout == RopeLayout::SplitHalf &&
-                                     query_.has_bias();
+                                     query_.has_bias() && !config_.qk_norm;
         const auto fuse_key_bias = config_.rope_layout == RopeLayout::SplitHalf &&
-                                   key_.has_bias();
+                                   key_.has_bias() && !config_.qk_norm;
         auto query = autograd::reshape(
             fuse_query_bias ? query_.forward_without_bias(flat) : query_.forward(flat),
                                        {batch, sequence, config_.heads, config_.head_dimension()});
@@ -1033,6 +1037,10 @@ public:
                                      {batch, sequence, config_.kv_heads, config_.head_dimension()});
         auto value = autograd::reshape(value_.forward(flat),
                                        {batch, sequence, config_.kv_heads, config_.head_dimension()});
+        if (config_.qk_norm) {
+            query = query_norm_->forward(query);
+            key = key_norm_->forward(key);
+        }
         const auto layout_fusion =
             autograd::attention_rope_layout_fusion_enabled();
         if (config_.rope_layout == RopeLayout::SplitHalf) {
@@ -1077,7 +1085,7 @@ public:
                 query, key, value, repeats, attention_scale);
             context = autograd::contiguous(autograd::transpose(context, 1, 2));
         }
-        context = autograd::reshape(context, {batch * sequence, config_.dimension});
+        context = autograd::reshape(context, {batch * sequence, config_.query_dimension()});
         return autograd::reshape(output_.forward(context),
                                  {batch, sequence, config_.dimension});
     }
@@ -1118,6 +1126,7 @@ public:
             sequence >= 256 && prefill_cache == nullptr &&
             trace_prefix.empty() &&
             config_.rope_layout == RopeLayout::SplitHalf &&
+            !config_.qk_norm &&
             query_.has_bias() && key_.has_bias() &&
             query_.weight_data().dtype() == DType::BFloat16;
         const auto online_bthd_attention =
@@ -1225,6 +1234,10 @@ public:
                                       config_.head_dimension()})
                             .transpose(1, 2)
                             .contiguous();
+                if (config_.qk_norm) {
+                    query = query_norm_->forward_tensor(query);
+                    key = key_norm_->forward_tensor(key);
+                }
                 if (config_.rope_layout == RopeLayout::SplitHalf) {
                     query = ops::rope_split_half(
                         query, 2, 0, config_.rope_base);
@@ -1276,15 +1289,15 @@ public:
                 context = diagnostics.output
                               .transpose(1, 2)
                               .contiguous()
-                              .reshape({batch * sequence, config_.dimension});
+                              .reshape({batch * sequence, config_.query_dimension()});
             } else if (online_bthd_attention) {
                 context = ops::online_causal_gqa_attention_bthd(
                     query, key, value, repeats, scale).reshape(
-                        {batch * sequence, config_.dimension});
+                        {batch * sequence, config_.query_dimension()});
             } else if (bthd_attention) {
                 context = ops::causal_gqa_attention_bthd(
                     query, key, value, repeats, scale).reshape(
-                        {batch * sequence, config_.dimension});
+                        {batch * sequence, config_.query_dimension()});
             } else {
                 context = causal_attention(
                                 query, key, value, repeats, scale,
@@ -1292,7 +1305,7 @@ public:
                                 .transpose(1, 2)
                                 .contiguous()
                                 .reshape(
-                                    {batch * sequence, config_.dimension});
+                                    {batch * sequence, config_.query_dimension()});
             }
         }
         trace_tensor("context", context);
@@ -1324,9 +1337,9 @@ public:
         const auto batch = input.shape()[0];
         const auto flat = input.reshape({batch, config_.dimension});
         const auto fuse_query_bias = config_.rope_layout == RopeLayout::SplitHalf &&
-                                     query_.has_bias();
+                                     query_.has_bias() && !config_.qk_norm;
         const auto fuse_key_bias = config_.rope_layout == RopeLayout::SplitHalf &&
-                                   key_.has_bias();
+                                   key_.has_bias() && !config_.qk_norm;
         Tensor query_projection;
         Tensor key_projection;
         Tensor value_projection;
@@ -1376,6 +1389,10 @@ public:
         auto value = value_projection
                          .reshape({batch, 1, config_.kv_heads, config_.head_dimension()})
                          .transpose(1, 2);
+        if (config_.qk_norm) {
+            query = query_norm_->forward_tensor(query);
+            key = key_norm_->forward_tensor(key);
+        }
         if (config_.rope_layout == RopeLayout::SplitHalf) {
             query = fuse_query_bias
                         ? ops::rope_split_half_bias(
@@ -1430,7 +1447,7 @@ public:
         auto context = cached_context
                            .transpose(1, 2)
                            .contiguous()
-                           .reshape({batch, config_.dimension});
+                           .reshape({batch, config_.query_dimension()});
         trace_detail(trace_prefix, "context", context);
         auto output = output_.forward_tensor(context).reshape(
             {batch, 1, config_.dimension});
@@ -1454,9 +1471,9 @@ public:
         const auto batch = input.shape()[0];
         const auto flat = input.reshape({batch, config_.dimension});
         const auto fuse_query_bias = config_.rope_layout == RopeLayout::SplitHalf &&
-                                     query_.has_bias();
+                                     query_.has_bias() && !config_.qk_norm;
         const auto fuse_key_bias = config_.rope_layout == RopeLayout::SplitHalf &&
-                                   key_.has_bias();
+                                   key_.has_bias() && !config_.qk_norm;
         Tensor query_projection;
         Tensor key_projection;
         Tensor value_projection;
@@ -1501,6 +1518,10 @@ public:
                          .reshape({batch, 1, config_.kv_heads,
                                    config_.head_dimension()})
                          .transpose(1, 2);
+        if (config_.qk_norm) {
+            query = query_norm_->forward_tensor(query);
+            key = key_norm_->forward_tensor(key);
+        }
         if (config_.rope_layout == RopeLayout::SplitHalf) {
             query = fuse_query_bias
                         ? ops::rope_split_half_bias_positions(
@@ -1535,7 +1556,7 @@ public:
                                       config_.head_dimension())))
                            .transpose(1, 2)
                            .contiguous()
-                           .reshape({batch, config_.dimension});
+                           .reshape({batch, config_.query_dimension()});
         return output_.forward_tensor(context).reshape(
             {batch, 1, config_.dimension});
     }
@@ -1548,6 +1569,10 @@ public:
         values.emplace_back(prefix + ".v_proj.weight", &value_.weight());
         if (value_.has_bias()) values.emplace_back(prefix + ".v_proj.bias", &value_.bias());
         values.emplace_back(prefix + ".o_proj.weight", &output_.weight());
+        if (query_norm_) {
+            values.emplace_back(prefix + ".q_norm.weight", &query_norm_->weight());
+            values.emplace_back(prefix + ".k_norm.weight", &key_norm_->weight());
+        }
     }
 
     void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
@@ -1701,6 +1726,8 @@ private:
     Linear key_;
     Linear value_;
     Linear output_;
+    std::unique_ptr<Norm> query_norm_;
+    std::unique_ptr<Norm> key_norm_;
     Bf16QkvArenaCache* qkv_arena_cache_ = nullptr;
     AttentionCoreArenaCache* attention_core_arena_cache_ = nullptr;
     std::int64_t cached_attention_splits_ = 0;
@@ -3908,6 +3935,14 @@ WeightMapping qwen_style_weight_mapping(const ModelConfig& config) {
         mapping.emplace(target + ".attention.o_proj.weight",
                         WeightSource{source + ".self_attn.o_proj.weight",
                                      WeightTransform::Transpose2D});
+        if (config.qk_norm) {
+            mapping.emplace(target + ".attention.q_norm.weight",
+                            WeightSource{source + ".self_attn.q_norm.weight",
+                                         WeightTransform::Identity});
+            mapping.emplace(target + ".attention.k_norm.weight",
+                            WeightSource{source + ".self_attn.k_norm.weight",
+                                         WeightTransform::Identity});
+        }
         mapping.emplace(target + ".ffn_norm.weight",
                         WeightSource{source + ".post_attention_layernorm.weight",
                                      WeightTransform::Identity});

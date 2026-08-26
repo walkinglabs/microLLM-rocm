@@ -301,6 +301,8 @@ needed to run a real training and generation loop:
 - readable CPU references and repository-owned HIP kernels;
 - an eager reverse-mode graph engine with device-native Transformer backward;
 - Decoder-only MHA/GQA, RoPE, RMSNorm, SwiGLU, causal attention, loss, and optimizers;
+- explicit Attention head width and optional Q/K-Norm before RoPE, without assuming
+  Attention width equals the residual-stream width;
 - named model state, F32/BF16/F16 safetensors loading, and mixed I8-weight/F32-scale
   preservation;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
@@ -1016,10 +1018,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 421/421 | host code, CLI, model/graph, scoped INT8 preparation, benchmark and package gates |
-| ASan/UBSan CPU | 418/418 | host lifetime, scoped scale state, one-way model state and package linking |
-| MI300X/gfx942 HIP label | 211/211 | allocator/arena/Stream/Graph, device scalar/column INT8 preparation and rejected model route |
-| PyTorch-enabled CPU build | 422/422 | dispatcher parity, INT8 scope/model oracle, optimizer state, full graph/model oracle and package paths |
+| CPU Debug | 424/424 | host code, CLI, explicit-head/QK-Norm model graph, benchmark and package gates |
+| ASan/UBSan CPU | 421/421 | host lifetime, QK-Norm graph/cache state and package linking |
+| MI300X/gfx942 HIP label | 212/212 | allocator/arena/Stream/Graph, explicit-head/QK-Norm forward/backward and model routes |
+| PyTorch-enabled CPU build | 426/426 | dispatcher parity plus 53/53 explicit-head/QK-Norm full-graph alignment and package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
 | Registered test files | 156 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
@@ -1261,6 +1263,9 @@ one final QKV/O split against the fixed 0.1/0.02 gate.
 [Experiment 359](docs/optimization-log/experiments/359-official-int8-attention-split-saturation.md)
 rejects token-exact QKV-only at 0.1355/0.0293 and O-only at 0.1076/0.02004 without relaxing the
 fixed gate; the current official PTQ weight-only INT8 line is saturated and closed.
+[Experiment 360](docs/optimization-log/experiments/360-explicit-head-qk-norm.md) decouples hidden
+and Attention widths and adds QK-Norm. A deliberately non-equal synthetic graph passes 53/53
+PyTorch checkpoints, CPU cache parity and MI300X forward/backward with zero payload transfers.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

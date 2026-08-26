@@ -74,6 +74,9 @@ component has a public interface under `include/microllm`, an implementation und
 37. For the one-byte symmetric weight format, scale Tensor, safetensors layout and
     current no-INT8-GEMM boundary, read the
     [INT8 weight-format guide](int8-weight-format.zh-CN.md).
+38. For models whose Attention width differs from hidden size and which normalize
+    Q/K before RoPE, read the
+    [explicit head-dimension and QK-Norm guide](explicit-head-qk-norm.zh-CN.md).
 
 ## Engineering rules
 

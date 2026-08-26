@@ -1,0 +1,16 @@
+{
+  "configuration": {"hidden": 8, "heads": 2, "kv_heads": 1,
+                    "head_dimension": 6, "qk_norm": true},
+  "parameter_count": 964,
+  "alignment_checkpoints": 53,
+  "passed_checkpoints": 53,
+  "failed_checkpoints": 0,
+  "logits_maximum_absolute_error": 2.682209014892578e-7,
+  "loss_maximum_absolute_error": 0.0,
+  "q_norm_gradient_maximum_absolute_error": 1.1175870895385742e-8,
+  "k_norm_gradient_maximum_absolute_error": 7.450580596923828e-9,
+  "largest_any_gradient_maximum_absolute_error": 4.29153e-6,
+  "hip_forward_backward_matches_cpu": true,
+  "hip_execution_h2d_calls": 0,
+  "hip_execution_d2h_calls": 0
+}

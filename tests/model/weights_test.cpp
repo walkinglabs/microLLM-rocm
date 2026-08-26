@@ -168,6 +168,19 @@ TEST(ModelWeightsTest, QwenStyleMappingIncludesAttentionBiasWhenConfigured) {
               WeightTransform::Identity);
 }
 
+TEST(ModelWeightsTest, QwenStyleMappingIncludesQkNormWhenConfigured) {
+    auto config = weight_config(false);
+    config.attention_head_dimension = 6;
+    config.qk_norm = true;
+    const auto mapping = qwen_style_weight_mapping(config);
+    EXPECT_EQ(mapping.at("blocks.0.attention.q_norm.weight").name,
+              "model.layers.0.self_attn.q_norm.weight");
+    EXPECT_EQ(mapping.at("blocks.0.attention.k_norm.weight").name,
+              "model.layers.0.self_attn.k_norm.weight");
+    EXPECT_EQ(mapping.at("blocks.0.attention.q_norm.weight").transform,
+              WeightTransform::Identity);
+}
+
 TEST(ModelWeightsTest, LoadsSingleAndIndexedSafetensorsFiles) {
     TemporaryDirectory directory;
     TransformerModel source(weight_config(), 347);

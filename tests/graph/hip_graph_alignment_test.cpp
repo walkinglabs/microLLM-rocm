@@ -73,6 +73,50 @@ TEST(HipGraphAlignmentTest, FullTransformerForwardAndBackwardMatchCpuWithoutHost
 }
 
 TEST(HipGraphAlignmentTest,
+     ExplicitHeadDimensionQkNormForwardBackwardMatchCpu) {
+    require_graph_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .attention_head_dimension = 6,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 4,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false,
+                                    .qk_norm = true};
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3}, {1, 3});
+    const auto targets = Tensor::from_int32_vector({2, 3, 4}, {1, 3});
+    model::TransformerModel cpu(config, 613);
+    const auto cpu_loss = cpu.loss(tokens, targets);
+    cpu_loss.backward();
+
+    model::TransformerModel hip(config, 613);
+    hip.to(Device::hip(0));
+    const auto device_tokens = tokens.to(Device::hip(0));
+    const auto device_targets = targets.to(Device::hip(0));
+    runtime::reset_transfer_stats();
+    const auto hip_loss = hip.loss(device_tokens, device_targets);
+    hip_loss.backward();
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_graph_near(hip_loss.data().to_vector(),
+                      cpu_loss.data().to_vector(), 4.0e-4F);
+    const auto cpu_parameters = cpu.named_parameters();
+    const auto hip_parameters = hip.named_parameters();
+    ASSERT_EQ(cpu_parameters.size(), hip_parameters.size());
+    for (std::size_t index = 0; index < cpu_parameters.size(); ++index) {
+        EXPECT_EQ(cpu_parameters[index].first, hip_parameters[index].first);
+        expect_graph_near(hip_parameters[index].second->grad().to_vector(),
+                          cpu_parameters[index].second->grad().to_vector(),
+                          3.0e-3F);
+    }
+}
+
+TEST(HipGraphAlignmentTest,
      AddRmsNormMatchesBranchedHipGraphAndStaysDeviceNative) {
     require_graph_gpu();
     const auto gpu = Device::hip(0);
