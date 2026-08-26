@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "experiment": 319,
+  "status": "all_exact_model_rejected_track_closed",
+  "upstream_logit_maximum": 0.0013535022735595703,
+  "candidate_logit_maximum": 0.0008723735809326172,
+  "maximum_improvement_fraction": 0.35546943808349485,
+  "upstream_logit_rms": 0.00022941562718764653,
+  "candidate_logit_rms": 0.00024268345756307228,
+  "rms_worsening_fraction": 0.0578331587000982,
+  "candidate_prefill_speedup_by_batch": {
+    "1": 1.0001448542182638,
+    "2": 0.9832389202709663,
+    "4": 0.9639047043166205,
+    "8": 0.9909166176342507
+  },
+  "candidate_minimum_prefill_speedup": 0.9639047043166205,
+  "maximum_gate_passed": true,
+  "rms_gate_passed": false,
+  "performance_gate_passed": true,
+  "peak_memory_changed": false,
+  "candidate_admitted": false,
+  "track_closed": "prefill FFN vendor-solution model policy",
+  "next_experiment": "Use exact Attention plus exact gate/up only as one diagnostic trace to test whether down projection becomes the first FFN drift, then remove the rejected CLI/model route."
+}

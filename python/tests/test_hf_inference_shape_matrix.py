@@ -167,6 +167,44 @@ FFN_ALL_SPEC.loader.exec_module(FFN_ALL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_all_exact_ffn_gate_rejects_rms_worsening(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-prefill-ffn-all-exact-gate")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        precision = [json.loads(line) for line in
+                     (root / "precision-raw.jsonl").read_text(
+                         encoding="utf-8").splitlines() if line]
+        performance = [json.loads(line) for line in
+                       (root / "performance-raw.jsonl").read_text(
+                           encoding="utf-8").splitlines() if line]
+        policies = {row["policy"]: row for row in summary["policy_summaries"]}
+        self.assertEqual(summary["record_type"],
+                         "prefill_ffn_gate_up_all_exact_model_gate")
+        self.assertEqual((len(precision), len(performance)), (16, 16))
+        self.assertTrue(summary["robust_logit_max_improvement"])
+        self.assertFalse(summary["robust_logit_rms_improvement"])
+        self.assertTrue(summary["performance_gate_passed"])
+        self.assertFalse(summary["candidate_admitted"])
+        self.assertAlmostEqual(summary["candidate_minimum_prefill_speedup"],
+                               0.9639047043166205)
+        self.assertEqual(
+            policies["selective-ffn-exact"][
+                "maximum_logit_cross_batch_error"],
+            0.0008723735809326172)
+        self.assertEqual(
+            policies["selective-ffn-exact"][
+                "maximum_logit_cross_batch_rms_error"],
+            0.00024268345756307228)
+        self.assertAlmostEqual(analysis["maximum_improvement_fraction"],
+                               0.35546943808349485)
+        self.assertAlmostEqual(analysis["rms_worsening_fraction"],
+                               0.0578331587000982)
+        self.assertFalse(verification["admission"]["passed"])
+        ET.parse(root / "ffn-all-exact-model-gate.svg")
+
     def test_all_exact_ffn_runner_includes_b4_without_changing_scope(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,

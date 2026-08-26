@@ -1038,6 +1038,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [FFN row-invariance SVG](../../benchmarks/results/2026-08-26-fp32-ffn-row-invariance/ffn-row-invariance.svg) | 33候选correctness-before-timing矩阵 |
 | [experiments/318-prefill-ffn-selective-reject.md](experiments/318-prefill-ffn-selective-reject.md) | 性能/Max过门但RMS失败的整模反例 |
 | [FFN model-gate SVG](../../benchmarks/results/2026-08-26-fp32-prefill-ffn-model-gate/ffn-model-gate.svg) | 32进程真实upstream整模门 |
+| [experiments/319-prefill-ffn-all-exact-reject.md](experiments/319-prefill-ffn-all-exact-reject.md) | Max改善但RMS恶化与vendor模型线关闭 |
+| [All-exact FFN SVG](../../benchmarks/results/2026-08-26-fp32-prefill-ffn-all-exact-gate/ffn-all-exact-model-gate.svg) | all-batch 32进程最终反驳 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

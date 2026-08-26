@@ -4922,3 +4922,13 @@ B1/B2/B8 gate+up使用296100，B4保持default。四个prefill全部过门，Max
 而是检验局部回退是否会超过端到端预算。若数值或性能任一失败，删除模型route并关闭FFN vendor线。
 
 ![FFN model gate](../../benchmarks/results/2026-08-26-fp32-prefill-ffn-model-gate/ffn-model-gate.svg)
+
+## 336. Experiment 319：最坏点更好，整体误差能量更坏
+
+all-batch exact gate/up的prefill全部过0.95门，B4整模仍有0.964×。Max改善35.5%，但RMS恶化5.8%，
+候选拒绝。这个失败再次说明Max和RMS不能互相替代。
+
+FFN vendor-solution模型线到此关闭。删除scope前只做一次因果trace：若gate/up/SwiGLU全部exact而down
+首差，就把下一问题明确交给down descriptor；随后移除候选CLI与runner，避免留下失败用户路径。
+
+![All-exact FFN gate](../../benchmarks/results/2026-08-26-fp32-prefill-ffn-all-exact-gate/ffn-all-exact-model-gate.svg)

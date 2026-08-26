@@ -35,6 +35,8 @@ def main() -> int:
         "speedups 1.040×/0.951×/0.941×/0.995×",
         "prefill 0.981×–1.005× and Max improves 12.0%",
         "RMS improves only 3.3%",
+        "prefill 0.964×–1.000× and Max improves 35.5%",
+        "RMS worsens 5.8%",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -131,6 +133,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-fp32-prefill-ffn-model-gate/analysis.json",
         "benchmarks/results/2026-08-26-fp32-prefill-ffn-model-gate/verification.json",
         "benchmarks/results/2026-08-26-fp32-prefill-ffn-model-gate/ffn-model-gate.svg",
+        "benchmarks/results/2026-08-26-fp32-prefill-ffn-all-exact-gate/summary.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-ffn-all-exact-gate/analysis.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-ffn-all-exact-gate/verification.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-ffn-all-exact-gate/ffn-all-exact-model-gate.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -241,6 +247,15 @@ def main() -> int:
     assert ffn_model["performance_gate_passed"] is True
     assert ffn_model["candidate_admitted"] is False
     ET.parse(ffn_model_root / "ffn-model-gate.svg")
+    ffn_all_root = ROOT / (
+        "benchmarks/results/2026-08-26-fp32-prefill-ffn-all-exact-gate")
+    ffn_all = json.loads(
+        (ffn_all_root / "summary.json").read_text(encoding="utf-8"))
+    assert ffn_all["robust_logit_max_improvement"] is True
+    assert ffn_all["robust_logit_rms_improvement"] is False
+    assert ffn_all["performance_gate_passed"] is True
+    assert ffn_all["candidate_admitted"] is False
+    ET.parse(ffn_all_root / "ffn-all-exact-model-gate.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 
