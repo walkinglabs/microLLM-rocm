@@ -4912,3 +4912,13 @@ trace时间不进入性能图。
 296100，B4保持default，再跑真实upstream完整模型。若数值双门不过，vendor FFN solution线关闭。
 
 ![FFN row invariance](../../benchmarks/results/2026-08-26-fp32-ffn-row-invariance/ffn-row-invariance.svg)
+
+## 335. Experiment 318：Max改善12%，RMS仍然不够
+
+B1/B2/B8 gate+up使用296100，B4保持default。四个prefill全部过门，Max改善12.0%，但RMS只改善
+3.3%，所以候选拒绝。保持default的B4成为candidate全局上限。
+
+下一步最后让B4也exact。operator M8192虽然只有0.941×，整模仍有独立0.95门；这不是降低门槛，
+而是检验局部回退是否会超过端到端预算。若数值或性能任一失败，删除模型route并关闭FFN vendor线。
+
+![FFN model gate](../../benchmarks/results/2026-08-26-fp32-prefill-ffn-model-gate/ffn-model-gate.svg)

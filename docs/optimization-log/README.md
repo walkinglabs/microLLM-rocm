@@ -1036,6 +1036,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [FFN stage-trace SVG](../../benchmarks/results/2026-08-26-prefill-ffn-stage-trace/ffn-stage-trace.svg) | 8进程7阶段完整值误差图 |
 | [experiments/317-fp32-ffn-solution-reject.md](experiments/317-fp32-ffn-solution-reject.md) | 唯一exact index的M8192性能反例 |
 | [FFN row-invariance SVG](../../benchmarks/results/2026-08-26-fp32-ffn-row-invariance/ffn-row-invariance.svg) | 33候选correctness-before-timing矩阵 |
+| [experiments/318-prefill-ffn-selective-reject.md](experiments/318-prefill-ffn-selective-reject.md) | 性能/Max过门但RMS失败的整模反例 |
+| [FFN model-gate SVG](../../benchmarks/results/2026-08-26-fp32-prefill-ffn-model-gate/ffn-model-gate.svg) | 32进程真实upstream整模门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

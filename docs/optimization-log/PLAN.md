@@ -162,7 +162,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [131](steps/131-prefill-exact-stack-gate.md) | complete; rejected, track closed | 真实upstream对batch-selective exact stack | 性能0.987×–1.020×；Max恶化6.9%，RMS仅改善2.5% |
 | [132](steps/132-prefill-ffn-stage-trace.md) | complete | Block0 FFN gate/up/SwiGLU/down完整trace | norm exact；gate首差且up独立漂移 |
 | [133](steps/133-fp32-ffn-projection-solutions.md) | complete; common policy rejected | M2048–16384 gate/up共同FP32 solution | exact仅296100；M8192 0.941×失败 |
-| [134](steps/134-prefill-ffn-gate-up-model.md) | planned | B1/B2/B8 exact gate+up整模门 | B4 default；真实upstream baseline |
+| [134](steps/134-prefill-ffn-gate-up-model.md) | complete; rejected | B1/B2/B8 exact gate+up整模门 | 性能/Max过，RMS仅改善3.3% |
+| [135](steps/135-prefill-ffn-all-exact-model.md) | planned | all-batch exact gate+up最终反驳 | B4端到端仍守0.95门 |
 
 ## 为什么按这个顺序
 

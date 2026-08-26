@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "experiment": 318,
+  "status": "selective_model_rejected",
+  "upstream_logit_maximum": 0.0013535022735595703,
+  "candidate_logit_maximum": 0.0011911392211914062,
+  "maximum_improvement_fraction": 0.11995772415007921,
+  "upstream_logit_rms": 0.00022941562718764653,
+  "candidate_logit_rms": 0.00022177358472270318,
+  "rms_improvement_fraction": 0.033310906317173705,
+  "candidate_prefill_speedup_by_batch": {
+    "1": 0.9927557702106906,
+    "2": 0.9805529229183381,
+    "4": 1.0051332010293421,
+    "8": 1.002423610402128
+  },
+  "candidate_minimum_prefill_speedup": 0.9805529229183381,
+  "maximum_gate_passed": true,
+  "rms_gate_passed": false,
+  "performance_gate_passed": true,
+  "peak_memory_changed": false,
+  "candidate_admitted": false,
+  "next_experiment": "Apply exact gate/up to all four batches and measure whether the M8192 operator regression stays inside the end-to-end 0.95 gate while removing the B4 numerical ceiling."
+}

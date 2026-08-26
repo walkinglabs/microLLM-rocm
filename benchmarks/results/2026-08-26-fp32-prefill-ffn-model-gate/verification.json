@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "experiment": 318,
+  "status": "pass",
+  "build_type": "Release",
+  "engine_and_runner_commit": "8851faa92f1c392e4b549e6c2610f61d4020e1cb",
+  "context": 2048,
+  "batches": [1, 2, 4, 8],
+  "runs_per_case": 2,
+  "precision_process_rows": 16,
+  "performance_process_rows": 16,
+  "selective_solution_index": 296100,
+  "selective_batches": [1, 2, 8],
+  "admission": {
+    "logit_max_rms_improvement_required": 0.1,
+    "minimum_prefill_speedup_required": 0.95,
+    "passed": false
+  },
+  "focused_gates": {
+    "cpu_scope_and_trace": "2/2",
+    "python_contracts": "69/69",
+    "mi300x_route_preflight": "pass",
+    "mi300x_model_processes": "32/32"
+  },
+  "claims_not_made": [
+    "The selective FFN route is not admitted as a default.",
+    "Passing Max and performance do not override the failed RMS gate.",
+    "B4 upstream is now the limiting candidate batch, not evidence that B4 exact is safe."
+  ]
+}

@@ -161,6 +161,53 @@ FFN_MODEL_SPEC.loader.exec_module(FFN_MODEL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_prefill_ffn_model_gate_rejects_rms(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-prefill-ffn-model-gate")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        precision = [json.loads(line) for line in
+                     (root / "precision-raw.jsonl").read_text(
+                         encoding="utf-8").splitlines() if line]
+        performance = [json.loads(line) for line in
+                       (root / "performance-raw.jsonl").read_text(
+                           encoding="utf-8").splitlines() if line]
+        policies = {row["policy"]: row for row in summary["policy_summaries"]}
+        self.assertEqual((len(precision), len(performance)), (16, 16))
+        self.assertTrue(summary["robust_logit_max_improvement"])
+        self.assertFalse(summary["robust_logit_rms_improvement"])
+        self.assertTrue(summary["performance_gate_passed"])
+        self.assertFalse(summary["candidate_admitted"])
+        self.assertAlmostEqual(summary["candidate_minimum_prefill_speedup"],
+                               0.9805529229183381)
+        self.assertEqual(
+            policies["upstream"]["maximum_logit_cross_batch_error"],
+            0.0013535022735595703)
+        self.assertEqual(
+            policies["selective-ffn-exact"][
+                "maximum_logit_cross_batch_error"],
+            0.0011911392211914062)
+        self.assertAlmostEqual(analysis["maximum_improvement_fraction"],
+                               0.11995772415007921)
+        self.assertAlmostEqual(analysis["rms_improvement_fraction"],
+                               0.033310906317173705)
+        for batch in summary["batches"]:
+            baseline = next(row for row in summary["cases"]
+                            if row["policy"] == "upstream" and
+                            row["batch"] == batch)
+            candidate = next(row for row in summary["cases"]
+                             if row["policy"] == "selective-ffn-exact" and
+                             row["batch"] == batch)
+            self.assertEqual(baseline["engine_peak_bytes_maximum"],
+                             candidate["engine_peak_bytes_maximum"])
+            self.assertEqual(
+                baseline["engine_backend_allocation_calls_maximum"],
+                candidate["engine_backend_allocation_calls_maximum"])
+        self.assertFalse(verification["admission"]["passed"])
+        ET.parse(root / "ffn-model-gate.svg")
+
     def test_prefill_ffn_model_scope_is_batch_selective_and_counted(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,

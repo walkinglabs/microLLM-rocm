@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 317 screens the real FP32 FFN
-> gate/up descriptor. Of 33 common candidates, only `296100` is repeated-block
-> bitwise invariant. Its M2048/4096/8192/16384 speedups are
-> `1.040/0.951/0.941/0.995x`; M8192 fails the 0.95 gate, so no common default is
-> admitted. The next explicit model rebuttal leaves B4 default.
-> See the [FFN solution matrix](docs/optimization-log/experiments/317-fp32-ffn-solution-reject.md).
+> **Current optimization checkpoint:** Experiment 318 applies exact gate/up to
+> B1/B2/B8 while B4 stays upstream. All prefill ratios pass at
+> `0.981x–1.005x`; complete-logit Max improves `12.0%`, but RMS improves only
+> `3.3%`, so the route is rejected. B4 is now the numerical ceiling; the final
+> rebuttal applies exact gate/up to all batches and keeps the end-to-end 0.95 gate.
+> See the [selective FFN rejection](docs/optimization-log/experiments/318-prefill-ffn-selective-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
