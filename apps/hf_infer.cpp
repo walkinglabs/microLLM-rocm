@@ -634,10 +634,12 @@ Options options(int argc, char** argv) {
            result.prefill_steps == 1) ||
           (result.workload == "decode" && result.use_cache &&
            result.warmup == 0 && result.steps == 1 &&
-           result.cache_logits_step >= 0 &&
-           !result.cache_logits_output.empty()))) {
+           ((result.cache_logits_step >= 0 &&
+             !result.cache_logits_output.empty()) ||
+            (!result.prefill_cache_output.empty() &&
+             result.cache_prefill_mode == "full"))))) {
         throw std::invalid_argument(
-            "--trace-output requires one diagnostic prefill or one selected cached decode step");
+            "--trace-output requires one diagnostic prefill, one selected cached decode step, or one exported cached prefill");
     }
     if (result.trace_all_layer_details && result.trace_output.empty()) {
         throw std::invalid_argument(
@@ -2121,8 +2123,14 @@ int main(int argc, char** argv) {
         GenerationRun generation_evidence;
         microllm::Tensor cache_logits_evidence;
         PrefillCacheExport prefill_cache_export;
+        std::unique_ptr<microllm::profiling::TraceSession> prefill_trace_session;
         std::unique_ptr<microllm::profiling::TraceSession> decode_trace_session;
-        if (run_decode && !command.trace_output.empty()) {
+        if (run_decode && !command.trace_output.empty() &&
+            !command.prefill_cache_output.empty()) {
+            prefill_trace_session =
+                std::make_unique<microllm::profiling::TraceSession>(
+                    "microllm", "hf-cached-prefill", trace_options(command));
+        } else if (run_decode && !command.trace_output.empty()) {
             decode_trace_session =
                 std::make_unique<microllm::profiling::TraceSession>(
                     "microllm", "hf-cached-decode", trace_options(command));
@@ -2174,10 +2182,18 @@ int main(int argc, char** argv) {
                     // Prompt ingestion establishes the cache but is a prefill
                     // phase, so it is deliberately outside decode timing.
                     const auto prepare_start = std::chrono::steady_clock::now();
+                    std::unique_ptr<microllm::profiling::ScopedTraceSession>
+                        prefill_trace_scope;
+                    if (iteration == 0 && prefill_trace_session != nullptr) {
+                        prefill_trace_scope = std::make_unique<
+                            microllm::profiling::ScopedTraceSession>(
+                                *prefill_trace_session);
+                    }
                     auto state = prepare_cached(
                         model, ids, cache_capacity,
                         command.batch,
                         command.cache_prefill_mode == "full", cache_dtypes);
+                    prefill_trace_scope.reset();
                     if (iteration == 0 && !command.prefill_cache_output.empty()) {
                         prefill_cache_export = write_prefill_cache(
                             command.prefill_cache_output, state.cache,
@@ -2236,6 +2252,9 @@ int main(int argc, char** argv) {
             if (decode_trace_session != nullptr) {
                 decode_trace_session->write_jsonl(command.trace_output);
                 trace_record_count = decode_trace_session->records().size();
+            } else if (prefill_trace_session != nullptr) {
+                prefill_trace_session->write_jsonl(command.trace_output);
+                trace_record_count = prefill_trace_session->records().size();
             }
             if (tokenizer.has_value()) generated_text = tokenizer->decode(generated_suffix);
         }

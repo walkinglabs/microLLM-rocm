@@ -44,6 +44,23 @@ Decode trace必须同时满足cached、显式logits step、warmup 0和steps 1。
 `forward_cached`，不包含prompt prefill、其他decode步或argmax。默认记录embedding、每个block、
 final norm和logits，并保留block 0细节；`--trace-all-layer-details true`才展开所有block细节。
 
+要追踪full prefill写入K/V的过程，用`--prefill-cache-output`代替decode logits选择器，并仍保持
+warmup 0、steps 1：
+
+```bash
+./build/hip-release/apps/microllm_hf_infer \
+  --config model/config.json --weights model/model.safetensors \
+  --tokens 1,2,3,4 --device hip --batch 2 --use-cache true \
+  --cache-prefill-mode full --workload decode --new-tokens 1 \
+  --warmup 0 --steps 1 --kv-cache-dtype bf16 \
+  --prefill-cache-output /tmp/block0-cache.bin --prefill-cache-layer 0 \
+  --trace-output /tmp/cached-prefill.jsonl --trace-max-elements 400000 \
+  --trace-value-filter inference.cached_prefill.blocks.0.attention
+```
+
+`inference.cached_prefill`包含embedding、block、Q/K/V、RoPE以及`cache_key/cache_value`边界。详细
+Tensor最多保留前两个batch row，既能比较row0，也能检查重复row；这仍是同步诊断，不是性能trace。
+
 ### Micro-benchmark
 
 ```bash

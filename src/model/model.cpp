@@ -54,6 +54,24 @@ void trace_detail(const std::string& prefix, const char* suffix,
     }
 }
 
+void trace_prefill_rows(const std::string& prefix, const char* suffix,
+                        const Tensor& tensor, std::int64_t batch,
+                        std::int64_t sequence) {
+    if (prefix.empty()) return;
+    Tensor logical = tensor;
+    if (tensor.ndim() >= 2 && tensor.shape()[0] == batch * sequence) {
+        Shape shape{batch, sequence};
+        shape.insert(shape.end(), tensor.shape().begin() + 1,
+                     tensor.shape().end());
+        logical = tensor.reshape(std::move(shape));
+    }
+    if (logical.ndim() == 0 || logical.shape()[0] != batch) {
+        throw std::logic_error("prefill trace tensor has no batch-leading view");
+    }
+    if (batch > 2) logical = logical.slice(0, 0, 2).contiguous();
+    trace_detail(prefix, suffix, logical);
+}
+
 Tensor clone_tensor(const Tensor& source, Device target) {
     const auto packed = source.is_contiguous() ? source : source.contiguous();
     Tensor copy(packed.shape(), packed.dtype(), target);
@@ -990,6 +1008,15 @@ public:
         if (input.ndim() != 3) throw std::invalid_argument("attention input must be BxTxD");
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
+        const auto trace_tensor = [&](const char* suffix,
+                                      const Tensor& tensor) {
+            if (prefill_cache != nullptr) {
+                trace_prefill_rows(
+                    trace_prefix, suffix, tensor, batch, sequence);
+            } else {
+                trace_detail(trace_prefix, suffix, tensor);
+            }
+        };
         const auto flat = input.reshape({batch * sequence, config_.dimension});
         const auto bthd_attention =
             ops::inference_bthd_attention_enabled() &&
@@ -1052,9 +1079,9 @@ public:
                 value_projection = value_.forward_tensor(flat);
             }
         }
-        trace_detail(trace_prefix, "q_projection", query_projection);
-        trace_detail(trace_prefix, "k_projection", key_projection);
-        trace_detail(trace_prefix, "v_projection", value_projection);
+        trace_tensor("q_projection", query_projection);
+        trace_tensor("k_projection", key_projection);
+        trace_tensor("v_projection", value_projection);
         Tensor query;
         Tensor key;
         Tensor value;
@@ -1111,14 +1138,16 @@ public:
                     key = ops::rope(key, 2, 0, config_.rope_base);
                 }
             }
-            trace_detail(trace_prefix, "q_rope", query);
-            trace_detail(trace_prefix, "k_rope", key);
-            trace_detail(trace_prefix, "value", value);
+            trace_tensor("q_rope", query);
+            trace_tensor("k_rope", key);
+            trace_tensor("value", value);
             if (prefill_cache != nullptr) {
                 prepare_cached_prefix(
                     prefill_cache->key, key, cache_capacity, cache_dtype);
                 prepare_cached_prefix(
                     prefill_cache->value, value, cache_capacity, cache_dtype);
+                trace_tensor("cache_key", prefill_cache->key);
+                trace_tensor("cache_value", prefill_cache->value);
             }
         }
         const auto repeats = config_.heads / config_.kv_heads;
@@ -1146,7 +1175,7 @@ public:
                                     {batch * sequence, config_.dimension});
             }
         }
-        trace_detail(trace_prefix, "context", context);
+        trace_tensor("context", context);
         Tensor output;
         {
             runtime::ScopedAllocationSource allocation_source(
@@ -1154,7 +1183,7 @@ public:
             output = output_.forward_tensor(context).reshape(
                 {batch, sequence, config_.dimension});
         }
-        trace_detail(trace_prefix, "output", output);
+        trace_tensor("output", output);
         return output;
     }
 
@@ -1917,12 +1946,30 @@ public:
     Tensor forward_prefill_cached(const Tensor& input,
                                   inference::KVCache::LayerState& cache,
                                   std::int64_t cache_capacity,
-                                  DType cache_dtype) {
-        auto hidden = ops::add(
-            input, attention_.forward_tensor(attention_norm_.forward_tensor(input),
-                                             &cache, cache_capacity, cache_dtype));
-        return ops::add(hidden, feed_forward_.forward_tensor(
-                                    ffn_norm_.forward_tensor(hidden)));
+                                  DType cache_dtype,
+                                  const std::string& trace_prefix = {}) {
+        auto attention_input = attention_norm_.forward_tensor(input);
+        trace_prefill_rows(trace_prefix, "attention_norm", attention_input,
+                           input.shape()[0], input.shape()[1]);
+        auto attention = attention_.forward_tensor(
+            attention_input, &cache, cache_capacity, cache_dtype,
+            trace_prefix.empty() ? std::string{} :
+                                   trace_prefix + ".attention");
+        trace_prefill_rows(trace_prefix, "attention_output", attention,
+                           input.shape()[0], input.shape()[1]);
+        auto hidden = ops::add(input, attention);
+        trace_prefill_rows(trace_prefix, "attention_residual", hidden,
+                           input.shape()[0], input.shape()[1]);
+        auto ffn_input = ffn_norm_.forward_tensor(hidden);
+        trace_prefill_rows(trace_prefix, "ffn_norm", ffn_input,
+                           input.shape()[0], input.shape()[1]);
+        auto ffn = feed_forward_.forward_tensor(ffn_input);
+        trace_prefill_rows(trace_prefix, "ffn_output", ffn,
+                           input.shape()[0], input.shape()[1]);
+        auto output = ops::add(hidden, ffn);
+        trace_prefill_rows(trace_prefix, "output", output,
+                           input.shape()[0], input.shape()[1]);
+        return output;
     }
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
@@ -2276,13 +2323,42 @@ Tensor TransformerModel::forward_prefill_cached(
     try {
         const auto model_tokens = token_ids.device() == device()
                                       ? token_ids : token_ids.to(device());
+        auto* trace = profiling::TraceSession::current();
+        if (trace != nullptr) {
+            trace->record(profiling::TraceKind::Input,
+                          "inference.cached_prefill.tokens", model_tokens);
+        }
+        profiling::TraceTimer model_timer(
+            profiling::TraceKind::Model,
+            "inference.cached_prefill.forward", device());
+        profiling::TraceTimer embedding_timer(
+            profiling::TraceKind::Layer,
+            "inference.cached_prefill.embedding", device());
         auto hidden = ops::embedding(impl_->token_embedding.data(), model_tokens);
+        embedding_timer.finish(hidden);
+        trace_prefill_rows("inference.cached_prefill", "embedding_rows",
+                           hidden, batch, sequence);
         for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
+            profiling::TraceTimer block_timer(
+                profiling::TraceKind::Layer,
+                "inference.cached_prefill.blocks." + std::to_string(layer),
+                device());
+            const auto detail_prefix =
+                trace != nullptr &&
+                        (layer == 0 || trace->options().record_all_layer_details)
+                    ? "inference.cached_prefill.blocks." +
+                          std::to_string(layer)
+                    : std::string{};
             hidden = impl_->blocks[layer]->forward_prefill_cached(
                 hidden, cache.mutable_layer(layer), cache.max_sequence_length(),
-                cache.layer_dtype(layer));
+                cache.layer_dtype(layer), detail_prefix);
+            block_timer.finish(hidden);
         }
+        profiling::TraceTimer norm_timer(
+            profiling::TraceKind::Layer,
+            "inference.cached_prefill.final_norm", device());
         hidden = impl_->final_norm.forward_tensor(hidden);
+        norm_timer.finish(hidden);
         const auto last = hidden.slice(1, sequence - 1, sequence)
                               .contiguous()
                               .reshape({batch, impl_->config.dimension});
@@ -2294,6 +2370,11 @@ Tensor TransformerModel::forward_prefill_cached(
         } else {
             logits = impl_->output_head->forward_tensor(last);
         }
+        if (trace != nullptr) {
+            trace->record(profiling::TraceKind::Output,
+                          "inference.cached_prefill.logits", logits);
+        }
+        model_timer.finish(logits);
         cache.advance(sequence);
         return logits.reshape({batch, 1, impl_->config.vocabulary_size});
     } catch (...) {
