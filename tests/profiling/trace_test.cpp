@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 #include <microllm/profiling/trace.h>
+#include <microllm/ops/ops.h>
+#include <microllm/runtime/runtime.h>
 
 namespace microllm::profiling {
 
@@ -189,14 +191,18 @@ TEST(TraceSessionTest, EmitsOptionalRoctxRangesWithoutChangingRecords) {
     options.synchronize_device = false;
     options.emit_roctx_ranges = true;
     TraceSession session("microllm", "roctx", options);
-    const auto output = Tensor::from_vector({1.0F}, {1});
+    const auto device = runtime::hip_device_count() > 0
+                            ? Device::hip(0) : Device::cpu();
+    const auto input = Tensor::from_vector({1.0F}, {1}).to(device);
+    Tensor output;
     {
         ScopedTraceSession active(session);
         TraceTimer finished(TraceKind::Operator, "microllm.test.finished",
-                            Device::cpu());
+                            device);
+        output = ops::add(input, input);
         finished.finish(output);
         TraceTimer destructor_pop(TraceKind::Operator,
-                                  "microllm.test.destructor", Device::cpu());
+                                  "microllm.test.destructor", device);
         EXPECT_TRUE(destructor_pop.enabled());
     }
     ASSERT_EQ(session.records().size(), 1U);
