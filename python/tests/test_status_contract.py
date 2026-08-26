@@ -18,6 +18,8 @@ def main() -> int:
         "ASan/UBSan 378/378",
         "PyTorch-enabled CPU 384/384",
         "single-GPU HIP label 197/197",
+        "24/24 correlated adds",
+        "residual ≤1.427us",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -219,8 +221,34 @@ def main() -> int:
         "benchmarks/results/2026-08-26-unified-rocprof-perfetto/analysis.json",
         "benchmarks/results/2026-08-26-unified-rocprof-perfetto/verification.json",
         "benchmarks/results/2026-08-26-unified-rocprof-perfetto/unified-timeline.svg",
+        "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/summary.json",
+        "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/analysis.json",
+        "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/verification.json",
+        "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/calibration-quality.svg",
     ):
         assert (ROOT / relative).is_file()
+    python_timeline_root = ROOT / (
+        "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto")
+    python_timeline = json.loads(
+        (python_timeline_root / "summary.json").read_text(encoding="utf-8"))
+    assert python_timeline["status"] == "pass"
+    assert python_timeline["run_count"] == 3
+    assert python_timeline["iterations_per_run"] == 8
+    assert python_timeline["total_correlated_adds"] == 24
+    assert python_timeline["total_profile_rows"] == 72
+    assert python_timeline["max_scale_error_ppm"] < 19.0
+    assert python_timeline["max_abs_residual_ns"] <= 1427.0
+    assert python_timeline["max_boundary_width_ns"] <= 9545
+    for run in range(1, 4):
+        run_root = python_timeline_root / f"run-{run}"
+        calibration = json.loads(
+            (run_root / "calibration.json").read_text(encoding="utf-8"))
+        timeline = json.loads(
+            (run_root / "unified.json").read_text(encoding="utf-8"))
+        assert calibration["status"] == "pass"
+        assert calibration["matched_spans"] == 8
+        assert len(timeline["traceEvents"]) == 85
+    ET.parse(python_timeline_root / "calibration-quality.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

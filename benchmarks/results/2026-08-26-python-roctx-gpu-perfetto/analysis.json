@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"python_roctx_gpu_three_way_complete","run_count":3,"iterations_per_run":8,"total_python_spans":72,"total_correlated_adds":24,"max_scale_error_ppm":18.64478748692111,"max_abs_residual_ns":1427.0,"max_boundary_width_ns":9545,"clock_model":"affine_midpoint","timestamp_containment_assumed":false,"async_hip_completion_proven":false}

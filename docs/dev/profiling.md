@@ -537,20 +537,30 @@ per block and must not claim already-retained layout savings.
 
 ## What remains
 
-Python now provides `@profile(output="trace.jsonl")` and
+Python provides `@profile(output="trace.jsonl")` and
 `profile_scope("name", output="trace.jsonl")` for schema-versioned wall spans. Sync,
 async, nested and error paths are tested. These spans do not synchronize GPU work and
-must not be interpreted as Kernel time. Future work must correlate ranges with rocprof
-markers and support asynchronous HIP Event completion. Use
+must not be interpreted as Kernel time. Use
 `export_perfetto("trace.jsonl", "trace.json")` to create a Chrome Trace Event file;
 this is a format conversion, not GPU correlation.
+
+Set `emit_roctx=True` on either Python API to record a unique ROCTX range plus the
+`perf_counter_ns` values immediately before and after push/pop. The first ROCTX range
+should be a warm-up. `calibrate_python_rocprof_clock(profile_jsonl, marker_csv)` requires
+at least two captured ranges and fits an affine clock map. It rejects scale outside 1%,
+a ROCTX call boundary wider than 100us, or a fit residual above 50us.
 
 Set `TraceOptions.emit_roctx_ranges=true` to mirror active `TraceTimer` spans into
 ROCTX. rocprofv3 `--marker-trace` then records the same names; unfinished timers are
 closed by the destructor. The option is default-off and loads ROCTX at runtime.
 
 `merge_rocprof_perfetto(marker_csv, kernel_csv, output_json)` merges rocprof marker
-and Kernel CSV using `Correlation_Id` flows. It deliberately does not align Python
-`perf_counter_ns`; that requires a measured clock calibration first.
+and Kernel CSV using `Correlation_Id` flows. Pass `python_jsonl=...` to add all Python
+spans using the measured clock map. Every marker/kernel pair receives a unique flow ID,
+including a range that contains several Kernels. The three-run MI300X evidence keeps
+scale error at most 18.65ppm, residual at most 1.427us, and correlates 24/24 HIP adds.
+See the [raw result](../../benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/README.md).
 
-Ad-hoc wall-clock timing around asynchronous kernels is not accepted evidence.
+Ad-hoc wall-clock timing around asynchronous kernels is not accepted evidence. HIP Event
+completion remains a separate missing feature; the clock map never turns wall time into
+Kernel time and does not add a hidden global synchronization.

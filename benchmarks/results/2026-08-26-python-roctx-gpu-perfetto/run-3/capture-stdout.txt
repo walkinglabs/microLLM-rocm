@@ -1,0 +1,1 @@
+{"hip_adds": 8, "output": "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-3/profile.jsonl", "profile_rows": 24, "roctx_ranges": 8, "roctx_warmup_output": "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-3/profile-roctx-warmup.jsonl", "schema_version": 1, "status": "pass"}

@@ -1283,8 +1283,10 @@ MICROLLM_BENCH_DEVICE=hip \
 ```
 
 The current exact-shape registry covers readable 2D matmul and hipBLASLt. It is not a
-general autotuner. The C++ `TraceSession`/`TraceTimer` API is implemented; a Python
-`@profile` decorator and asynchronous rocprof range correlation remain future work.
+general autotuner. C++ `TraceSession`/`TraceTimer`, Python `@profile`, optional ROCTX
+ranges, measured Python/rocprof clock calibration, and three-way Perfetto export are
+implemented. Three MI300X processes correlate 24/24 profiled HIP adds with at most
+1.427us fit residual; asynchronous HIP Event completion remains future work.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

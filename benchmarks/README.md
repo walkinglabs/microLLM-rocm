@@ -17,6 +17,37 @@ Result schema version 1 fields are emitted directly by `microllm_bench_ops`.
 Representative committed smoke results live under `benchmarks/results/`; full local
 run outputs are ignored unless curated with their environment and correctness data.
 
+### Python, ROCTX, and GPU timeline
+
+The Python profiling API can emit optional ROCTX ranges and fit its `perf_counter_ns`
+clock to rocprof timestamps. Capture a real HIP add trace, then merge Python spans,
+ROCTX ranges, and GPU Kernels into one Perfetto file:
+
+```bash
+result=/tmp/microllm-python-timeline
+mkdir -p "$result"
+HIP_VISIBLE_DEVICES=0 PYTHONPATH=python \
+MICROLLM_LIBRARY="$PWD/build/hip-release/bindings/capi/libmicrollm.so" \
+rocprofv3 --marker-trace --kernel-trace --output-format csv \
+  --output-file python-unified --output-directory "$result" -- \
+  python3 benchmarks/single_gpu/python_profile_timeline.py capture \
+    --output "$result/profile.jsonl" --iterations 8 --overwrite
+
+PYTHONPATH=python python3 benchmarks/single_gpu/python_profile_timeline.py merge \
+  --profile "$result/profile.jsonl" \
+  --marker "$result/python-unified_marker_api_trace.csv" \
+  --kernel "$result/python-unified_kernel_trace.csv" \
+  --calibration "$result/calibration.json" \
+  --output "$result/unified.json"
+```
+
+The capture performs a separate ROCTX warm-up before the fitted ranges. Calibration
+requires at least two ranges, scale within 1%, a call boundary no wider than 100us, and
+maximum residual no larger than 50us. The curated three-process result and generated
+quality chart are in
+[`2026-08-26-python-roctx-gpu-perfetto`](results/2026-08-26-python-roctx-gpu-perfetto/).
+This aligns clocks; it does not treat a Python wall span as asynchronous GPU completion.
+
 ### FP32 Attention request-batch invariance
 
 The ordinary FP32 row-invariance tool changes GEMM `M`. Full-prefill Attention keeps

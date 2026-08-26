@@ -3,12 +3,30 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from microllm.profiling import (export_perfetto, merge_rocprof_perfetto,
+import microllm.profiling as profiling_module
+from microllm.profiling import (calibrate_python_rocprof_clock,
+                                export_perfetto, merge_rocprof_perfetto,
                                 profile, profile_scope)
 
 
 class ProfilingApiTest(unittest.TestCase):
+    class FakeRoctx:
+        available = True
+
+        def __init__(self):
+            self.pushed = []
+            self.pops = 0
+
+        def push(self, name):
+            self.pushed.append(name)
+            return True
+
+        def pop(self):
+            self.pops += 1
+            return True
+
     def test_decorator_scope_error_and_async_records(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "trace.jsonl"
@@ -56,6 +74,46 @@ class ProfilingApiTest(unittest.TestCase):
                                 for event in document["traceEvents"]))
             self.assertEqual(document["metadata"]["source"], "microllm-python")
 
+    def test_optional_roctx_range_records_calibration_boundaries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "trace.jsonl"
+            fake = self.FakeRoctx()
+            with mock.patch.object(profiling_module, "_ROCTX_RUNTIME", fake):
+                self.assertTrue(profiling_module.roctx_available())
+                with profile_scope("gpu.add", output=output, run_id="run",
+                                   emit_roctx=True):
+                    pass
+            row = json.loads(output.read_text())
+            self.assertTrue(row["roctx_requested"])
+            self.assertTrue(row["roctx_emitted"])
+            self.assertEqual(row["roctx_status"], "emitted")
+            self.assertRegex(row["roctx_range_name"],
+                             r"^microllm\.python\.[0-9a-f]{32}\.gpu\.add$")
+            self.assertLessEqual(row["roctx_push_before_ns"],
+                                 row["roctx_push_after_ns"])
+            self.assertLessEqual(row["roctx_pop_before_ns"],
+                                 row["roctx_pop_after_ns"])
+            self.assertEqual(fake.pushed, [row["roctx_range_name"]])
+            self.assertEqual(fake.pops, 1)
+            self.assertEqual(row["process_id"], profiling_module.os.getpid())
+            self.assertGreater(row["native_thread_id"], 0)
+
+    def test_requested_roctx_is_explicitly_unavailable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "trace.jsonl"
+            unavailable = mock.Mock(available=False)
+            with mock.patch.object(
+                    profiling_module, "_ROCTX_RUNTIME", unavailable):
+                self.assertFalse(profiling_module.roctx_available())
+                with profile_scope("cpu", output=output, emit_roctx=True):
+                    pass
+            row = json.loads(output.read_text())
+            self.assertTrue(row["roctx_requested"])
+            self.assertFalse(row["roctx_emitted"])
+            self.assertEqual(row["roctx_status"], "unavailable")
+            unavailable.push.assert_not_called()
+            unavailable.pop.assert_not_called()
+
     def test_invalid_identity_and_metadata_fail_before_call(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "trace.jsonl"
@@ -79,14 +137,97 @@ class ProfilingApiTest(unittest.TestCase):
             kernel.write_text(
                 '"Agent_Id","Queue_Id","Kernel_Name","Correlation_Id",'
                 '"Start_Timestamp","End_Timestamp"\n'
-                '"Agent 2",1,"add",2,2010,2100\n', encoding="utf-8")
+                '"Agent 2",1,"add",2,2010,2100\n'
+                '"Agent 2",1,"copy",2,2110,2150\n', encoding="utf-8")
             output = root / "merged.json"
             report = merge_rocprof_perfetto(marker, kernel, output)
             self.assertEqual(report["correlated_ids"], 1)
-            self.assertEqual(report["trace_events"], 4)
+            self.assertEqual(report["correlated_pairs"], 2)
+            self.assertEqual(report["trace_events"], 7)
             events = json.loads(output.read_text())["traceEvents"]
-            self.assertEqual([event["ph"] for event in events].count("s"), 1)
-            self.assertEqual([event["ph"] for event in events].count("f"), 1)
+            self.assertEqual([event["ph"] for event in events].count("s"), 2)
+            self.assertEqual([event["ph"] for event in events].count("f"), 2)
+            flows = [event["id"] for event in events if event["ph"] == "s"]
+            self.assertEqual(len(flows), len(set(flows)))
+
+    def test_python_clock_calibration_and_three_way_merge(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = root / "profile.jsonl"
+            marker = root / "marker.csv"
+            kernel = root / "kernel.csv"
+            rows = [
+                {
+                    "schema_version": 1, "record_type": "python_profile_span",
+                    "name": "span-a", "phase": "python", "status": "pass",
+                    "depth": 0, "run_id": "run", "span_id": "a",
+                    "start_ns": 800, "duration_ns": 1400,
+                    "process_id": 7, "thread_id": 80, "native_thread_id": 8,
+                    "metadata": {}, "roctx_emitted": True,
+                    "roctx_range_name": "range-a",
+                    "roctx_push_before_ns": 900, "roctx_push_after_ns": 1100,
+                    "roctx_pop_before_ns": 1900, "roctx_pop_after_ns": 2100,
+                },
+                {
+                    "schema_version": 1, "record_type": "python_profile_span",
+                    "name": "span-b", "phase": "python", "status": "pass",
+                    "depth": 0, "run_id": "run", "span_id": "b",
+                    "start_ns": 2800, "duration_ns": 2400,
+                    "process_id": 7, "thread_id": 80, "native_thread_id": 8,
+                    "metadata": {}, "roctx_emitted": True,
+                    "roctx_range_name": "range-b",
+                    "roctx_push_before_ns": 2900, "roctx_push_after_ns": 3100,
+                    "roctx_pop_before_ns": 4900, "roctx_pop_after_ns": 5100,
+                },
+                {
+                    "schema_version": 1, "record_type": "python_profile_span",
+                    "name": "unmarked", "phase": "python", "status": "pass",
+                    "depth": 1, "run_id": "run", "span_id": "c",
+                    "start_ns": 2200, "duration_ns": 200,
+                    "process_id": 7, "thread_id": 80, "native_thread_id": 8,
+                    "metadata": {"batch": 2}, "roctx_emitted": False,
+                },
+            ]
+            profile_path.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8")
+            marker.write_text(
+                '"Domain","Function","Process_Id","Thread_Id","Correlation_Id",'
+                '"Start_Timestamp","End_Timestamp"\n'
+                '"MARKER_CORE_RANGE_API","range-a",7,8,2,10000,11000\n'
+                '"MARKER_CORE_RANGE_API","range-b",7,8,3,12000,14000\n',
+                encoding="utf-8")
+            kernel.write_text(
+                '"Agent_Id","Queue_Id","Kernel_Name","Correlation_Id",'
+                '"Start_Timestamp","End_Timestamp"\n'
+                '"Agent 2",1,"add",2,10050,10090\n', encoding="utf-8")
+            calibration_path = root / "calibration.json"
+            calibration = calibrate_python_rocprof_clock(
+                profile_path, marker, calibration_path)
+            self.assertEqual(calibration["matched_spans"], 2)
+            self.assertEqual(calibration["boundary_points"], 4)
+            self.assertAlmostEqual(calibration["scale"], 1.0)
+            self.assertEqual(calibration["max_abs_residual_ns"], 0.0)
+            self.assertTrue(calibration_path.is_file())
+            one_span = root / "one-span.jsonl"
+            one_span.write_text(json.dumps(rows[0]) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "at least two"):
+                calibrate_python_rocprof_clock(one_span, marker)
+
+            output = root / "three-way.json"
+            report = merge_rocprof_perfetto(
+                marker, kernel, output, python_jsonl=profile_path)
+            self.assertEqual(report["python_events"], 3)
+            self.assertEqual(report["trace_events"], 8)
+            document = json.loads(output.read_text())
+            self.assertEqual(
+                document["metadata"]["python_clock_calibration"]["matched_spans"], 2)
+            python_events = [event for event in document["traceEvents"]
+                             if event["cat"] == "python"]
+            self.assertEqual({event["name"] for event in python_events},
+                             {"span-a", "span-b", "unmarked"})
+            self.assertTrue(all(event["pid"] == 7 and event["tid"] == 8
+                                for event in python_events))
 
 
 if __name__ == "__main__":

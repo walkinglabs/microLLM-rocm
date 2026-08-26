@@ -1,0 +1,58 @@
+{
+  "iterations_per_run": 8,
+  "max_abs_residual_ns": 1427.0,
+  "max_boundary_width_ns": 9545,
+  "max_scale_error_ppm": 18.64478748692111,
+  "run_count": 3,
+  "runs": [
+    {
+      "correlated_adds": 8,
+      "correlated_pairs": 16,
+      "kernel_events": 20,
+      "marker_events": 9,
+      "matched_spans": 8,
+      "max_abs_residual_ns": 1427.0,
+      "max_boundary_width_ns": 9545,
+      "profile_rows": 24,
+      "rms_residual_ns": 508.9262593932445,
+      "run": "run-1",
+      "scale": 0.9999881249635897,
+      "scale_error_ppm": 11.875036410313733,
+      "trace_events": 85
+    },
+    {
+      "correlated_adds": 8,
+      "correlated_pairs": 16,
+      "kernel_events": 20,
+      "marker_events": 9,
+      "matched_spans": 8,
+      "max_abs_residual_ns": 1092.0,
+      "max_boundary_width_ns": 8483,
+      "profile_rows": 24,
+      "rms_residual_ns": 553.1476266558503,
+      "run": "run-2",
+      "scale": 0.9999841603950718,
+      "scale_error_ppm": 15.839604928236106,
+      "trace_events": 85
+    },
+    {
+      "correlated_adds": 8,
+      "correlated_pairs": 16,
+      "kernel_events": 20,
+      "marker_events": 9,
+      "matched_spans": 8,
+      "max_abs_residual_ns": 1036.5,
+      "max_boundary_width_ns": 8491,
+      "profile_rows": 24,
+      "rms_residual_ns": 550.7275585532287,
+      "run": "run-3",
+      "scale": 0.9999813552125131,
+      "scale_error_ppm": 18.64478748692111,
+      "trace_events": 85
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass",
+  "total_correlated_adds": 24,
+  "total_profile_rows": 72
+}
