@@ -1102,6 +1102,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Official hidden alignment SVG](assets/official-pytorch-hidden-alignment.svg) | 27/31阶段relative-L2曲线 |
 | [experiments/351-official-hf-fixtures.md](experiments/351-official-hf-fixtures.md) | pinned官方权重/tokenizer fixture |
 | [Official HF fixtures SVG](assets/official-hf-fixtures.svg) | 权重规模与结构/许可门 |
+| [experiments/352-int8-weight-contract.md](experiments/352-int8-weight-contract.md) | 一字节Tensor、显式scale与跨框架weight-only合同 |
+| [INT8 weight contract SVG](assets/int8-weight-contract.svg) | 存储缩减、四类正确性门与未接模型边界 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

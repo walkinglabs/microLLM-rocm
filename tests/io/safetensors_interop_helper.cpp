@@ -40,6 +40,35 @@ void expect_fixture(const std::filesystem::path& path, float tolerance) {
     }
 }
 
+microllm::io::StateDict int8_fixture() {
+    return {
+        {"linear.weight", microllm::Tensor::from_int8_vector(
+                              {-127, -3, -1, 0, 2, 126}, {2, 3})},
+        {"linear.weight.scale",
+         microllm::Tensor::from_vector({0.03125F}, {})},
+    };
+}
+
+void expect_int8_fixture(const std::filesystem::path& path) {
+    const auto actual = microllm::io::load_safetensors(path);
+    const auto expected = int8_fixture();
+    if (actual.size() != expected.size()) {
+        throw std::runtime_error("INT8 tensor count mismatch");
+    }
+    if (actual.at("linear.weight").dtype() != microllm::DType::Int8 ||
+        actual.at("linear.weight").shape() != microllm::Shape{2, 3} ||
+        actual.at("linear.weight").to_int8_vector() !=
+            expected.at("linear.weight").to_int8_vector()) {
+        throw std::runtime_error("INT8 weight mismatch");
+    }
+    if (actual.at("linear.weight.scale").dtype() !=
+            microllm::DType::Float32 ||
+        actual.at("linear.weight.scale").to_vector() !=
+            std::vector<float>{0.03125F}) {
+        throw std::runtime_error("INT8 scale mismatch");
+    }
+}
+
 void write_fixtures(const std::filesystem::path& directory) {
     std::filesystem::create_directories(directory);
     const auto state = fixture();
@@ -52,12 +81,16 @@ void write_fixtures(const std::filesystem::path& directory) {
             directory / (std::string("cpp_") + name + ".safetensors"), state,
             {.dtype = dtype, .atomic_replace = true});
     }
+    microllm::io::save_safetensors(
+        directory / "cpp_i8.safetensors", int8_fixture(),
+        {.dtype = WeightFileDType::Preserve, .atomic_replace = true});
 }
 
 void verify_python_fixtures(const std::filesystem::path& directory) {
     expect_fixture(directory / "python_f32.safetensors", 0.0F);
     expect_fixture(directory / "python_bf16.safetensors", 2.0e-2F);
     expect_fixture(directory / "python_f16.safetensors", 2.0e-3F);
+    expect_int8_fixture(directory / "python_i8.safetensors");
 }
 
 }  // namespace

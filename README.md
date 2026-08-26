@@ -301,7 +301,8 @@ needed to run a real training and generation loop:
 - readable CPU references and repository-owned HIP kernels;
 - an eager reverse-mode graph engine with device-native Transformer backward;
 - Decoder-only MHA/GQA, RoPE, RMSNorm, SwiGLU, causal attention, loss, and optimizers;
-- named model state and F32/BF16/F16 safetensors loading;
+- named model state, F32/BF16/F16 safetensors loading, and mixed I8-weight/F32-scale
+  preservation;
 - C, Python ctypes, and optional PyTorch dispatcher adapters;
 - installable CMake targets for independent C and C++ applications;
 - reproducible CPU, PyTorch, MI300X, profiling, and RCCL evidence.
@@ -320,6 +321,9 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
 
 - MI300X FNUZ FP8 quantize/dequantize, scaled hipBLASLt GEMM, FP32-master Transformer
   training policy, and KV-cache decode;
+- portable symmetric weight-only INT8 with one-byte Tensor Storage, explicit same-device
+  FP32 scale, CPU/HIP quantize/dequantize, PyTorch rounding oracle and official
+  safetensors interoperability; Transformer INT8 GEMM remains a separate unclaimed step;
 - opt-in FP8 scalar, device Tensor-amax and FFN-only outer-row activation policies with
   explicit native/fallback counters; none is a default precision claim;
 - explicit clipped dynamic FP8 Tensor quantization with finite saturation, a compatibility-preserving
@@ -1011,12 +1015,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 410/410 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 407/407 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 203/203 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 413/413 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| CPU Debug | 415/415 | host code, CLI, model/graph, INT8 weight format, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 412/412 | host lifetime, one-byte Tensor views, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 205/205 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8/INT8, model, streaming, bindings and low-precision TensorView APIs |
+| PyTorch-enabled CPU build | 416/416 | dispatcher parity, INT8 rounding oracle, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 155 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 156 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1226,8 +1230,12 @@ peak-speculation with executed FP32/FP16/BF16/FP8 roofline data: FP8 is slower t
 matrix to 2048/4096 with an explicit FP32 GPU-reference boundary; FP8 reaches 477 TFLOPS at 4096,
 4.31x FP32 but only 18.25% of its official peak.
 [Experiment 121](docs/optimization-log/experiments/121-int8-executed-probe.md) executes raw
-hipBLASLt INT8xINT8→INT32 through 4096³ (416 TOPS, exact CPU samples) while explicitly keeping
-public Tensor and Transformer INT8 support out of scope.
+hipBLASLt INT8xINT8→INT32 through 4096³ (416 TOPS, exact CPU samples); at that point public
+Tensor and Transformer INT8 support were explicitly out of scope.
+[Experiment 352](docs/optimization-log/experiments/352-int8-weight-contract.md) now adds the
+public one-byte Tensor, symmetric scale contract, CPU/HIP kernels, PyTorch oracle and mixed
+I8/F32 safetensors path. It still makes no Transformer INT8 speed claim because an INT8 Linear
+or model route has not passed a complete-output gate.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.
@@ -1316,7 +1324,11 @@ model.to(microllm::Device::hip(0));
 
 The mapping API handles names and 2D linear-weight orientation. It does not implement
 architecture differences such as QK-Norm, Q/K/V bias, explicit head width, MLA, MoE,
-or quantization. See [Weight API](docs/WEIGHTS.md).
+or automatic model quantization. A portable I8-weight/F32-scale StateDict format and
+CPU/HIP dequantization API do exist, but the Transformer loader does not silently replace
+its Linear layers with INT8 compute. See the beginner-friendly
+[INT8 weight-format guide](docs/dev/int8-weight-format.zh-CN.md) and
+[Weight API](docs/WEIGHTS.md).
 
 ## Performance workflow
 

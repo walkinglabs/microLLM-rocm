@@ -720,6 +720,32 @@ __global__ void dequantize_fp8_kernel(const Input* input, Output* output,
     }
 }
 
+template <typename Input>
+__global__ void quantize_int8_kernel(const Input* input, std::int8_t* output,
+                                     std::int64_t elements,
+                                     float inverse_scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index >= elements) return;
+    auto value = load_as_float(input[index]) * inverse_scale;
+    if (isnan(value)) value = 0.0F;
+    value = fminf(127.0F, fmaxf(-127.0F, value));
+    output[index] = static_cast<std::int8_t>(__float2int_rn(value));
+}
+
+template <typename Output>
+__global__ void dequantize_int8_kernel(const std::int8_t* input,
+                                       Output* output,
+                                       std::int64_t elements,
+                                       const float* scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index < elements) {
+        output[index] = store_from_float<Output>(
+            static_cast<float>(input[index]) * scale[0]);
+    }
+}
+
 template <typename Input, typename Output>
 __global__ void cast_kernel(const Input* input, Output* output,
                             std::int64_t elements) {
@@ -3571,6 +3597,40 @@ void launch_quantize_fp8(const void* input, DType input_dtype, void* output,
 }
 
 template <typename Input>
+void launch_quantize_int8_for_input(
+    const Input* input, std::int8_t* output, std::int64_t elements,
+    float inverse_scale, hipStream_t stream) {
+    hipLaunchKernelGGL(quantize_int8_kernel<Input>, dim3(grid_size(elements)),
+                       dim3(kBlockSize), 0, stream, input, output, elements,
+                       inverse_scale);
+}
+
+void launch_quantize_int8(const void* input, DType input_dtype,
+                          std::int8_t* output, std::int64_t elements,
+                          float inverse_scale, void* stream) {
+    if (elements == 0) return;
+    switch (input_dtype) {
+        case DType::Float32:
+            launch_quantize_int8_for_input(static_cast<const float*>(input),
+                output, elements, inverse_scale, as_stream(stream));
+            break;
+        case DType::Float16:
+            launch_quantize_int8_for_input(static_cast<const __half*>(input),
+                output, elements, inverse_scale, as_stream(stream));
+            break;
+        case DType::BFloat16:
+            launch_quantize_int8_for_input(
+                static_cast<const hip_bfloat16*>(input), output, elements,
+                inverse_scale, as_stream(stream));
+            break;
+        default:
+            throw std::invalid_argument(
+                "INT8 quantize input must be FP32, FP16, or BF16");
+    }
+    check_launch("quantize_int8_kernel");
+}
+
+template <typename Input>
 void launch_dynamic_quantize_for_input(
     const Input* input, void* output, DType fp8_dtype, float* scale,
     float* partial_maxima, std::int64_t partial_count,
@@ -3823,6 +3883,30 @@ void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
         throw std::invalid_argument("dequantize input must be an MI300 FNUZ FP8 dtype");
     }
     check_launch("dequantize_fp8_kernel");
+}
+
+void launch_dequantize_int8(const std::int8_t* input, void* output,
+                            DType output_dtype, std::int64_t elements,
+                            const float* scale, void* stream) {
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+#define MICROLLM_INT8_DEQUANT_CASE(cpp_type, enum_value)                         \
+    case enum_value:                                                            \
+        hipLaunchKernelGGL((dequantize_int8_kernel<cpp_type>), grid, block, 0, \
+                           as_stream(stream), input,                            \
+                           static_cast<cpp_type*>(output), elements, scale);    \
+        break
+    switch (output_dtype) {
+        MICROLLM_INT8_DEQUANT_CASE(float, DType::Float32);
+        MICROLLM_INT8_DEQUANT_CASE(__half, DType::Float16);
+        MICROLLM_INT8_DEQUANT_CASE(hip_bfloat16, DType::BFloat16);
+        default:
+            throw std::invalid_argument(
+                "INT8 dequantize output must be FP32, FP16, or BF16");
+    }
+#undef MICROLLM_INT8_DEQUANT_CASE
+    check_launch("dequantize_int8_kernel");
 }
 
 template <typename Input>

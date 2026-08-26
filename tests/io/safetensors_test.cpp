@@ -70,6 +70,44 @@ TEST(SafetensorsTest, RoundTripsFloat32Bfloat16AndFloat16) {
     }
 }
 
+TEST(SafetensorsTest, PreserveRoundTripsMixedInt8WeightAndFloatScale) {
+    TemporaryDirectory directory;
+    const auto path = directory.path() / "int8-weight.safetensors";
+    const StateDict expected{
+        {"linear.weight", Tensor::from_int8_vector(
+                              {-127, -3, -1, 0, 2, 126}, {2, 3})},
+        {"linear.weight.scale", Tensor::from_vector({0.03125F}, {})},
+    };
+    save_safetensors(path, expected,
+                     {.dtype = WeightFileDType::Preserve,
+                      .atomic_replace = true});
+    const auto metadata = inspect_safetensors(path);
+    ASSERT_EQ(metadata.size(), 2U);
+    EXPECT_EQ(metadata[0].name, "linear.weight");
+    EXPECT_EQ(metadata[0].dtype, DType::Int8);
+    EXPECT_EQ(metadata[0].data_bytes, 6U);
+    EXPECT_EQ(metadata[1].name, "linear.weight.scale");
+    EXPECT_EQ(metadata[1].dtype, DType::Float32);
+    EXPECT_EQ(metadata[1].data_bytes, 4U);
+
+    const auto actual = load_safetensors(path);
+    ASSERT_EQ(actual.size(), expected.size());
+    EXPECT_EQ(actual.at("linear.weight").dtype(), DType::Int8);
+    EXPECT_EQ(actual.at("linear.weight").shape(), (Shape{2, 3}));
+    EXPECT_EQ(actual.at("linear.weight").to_int8_vector(),
+              expected.at("linear.weight").to_int8_vector());
+    EXPECT_EQ(actual.at("linear.weight.scale").dtype(), DType::Float32);
+    EXPECT_EQ(actual.at("linear.weight.scale").to_vector(),
+              (std::vector<float>{0.03125F}));
+
+    EXPECT_THROW(
+        save_safetensors(
+            directory.path() / "unsupported-preserve.safetensors",
+            {{"half", Tensor::from_vector({1.0F}, {1}, DType::Float16)}},
+            {.dtype = WeightFileDType::Preserve}),
+        std::invalid_argument);
+}
+
 TEST(SafetensorsTest, InspectAndVisitExposeOrderedBoundedRawPayloads) {
     TemporaryDirectory directory;
     const auto path = directory.path() / "stream.safetensors";
@@ -151,7 +189,7 @@ TEST(SafetensorsTest, RejectsCorruptionUnsupportedDataAndDuplicateShards) {
 
     const auto unsupported_path = directory.path() / "unsupported.safetensors";
     const std::string header =
-        "{\"bad\":{\"dtype\":\"I8\",\"shape\":[1],\"data_offsets\":[0,1]}}";
+        "{\"bad\":{\"dtype\":\"U8\",\"shape\":[1],\"data_offsets\":[0,1]}}";
     std::ofstream unsupported(unsupported_path, std::ios::binary);
     const auto length = static_cast<std::uint64_t>(header.size());
     for (unsigned index = 0; index < 8; ++index) {

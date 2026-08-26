@@ -13,6 +13,7 @@ enum class DType : std::uint8_t {
     BFloat16,
     Float8E4M3FNUZ,
     Float8E5M2FNUZ,
+    Int8,
     Int32,
     Int64,
 };
@@ -37,6 +38,7 @@ enum class DType : std::uint8_t {
             return 2;
         case DType::Float8E4M3FNUZ:
         case DType::Float8E5M2FNUZ:
+        case DType::Int8:
             return 1;
         case DType::Int64:
             return 8;
@@ -51,6 +53,7 @@ enum class DType : std::uint8_t {
         case DType::BFloat16: return "bfloat16";
         case DType::Float8E4M3FNUZ: return "float8_e4m3_fnuz";
         case DType::Float8E5M2FNUZ: return "float8_e5m2_fnuz";
+        case DType::Int8: return "int8";
         case DType::Int32: return "int32";
         case DType::Int64: return "int64";
     }

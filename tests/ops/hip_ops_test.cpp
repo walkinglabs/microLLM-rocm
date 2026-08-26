@@ -37,6 +37,14 @@ TEST(HipTensorDTypeTest, LowPrecisionTransferViewAndCastRoundTrip) {
         EXPECT_EQ(float32.dtype(), DType::Float32);
         EXPECT_EQ(float32.to_vector(), cpu.to_vector());
     }
+
+    const auto int8_cpu = Tensor::from_int8_vector(
+        {-128, -3, -1, 0, 4, 127}, {2, 3});
+    const auto int8_gpu = int8_cpu.to(gpu);
+    EXPECT_EQ(int8_gpu.storage().num_bytes(), 6U);
+    EXPECT_EQ(int8_gpu.to_int8_vector(), int8_cpu.to_int8_vector());
+    EXPECT_EQ(int8_gpu.transpose(0, 1).to_int8_vector(),
+              (std::vector<std::int8_t>{-128, 0, -3, 4, -1, 127}));
 }
 namespace {
 
@@ -1018,6 +1026,43 @@ TEST(HipFp8OpsTest, QuantizeDequantizeAndScaledGemmAreDeviceNative) {
             maximum_gemm_error, std::abs(output_values[index] - reference_values[index]));
     }
     EXPECT_LE(maximum_gemm_error, 0.5F);
+}
+
+TEST(HipInt8WeightOpsTest, CpuAndHipMatchEveryByteWithoutHotPathTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const std::vector<float> values{
+        -1000.0F, -1.25F, -0.75F, -0.25F, 0.25F, 0.75F,
+        1.25F, 1000.0F, std::numeric_limits<float>::quiet_NaN(),
+        std::numeric_limits<float>::infinity(),
+        -std::numeric_limits<float>::infinity(), 3.0F};
+    const auto cpu_input = Tensor::from_vector(values, {3, 4});
+    const auto cpu_quantized = quantize_int8(cpu_input, 0.5F);
+
+    for (const auto input_dtype :
+         {DType::Float32, DType::Float16, DType::BFloat16}) {
+        const auto input = Tensor::from_vector(values, {3, 4}, input_dtype).to(gpu);
+        runtime::reset_transfer_stats();
+        const auto quantized = quantize_int8(input, 0.5F);
+        runtime::synchronize(gpu);
+        const auto preparation = runtime::transfer_stats();
+        EXPECT_EQ(preparation.host_to_device_calls, 1U);
+        EXPECT_EQ(preparation.host_to_device_bytes, sizeof(float));
+        EXPECT_EQ(preparation.device_to_host_calls, 0U);
+        EXPECT_EQ(quantized.values.dtype(), DType::Int8);
+        EXPECT_EQ(quantized.values.storage().num_bytes(), values.size());
+        EXPECT_EQ(quantized.values.to_int8_vector(),
+                  cpu_quantized.values.to_int8_vector());
+
+        runtime::reset_transfer_stats();
+        const auto restored = dequantize_int8(quantized, DType::Float32);
+        runtime::synchronize(gpu);
+        const auto hot = runtime::transfer_stats();
+        EXPECT_EQ(hot.host_to_device_calls, 0U);
+        EXPECT_EQ(hot.device_to_host_calls, 0U);
+        EXPECT_EQ(restored.to_vector(),
+                  dequantize_int8(cpu_quantized).to_vector());
+    }
 }
 
 TEST(HipFp8OpsTest, MixedE5ActivationAndE4WeightExecuteWithExplicitDispatch) {

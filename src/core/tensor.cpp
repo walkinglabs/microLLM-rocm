@@ -63,6 +63,7 @@ float read_float_value(const void* data, DType dtype, std::int64_t index) {
             return static_cast<float>(static_cast<const Float8E4M3FNUZ*>(data)[index]);
         case DType::Float8E5M2FNUZ:
             return static_cast<float>(static_cast<const Float8E5M2FNUZ*>(data)[index]);
+        case DType::Int8:
         case DType::Int32:
         case DType::Int64:
             throw std::invalid_argument("floating-point access requires a floating dtype");
@@ -87,6 +88,7 @@ void write_float_value(void* data, DType dtype, std::int64_t index, float value)
         case DType::Float8E5M2FNUZ:
             static_cast<Float8E5M2FNUZ*>(data)[index] = Float8E5M2FNUZ(value);
             return;
+        case DType::Int8:
         case DType::Int32:
         case DType::Int64:
             throw std::invalid_argument("floating-point access requires a floating dtype");
@@ -163,6 +165,17 @@ Tensor Tensor::from_int32_vector(const std::vector<std::int32_t>& values, Shape 
         std::memcpy(result.data(), values.data(), values.size() * sizeof(std::int32_t));
     }
     return result;
+}
+
+Tensor Tensor::from_int8_vector(const std::vector<std::int8_t>& values, Shape shape) {
+    if (checked_numel(shape) != static_cast<std::int64_t>(values.size())) {
+        throw std::invalid_argument("value count does not match shape");
+    }
+    Tensor tensor(std::move(shape), DType::Int8);
+    if (!values.empty()) {
+        std::memcpy(tensor.data(), values.data(), values.size() * sizeof(std::int8_t));
+    }
+    return tensor;
 }
 
 Tensor Tensor::from_storage(Storage storage, Shape shape, Strides strides,
@@ -318,6 +331,25 @@ std::vector<std::int32_t> Tensor::to_int32_vector() const {
     std::vector<std::int32_t> values(static_cast<std::size_t>(numel_));
     runtime::copy_bytes(values.data(), Device::cpu(), data(), device(),
                         byte_count(numel_, dtype_));
+    return values;
+}
+
+std::vector<std::int8_t> Tensor::to_int8_vector() const {
+    if (dtype_ != DType::Int8) {
+        throw std::runtime_error("to_int8_vector requires int8");
+    }
+    if (device().is_hip() && !is_contiguous()) return contiguous().to_int8_vector();
+    std::vector<std::int8_t> values(static_cast<std::size_t>(numel_));
+    if (device().is_hip()) {
+        runtime::copy_bytes(values.data(), Device::cpu(), data(), device(),
+                            byte_count(numel_, dtype_));
+        return values;
+    }
+    const auto* base = static_cast<const std::int8_t*>(storage_.data());
+    for (std::int64_t logical = 0; logical < numel_; ++logical) {
+        values[static_cast<std::size_t>(logical)] = base[logical_to_storage_index(
+            logical, shape_, strides_, storage_offset_)];
+    }
     return values;
 }
 

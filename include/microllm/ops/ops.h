@@ -285,6 +285,17 @@ struct ScaledTensor {
     Fp8ScaleMode scale_mode = Fp8ScaleMode::Scalar;
 };
 
+// Portable symmetric weight-only INT8 representation. `values` stores one signed
+// byte per element and `scale` stores one same-device FP32 scalar. The represented
+// floating value is values[i] * scale[0]; -128 is deliberately unused so the range
+// is symmetric around zero.
+struct Int8ScaledTensor {
+    Tensor values;
+    Tensor scale;
+    float scale_value = 1.0F;
+    bool host_scale_available = false;
+};
+
 struct Bf16FfnDiagnostics {
     Tensor input_bf16;
     Tensor gate;
@@ -344,6 +355,14 @@ struct CausalGqaAttentionDiagnostics {
     const OpContext& context = {});
 [[nodiscard]] Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
                                     const OpContext& context = {});
+// q = clamp(round-to-nearest-even(input / scale), -127, 127). NaN maps to zero;
+// infinities saturate. Input may be FP32/FP16/BF16 and must be contiguous.
+[[nodiscard]] Int8ScaledTensor quantize_int8(
+    const Tensor& input, float scale, const OpContext& context = {});
+// Restores FP32/FP16/BF16 without copying the scale back to the host on HIP.
+[[nodiscard]] Tensor dequantize_int8(
+    const Int8ScaledTensor& input, DType output_dtype = DType::Float32,
+    const OpContext& context = {});
 [[nodiscard]] Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                                 DType output_dtype = DType::BFloat16,
                                 const OpContext& context = {});

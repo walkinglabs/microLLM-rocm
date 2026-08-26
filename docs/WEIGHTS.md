@@ -126,7 +126,8 @@ JSON header：每个 Tensor 的名字、dtype、shape、数据起止位置
 
 - `F32`；
 - `BF16`，读取时转换为 FP32；
-- `F16`，读取时转换为 FP32。
+- `F16`，读取时转换为 FP32；
+- `I8`，保持一字节有符号整数，供显式量化权重API使用。
 
 写出 API：
 
@@ -137,6 +138,22 @@ io::SafetensorsSaveOptions options;
 options.dtype = io::WeightFileDType::BFloat16;
 model.save_safetensors("weights-bf16.safetensors", options);
 ```
+
+混合INT8权重和FP32 scale时使用保真模式：
+
+```cpp
+io::StateDict state{
+    {"linear.weight", packed.values},
+    {"linear.weight.scale", packed.scale},
+};
+io::save_safetensors(
+    "linear-int8.safetensors", state,
+    {.dtype = io::WeightFileDType::Preserve});
+```
+
+当前`Preserve`只接受I8或F32 Tensor，防止不明确的隐式转换。完整量化、还原、HIP和
+文件命名合同见[INT8权重格式](dev/int8-weight-format.zh-CN.md)。能保存这对Tensor不等于
+Transformer已经使用INT8 GEMM；模型计算路由仍需单独实现和验收。
 
 默认计算仍是 FP32。推理可在加载后调用 `prepare_bf16_ffn_inference()` 和
 `prepare_bf16_attention_inference()`，事务式地把 FFN 与 Q/K/V/O 权重替换成单份 BF16；
@@ -206,7 +223,7 @@ io::visit_safetensors("model.safetensors", [](const auto& info, auto bytes) {
 
 - memory mapping；
 - 对所有分片先做全局 header 预检，再直接送到目标 GPU/rank；
-- FP8、INT8、INT4 和对应 scale/zero-point；
+- FP8、INT4、逐通道INT8和对应scale/zero-point流式模型装载；
 - tied weight 不重复分配；
 - 加载进度、取消和峰值内存报告。
 
@@ -229,10 +246,11 @@ Qwen2.5-0.5B 已经通过一个固定官方 checkpoint 的严格加载和 logits
 - 加载后 forward 一致；
 - Qwen 名字和二维转置；
 - tied embedding 映射；
-- F32/BF16/F16 round-trip；
+- F32/BF16/F16 round-trip，以及混合I8权重/F32 scale保真round-trip；
 - 单文件、多个分片和 index；
 - 损坏 header、不支持 dtype、重复权重和不安全路径；
 - safetensors 直接加载到 HIP；
+- I8/F32文件直接加载到HIP，以及反量化热路径零H2D/D2H；
 - header inspection、payload-order visitor 和回调生命周期；
 - 未初始化 HIP 单文件的 BF16 原始字节数、staging 峰值与失败前零传输；
 - GPU 模型保持 GPU 参数。
@@ -260,5 +278,5 @@ ctest --test-dir build/safetensors-interop \
 1. C++ 写文件，官方 Python 包读取并检查名字、dtype、shape 和每个值；
 2. 官方 Python 包写文件，C++ 读取并检查相同内容。
 
-F32、BF16 和 F16 三种文件 dtype 都会执行。这个测试是可选门，因为默认 CPU
+F32、BF16、F16和混合I8/F32文件都会执行。这个测试是可选门，因为默认 CPU
 构建不应偷偷下载 Python 包；配置了指定解释器后，它会成为正式 CTest。

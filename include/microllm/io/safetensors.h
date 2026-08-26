@@ -16,7 +16,7 @@ namespace microllm::io {
 using StateDict = std::map<std::string, Tensor>;
 using SafetensorsIndex = std::map<std::string, std::filesystem::path>;
 
-enum class WeightFileDType { Float32, BFloat16, Float16 };
+enum class WeightFileDType { Float32, BFloat16, Float16, Preserve };
 
 struct SafetensorsSaveOptions {
     WeightFileDType dtype = WeightFileDType::Float32;

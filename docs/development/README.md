@@ -701,3 +701,5 @@ the next gate. Records are append-only except for factual corrections.
   records the retained 1.107x Model-S reducer improvement.
 - [2026-08-26-cmake-config-public-gate.md](2026-08-26-cmake-config-public-gate.md):
   exposes one copy-paste CTest preset for the complete build/install/relocation/consumer package contract.
+- [2026-08-26-int8-weight-contract.md](2026-08-26-int8-weight-contract.md):
+  records the one-byte Tensor, explicit scale, CPU/HIP/PyTorch and official-safetensors boundary.

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="820" viewBox="0 0 1600 820">
+  <rect width="1600" height="820" fill="#f8fafc"/>
+  <text x="800" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">Experiment 352 · Portable INT8 Weight Contract</text>
+  <text x="800" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">one-byte values · explicit FP32 scale · CPU / MI300X / PyTorch / safetensors gates</text>
+
+  <rect x="70" y="125" width="650" height="560" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="395" y="165" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700" fill="#172033">Weight representation (1,048,576 values)</text>
+  <line x1="150" y1="590" x2="640" y2="590" stroke="#cbd5e1"/>
+  <rect x="205" y="230" width="140" height="360" rx="7" fill="#94a3b8"/>
+  <text x="275" y="215" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#475569">4.00 MiB</text>
+  <text x="275" y="622" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">FP32</text>
+  <rect x="445" y="500" width="140" height="90" rx="7" fill="#16a34a"/>
+  <rect x="445" y="494" width="140" height="6" rx="3" fill="#f59e0b"/>
+  <text x="515" y="478" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#15803d">1.00 MiB + 4 B</text>
+  <text x="515" y="622" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#172033">INT8 + scale</text>
+  <text x="395" y="660" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#15803d">payload approaches 75% smaller</text>
+
+  <rect x="770" y="125" width="760" height="560" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="1150" y="165" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700" fill="#172033">Evidence before performance claims</text>
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="835" y="205" width="630" height="66" rx="8" fill="#ecfdf5" stroke="#86efac"/>
+    <circle cx="875" cy="238" r="15" fill="#16a34a"/><text x="875" y="244" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">✓</text>
+    <text x="910" y="232" font-size="17" font-weight="700" fill="#166534">CPU byte and edge contract</text><text x="910" y="253" font-size="14" fill="#475569">views · saturation · ties · NaN/Inf · invalid scale</text>
+
+    <rect x="835" y="288" width="630" height="66" rx="8" fill="#ecfdf5" stroke="#86efac"/>
+    <circle cx="875" cy="321" r="15" fill="#16a34a"/><text x="875" y="327" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">✓</text>
+    <text x="910" y="315" font-size="17" font-weight="700" fill="#166534">MI300X matches CPU every byte</text><text x="910" y="336" font-size="14" fill="#475569">FP32 / FP16 / BF16 inputs · dequant hot path 0 H2D / 0 D2H</text>
+
+    <rect x="835" y="371" width="630" height="66" rx="8" fill="#ecfdf5" stroke="#86efac"/>
+    <circle cx="875" cy="404" r="15" fill="#16a34a"/><text x="875" y="410" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">✓</text>
+    <text x="910" y="398" font-size="17" font-weight="700" fill="#166534">Independent PyTorch oracle</text><text x="910" y="419" font-size="14" fill="#475569">torch.round + clamp + int8 · complete 2×5 output equality</text>
+
+    <rect x="835" y="454" width="630" height="66" rx="8" fill="#ecfdf5" stroke="#86efac"/>
+    <circle cx="875" cy="487" r="15" fill="#16a34a"/><text x="875" y="493" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">✓</text>
+    <text x="910" y="481" font-size="17" font-weight="700" fill="#166534">Official safetensors both directions</text><text x="910" y="502" font-size="14" fill="#475569">I8 values + F32 scale preserve dtype, shape and every value</text>
+
+    <rect x="835" y="553" width="630" height="84" rx="8" fill="#fffbeb" stroke="#fbbf24"/>
+    <circle cx="875" cy="595" r="15" fill="#f59e0b"/><text x="875" y="601" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">!</text>
+    <text x="910" y="584" font-size="17" font-weight="700" fill="#92400e">No Transformer INT8 compute claim yet</text><text x="910" y="607" font-size="14" fill="#475569">next: complete-output weight-only Linear, then fused/native INT8 GEMM</text>
+  </g>
+
+  <text x="800" y="748" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">Keep the portable format; measure compute only after the model actually uses it.</text>
+</svg>

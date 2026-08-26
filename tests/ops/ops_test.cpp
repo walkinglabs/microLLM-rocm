@@ -1845,6 +1845,87 @@ TEST(CpuFp8OpsTest, MixedE5ActivationAndE4WeightMatchDequantizedReference) {
     EXPECT_FLOAT_EQ(activation_fp8.scale_value, 1000.0F / 57344.0F);
 }
 
+TEST(CpuInt8WeightOpsTest, SymmetricQuantizeSaturatesAndRoundsLikePyTorch) {
+    const auto input = Tensor::from_vector(
+        {-1000.0F, -1.25F, -0.75F, -0.25F, 0.25F, 0.75F,
+         1.25F, 1000.0F, std::numeric_limits<float>::quiet_NaN(),
+         std::numeric_limits<float>::infinity(),
+         -std::numeric_limits<float>::infinity()},
+        {11});
+    const auto quantized = quantize_int8(input, 0.5F);
+    const std::vector<std::int8_t> expected{
+        -127, -2, -2, 0, 0, 2, 2, 127, 0, 127, -127};
+    EXPECT_EQ(quantized.values.dtype(), DType::Int8);
+    EXPECT_EQ(quantized.values.storage().num_bytes(), expected.size());
+    EXPECT_EQ(quantized.values.to_int8_vector(), expected);
+    EXPECT_EQ(quantized.scale.dtype(), DType::Float32);
+    EXPECT_EQ(quantized.scale.shape(), Shape{});
+    EXPECT_EQ(quantized.scale.to_vector(), (std::vector<float>{0.5F}));
+    EXPECT_TRUE(quantized.host_scale_available);
+    EXPECT_FLOAT_EQ(quantized.scale_value, 0.5F);
+
+    const auto restored = dequantize_int8(quantized);
+    std::vector<float> expected_restored(expected.size());
+    for (std::size_t index = 0; index < expected.size(); ++index) {
+        expected_restored[index] = static_cast<float>(expected[index]) * 0.5F;
+    }
+    EXPECT_EQ(restored.dtype(), DType::Float32);
+    EXPECT_EQ(restored.to_vector(), expected_restored);
+}
+
+TEST(CpuInt8WeightOpsTest, FloatingInputsAndOutputsShareOneExplicitScale) {
+    const std::vector<float> values{-3.0F, -1.5F, -0.5F, 0.0F,
+                                    0.5F, 1.5F, 3.0F, 31.75F};
+    const std::vector<std::int8_t> expected{-12, -6, -2, 0, 2, 6, 12, 127};
+    for (const auto input_dtype :
+         {DType::Float32, DType::Float16, DType::BFloat16}) {
+        const auto quantized = quantize_int8(
+            Tensor::from_vector(values, {2, 4}, input_dtype), 0.25F);
+        EXPECT_EQ(quantized.values.shape(), (Shape{2, 4}));
+        EXPECT_EQ(quantized.values.to_int8_vector(), expected);
+        for (const auto output_dtype :
+             {DType::Float32, DType::Float16, DType::BFloat16}) {
+            const auto restored = dequantize_int8(quantized, output_dtype);
+            EXPECT_EQ(restored.dtype(), output_dtype);
+            expect_near(restored.to_vector(),
+                        {-3.0F, -1.5F, -0.5F, 0.0F,
+                         0.5F, 1.5F, 3.0F, 31.75F},
+                        output_dtype == DType::BFloat16 ? 0.13F : 0.02F);
+        }
+    }
+}
+
+TEST(CpuInt8WeightOpsTest, LoadedTensorPairValidatesMetadataAndScale) {
+    const Int8ScaledTensor loaded{
+        Tensor::from_int8_vector({-4, 0, 7, 127}, {2, 2}),
+        Tensor::from_vector({0.125F}, {})};
+    EXPECT_EQ(dequantize_int8(loaded).to_vector(),
+              (std::vector<float>{-0.5F, 0.0F, 0.875F, 15.875F}));
+
+    EXPECT_THROW((void)quantize_int8(
+                     Tensor::from_vector({1.0F}, {1}), 0.0F),
+                 std::invalid_argument);
+    EXPECT_THROW((void)quantize_int8(
+                     Tensor::from_vector({1.0F}, {1}),
+                     std::numeric_limits<float>::infinity()),
+                 std::invalid_argument);
+    EXPECT_THROW((void)quantize_int8(
+                     Tensor::from_vector({1, 2, 3, 4}, {2, 2})
+                         .transpose(0, 1),
+                     0.25F),
+                 std::invalid_argument);
+    EXPECT_THROW((void)dequantize_int8({
+                     Tensor::from_int8_vector({1}, {1}),
+                     Tensor::from_vector({0.25F, 0.5F}, {2})}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)dequantize_int8({
+                     Tensor::from_int8_vector({1}, {1}),
+                     Tensor::from_vector({-0.25F}, {})}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)dequantize_int8(loaded, DType::Int8),
+                 std::invalid_argument);
+}
+
 TEST(CallerOwnedBackwardTest, CpuOutputsMatchAllocatingReferences) {
     const auto input = Tensor::from_vector({-2, -1, 0, 1, 2, 3}, {2, 3});
     const auto weight = Tensor::from_vector({1, 0.5F, 2}, {3});

@@ -407,6 +407,7 @@ std::string escape_json(std::string_view value) {
 std::size_t file_element_bytes(const std::string& dtype) {
     if (dtype == "F32") return 4;
     if (dtype == "BF16" || dtype == "F16") return 2;
+    if (dtype == "I8") return 1;
     throw std::runtime_error("unsupported safetensors dtype: " + dtype);
 }
 
@@ -415,16 +416,52 @@ std::string file_dtype_name(WeightFileDType dtype) {
         case WeightFileDType::Float32: return "F32";
         case WeightFileDType::BFloat16: return "BF16";
         case WeightFileDType::Float16: return "F16";
+        case WeightFileDType::Preserve:
+            throw std::invalid_argument("preserve dtype is selected per tensor");
     }
     throw std::logic_error("unknown weight file dtype");
 }
 
 std::size_t file_dtype_bytes(WeightFileDType dtype) {
-    return dtype == WeightFileDType::Float32 ? 4U : 2U;
+    if (dtype == WeightFileDType::Float32) return 4U;
+    if (dtype == WeightFileDType::BFloat16 ||
+        dtype == WeightFileDType::Float16) return 2U;
+    throw std::invalid_argument("preserve dtype is selected per tensor");
+}
+
+std::string preserved_dtype_name(DType dtype) {
+    if (dtype == DType::Float32) return "F32";
+    if (dtype == DType::Int8) return "I8";
+    throw std::invalid_argument(
+        "preserve safetensors save currently supports float32 or int8 tensors");
+}
+
+std::size_t output_dtype_bytes(const Tensor& tensor, WeightFileDType dtype) {
+    return dtype == WeightFileDType::Preserve
+               ? file_element_bytes(preserved_dtype_name(tensor.dtype()))
+               : file_dtype_bytes(dtype);
 }
 
 std::vector<std::byte> encode_values(const Tensor& tensor, WeightFileDType dtype) {
-    if (!tensor.defined() || tensor.dtype() != DType::Float32) {
+    if (!tensor.defined()) {
+        throw std::invalid_argument("safetensors save requires defined tensors");
+    }
+    if (dtype == WeightFileDType::Preserve) {
+        if (tensor.dtype() == DType::Float32) {
+            const auto values = tensor.to_vector();
+            std::vector<std::byte> output(values.size() * sizeof(float));
+            std::memcpy(output.data(), values.data(), output.size());
+            return output;
+        }
+        if (tensor.dtype() == DType::Int8) {
+            const auto values = tensor.to_int8_vector();
+            std::vector<std::byte> output(values.size());
+            std::memcpy(output.data(), values.data(), output.size());
+            return output;
+        }
+        (void)preserved_dtype_name(tensor.dtype());
+    }
+    if (tensor.dtype() != DType::Float32) {
         throw std::invalid_argument("safetensors save requires defined float32 tensors");
     }
     const auto values = tensor.to_vector();
@@ -458,6 +495,13 @@ std::vector<float> decode_values(const std::vector<std::byte>& bytes,
         const auto value = static_cast<std::uint16_t>(low | (high << 8U));
         output[index] = dtype == "BF16" ? bfloat16_to_float(value) : half_to_float(value);
     }
+    return output;
+}
+
+std::vector<std::int8_t> decode_int8_values(
+    const std::vector<std::byte>& bytes) {
+    std::vector<std::int8_t> output(bytes.size());
+    if (!bytes.empty()) std::memcpy(output.data(), bytes.data(), bytes.size());
     return output;
 }
 
@@ -523,6 +567,7 @@ DType tensor_dtype(const std::string& dtype) {
     if (dtype == "F32") return DType::Float32;
     if (dtype == "BF16") return DType::BFloat16;
     if (dtype == "F16") return DType::Float16;
+    if (dtype == "I8") return DType::Int8;
     throw std::runtime_error("unsupported safetensors dtype: " + dtype);
 }
 
@@ -573,12 +618,15 @@ std::string build_header(const StateDict& state, WeightFileDType dtype) {
     header << '{';
     std::uint64_t offset = 0;
     bool first = true;
-    const auto dtype_name = file_dtype_name(dtype);
     for (const auto& [name, tensor] : state) {
         if (name.empty()) throw std::invalid_argument("weight name cannot be empty");
         if (!first) header << ',';
         first = false;
-        const auto bytes = checked_tensor_bytes(tensor.shape(), file_dtype_bytes(dtype));
+        const auto dtype_name = dtype == WeightFileDType::Preserve
+                                    ? preserved_dtype_name(tensor.dtype())
+                                    : file_dtype_name(dtype);
+        const auto bytes = checked_tensor_bytes(
+            tensor.shape(), output_dtype_bytes(tensor, dtype));
         header << escape_json(name) << ":{\"dtype\":\"" << dtype_name << "\",\"shape\":[";
         for (std::size_t index = 0; index < tensor.shape().size(); ++index) {
             if (index != 0) header << ',';
@@ -676,7 +724,11 @@ StateDict load_safetensors(const std::filesystem::path& path, Device target) {
                        static_cast<std::streamsize>(bytes.size()));
         }
         if (!input) throw std::runtime_error("cannot read tensor data: " + descriptor.name);
-        auto tensor = Tensor::from_vector(decode_values(bytes, descriptor.dtype), descriptor.shape);
+        auto tensor = descriptor.dtype == "I8"
+                          ? Tensor::from_int8_vector(
+                                decode_int8_values(bytes), descriptor.shape)
+                          : Tensor::from_vector(
+                                decode_values(bytes, descriptor.dtype), descriptor.shape);
         if (target != Device::cpu()) tensor = tensor.to(target);
         state.emplace(descriptor.name, std::move(tensor));
     }

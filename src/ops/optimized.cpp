@@ -810,10 +810,12 @@ hipDataType hip_dtype(DType dtype) {
         case DType::BFloat16: return HIP_R_16BF;
         case DType::Float8E4M3FNUZ: return HIP_R_8F_E4M3_FNUZ;
         case DType::Float8E5M2FNUZ: return HIP_R_8F_E5M2_FNUZ;
+        case DType::Int8:
         case DType::Int32:
         case DType::Int64: break;
     }
-    throw std::invalid_argument("hipBLASLt matmul requires FP32, FP16, or BF16");
+    throw std::invalid_argument(
+        "hipBLASLt floating matmul does not accept integer Tensor dtypes");
 }
 
 void set_scale_pointer(hipblasLtMatmulDesc_t description,

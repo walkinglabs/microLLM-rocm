@@ -41,8 +41,9 @@ SGD/AdamW                     3.72529030e-08
 ```
 
 The detailed per-operator tolerances and shape contracts are in
-`docs/OPERATOR_CONTRACTS.zh-CN.md`. BF16/F16 safetensors conversion, native basic
-kernels and BF16 mixed GEMM are tested. Whole-model BF16 remains an explicit,
+`docs/OPERATOR_CONTRACTS.zh-CN.md`. BF16/F16 safetensors conversion, mixed I8/F32
+weight files, symmetric INT8 CPU/HIP quantization, native basic kernels and BF16 mixed
+GEMM are tested. Whole-model BF16 remains an explicit,
 shape-gated inference/training research track: each retained policy has complete-logit
 and end-to-end evidence, and none is a universal hardware claim.
 

@@ -4,9 +4,9 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 410/410, ASan/UBSan 407/407, PyTorch-enabled CPU 413/413, single-GPU HIP label 203/203, RCCL label 55/55 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 415/415, ASan/UBSan 412/412, PyTorch-enabled CPU 416/416, single-GPU HIP label 205/205, RCCL label 55/55; 156 registered test files | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
-| Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
+| Device/DType | smoke-tested | real FP16/BF16 two-byte and signed INT8 one-byte CPU/MI300X storage, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
 | Tensor metadata/views | smoke-tested | hand values, randomized shapes, bounds | more dtypes |
 | HIP view materialization | smoke-tested | gfx942 transposed logical-order copy | rank>8/more dtypes |
@@ -17,7 +17,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Parallel HIP CrossEntropy | smoke-tested | rows 1/3/32, classes through 151936, PyTorch oracle; CE share 75.7%→0.62%, official train 3.29×/2.29× | additional dtype track and fusion with output head |
 | Transpose-aware GEMM | smoke-tested | CPU/readable HIP/hipBLASLt NN/NT/TN/TT in FP32/FP16/BF16; tied graph/PyTorch gradients; score 0.318328→0.479227 | batched transpose flags and descriptor/algorithm cache |
 | Parallel HIP RMSNorm | smoke-tested | rows 1/3/32 × widths 16/384/512/896/1536; forward/backward/PyTorch gates; RMSNorm 75.85ms→1.55ms; score 0.479227→0.885816 | low-precision path and fusion |
-| MI300X precision capabilities | smoke-tested | 4096 FP8 477 TFLOPS/18.25% peak; raw INT8xINT8→INT32 416 TOPS/15.91% peak with exact CPU samples | public weight-only INT8 Tensor/scale contract, official-model FP8 policy and packed INT4 software path |
+| MI300X precision capabilities | smoke-tested | 4096 FP8 477 TFLOPS/18.25% peak; raw INT8xINT8→INT32 416 TOPS/15.91% peak with exact CPU samples | official INT8 model route, official-model FP8 policy and packed INT4 software path |
+| Weight-only INT8 format | smoke-tested, model route absent | symmetric I8 values + same-device F32 scalar scale; CPU/HIP every byte, PyTorch oracle, official safetensors both directions; HIP dequant 0 H2D/D2H | complete-output INT8 Linear, fused/native GEMM and official-model logits/performance |
 | FP8 training/inference | smoke-tested | native E4 path, dynamic activation amax, O-only column weights and full official logits; Exp153 rejects model E5 while retaining mixed-format primitives | four full precision gates still fail; layer calibration and full training curve |
 | Qwen2.5-0.5B | smoke-tested | official weights, tool-call chat, full-logit oracle and Release steady decode at 1.01x–3.39x PyTorch over T1–2048/B1–8/N1–64 | repeated-process full matrix and multi-step SFT |
 | DeepSeek-R1-Distill-Qwen-1.5B | smoke-tested | official 339 tensors; current T2048/B2/N64 is 1.1393x PyTorch with exact 64 tokens, 5.23/6.38GB peak and equal KV bytes | broader repeated shape matrix, longer reasoning/SFT and identical resident-weight policy |
@@ -38,8 +39,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Decoder Transformer structure | smoke-tested | tiny GQA graph topology, PyTorch logits/loss/all-gradient parity, CPU/HIP parity | overfit/full recipe |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | smoke-tested | BPE round-trip + immutable licensed range + Model-S smoke | full corpus/reference train |
-| Weight/state API | smoke-tested | independent state_dict, atomic load, Qwen mapping, single/multi/index transactional HIP streaming | mmap and model-specific architecture validation |
-| safetensors | smoke-tested | F32/BF16/F16, shards/index/corruption/CPU-HIP, Python interop, transactional streaming and read-only mmap visits | FP8/quantized formats |
+| Weight/state API | smoke-tested | independent state_dict, atomic load, Qwen mapping, mixed I8/F32 state pairs, single/multi/index transactional HIP streaming | model-bound INT8 routing and architecture validation |
+| safetensors | smoke-tested | F32/BF16/F16 plus preserved I8/F32 pairs, shards/index/corruption/CPU-HIP, official Python interop, transactional streaming and read-only mmap visits | FP8/INT4 and standardized per-channel metadata |
 | C++ training CLI | smoke-tested | CPU save/resume fixture and Model-S HIP real-text steps | validation/report CLI |
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |

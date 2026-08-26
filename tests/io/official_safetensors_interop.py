@@ -41,6 +41,23 @@ def assert_fixture(path, dtype, tolerance):
         )
 
 
+def assert_int8_fixture(path):
+    actual = load_file(path)
+    expected_weight = torch.tensor(
+        [-127, -3, -1, 0, 2, 126], dtype=torch.int8
+    ).reshape(2, 3)
+    if set(actual) != {"linear.weight", "linear.weight.scale"}:
+        raise AssertionError(f"unexpected INT8 keys in {path}: {sorted(actual)}")
+    torch.testing.assert_close(
+        actual["linear.weight"], expected_weight, rtol=0, atol=0
+    )
+    if actual["linear.weight.scale"].dtype != torch.float32:
+        raise AssertionError("INT8 scale must stay float32")
+    torch.testing.assert_close(
+        actual["linear.weight.scale"], torch.tensor(0.03125), rtol=0, atol=0
+    )
+
+
 def main():
     args = parse_args()
     with tempfile.TemporaryDirectory(prefix="microllm-official-safetensors-") as temporary:
@@ -57,9 +74,20 @@ def main():
                 directory / f"python_{suffix}.safetensors",
                 metadata={"producer": "official-safetensors-python"},
             )
+        assert_int8_fixture(directory / "cpp_i8.safetensors")
+        save_file(
+            {
+                "linear.weight": torch.tensor(
+                    [-127, -3, -1, 0, 2, 126], dtype=torch.int8
+                ).reshape(2, 3),
+                "linear.weight.scale": torch.tensor(0.03125, dtype=torch.float32),
+            },
+            directory / "python_i8.safetensors",
+            metadata={"producer": "official-safetensors-python"},
+        )
         subprocess.run([args.helper, "verify", directory], check=True)
     print("directions=cpp-to-python,python-to-cpp")
-    print("dtypes=float32,bfloat16,float16")
+    print("dtypes=float32,bfloat16,float16,int8")
     print("status=pass")
 
 

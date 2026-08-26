@@ -172,4 +172,20 @@ TEST(TensorDTypeTest, Mi300FnuzFloat8UsesOneByteAndExplicitCast) {
     }
 }
 
+TEST(TensorDTypeTest, Int8UsesOneByteAndViewsKeepSignedValues) {
+    const std::vector<std::int8_t> values{-128, -127, -3, 0, 4, 126};
+    const auto tensor = Tensor::from_int8_vector(values, {2, 3});
+    EXPECT_EQ(tensor.dtype(), DType::Int8);
+    EXPECT_EQ(dtype_name(tensor.dtype()), "int8");
+    EXPECT_EQ(tensor.storage().num_bytes(), values.size());
+    EXPECT_EQ(tensor.to_int8_vector(), values);
+    EXPECT_EQ(tensor.transpose(0, 1).to_int8_vector(),
+              (std::vector<std::int8_t>{-128, 0, -127, 4, -3, 126}));
+    EXPECT_EQ(tensor.slice(1, 1, 3).to_int8_vector(),
+              (std::vector<std::int8_t>{-127, -3, 4, 126}));
+    EXPECT_THROW((void)tensor.to_vector(), std::runtime_error);
+    EXPECT_THROW((void)Tensor::from_int8_vector({1, 2}, {3}),
+                 std::invalid_argument);
+}
+
 }  // namespace microllm

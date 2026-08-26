@@ -39,6 +39,15 @@ float fp8_finite_maximum(DType dtype) {
     throw std::invalid_argument("FP8 maximum requires an FNUZ dtype");
 }
 
+float round_to_nearest_even(float value) {
+    const auto lower = std::floor(value);
+    const auto fraction = value - lower;
+    if (fraction < 0.5F) return lower;
+    if (fraction > 0.5F) return lower + 1.0F;
+    return std::fmod(std::abs(lower), 2.0F) == 0.0F ? lower
+                                                    : lower + 1.0F;
+}
+
 void require_float(const Tensor& tensor, const char* name) {
     if (!tensor.defined()) throw std::invalid_argument(std::string(name) + " is undefined");
     if (tensor.dtype() != DType::Float32) {
@@ -1252,6 +1261,99 @@ Tensor dequantize_fp8(const ScaledTensor& input, DType output_dtype,
     return output;
 #else
     throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
+Int8ScaledTensor quantize_int8(
+    const Tensor& input, float scale,
+    [[maybe_unused]] const OpContext& context) {
+    if (!input.defined() || !input.is_contiguous() ||
+        (input.dtype() != DType::Float32 &&
+         input.dtype() != DType::Float16 &&
+         input.dtype() != DType::BFloat16)) {
+        throw std::invalid_argument(
+            "INT8 quantize requires contiguous FP32, FP16, or BF16 input");
+    }
+    if (!std::isfinite(scale) || scale <= 0.0F) {
+        throw std::invalid_argument(
+            "INT8 quantize scale must be finite and positive");
+    }
+    auto scale_tensor = Tensor::from_vector({scale}, {}, DType::Float32);
+    Tensor output(input.shape(), DType::Int8, input.device());
+    if (input.device().is_cpu()) {
+        const auto values = input.to_vector();
+        std::vector<std::int8_t> quantized(values.size());
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            auto value = values[index] / scale;
+            if (std::isnan(value)) value = 0.0F;
+            value = std::clamp(value, -127.0F, 127.0F);
+            quantized[index] =
+                static_cast<std::int8_t>(round_to_nearest_even(value));
+        }
+        output = Tensor::from_int8_vector(quantized, input.shape());
+    } else {
+#if MICROLLM_HAS_HIP
+        scale_tensor = scale_tensor.to(input.device());
+        hip::launch_quantize_int8(
+            input.data(), input.dtype(),
+            static_cast<std::int8_t*>(output.data()), input.numel(),
+            1.0F / scale, context.native_stream(input.device()));
+#else
+        throw std::runtime_error(
+            "microLLM was built without HIP operator support");
+#endif
+    }
+    return {std::move(output), std::move(scale_tensor), scale, true};
+}
+
+Tensor dequantize_int8(
+    const Int8ScaledTensor& input, DType output_dtype,
+    [[maybe_unused]] const OpContext& context) {
+    if (!input.values.defined() || input.values.dtype() != DType::Int8 ||
+        !input.values.is_contiguous()) {
+        throw std::invalid_argument(
+            "INT8 dequantize requires contiguous int8 values");
+    }
+    if (!input.scale.defined() || input.scale.dtype() != DType::Float32 ||
+        input.scale.numel() != 1 || !input.scale.is_contiguous() ||
+        input.scale.device() != input.values.device()) {
+        throw std::invalid_argument(
+            "INT8 dequantize scale must be one contiguous same-device FP32 value");
+    }
+    if (output_dtype != DType::Float32 && output_dtype != DType::Float16 &&
+        output_dtype != DType::BFloat16) {
+        throw std::invalid_argument(
+            "INT8 dequantize output must be FP32, FP16, or BF16");
+    }
+    if (input.host_scale_available &&
+        (!std::isfinite(input.scale_value) || input.scale_value <= 0.0F)) {
+        throw std::invalid_argument(
+            "INT8 host scale must be finite and positive when available");
+    }
+    if (input.values.device().is_cpu()) {
+        const auto scales = input.scale.to_vector();
+        if (!std::isfinite(scales[0]) || scales[0] <= 0.0F) {
+            throw std::invalid_argument(
+                "INT8 dequantize scale value must be finite and positive");
+        }
+        const auto quantized = input.values.to_int8_vector();
+        std::vector<float> restored(quantized.size());
+        for (std::size_t index = 0; index < quantized.size(); ++index) {
+            restored[index] = static_cast<float>(quantized[index]) * scales[0];
+        }
+        return Tensor::from_vector(restored, input.values.shape(), output_dtype);
+    }
+    Tensor output(input.values.shape(), output_dtype, input.values.device());
+#if MICROLLM_HAS_HIP
+    hip::launch_dequantize_int8(
+        static_cast<const std::int8_t*>(input.values.data()), output.data(),
+        output_dtype, input.values.numel(),
+        static_cast<const float*>(input.scale.data()),
+        context.native_stream(input.values.device()));
+    return output;
+#else
+    throw std::runtime_error(
+        "microLLM was built without HIP operator support");
 #endif
 }
 

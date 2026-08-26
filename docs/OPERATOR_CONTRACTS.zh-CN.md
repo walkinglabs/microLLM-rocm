@@ -35,6 +35,17 @@ PyTorch SwiGLU Autograd由C++ Function实现，FP32调用上述fused producers�
 FP16/BF16；FP32计算后每个output舍入一次。它不alias、不广播、不接受zero-stride；scalar-seed仍是
 独立FP32合同。
 
+## 对称weight-only INT8
+
+`quantize_int8(input, scale)`只接受连续FP32/FP16/BF16，输出同shape `Int8ScaledTensor`：
+`values`为I8，`scale`为同设备FP32 scalar。公式固定为
+`clamp(round_to_nearest_even(input/scale), -127, 127)`；NaN归零，Inf饱和，scale必须有限且
+大于0。`dequantize_int8`只接受这一I8+F32同设备组合，可输出FP32/FP16/BF16。
+
+PyTorch oracle是`torch.clamp(torch.round(x/scale),-127,127).to(torch.int8)`和
+`q.float()*scale`。CPU/HIP必须逐字节量化相等；HIP还要求反量化测量窗没有H2D或D2H。
+这是一条权重表示/还原合同，不是INT8 GEMM、Transformer推理或训练合同。
+
 ## BF16 weight gradient
 
 `bf16_weight_gradient(input_fp32, output_gradient_fp32)` 接受两个连续二维 FP32 Tensor：

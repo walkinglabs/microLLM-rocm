@@ -13,7 +13,10 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 - [x] multi-shard streaming with whole-set preflight and bounded HIP staging;
 - [x] indexed weight-map streaming with declared-shard membership preflight;
 - [x] read-only memory-mapped payload visits with portable buffered fallback;
-- [ ] FP8/INT8/INT4 tensors and quantization metadata;
+- [x] signed one-byte INT8 Tensor plus scalar F32 weight scale, CPU/HIP
+  quantize/dequantize and mixed I8/F32 safetensors interoperability;
+- [ ] standardized FP8 files, INT4 packing, per-channel INT8 metadata and a
+  complete-output model compute route;
 - [x] add pinned official Qwen/DeepSeek fixture preparation: fixed revisions/licenses,
   complete safetensors header/index validation, exact parameter/Tensor counts,
   config/vocab/merges gates and a shared local manifest; large payloads remain outside Git.

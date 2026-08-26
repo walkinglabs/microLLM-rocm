@@ -44,6 +44,11 @@ add_executable(microllm_hf_cli_fixture
 target_link_libraries(microllm_hf_cli_fixture PRIVATE
     microllm::model microllm::io)
 
+add_executable(microllm_int8_weight_oracle
+    ops/int8_weight_oracle.cpp
+)
+target_link_libraries(microllm_int8_weight_oracle PRIVATE microllm::ops)
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 
 add_test(
@@ -109,6 +114,21 @@ set_tests_properties(PackageConfig.RejectsNonRelocatableDestination PROPERTIES
 )
 
 if(Python3_Interpreter_FOUND)
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import torch"
+        RESULT_VARIABLE microllm_pytorch_import_status
+        OUTPUT_QUIET ERROR_QUIET)
+    if(microllm_pytorch_import_status EQUAL 0)
+        add_test(
+            NAME Int8Weight.PyTorchOracle
+            COMMAND ${Python3_EXECUTABLE}
+                    ${PROJECT_SOURCE_DIR}/python/tests/test_int8_weight_oracle.py
+                    --helper $<TARGET_FILE:microllm_int8_weight_oracle>
+        )
+        set_tests_properties(Int8Weight.PyTorchOracle PROPERTIES
+            LABELS "cpu;pytorch;precision;int8;weights")
+    endif()
+
     add_test(
         NAME HfCLI.BinaryContract
         COMMAND ${Python3_EXECUTABLE}

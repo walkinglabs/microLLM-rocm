@@ -71,6 +71,9 @@ component has a public interface under `include/microllm`, an implementation und
     [FP8 error-attribution guide](fp8-error-attribution.zh-CN.md).
 36. For halving AdamW moment state without changing FP32 master weights, read the
     [BF16 AdamW moment guide](bf16-adamw-moments.zh-CN.md).
+37. For the one-byte symmetric weight format, scale Tensor, safetensors layout and
+    current no-INT8-GEMM boundary, read the
+    [INT8 weight-format guide](int8-weight-format.zh-CN.md).
 
 ## Engineering rules
 

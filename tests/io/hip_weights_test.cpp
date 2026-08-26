@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <microllm/io/safetensors.h>
 #include <microllm/model/model.h>
+#include <microllm/ops/ops.h>
 #include <microllm/runtime/runtime.h>
 
 namespace microllm::io {
@@ -85,6 +86,43 @@ TEST(HipWeightsTest, LoadsSafetensorsDirectlyToGpuAndIntoGpuModel) {
     EXPECT_THROW((void)incompatible.forward_inference(
                      Tensor::from_int32_vector({1}, {1, 1}).to(Device::hip())),
                  std::logic_error);
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
+}
+
+TEST(HipWeightsTest, LoadsMixedInt8WeightAndScaleWithoutDequantizeD2H) {
+    require_gpu();
+    const auto path = temporary_path();
+    save_safetensors(
+        path,
+        {{"linear.weight", Tensor::from_int8_vector(
+                               {-127, -4, -1, 0, 3, 126}, {2, 3})},
+         {"linear.weight.scale", Tensor::from_vector({0.125F}, {})}},
+        {.dtype = WeightFileDType::Preserve, .atomic_replace = true});
+
+    runtime::reset_transfer_stats();
+    const auto state = load_safetensors(path, Device::hip(0));
+    const auto loading = runtime::transfer_stats();
+    ASSERT_EQ(state.size(), 2U);
+    EXPECT_EQ(loading.host_to_device_calls, 2U);
+    EXPECT_EQ(loading.host_to_device_bytes, 10U);
+    EXPECT_EQ(loading.device_to_host_calls, 0U);
+    EXPECT_EQ(state.at("linear.weight").dtype(), DType::Int8);
+    EXPECT_EQ(state.at("linear.weight").device(), Device::hip(0));
+    EXPECT_EQ(state.at("linear.weight.scale").dtype(), DType::Float32);
+
+    const ops::Int8ScaledTensor weight{
+        state.at("linear.weight"), state.at("linear.weight.scale")};
+    runtime::reset_transfer_stats();
+    const auto restored = ops::dequantize_int8(weight);
+    runtime::synchronize(Device::hip(0));
+    const auto hot = runtime::transfer_stats();
+    EXPECT_EQ(hot.host_to_device_calls, 0U);
+    EXPECT_EQ(hot.device_to_host_calls, 0U);
+    EXPECT_EQ(restored.to_vector(),
+              (std::vector<float>{-15.875F, -0.5F, -0.125F,
+                                  0.0F, 0.375F, 15.75F}));
+
     std::error_code ignored;
     std::filesystem::remove(path, ignored);
 }
