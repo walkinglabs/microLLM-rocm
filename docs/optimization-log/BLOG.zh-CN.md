@@ -5190,3 +5190,13 @@ FP16 selective Kernel把`expf`替换成HIP fast intrinsic。10格精度、pointe
 128/256/512线程，而不是继续放宽数学。
 
 ![Fast-exp typed Softmax rejection](assets/pytorch-rocm-fast-exp-softmax-reject.svg)
+
+## 360. Experiment 344：线程数要测到硬件边界
+
+同一个FP16 cached/wave width4096分别用128/256/512/1024线程。四档10格精度与资源合同全部通过；
+Event为12.027/7.567/5.472/5.086μs，wall为12.839/8.271/6.215/5.859μs。
+
+512相对256提高1.383×/1.331×，1024再提高1.076×/1.061×，因此最终保留1024。相对PyTorch
+来到0.880×。这不是通用“最大线程最快”规则，只属于FP16、2048–8192、cached/wave这条谓词。
+
+![FP16 Softmax thread matrix](assets/pytorch-rocm-softmax-thread-matrix.svg)

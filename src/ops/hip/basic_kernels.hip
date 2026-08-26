@@ -4071,6 +4071,7 @@ void launch_softmax_typed(const void* input, void* output, DType dtype,
                           : dim3(static_cast<unsigned>(rows));
     const auto threads = width <= 64 ? 64U : (width <= 128 ? 128U : kBlockSize);
     const auto block = dim3(use_serial ? kBlockSize : threads);
+    constexpr unsigned fp16_cached_threads = 1024;
     switch (dtype) {
         case DType::Float16:
             if (use_serial) {
@@ -4082,7 +4083,7 @@ void launch_softmax_typed(const void* input, void* output, DType dtype,
                 if (use_cached) {
                     hipLaunchKernelGGL(
                         (softmax_typed_block_cached_kernel<__half, true>), grid,
-                        block,
+                        dim3(fp16_cached_threads),
                         static_cast<std::size_t>(width) * sizeof(float),
                         as_stream(stream), static_cast<const __half*>(input),
                         static_cast<__half*>(output), rows, width);

@@ -282,8 +282,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   1.077×/1.080×, while compile-time BF16 fallback remains 1.002×/1.004× baseline;
 - [x] reject FP16 fast-exp despite precision passing: width4096 Event/wall is only
   1.045×/1.034× versus the retained wave path, below the 1.05 gate;
-- [ ] measure FP16 cached/wave block sizes 128/256/512 before changing another
-  instruction; current 0.615× PyTorch may be an occupancy/scheduling gap.
+- [x] measure FP16 cached/wave 128/256/512/1024 threads: width4096 Event is
+  12.027/7.567/5.472/5.086μs; 1024 beats 512 by 1.076×/1.061× Event/wall and
+  reaches 0.880× PyTorch;
+- [ ] attribute the remaining roughly 0.6μs Event gap to wrapper submission versus
+  device Kernel before another local edit; no larger legal workgroup remains.
 
 ## P2.5 — production data parallel reducer
 

@@ -447,6 +447,7 @@
     "python/tests/test_pytorch_wave_softmax_reject.py",
     "python/tests/test_pytorch_fp16_wave_softmax.py",
     "python/tests/test_pytorch_fast_exp_softmax_reject.py",
+    "python/tests/test_pytorch_softmax_thread_matrix.py",
     "python/tests/test_data_parallel_verification_matrix.py",
     "python/tests/test_data_parallel_bucket_matrix.py",
     "python/tests/test_distributed_model_workload.py",

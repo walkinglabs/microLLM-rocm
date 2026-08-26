@@ -787,3 +787,17 @@ python3 docs/optimization-log/scripts/render_pytorch_fast_exp_softmax_reject.py 
   --candidate benchmarks/results/2026-08-26-pytorch-rocm-fast-exp-softmax-reject \
   --output docs/optimization-log/assets/pytorch-rocm-fast-exp-softmax-reject.svg
 ```
+
+The subsequent FP16 cached/wave workgroup matrix compares 128/256/512/1024 threads.
+Committed raw data lives in the three `pytorch-rocm-softmax-threads*` directories plus the
+256-thread FP16-wave baseline. The retained 1024-thread path measures 5.086 μs Event,
+1.076× faster than 512 and 0.880× PyTorch. Render the matrix with:
+
+```bash
+python3 docs/optimization-log/scripts/render_pytorch_softmax_thread_matrix.py \
+  --threads128 benchmarks/results/2026-08-26-pytorch-rocm-softmax-threads128 \
+  --threads256 benchmarks/results/2026-08-26-pytorch-rocm-fp16-wave-softmax \
+  --threads512 benchmarks/results/2026-08-26-pytorch-rocm-softmax-threads512 \
+  --threads1024 benchmarks/results/2026-08-26-pytorch-rocm-softmax-threads1024 \
+  --output docs/optimization-log/assets/pytorch-rocm-softmax-thread-matrix.svg
+```
