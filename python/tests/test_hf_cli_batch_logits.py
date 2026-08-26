@@ -39,6 +39,38 @@ def run(binary: Path, fixture: Path, batch: int,
     return floats(output), record
 
 
+def cache_export(binary: Path, fixture: Path, output: Path) -> tuple[dict, bytes]:
+    completed = subprocess.run([
+        str(binary), "--config", str(fixture / "config.json"),
+        "--weights", str(fixture / "model.safetensors"),
+        "--tokens", "1,2", "--device", "cpu", "--top-k", "1",
+        "--batch", "2", "--workload", "decode", "--new-tokens", "1",
+        "--use-cache", "true", "--cache-prefill-mode", "full",
+        "--kv-cache-dtype", "bf16", "--cache-capacity", "3",
+        "--decode-mode", "steady", "--warmup", "0", "--steps", "1",
+        "--prefill-warmup", "0", "--prefill-steps", "1",
+        "--prefill-cache-output", str(output), "--prefill-cache-layer", "0",
+    ], text=True, capture_output=True, check=False)
+    if completed.returncode != 0:
+        raise AssertionError(completed.stdout + completed.stderr)
+    record = json.loads(completed.stdout.splitlines()[-1])
+    with output.open("rb") as stream:
+        header = json.loads(stream.readline())
+        payload = stream.read()
+    assert header == {
+        "schema_version": 1, "record_type": "prefill_kv_cache",
+        "layer": 0, "dtype": "bfloat16", "shape": [2, 1, 2, 4],
+        "key_bytes": 32, "value_bytes": 32,
+    }
+    assert record["prefill_cache_exported"] is True
+    assert record["prefill_cache_layer"] == 0
+    assert record["prefill_cache_dtype"] == "bfloat16"
+    assert record["prefill_cache_shape"] == [2, 1, 2, 4]
+    assert record["prefill_cache_key_bytes"] == 32
+    assert record["prefill_cache_value_bytes"] == 32
+    return header, payload
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", required=True, type=Path)
@@ -64,6 +96,14 @@ def main() -> int:
         assert batch_last == batch_full
         assert batch_last[:8] == batch_one
         assert batch_last[8:] == batch_one
+        header, payload = cache_export(
+            args.binary, fixture, root / "prefill-cache.bin")
+        row_bytes = header["key_bytes"] // header["shape"][0]
+        key = payload[:header["key_bytes"]]
+        value = payload[header["key_bytes"]:]
+        assert len(payload) == header["key_bytes"] + header["value_bytes"]
+        assert key[:row_bytes] == key[row_bytes:]
+        assert value[:row_bytes] == value[row_bytes:]
     print("hf_infer batch logits export: pass")
     return 0
 

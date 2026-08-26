@@ -2,6 +2,7 @@
 #include <chrono>
 #include <charconv>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <iomanip>
@@ -39,6 +40,9 @@ struct Options {
     std::filesystem::path logits_output;
     std::filesystem::path cache_logits_output;
     std::int64_t cache_logits_step = -1;
+    std::filesystem::path prefill_cache_output;
+    std::int64_t prefill_cache_layer = 0;
+    bool prefill_cache_layer_explicit = false;
     std::string text;
     std::filesystem::path vocabulary;
     std::filesystem::path merges;
@@ -130,6 +134,13 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--cache-logits-step") {
             result.cache_logits_step = std::stoll(argv[index + 1]);
+        }
+        else if (name == "--prefill-cache-output") {
+            result.prefill_cache_output = argv[index + 1];
+        }
+        else if (name == "--prefill-cache-layer") {
+            result.prefill_cache_layer = std::stoll(argv[index + 1]);
+            result.prefill_cache_layer_explicit = true;
         }
         else if (name == "--text") result.text = argv[index + 1];
         else if (name == "--vocab") result.vocabulary = argv[index + 1];
@@ -694,6 +705,16 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument(
             "--cache-logits-step requires an output and must be below new tokens");
     }
+    if (result.prefill_cache_layer < 0 ||
+        (result.prefill_cache_layer_explicit &&
+         result.prefill_cache_output.empty()) ||
+        (!result.prefill_cache_output.empty() &&
+         (result.workload != "decode" || !result.use_cache ||
+          result.cache_prefill_mode != "full" || result.warmup != 0 ||
+          result.steps != 1))) {
+        throw std::invalid_argument(
+            "--prefill-cache-output requires one full cached decode run with warmup 0 and steps 1");
+    }
     if (result.allocation_source_diagnostics &&
         (result.workload != "prefill" || result.prefill_warmup != 0 ||
          result.prefill_steps != 1)) {
@@ -843,6 +864,63 @@ std::size_t tensor_bytes(const microllm::Tensor& tensor) {
     return tensor.defined()
                ? static_cast<std::size_t>(tensor.numel()) * microllm::dtype_size(tensor.dtype())
                : 0;
+}
+
+struct PrefillCacheExport {
+    bool written = false;
+    std::int64_t layer = 0;
+    microllm::Shape shape;
+    microllm::DType dtype = microllm::DType::Float32;
+    std::size_t key_bytes = 0;
+    std::size_t value_bytes = 0;
+};
+
+std::vector<std::byte> raw_tensor_bytes(const microllm::Tensor& tensor) {
+    const auto packed = tensor.is_contiguous() ? tensor : tensor.contiguous();
+    std::vector<std::byte> bytes(tensor_bytes(packed));
+    microllm::runtime::copy_bytes(
+        bytes.data(), microllm::Device::cpu(), packed.data(), packed.device(),
+        bytes.size());
+    return bytes;
+}
+
+PrefillCacheExport write_prefill_cache(
+    const std::filesystem::path& path,
+    const microllm::inference::KVCache& cache, std::int64_t layer) {
+    if (layer < 0 || layer >= static_cast<std::int64_t>(cache.layer_count())) {
+        throw std::out_of_range("prefill cache export layer is outside the model");
+    }
+    const auto& state = cache.layer(static_cast<std::size_t>(layer));
+    if (!state.key.defined() || !state.value.defined() ||
+        state.key.shape() != state.value.shape() ||
+        state.key.dtype() != state.value.dtype() || state.key.ndim() != 4 ||
+        state.key.shape()[0] != cache.batch_size() ||
+        state.key.shape()[2] != cache.position()) {
+        throw std::logic_error("prefill cache export state is incomplete");
+    }
+    const auto key = raw_tensor_bytes(state.key);
+    const auto value = raw_tensor_bytes(state.value);
+    if (path.has_parent_path()) std::filesystem::create_directories(path.parent_path());
+    std::ofstream output(path, std::ios::binary | std::ios::trunc);
+    if (!output) throw std::runtime_error("cannot open prefill cache output");
+    output << "{\"schema_version\":1,\"record_type\":\"prefill_kv_cache\""
+           << ",\"layer\":" << layer
+           << ",\"dtype\":\"" << microllm::dtype_name(state.key.dtype())
+           << "\",\"shape\":[";
+    for (std::size_t index = 0; index < state.key.shape().size(); ++index) {
+        if (index != 0) output << ',';
+        output << state.key.shape()[index];
+    }
+    output << "],\"key_bytes\":" << key.size()
+           << ",\"value_bytes\":" << value.size() << "}\n";
+    output.write(reinterpret_cast<const char*>(key.data()),
+                 static_cast<std::streamsize>(key.size()));
+    output.write(reinterpret_cast<const char*>(value.data()),
+                 static_cast<std::streamsize>(value.size()));
+    if (!output) throw std::runtime_error("failed writing prefill cache output");
+    return {.written = true, .layer = layer, .shape = state.key.shape(),
+            .dtype = state.key.dtype(), .key_bytes = key.size(),
+            .value_bytes = value.size()};
 }
 
 struct CachedGenerationState {
@@ -2042,6 +2120,7 @@ int main(int argc, char** argv) {
         std::string generated_text;
         GenerationRun generation_evidence;
         microllm::Tensor cache_logits_evidence;
+        PrefillCacheExport prefill_cache_export;
         std::unique_ptr<microllm::profiling::TraceSession> decode_trace_session;
         if (run_decode && !command.trace_output.empty()) {
             decode_trace_session =
@@ -2099,6 +2178,11 @@ int main(int argc, char** argv) {
                         model, ids, cache_capacity,
                         command.batch,
                         command.cache_prefill_mode == "full", cache_dtypes);
+                    if (iteration == 0 && !command.prefill_cache_output.empty()) {
+                        prefill_cache_export = write_prefill_cache(
+                            command.prefill_cache_output, state.cache,
+                            command.prefill_cache_layer);
+                    }
                     microllm::runtime::synchronize(device);
                     const auto prepare_finish = std::chrono::steady_clock::now();
                     decode_prepare_ms += std::chrono::duration<double, std::milli>(
@@ -2502,6 +2586,21 @@ int main(int argc, char** argv) {
                           : command.cache_logits_step >= 0
                                 ? command.cache_logits_step
                                 : command.new_tokens - 1)
+                  << ",\"prefill_cache_exported\":"
+                  << (prefill_cache_export.written ? "true" : "false")
+                  << ",\"prefill_cache_layer\":"
+                  << command.prefill_cache_layer
+                  << ",\"prefill_cache_dtype\":\""
+                  << (prefill_cache_export.written
+                          ? microllm::dtype_name(prefill_cache_export.dtype)
+                          : "undefined")
+                  << "\""
+                  << ",\"prefill_cache_shape\":"
+                  << json_indices(prefill_cache_export.shape)
+                  << ",\"prefill_cache_key_bytes\":"
+                  << prefill_cache_export.key_bytes
+                  << ",\"prefill_cache_value_bytes\":"
+                  << prefill_cache_export.value_bytes
                   << ",\"batch_argmax_mode\":\""
                   << command.batch_argmax_mode << "\""
                   << ",\"decode_mode\":\"" << command.decode_mode << "\""

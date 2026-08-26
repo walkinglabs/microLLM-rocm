@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import struct
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -60,9 +61,45 @@ ROW_INVARIANCE_SPEC = importlib.util.spec_from_file_location(
 ROW_INVARIANCE = importlib.util.module_from_spec(ROW_INVARIANCE_SPEC)
 assert ROW_INVARIANCE_SPEC.loader is not None
 ROW_INVARIANCE_SPEC.loader.exec_module(ROW_INVARIANCE)
+PREFILL_CACHE_SPEC = importlib.util.spec_from_file_location(
+    "audit_prefill_cache_prefix",
+    ROOT / "benchmarks/single_gpu/audit_prefill_cache_prefix.py")
+PREFILL_CACHE = importlib.util.module_from_spec(PREFILL_CACHE_SPEC)
+assert PREFILL_CACHE_SPEC.loader is not None
+PREFILL_CACHE_SPEC.loader.exec_module(PREFILL_CACHE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_prefill_cache_summary_separates_key_and_value(self):
+        processes = []
+        for run in (1, 2):
+            for batch in PREFILL_CACHE.BATCHES:
+                key = [[0.0, 1.0] for _ in range(batch)]
+                value_row = [0.0, 2.0 + (0.25 if batch > 1 else 0.0)]
+                value = [value_row for _ in range(batch)]
+                processes.append({
+                    "batch": batch, "process_run": run,
+                    "values": {"key": key, "value": value},
+                    "raw": {
+                        "key": [bytes([0, 1])] * batch,
+                        "value": [bytes([2, batch])] * batch,
+                    },
+                })
+        summary = PREFILL_CACHE.summarize(processes)
+        tensors = {row["tensor"]: row for row in summary["tensor_summaries"]}
+        self.assertEqual(summary["process_rows"], 8)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertTrue(summary["all_within_batch_bitwise_equal"])
+        self.assertEqual(tensors["key"]["maximum_cross_batch_error"], 0.0)
+        self.assertAlmostEqual(tensors["value"]["maximum_cross_batch_error"],
+                               0.25)
+
+    def test_prefill_cache_bf16_decoder_preserves_raw_values(self):
+        payload = struct.pack("<HHH", 0x3F80, 0xC000, 0x0000)
+        self.assertEqual(PREFILL_CACHE.bf16_values(payload), [1.0, -2.0, 0.0])
+        with self.assertRaises(ValueError):
+            PREFILL_CACHE.bf16_values(b"x")
+
     def test_current_bf16_row_invariance_closes_gate_up_search(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-bf16-decode-row-invariance")
