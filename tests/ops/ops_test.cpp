@@ -330,6 +330,8 @@ TEST(CpuOpsTest, MatmulTuningKeyCapturesLayoutModeWorkspaceAndEnvironment) {
 TEST(CpuOpsTest, Fp32SolutionKeyFlattensExactBatchedDescriptorWithoutAllocation) {
     OpContext context;
     context.mode = OpMode::Inference;
+    context.fp32_solution_scope =
+        Fp32SolutionScope::PrefillQueryProjection;
     const auto key = make_fp32_matmul_solution_key(
         {2, 14, 512, 64}, {2, 14, 512, 64}, Device::cpu(),
         false, true, context, 0.125F);
@@ -349,7 +351,15 @@ TEST(CpuOpsTest, Fp32SolutionKeyFlattensExactBatchedDescriptorWithoutAllocation)
     EXPECT_EQ(key.architecture, "host");
     EXPECT_EQ(key.hipblaslt_version, 0);
     EXPECT_EQ(key.mode, OpMode::Inference);
+    EXPECT_EQ(key.solution_scope,
+              Fp32SolutionScope::PrefillQueryProjection);
     EXPECT_EQ(key.workspace_limit, 0U);
+    auto general_context = context;
+    general_context.fp32_solution_scope = Fp32SolutionScope::General;
+    const auto general = make_fp32_matmul_solution_key(
+        {2, 14, 512, 64}, {2, 14, 512, 64}, Device::cpu(),
+        false, true, general_context, 0.125F);
+    EXPECT_NE(general, key);
 
     clear_fp32_matmul_solution_registry();
     EXPECT_EQ(fp32_matmul_solution_stats().registered_entries, 0U);

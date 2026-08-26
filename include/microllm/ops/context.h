@@ -9,6 +9,11 @@
 namespace microllm::ops {
 
 enum class OpMode { Unspecified, Inference, Training };
+enum class Fp32SolutionScope {
+    General,
+    PrefillQueryProjection,
+    PrefillKeyValueProjection,
+};
 
 struct OpContext {
     runtime::Stream* stream = nullptr;
@@ -17,6 +22,7 @@ struct OpContext {
     void* external_stream = nullptr;
     Device external_stream_device = Device::cpu();
     OpMode mode = OpMode::Unspecified;
+    Fp32SolutionScope fp32_solution_scope = Fp32SolutionScope::General;
 
     [[nodiscard]] static OpContext from_external_stream(Device device, void* native_stream) {
         OpContext context;

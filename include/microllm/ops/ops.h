@@ -220,6 +220,7 @@ struct Fp32MatmulSolutionKey {
     int hip_driver_version = 0;
     int hipblaslt_version = 0;
     OpMode mode = OpMode::Unspecified;
+    Fp32SolutionScope solution_scope = Fp32SolutionScope::General;
     std::size_t workspace_limit = 0;
 
     auto operator<=>(const Fp32MatmulSolutionKey&) const = default;

@@ -111,6 +111,8 @@ struct Options {
     bool bf16_grouped_qkv_prewarm = false;
     int fp32_attention_qk_solution_index = -1;
     int fp32_attention_pv_solution_index = -1;
+    int fp32_prefill_q_solution_index = -1;
+    int fp32_prefill_kv_solution_index = -1;
     bool allocation_source_diagnostics = false;
     bool strided_copy_diagnostics = false;
     bool inference_bthd_attention = false;
@@ -376,6 +378,14 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp32-attention-pv-solution-index") {
             result.fp32_attention_pv_solution_index =
+                std::stoi(argv[index + 1]);
+        }
+        else if (name == "--fp32-prefill-q-solution-index") {
+            result.fp32_prefill_q_solution_index =
+                std::stoi(argv[index + 1]);
+        }
+        else if (name == "--fp32-prefill-kv-solution-index") {
+            result.fp32_prefill_kv_solution_index =
                 std::stoi(argv[index + 1]);
         }
         else if (name == "--allocation-source-diagnostics") {
@@ -695,6 +705,18 @@ Options options(int argc, char** argv) {
          (result.device != "hip" || result.workload != "prefill"))) {
         throw std::invalid_argument(
             "FP32 Attention solution indices require HIP prefill workload");
+    }
+    const auto fp32_prefill_projection_requested =
+        result.fp32_prefill_q_solution_index >= 0 ||
+        result.fp32_prefill_kv_solution_index >= 0;
+    if (result.fp32_prefill_q_solution_index < -1 ||
+        result.fp32_prefill_kv_solution_index < -1 ||
+        (fp32_prefill_projection_requested &&
+         (result.device != "hip" || result.workload != "decode" ||
+          !result.use_cache || result.cache_prefill_mode != "full" ||
+          result.fp8_linear || result.bf16_attention))) {
+        throw std::invalid_argument(
+            "FP32 prefill projection solutions require HIP full cached decode with FP32 Attention weights");
     }
     if (!result.cache_logits_output.empty() &&
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 1)) {
@@ -1590,7 +1612,9 @@ int main(int argc, char** argv) {
             }
         }
         if (command.fp32_attention_qk_solution_index >= 0 ||
-            command.fp32_attention_pv_solution_index >= 0) {
+            command.fp32_attention_pv_solution_index >= 0 ||
+            command.fp32_prefill_q_solution_index >= 0 ||
+            command.fp32_prefill_kv_solution_index >= 0) {
             microllm::ops::clear_fp32_matmul_solution_registry();
             const auto sequence = static_cast<std::int64_t>(ids.size());
             const auto heads = external.model.heads;
@@ -1610,6 +1634,31 @@ int main(int argc, char** argv) {
                     probability_shape, qkv_shape, device, false, false);
                 microllm::ops::register_fp32_matmul_solution(
                     key, command.fp32_attention_pv_solution_index);
+            }
+            const auto rows = command.batch * sequence;
+            microllm::ops::OpContext query_context;
+            query_context.mode = microllm::ops::OpMode::Inference;
+            query_context.fp32_solution_scope =
+                microllm::ops::Fp32SolutionScope::PrefillQueryProjection;
+            microllm::ops::OpContext key_value_context;
+            key_value_context.mode = microllm::ops::OpMode::Inference;
+            key_value_context.fp32_solution_scope =
+                microllm::ops::Fp32SolutionScope::PrefillKeyValueProjection;
+            if (command.fp32_prefill_q_solution_index >= 0) {
+                const auto key = microllm::ops::make_fp32_matmul_solution_key(
+                    {rows, external.model.dimension},
+                    {external.model.dimension, external.model.dimension},
+                    device, false, false, query_context);
+                microllm::ops::register_fp32_matmul_solution(
+                    key, command.fp32_prefill_q_solution_index);
+            }
+            if (command.fp32_prefill_kv_solution_index >= 0) {
+                const auto key = microllm::ops::make_fp32_matmul_solution_key(
+                    {rows, external.model.dimension},
+                    {external.model.dimension, external.model.kv_dimension()},
+                    device, false, false, key_value_context);
+                microllm::ops::register_fp32_matmul_solution(
+                    key, command.fp32_prefill_kv_solution_index);
             }
         }
         if (command.workload == "continuous") {
@@ -2387,6 +2436,10 @@ int main(int argc, char** argv) {
                   << command.fp32_attention_qk_solution_index
                   << ",\"fp32_attention_pv_solution_index\":"
                   << command.fp32_attention_pv_solution_index
+                  << ",\"fp32_prefill_q_solution_index\":"
+                  << command.fp32_prefill_q_solution_index
+                  << ",\"fp32_prefill_kv_solution_index\":"
+                  << command.fp32_prefill_kv_solution_index
                   << ",\"fp32_solution_registered_entries\":"
                   << fp32_solution_stats.registered_entries
                   << ",\"fp32_solution_cached_algorithms\":"

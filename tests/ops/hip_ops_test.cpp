@@ -5075,6 +5075,29 @@ TEST(HipOptimizedOpsTest, ExactFp32AttentionSolutionDispatchesAndCaches) {
     EXPECT_EQ(stats.dispatches, 2U);
     clear_fp32_matmul_solution_registry();
     EXPECT_EQ(fp32_matmul_solution_stats().registered_entries, 0U);
+
+    OpContext query_context;
+    query_context.mode = OpMode::Inference;
+    query_context.fp32_solution_scope =
+        Fp32SolutionScope::PrefillQueryProjection;
+    const auto scoped_key = make_fp32_matmul_solution_key(
+        left.shape(), right.shape(), gpu, false, true, query_context);
+    register_fp32_matmul_solution(scoped_key, 311017);
+    const auto general_output = matmul_with_implementation(
+        left, right, MatmulImplementation::HipBLASLt, false, true).to_vector();
+    expect_near(general_output, reference, 1.0e-5F);
+    stats = fp32_matmul_solution_stats();
+    EXPECT_EQ(stats.registry_hits, 0U);
+    EXPECT_EQ(stats.registry_misses, 1U);
+    const auto scoped_output = matmul_with_implementation(
+        left, right, MatmulImplementation::HipBLASLt, false, true,
+        query_context).to_vector();
+    expect_near(scoped_output, reference, 1.0e-5F);
+    stats = fp32_matmul_solution_stats();
+    EXPECT_EQ(stats.registry_hits, 1U);
+    EXPECT_EQ(stats.registry_misses, 1U);
+    EXPECT_EQ(stats.dispatches, 1U);
+    clear_fp32_matmul_solution_registry();
 }
 
 TEST(HipOptimizedOpsTest,

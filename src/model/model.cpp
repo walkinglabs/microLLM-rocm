@@ -446,19 +446,21 @@ public:
         auto output = forward_scaled_input_without_bias(scaled_input);
         return has_bias_ ? ops::add_bias(output, bias_.data()) : output;
     }
-    Tensor forward_tensor_without_bias(const Tensor& input) {
+    Tensor forward_tensor_without_bias(
+        const Tensor& input, const ops::OpContext& context = {}) {
         if (precision_ == LinearPrecision::BFloat16) {
             return ops::bf16_matmul(
                 input, bf16_training_weight_.defined()
                            ? bf16_training_weight_
-                           : ops::cast(weight_.data(), DType::BFloat16));
+                           : ops::cast(weight_.data(), DType::BFloat16),
+                context);
         }
         if (precision_ == LinearPrecision::Float8E4M3FNUZ) {
             if (diagnostic_mode_ == Fp8DiagnosticMode::WeightOnly) {
                 return ops::matmul_with_implementation(
                     input,
                     ops::dequantize_fp8(scaled_weight(), DType::Float32),
-                    ops::MatmulImplementation::Auto);
+                    ops::MatmulImplementation::Auto, false, false, context);
             }
             ops::ScaledTensor scaled_input;
             if (activation_scale_mode_ == Fp8ActivationScaleMode::TensorAmax) {
@@ -484,11 +486,13 @@ public:
             return ops::bf16_matmul(input, weight_.data());
         }
         return ops::matmul_with_implementation(input, weight_.data(),
-                                               ops::MatmulImplementation::Auto);
+                                               ops::MatmulImplementation::Auto,
+                                               false, false, context);
     }
-    Tensor forward_tensor(const Tensor& input) {
-        auto output = forward_tensor_without_bias(input);
-        return has_bias_ ? ops::add_bias(output, bias_.data()) : output;
+    Tensor forward_tensor(const Tensor& input,
+                          const ops::OpContext& context = {}) {
+        auto output = forward_tensor_without_bias(input, context);
+        return has_bias_ ? ops::add_bias(output, bias_.data(), context) : output;
     }
     Value& weight() noexcept { return weight_; }
     [[nodiscard]] const Tensor& weight_data() const noexcept { return weight_.data(); }
@@ -1018,6 +1022,16 @@ public:
             }
         };
         const auto flat = input.reshape({batch * sequence, config_.dimension});
+        ops::OpContext query_context;
+        ops::OpContext key_value_context;
+        if (prefill_cache != nullptr) {
+            query_context.mode = ops::OpMode::Inference;
+            query_context.fp32_solution_scope =
+                ops::Fp32SolutionScope::PrefillQueryProjection;
+            key_value_context.mode = ops::OpMode::Inference;
+            key_value_context.fp32_solution_scope =
+                ops::Fp32SolutionScope::PrefillKeyValueProjection;
+        }
         const auto bthd_attention =
             ops::inference_bthd_attention_enabled() &&
             input.device().is_hip() && ops::hipblaslt_available() &&
@@ -1074,9 +1088,12 @@ public:
                 key_projection = key_.forward_scaled_input(scaled);
                 value_projection = value_.forward_scaled_input(scaled);
             } else {
-                query_projection = query_.forward_tensor(flat);
-                key_projection = key_.forward_tensor(flat);
-                value_projection = value_.forward_tensor(flat);
+                query_projection = query_.forward_tensor(
+                    flat, query_context);
+                key_projection = key_.forward_tensor(
+                    flat, key_value_context);
+                value_projection = value_.forward_tensor(
+                    flat, key_value_context);
             }
         }
         trace_tensor("q_projection", query_projection);
@@ -1228,10 +1245,14 @@ public:
                                          value_.bias().data())
                                    : projections.values.third;
         } else {
-            query_projection = fuse_query_bias ? query_.forward_tensor_without_bias(flat)
-                                                : query_.forward_tensor(flat);
-            key_projection = fuse_key_bias ? key_.forward_tensor_without_bias(flat)
-                                            : key_.forward_tensor(flat);
+            query_projection = fuse_query_bias
+                                   ? query_.forward_tensor_without_bias(
+                                         flat)
+                                   : query_.forward_tensor(flat);
+            key_projection = fuse_key_bias
+                                 ? key_.forward_tensor_without_bias(
+                                       flat)
+                                 : key_.forward_tensor(flat);
             value_projection = value_.forward_tensor(flat);
         }
         trace_detail(trace_prefix, "q_projection", query_projection);

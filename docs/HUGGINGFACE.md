@@ -97,6 +97,11 @@ GEMM注册一个version-local hipBLASLt solution。它要求HIP、cached decode�
 prefill或down projection。JSON报告index与registry count。solution编号不是跨ROCm稳定API，只有
 完成exact-shape support、CPU数值和完整模型门后才能用于实验，不能写成硬编码默认。
 
+`--fp32-prefill-q-solution-index N`和`--fp32-prefill-kv-solution-index N`只为full cached prefill的
+FP32 Q投影或共享K/V投影注册version-local solution。registry key除shape/environment外还包含明确的
+projection scope，因此不会误命中同形Attention output或FFN Linear。它们要求HIP、full cached
+decode和FP32 Attention权重；JSON报告index以及registry hit/miss/cache/dispatch计数。默认均为`-1`。
+
 `--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断。
 默认保存最后一步；`--cache-logits-step N`可选择`0 <= N < new_tokens`的具体decode步，包含
 batch的完整`[B,V]` FP32值。至少生成一个token；开启诊断输出的运行不作为正式性能排名。

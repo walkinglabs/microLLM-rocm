@@ -156,7 +156,11 @@ void validate_fp32_solution_key(const Fp32MatmulSolutionKey& key) {
         key.output_rows <= 0 || key.output_columns <= 0 ||
         !std::isfinite(alpha) || key.architecture.empty() ||
         key.hip_runtime_version < 0 || key.hip_driver_version < 0 ||
-        key.hipblaslt_version <= 0) {
+        key.hipblaslt_version <= 0 ||
+        (key.solution_scope != Fp32SolutionScope::General &&
+         key.solution_scope != Fp32SolutionScope::PrefillQueryProjection &&
+         key.solution_scope !=
+             Fp32SolutionScope::PrefillKeyValueProjection)) {
         throw std::invalid_argument("FP32 solution key is incomplete");
     }
     const auto rows = key.transpose_left ? key.left_columns : key.left_rows;
@@ -509,6 +513,7 @@ Fp32MatmulSolutionKey make_fp32_matmul_solution_key(
         .hip_driver_version = environment.driver_version,
         .hipblaslt_version = device.is_hip() ? hipblaslt_version() : 0,
         .mode = context.mode,
+        .solution_scope = context.fp32_solution_scope,
         .workspace_limit = context.workspace_bytes,
     };
     if (device.is_hip()) validate_fp32_solution_key(key);

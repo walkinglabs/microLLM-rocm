@@ -38,6 +38,9 @@ def main() -> int:
         b"--bf16-decode-algorithm-index",
         b"bf16_decode_algorithm_index",
         b"bf16_registered_algorithm_count",
+        b"--fp32-prefill-q-solution-index",
+        b"--fp32-prefill-kv-solution-index",
+        b"fp32_prefill_q_solution_index",
         b"--bf16-ffn-arena-minimum-rows",
         b"bf16_ffn_arena_bypassed_calls",
         b"--bf16-qkv-arena",
@@ -171,6 +174,18 @@ def main() -> int:
                 "requires HIP cached decode" not in rejected_decode_algorithm.stderr:
             raise RuntimeError(
                 "hf_infer accepted a decode BF16 solution outside HIP cached decode")
+        rejected_prefill_projection = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--workload", "decode", "--new-tokens", "1", "--use-cache", "true",
+            "--cache-prefill-mode", "full",
+            "--fp32-prefill-q-solution-index", "296100",
+        ], text=True, capture_output=True, check=False)
+        if rejected_prefill_projection.returncode == 0 or \
+                "require HIP full cached decode" not in \
+                rejected_prefill_projection.stderr:
+            raise RuntimeError(
+                "hf_infer accepted a prefill projection solution outside HIP")
         independent_attention = subprocess.run([
             str(args.binary), "--config", str(missing),
             "--weights", str(missing), "--tokens", "1", "--device", "cpu",
