@@ -1713,6 +1713,69 @@ __global__ void cached_attention_finalize_scores_kernel(
     }
 }
 
+template <typename Cache>
+__global__ void cached_attention_finalize_scores_native128_kernel(
+    const float* scores, const Cache* value_cache, float* output,
+    std::int64_t batches, std::int64_t heads, std::int64_t sequence,
+    std::int64_t cache_batch_stride, std::int64_t cache_head_stride,
+    std::int64_t width, std::int64_t repeats) {
+    constexpr unsigned Threads = 128;
+    const auto instance = static_cast<std::int64_t>(blockIdx.x);
+    const auto batch = instance / heads;
+    const auto head = instance % heads;
+    if (batch >= batches) return;
+    const auto kv_head = head / repeats;
+    extern __shared__ float shared_scores[];
+    __shared__ float reduction[Threads];
+    const auto score_base = (batch * heads + head) * sequence;
+
+    float local_maximum = -INFINITY;
+    for (std::int64_t position = threadIdx.x; position < sequence;
+         position += Threads) {
+        const auto score = scores[score_base + position];
+        shared_scores[position] = score;
+        local_maximum = fmaxf(local_maximum, score);
+    }
+    reduction[threadIdx.x] = local_maximum;
+    __syncthreads();
+    for (unsigned stride = Threads / 2; stride > 0; stride >>= 1) {
+        if (threadIdx.x < stride) {
+            reduction[threadIdx.x] = fmaxf(
+                reduction[threadIdx.x], reduction[threadIdx.x + stride]);
+        }
+        __syncthreads();
+    }
+    const auto maximum = reduction[0];
+    float local_denominator = 0.0F;
+    for (std::int64_t position = threadIdx.x; position < sequence;
+         position += Threads) {
+        const auto probability = expf(shared_scores[position] - maximum);
+        shared_scores[position] = probability;
+        local_denominator += probability;
+    }
+    reduction[threadIdx.x] = local_denominator;
+    __syncthreads();
+    for (unsigned stride = Threads / 2; stride > 0; stride >>= 1) {
+        if (threadIdx.x < stride) {
+            reduction[threadIdx.x] += reduction[threadIdx.x + stride];
+        }
+        __syncthreads();
+    }
+    const auto denominator = reduction[0];
+    const auto cache_base = batch * cache_batch_stride +
+                            kv_head * cache_head_stride;
+    for (std::int64_t column = threadIdx.x; column < width;
+         column += Threads) {
+        float total = 0.0F;
+        for (std::int64_t position = 0; position < sequence; ++position) {
+            total += shared_scores[position] / denominator *
+                     static_cast<float>(value_cache[
+                         cache_base + position * width + column]);
+        }
+        output[(batch * heads + head) * width + column] = total;
+    }
+}
+
 __global__ void cached_attention_exact_softmax_kernel(
     const float* scores, float* probabilities, std::int64_t batches,
     std::int64_t heads, std::int64_t sequence) {
@@ -4206,6 +4269,34 @@ void launch_cached_attention_finalize_scores(
         dispatch(static_cast<const hip_bfloat16*>(value_cache));
     }
     check_launch("cached_attention_finalize_scores_kernel");
+}
+
+void launch_cached_attention_finalize_scores_native128(
+    const float* scores, const void* value_cache, DType cache_dtype,
+    float* output, std::int64_t batches, std::int64_t heads,
+    std::int64_t sequence, std::int64_t cache_batch_stride,
+    std::int64_t cache_head_stride, std::int64_t width,
+    std::int64_t repeats, void* stream) {
+    const auto grid = dim3(static_cast<unsigned>(batches * heads));
+    const auto shared_bytes = static_cast<std::size_t>(sequence) * sizeof(float);
+    if (cache_dtype == DType::Float32) {
+        hipLaunchKernelGGL(
+            cached_attention_finalize_scores_native128_kernel<float>, grid,
+            dim3(128), shared_bytes, as_stream(stream), scores,
+            static_cast<const float*>(value_cache), output, batches, heads,
+            sequence, cache_batch_stride, cache_head_stride, width, repeats);
+    } else if (cache_dtype == DType::BFloat16) {
+        hipLaunchKernelGGL(
+            cached_attention_finalize_scores_native128_kernel<hip_bfloat16>,
+            grid, dim3(128), shared_bytes, as_stream(stream), scores,
+            static_cast<const hip_bfloat16*>(value_cache), output, batches,
+            heads, sequence, cache_batch_stride, cache_head_stride, width,
+            repeats);
+    } else {
+        throw std::invalid_argument(
+            "native128 materialized-score attention supports FP32 and BF16 cache");
+    }
+    check_launch("cached_attention_finalize_scores_native128_kernel");
 }
 
 void launch_cached_attention_split_pv(

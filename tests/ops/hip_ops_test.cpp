@@ -2095,6 +2095,9 @@ TEST(HipCachedAttentionTest,
             const auto actual_materialized_128 =
                 cached_gqa_attention_materialized_scores(
                     device_query, device_key, device_value, repeats, scale, 128);
+            const auto actual_native_128 =
+                cached_gqa_attention_materialized_scores_native128(
+                    device_query, device_key, device_value, repeats, scale);
             const auto actual_split_pv_1 =
                 cached_gqa_attention_split_pv_exact_softmax(
                     device_query, device_key, device_value, repeats, scale, 1);
@@ -2148,6 +2151,9 @@ TEST(HipCachedAttentionTest,
                 actual_materialized_64.to_vector(), actual_fused.to_vector());
             EXPECT_EQ(
                 actual_materialized_128.to_vector(), actual_fused.to_vector());
+            expect_near(
+                actual_native_128.to_vector(), expected_context_values,
+                8.0e-4F);
             EXPECT_EQ(
                 actual_split_pv_1.to_vector(), actual_materialized.to_vector());
             expect_near(
