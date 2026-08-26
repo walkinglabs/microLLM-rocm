@@ -57,6 +57,38 @@ DECODE_ALGORITHM_SPEC.loader.exec_module(DECODE_ALGORITHM)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_bf16_decode_algorithm_rejects_common_solution(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-deepseek-bf16-decode-algorithm")
+        inventory = json.loads((root / "inventory.json").read_text(
+            encoding="utf-8"))
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        policies = {row["algorithm_policy"]: row
+                    for row in summary["policy_summaries"]}
+        cases = {(row["algorithm_policy"], row["batch"]): row
+                 for row in summary["cases"]}
+        self.assertEqual(inventory["common_candidate_count"], 64)
+        self.assertTrue(all(row["candidate_count"] == 64
+                            for row in inventory["shapes"]))
+        self.assertIn(75892, inventory["common_indices"])
+        self.assertEqual(summary["process_rows"], 16)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertEqual(policies["default"]["maximum_cross_batch_error"],
+                         0.06298542022705078)
+        self.assertEqual(
+            policies["common-solution"]["maximum_cross_batch_error"],
+            0.06993913650512695)
+        self.assertGreater(
+            cases[("common-solution", 8)]["cross_batch_maximum_rms_error"],
+            cases[("default", 8)]["cross_batch_maximum_rms_error"])
+        self.assertFalse(analysis["same_index_implies_same_reduction_tree_supported"])
+        self.assertEqual(verification["measurement_commit"],
+                         "863294404f533b3dec234866bbc647942f07027f")
+        ET.parse(root / "algorithm.svg")
+
     def test_bf16_decode_algorithm_command_is_decode_only_and_explicit(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 8, "warmup": 1,

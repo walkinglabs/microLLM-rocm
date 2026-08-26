@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="500" viewBox="0 0 1420 500">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:13px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">BF16 decode solution 75892</text>
+<text x="30" y="62" class="muted">DeepSeek T2048 step0 · complete logits · B1 cross-batch reference</text>
+<text x="30" y="118" class="label">default</text>
+<text x="220" y="118" class="label">B1</text>
+<rect x="260" y="100" width="2.00" height="22" rx="4" fill="#f97316"/>
+<text x="277.00" y="117" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="220" y="150" class="label">B2</text>
+<rect x="260" y="132" width="702.45" height="22" rx="4" fill="#f97316"/>
+<text x="977.45" y="149" class="label">Max 6.299e-02 · RMS 2.517e-02</text>
+<text x="220" y="182" class="label">B4</text>
+<rect x="260" y="164" width="535.24" height="22" rx="4" fill="#f97316"/>
+<text x="810.24" y="181" class="label">Max 4.799e-02 · RMS 1.224e-02</text>
+<text x="220" y="214" class="label">B8</text>
+<rect x="260" y="196" width="527.22" height="22" rx="4" fill="#f97316"/>
+<text x="802.22" y="213" class="label">Max 4.727e-02 · RMS 1.237e-02</text>
+<text x="30" y="293" class="label">common-solution</text>
+<text x="220" y="293" class="label">B1</text>
+<rect x="260" y="275" width="2.00" height="22" rx="4" fill="#22c55e"/>
+<text x="277.00" y="292" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="220" y="325" class="label">B2</text>
+<rect x="260" y="307" width="780.00" height="22" rx="4" fill="#22c55e"/>
+<text x="1055.00" y="324" class="label">Max 6.994e-02 · RMS 2.298e-02</text>
+<text x="220" y="357" class="label">B4</text>
+<rect x="260" y="339" width="648.12" height="22" rx="4" fill="#22c55e"/>
+<text x="923.12" y="356" class="label">Max 5.811e-02 · RMS 1.966e-02</text>
+<text x="220" y="389" class="label">B8</text>
+<rect x="260" y="371" width="637.84" height="22" rx="4" fill="#22c55e"/>
+<text x="912.84" y="388" class="label">Max 5.719e-02 · RMS 1.816e-02</text>
+</svg>

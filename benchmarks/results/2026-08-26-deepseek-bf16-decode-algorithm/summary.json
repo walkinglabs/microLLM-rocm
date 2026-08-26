@@ -1,0 +1,202 @@
+{
+  "algorithm_index": 75892,
+  "all_host_device_argmax_equal": true,
+  "all_repeat_bitwise_equal": true,
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "case_rows": 8,
+  "cases": [
+    {
+      "algorithm_policy": "default",
+      "batch": 1,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_decode_tokens_per_second": 84.9459852305,
+      "peak_bytes": 5165385728,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_default_maximum_error": 0.0,
+      "versus_default_maximum_rms_error": 0.0,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "algorithm_policy": "default",
+      "batch": 2,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.06298542022705078,
+      "cross_batch_maximum_rms_error": 0.02517114265302031,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_decode_tokens_per_second": 164.0888795385,
+      "peak_bytes": 5534529536,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_default_maximum_error": 0.0,
+      "versus_default_maximum_rms_error": 0.0,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "algorithm_policy": "default",
+      "batch": 4,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.047992706298828125,
+      "cross_batch_maximum_rms_error": 0.01223710771471302,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_decode_tokens_per_second": 306.4649623955,
+      "peak_bytes": 6272817152,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_default_maximum_error": 0.0,
+      "versus_default_maximum_rms_error": 0.0,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "algorithm_policy": "default",
+      "batch": 8,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.04727339744567871,
+      "cross_batch_maximum_rms_error": 0.012372239175272907,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_decode_tokens_per_second": 539.5126420735,
+      "peak_bytes": 7749392384,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_default_maximum_error": 0.0,
+      "versus_default_maximum_rms_error": 0.0,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "algorithm_policy": "common-solution",
+      "batch": 1,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_decode_tokens_per_second": 83.69624904049999,
+      "peak_bytes": 5169973248,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_default_maximum_error": 0.047612667083740234,
+      "versus_default_maximum_rms_error": 0.014094449161214355,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "algorithm_policy": "common-solution",
+      "batch": 2,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.06993913650512695,
+      "cross_batch_maximum_rms_error": 0.02297797382089362,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_decode_tokens_per_second": 161.73877801700002,
+      "peak_bytes": 5539117056,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_default_maximum_error": 0.06112384796142578,
+      "versus_default_maximum_rms_error": 0.017075906117556248,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "algorithm_policy": "common-solution",
+      "batch": 4,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.058114051818847656,
+      "cross_batch_maximum_rms_error": 0.019656313951059556,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_decode_tokens_per_second": 304.063036722,
+      "peak_bytes": 6277404672,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_default_maximum_error": 0.04725915193557739,
+      "versus_default_maximum_rms_error": 0.008783028825156107,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "algorithm_policy": "common-solution",
+      "batch": 8,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.05719190835952759,
+      "cross_batch_maximum_rms_error": 0.0181604806937326,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_decode_tokens_per_second": 533.9892323419999,
+      "peak_bytes": 7753979904,
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_default_maximum_error": 0.0400238037109375,
+      "versus_default_maximum_rms_error": 0.009178769469779779,
+      "within_batch_bitwise_equal": false
+    }
+  ],
+  "policies": [
+    "default",
+    "common-solution"
+  ],
+  "policy_summaries": [
+    {
+      "algorithm_index": -1,
+      "algorithm_policy": "default",
+      "all_argmax_tokens_equal": true,
+      "cross_batch_bitwise_case_count": 1,
+      "maximum_cross_batch_error": 0.06298542022705078,
+      "maximum_cross_batch_rms_error": 0.02517114265302031
+    },
+    {
+      "algorithm_index": 75892,
+      "algorithm_policy": "common-solution",
+      "all_argmax_tokens_equal": true,
+      "cross_batch_bitwise_case_count": 1,
+      "maximum_cross_batch_error": 0.06993913650512695,
+      "maximum_cross_batch_rms_error": 0.02297797382089362
+    }
+  ],
+  "process_rows": 16,
+  "record_type": "bf16_decode_algorithm_audit",
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "status": "pass",
+  "vocabulary_size": 151936
+}

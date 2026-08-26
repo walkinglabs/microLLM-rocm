@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 299 rejects a block-0-only
-> FP32 FFN policy. Global Max/RMS improve 9.55%/42.86%, but B4/B8 Max regress,
-> peak rises 82.6 MB, and B8 throughput is 0.9936x. Precision and scheduler
-> defaults remain unchanged while a common BF16 decode algorithm across
-> B1/B2/B4/B8 is investigated. See the
-> [counterfactual experiment](docs/optimization-log/experiments/299-block-zero-fp32-reject.md).
+> **Current optimization checkpoint:** Experiment 300 rejects version-local
+> BF16 solution 75892 for decode. Although all 64 queried solutions support
+> M1/M2/M4/M8, 75892 raises maximum cross-batch error 1.1104x, slows decode to
+> 0.9853x–0.9922x, and adds 4.59 MB workspace. Defaults remain unchanged while
+> all common candidates are screened for operator row invariance. See the
+> [decode-algorithm experiment](docs/optimization-log/experiments/300-bf16-decode-algorithm-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

@@ -18884,6 +18884,127 @@ def validate_bf16_ffn_layer_counterfactual(
             analysis.get("peak_bytes_added_by_block0_fp32", 0))
 
 
+def validate_bf16_decode_algorithm(
+        errors: list[str]) -> tuple[int, int, float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-deepseek-bf16-decode-algorithm")
+    inventory = json.loads((root / "inventory.json").read_text(encoding="utf-8"))
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    policies = {row.get("algorithm_policy"): row
+                for row in summary.get("policy_summaries", [])}
+    cases = {(row.get("algorithm_policy"), row.get("batch")): row
+             for row in summary.get("cases", [])}
+    if (inventory.get("record_type") != "bf16_algorithm_inventory" or
+            inventory.get("status") != "pass" or
+            inventory.get("inner") != 1536 or inventory.get("columns") != 8960 or
+            inventory.get("workspace_limit_bytes") != 33554432 or
+            inventory.get("requested_algorithms") != 64 or
+            inventory.get("common_candidate_count") != 64 or
+            len(inventory.get("common_indices", [])) != 64 or
+            75892 not in inventory.get("common_indices", []) or
+            [row.get("rows") for row in inventory.get("shapes", [])] !=
+                [1, 2, 4, 8] or
+            any(row.get("candidate_count") != 64
+                for row in inventory.get("shapes", []))):
+        errors.append("BF16 decode algorithm inventory changed")
+    if (summary.get("record_type") != "bf16_decode_algorithm_audit" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 16 or len(raw) != 16 or
+            summary.get("case_rows") != 8 or len(cases) != 8 or
+            summary.get("vocabulary_size") != 151936 or
+            summary.get("policies") != ["default", "common-solution"] or
+            summary.get("batches") != [1, 2, 4, 8] or
+            summary.get("algorithm_index") != 75892 or
+            summary.get("runs_per_case") != 2 or
+            summary.get("all_repeat_bitwise_equal") is not True or
+            summary.get("all_host_device_argmax_equal") is not True or
+            set(policies) != {"default", "common-solution"}):
+        errors.append("BF16 decode algorithm summary/raw identity changed")
+    if (policies.get("default", {}).get("algorithm_index") != -1 or
+            policies.get("default", {}).get("maximum_cross_batch_error") !=
+                0.06298542022705078 or
+            policies.get("default", {}).get("maximum_cross_batch_rms_error") !=
+                0.02517114265302031 or
+            policies.get("common-solution", {}).get("algorithm_index") != 75892 or
+            policies.get("common-solution", {}).get(
+                "maximum_cross_batch_error") != 0.06993913650512695 or
+            policies.get("common-solution", {}).get(
+                "maximum_cross_batch_rms_error") != 0.02297797382089362 or
+            any(row.get("bf16_ffn_converted_tensors") != 84 or
+                row.get("bf16_ffn_fp32_layers") != [] or
+                row.get("host_device_argmax_equal") is not True or
+                row.get("cached_attention_materialized_policy") != "auto-enabled" or
+                (row.get("bf16_decode_algorithm_index"),
+                 row.get("bf16_registered_algorithm_count")) !=
+                    ((75892, 1) if row.get("algorithm_policy") ==
+                        "common-solution" else (-1, 0))
+                for row in raw)):
+        errors.append("BF16 decode algorithm route changed")
+    if (cases.get(("common-solution", 4), {}).get(
+            "cross_batch_maximum_rms_error") != 0.019656313951059556 or
+            cases.get(("common-solution", 8), {}).get(
+                "cross_batch_maximum_rms_error") != 0.0181604806937326 or
+            any(cases.get(("common-solution", batch), {}).get("peak_bytes") -
+                cases.get(("default", batch), {}).get("peak_bytes") != 4587520
+                for batch in (1, 2, 4, 8))):
+        errors.append("BF16 decode algorithm key cases changed")
+    if (analysis.get("decision") !=
+            "reject solution 75892 for decode and search operator row invariance" or
+            analysis.get("common_candidate_count") != 64 or
+            analysis.get("algorithm_workspace_bytes") != 4587520 or
+            analysis.get("common_solution_maximum_error_ratio") !=
+                1.1104019986372928 or
+            analysis.get("b4_rms_ratio_common_over_default") !=
+                1.6062875647834836 or
+            analysis.get("b8_rms_ratio_common_over_default") !=
+                1.4678410622733546 or
+            analysis.get("same_index_implies_same_reduction_tree_supported") is not False or
+            analysis.get("precision_default_changed") is not False):
+        errors.append("BF16 decode algorithm analysis changed")
+    if (check.get("measurement_commit") !=
+            "863294404f533b3dec234866bbc647942f07027f" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("algorithm_index") != 75892 or
+            check.get("algorithm_workspace_bytes") != 4587520 or
+            check.get("common_candidate_count") != 64 or
+            check.get("process_rows") != 16 or
+            check.get("algorithm_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 375, "total": 375} or
+            check.get("sanitizer_label") != {"passed": 373, "total": 373} or
+            check.get("hip_label") != {"passed": 193, "total": 193} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("BF16 decode algorithm verification changed")
+    for name in ("README.md", "inventory.json", "raw.jsonl", "summary.json",
+                 "analysis.json", "verification.json", "algorithm.svg"):
+        if not (root / name).is_file():
+            errors.append(f"BF16 decode algorithm evidence missing: {name}")
+    try:
+        ET.parse(root / "algorithm.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid BF16 decode algorithm SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_bf16_decode_algorithm.py").read_text(encoding="utf-8")
+    if ("bf16-decode-algorithm-index" not in runner or
+            "bf16_registered_algorithm_count" not in runner or
+            "common_indices" not in runner or
+            "complete_values_compared_per_run" not in runner):
+        errors.append("BF16 decode algorithm runner contract changed")
+    return (len(raw), inventory.get("common_candidate_count", 0),
+            policies.get("default", {}).get("maximum_cross_batch_error", 0.0),
+            policies.get("common-solution", {}).get(
+                "maximum_cross_batch_error", 0.0),
+            analysis.get("minimum_throughput_ratio_common_over_default", 0.0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19775,6 +19896,9 @@ def main() -> int:
     bf16_layer_rows, bf16_layer_all, bf16_layer_block0, \
         bf16_layer_b8_tps, bf16_layer_peak = \
         validate_bf16_ffn_layer_counterfactual(errors)
+    bf16_decode_rows, bf16_decode_common, bf16_decode_default, \
+        bf16_decode_fixed, bf16_decode_rate = \
+        validate_bf16_decode_algorithm(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20411,6 +20535,9 @@ def main() -> int:
           f"bf16_layer={bf16_layer_rows}/{bf16_layer_all:.4f}/"
           f"{bf16_layer_block0:.4f}/{bf16_layer_b8_tps:.2f}/"
           f"{bf16_layer_peak} "
+          f"bf16_decode_algorithm={bf16_decode_rows}/{bf16_decode_common}/"
+          f"{bf16_decode_default:.4f}/{bf16_decode_fixed:.4f}/"
+          f"{bf16_decode_rate:.4f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

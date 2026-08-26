@@ -4688,3 +4688,18 @@ FP32层数，而是枚举DeepSeek gate/up在M1/2/4/8的共同hipBLASLt solution�
 模型反驳。版本局部index只用于实验，不写进默认。
 
 ![Block-0 FP32 counterfactual](../../benchmarks/results/2026-08-26-deepseek-bf16-ffn-layer-counterfactual/counterfactual.svg)
+
+## 317. Experiment 300：候选集合相同，数值顺序仍然可以不同
+
+M1/2/4/8的DeepSeek gate/up shape各查询64个BF16 solution，交集竟然也是64。我们选择历史prefill
+验证过的75892，四个shape都显式注册同一index，再跑16个fresh完整模型进程。
+
+结果没有恢复一致性：最大Max变成默认的1.1104x；B4/B8 RMS变成1.6063x/1.4678x；吞吐为
+0.9853x–0.9922x；peak多4,587,520 bytes，正好等于solution workspace。重复和argmax都过，但相同
+batch行仍不位级相同。
+
+“同一个index”只说明同一hipBLASLt solution被接受，不保证它面对不同M时使用同一归约树。下一步
+把模型拿掉，用同一输入行重复成M1/2/4/8，直接筛64个候选的8960输出是否row-invariant。只有算子
+位级通过者才再进模型；75892不进入默认。
+
+![BF16 decode algorithm](../../benchmarks/results/2026-08-26-deepseek-bf16-decode-algorithm/algorithm.svg)
