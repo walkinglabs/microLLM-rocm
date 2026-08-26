@@ -6,6 +6,7 @@ and chronological engineering evidence.
 ## Use the framework
 
 - [Build from source](dev/build.md)
+- [CMake Config beginner guide (中文)](dev/cmake-package.zh-CN.md)
 - [Architecture](ARCHITECTURE.md)
 - [Weight and safetensors API](WEIGHTS.md)
 - [Hugging Face and verified Qwen2.5 workflow](HUGGINGFACE.md)

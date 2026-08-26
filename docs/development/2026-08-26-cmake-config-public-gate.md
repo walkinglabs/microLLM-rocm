@@ -34,8 +34,20 @@ ctest --preset package-cpu
 
 ## 实测
 
-在干净的远端`main`提交`e8eeb20b`上，使用CMake 3.31.10与GCC/G++ 13.3.0重新配置并
-编译CPU Release。`PackageConfig.InstalledConsumer`、`BuildTreeConsumer`、
-`PublicExample`和`RejectsNonRelocatableDestination`为4/4通过，总测试时间4.78秒。
+在当前`main`上，使用CMake 3.31.10与GCC/G++ 13.3.0重新配置并编译。三套包门均通过：
 
-README与构建文档现在同时给出这个入口、成功含义和证据边界。
+| SDK | 结果 | 总时间 |
+|---|---:|---:|
+| CPU | 4/4 | 5.19秒 |
+| HIP | 4/4 | 9.88秒 |
+| HIP + RCCL | 4/4 | 9.98秒 |
+
+每一行都包含`PackageConfig.InstalledConsumer`、`BuildTreeConsumer`、
+`PublicExample`和`RejectsNonRelocatableDestination`，不是只检查生成文件是否存在。
+另外重新执行README最短路径：`sdk-cpu` Release构建、安装到临时prefix、独立配置
+`examples/package-consumer`、编译和运行全部通过；程序报告`backend=CPU`并输出
+Model-S的15,586,176个参数。
+
+README与构建文档现在同时给出这个入口、成功含义和证据边界。新增的
+[`cmake-package.zh-CN.md`](../dev/cmake-package.zh-CN.md)用独立小项目解释源码目录、
+构建目录、安装目录、`ROOT`/`DIR`/`CMAKE_PREFIX_PATH`和常见错误。

@@ -4,6 +4,9 @@ microLLM-rocm is organized as a small runtime with explicit component boundaries
 component has a public interface under `include/microllm`, an implementation under
 `src`, and corresponding tests under `tests`.
 
+If you are integrating the built SDK from another repository, start with the
+[CMake Config beginner guide (中文)](cmake-package.zh-CN.md).
+
 ## Start here
 
 1. [Build the repository](build.md).

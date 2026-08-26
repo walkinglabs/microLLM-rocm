@@ -11,6 +11,7 @@ extending small decoder-only language models on AMD GPUs.
 
 [Documentation](docs/index.md) · [Build](docs/dev/build.md) ·
 [CMake package](#use-microllm-from-another-cmake-project) ·
+[CMake Config 中文入门](docs/dev/cmake-package.zh-CN.md) ·
 [Architecture](docs/ARCHITECTURE.md) · [Tests](docs/dev/testing.md) ·
 [Benchmarks](benchmarks/README.md) · [Roadmap](docs/development/NEXT_STEPS.md) ·
 [Optimization log](docs/optimization-log/README.md) ·
@@ -35,6 +36,24 @@ Start with [Quick start](#quick-start), consume the installed library through th
 [CMake package](#use-microllm-from-another-cmake-project), or read the compact
 [evidence status](docs/development/STATUS.md). The long chronology belongs in the
 [optimization log](docs/optimization-log/README.md), not in the getting-started path.
+
+For the shortest external-SDK path, these commands build, install, and verify the CPU
+package with real downstream projects:
+
+```bash
+cmake --preset sdk-cpu
+cmake --build --preset sdk-cpu --parallel
+cmake --install build/sdk-cpu --prefix "$PWD/install/microllm"
+
+cmake --preset cpu-debug
+cmake --build --preset cpu-debug --parallel
+ctest --preset package-cpu
+```
+
+An application then uses `find_package(microLLM 0.1 CONFIG REQUIRED)` and links
+`microLLM::microLLM`; it never copies repository sources or guesses library filenames.
+If “Config package” is unfamiliar, read the beginner-facing
+[Chinese explanation](docs/dev/cmake-package.zh-CN.md) before the complete reference below.
 
 <details>
 <summary>Latest optimization checkpoints</summary>
