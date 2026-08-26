@@ -110,9 +110,103 @@ ATTENTION_MODEL_SPEC = importlib.util.spec_from_file_location(
 ATTENTION_MODEL = importlib.util.module_from_spec(ATTENTION_MODEL_SPEC)
 assert ATTENTION_MODEL_SPEC.loader is not None
 ATTENTION_MODEL_SPEC.loader.exec_module(ATTENTION_MODEL)
+ATTENTION_SELECTIVE_SPEC = importlib.util.spec_from_file_location(
+    "fp32_prefill_attention_selective_gate",
+    ROOT / "benchmarks/single_gpu/fp32_prefill_attention_selective_gate.py")
+ATTENTION_SELECTIVE = importlib.util.module_from_spec(ATTENTION_SELECTIVE_SPEC)
+assert ATTENTION_SELECTIVE_SPEC.loader is not None
+ATTENTION_SELECTIVE_SPEC.loader.exec_module(ATTENTION_SELECTIVE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_selective_attention_gate_checks_exact_batch_routes(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        b1 = ATTENTION_SELECTIVE.command(
+            args, model, "batch-selective", 1, 0)
+        self.assertNotIn(
+            "--fp32-prefill-attention-qk-solution-index", b1)
+        b4 = ATTENTION_SELECTIVE.command(
+            args, model, "batch-selective", 4, 0)
+        self.assertEqual(b4[
+            b4.index("--fp32-prefill-attention-qk-solution-index") + 1],
+            "311274")
+        self.assertEqual(b4[
+            b4.index("--fp32-prefill-attention-pv-solution-index") + 1],
+            "295716")
+        route = {
+            "status": "pass", "batch": 4, "token_count": 2048,
+            "decode_tokens": 1, "kv_cache_dtype": "bf16",
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_prefill_attention_qk_solution_index": 311274,
+            "fp32_prefill_attention_pv_solution_index": 295716,
+            "fp32_solution_registered_entries": 4,
+            "fp32_solution_cached_algorithms": 4,
+            "fp32_solution_registry_hits": 280,
+            "fp32_solution_cache_misses": 4,
+            "fp32_solution_cache_hits": 276,
+            "fp32_solution_dispatches": 280,
+        }
+        ATTENTION_SELECTIVE.require_route(
+            route, "batch-selective", 4, 2048, 1)
+
+        exact = {"bitwise_equal": True, "maximum": 0.0, "rms": 0.0}
+        precision = []
+        performance = []
+        for policy in ATTENTION_SELECTIVE.POLICIES:
+            for batch in ATTENTION_SELECTIVE.BATCHES:
+                indices = (ATTENTION_SELECTIVE.SELECTIVE[batch]
+                           if policy == "batch-selective" else {"qk": -1, "pv": -1})
+                for run in (1, 2):
+                    changed = batch > 1
+                    logits = {
+                        "bitwise_equal": not changed,
+                        "maximum": (0.005 if policy == "batch-selective" else 0.01)
+                                   if changed else 0.0,
+                        "rms": (0.002 if policy == "batch-selective" else 0.005)
+                               if changed else 0.0,
+                    }
+                    precision.append({
+                        "policy": policy, "batch": batch,
+                        "process_run": run,
+                        "qk_solution_index": indices["qk"],
+                        "pv_solution_index": indices["pv"],
+                        "key_cross_batch": exact,
+                        "value_cross_batch": exact,
+                        "logits_cross_batch": logits,
+                        "key_vs_upstream": exact,
+                        "value_vs_upstream": exact,
+                        "logits_vs_upstream": exact,
+                        "key_within_batch_bitwise_equal": True,
+                        "value_within_batch_bitwise_equal": True,
+                        "logits_within_batch_bitwise_equal": True,
+                    })
+                    base_ms = 100.0 * batch
+                    prefill_ms = (base_ms if policy == "upstream-exact"
+                                  else base_ms / 1.02)
+                    performance.append({
+                        "policy": policy, "batch": batch,
+                        "process_run": run,
+                        "prefill_ms": prefill_ms,
+                        "prefill_tokens_per_second":
+                            batch * 2048 * 1000.0 / prefill_ms,
+                        "engine_peak_bytes": 1000,
+                        "engine_backend_allocation_calls": 10,
+                        "generated_tokens": [1],
+                    })
+        summary = ATTENTION_SELECTIVE.summarize(precision, performance)
+        self.assertTrue(summary["robust_logit_max_improvement"])
+        self.assertTrue(summary["robust_logit_rms_improvement"])
+        self.assertTrue(summary["performance_gate_passed"])
+        self.assertTrue(summary["candidate_admitted"])
+        ET.fromstring(ATTENTION_SELECTIVE.render(summary))
+
     def test_current_prefill_attention_model_gate_rejects_exact_pair(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-prefill-attention-model-gate")

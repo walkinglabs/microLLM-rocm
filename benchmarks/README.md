@@ -50,6 +50,12 @@ paired performance runs alternate policy and batch order. Admission requires cor
 bitwise equality, robust complete-logit improvement, and at least 0.95× prefill speed in
 every batch.
 
+The final rebuttal uses
+[`fp32_prefill_attention_selective_gate.py`](single_gpu/fp32_prefill_attention_selective_gate.py).
+It keeps B1 on the default Attention descriptor and applies only the measured batch-local
+QK/P×V winners at B2/B4/B8. It deliberately drops the bitwise-core claim and therefore
+admits only on complete-logit Max/RMS plus end-to-end prefill and resource gates.
+
 When rocWMMA 2.2 and OpenMP are available, the benchmark-only QK capability target
 compares complete BF16×BF16→FP32 outputs against CPU, scalar HIP and hipBLASLt:
 
