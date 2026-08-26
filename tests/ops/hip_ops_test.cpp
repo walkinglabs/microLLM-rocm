@@ -1065,6 +1065,31 @@ TEST(HipInt8WeightOpsTest, CpuAndHipMatchEveryByteWithoutHotPathTransfers) {
     }
 }
 
+TEST(HipInt8WeightOpsTest, MatmulBaselineMatchesCpuWithoutPayloadTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto input_cpu = Tensor::from_vector(
+        {1.0F, -2.0F, 0.5F, -1.0F, 3.0F, 2.0F}, {2, 3});
+    const auto weight_cpu = quantize_int8(
+        Tensor::from_vector(
+            {1.0F, -2.0F, 0.5F, 3.0F,
+             -1.0F, 2.0F, 4.0F, -0.5F,
+             2.5F, 1.5F, -3.0F, 0.0F},
+            {3, 4}),
+        0.5F);
+    const Int8ScaledTensor weight{
+        weight_cpu.values.to(gpu), weight_cpu.scale.to(gpu),
+        weight_cpu.scale_value, true};
+    runtime::reset_transfer_stats();
+    const auto actual = int8_weight_matmul(input_cpu.to(gpu), weight);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 1U);  // input payload only
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    const auto reference = int8_weight_matmul(input_cpu, weight_cpu);
+    expect_near(actual.to_vector(), reference.to_vector(), 1.0e-5F);
+}
+
 TEST(HipFp8OpsTest, MixedE5ActivationAndE4WeightExecuteWithExplicitDispatch) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

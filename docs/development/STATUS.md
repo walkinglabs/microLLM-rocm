@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 415/415, ASan/UBSan 412/412, PyTorch-enabled CPU 416/416, single-GPU HIP label 205/205, RCCL label 55/55; 156 registered test files | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 416/416, ASan/UBSan 413/413, PyTorch-enabled CPU 417/417, single-GPU HIP label 206/206, RCCL label 55/55; 156 registered test files | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte and signed INT8 one-byte CPU/MI300X storage, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -18,7 +18,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Transpose-aware GEMM | smoke-tested | CPU/readable HIP/hipBLASLt NN/NT/TN/TT in FP32/FP16/BF16; tied graph/PyTorch gradients; score 0.318328→0.479227 | batched transpose flags and descriptor/algorithm cache |
 | Parallel HIP RMSNorm | smoke-tested | rows 1/3/32 × widths 16/384/512/896/1536; forward/backward/PyTorch gates; RMSNorm 75.85ms→1.55ms; score 0.479227→0.885816 | low-precision path and fusion |
 | MI300X precision capabilities | smoke-tested | 4096 FP8 477 TFLOPS/18.25% peak; raw INT8xINT8→INT32 416 TOPS/15.91% peak with exact CPU samples | official INT8 model route, official-model FP8 policy and packed INT4 software path |
-| Weight-only INT8 format | smoke-tested, model route absent | symmetric I8 values + same-device F32 scalar scale; CPU/HIP every byte, PyTorch oracle, official safetensors both directions; HIP dequant 0 H2D/D2H | complete-output INT8 Linear, fused/native GEMM and official-model logits/performance |
+| Weight-only INT8 format | smoke-tested, optimized/model route absent | symmetric I8 values + F32 scale; CPU/HIP every byte, official safetensors both directions; explicit-dequant `[M,K]×[K,N]` baseline matches complete PyTorch output with 0 D2H | fused/native INT8 Linear and official-model logits/performance |
 | FP8 training/inference | smoke-tested | native E4 path, dynamic activation amax, O-only column weights and full official logits; Exp153 rejects model E5 while retaining mixed-format primitives | four full precision gates still fail; layer calibration and full training curve |
 | Qwen2.5-0.5B | smoke-tested | official weights, tool-call chat, full-logit oracle and Release steady decode at 1.01x–3.39x PyTorch over T1–2048/B1–8/N1–64 | repeated-process full matrix and multi-step SFT |
 | DeepSeek-R1-Distill-Qwen-1.5B | smoke-tested | official 339 tensors; current T2048/B2/N64 is 1.1393x PyTorch with exact 64 tokens, 5.23/6.38GB peak and equal KV bytes | broader repeated shape matrix, longer reasoning/SFT and identical resident-weight policy |

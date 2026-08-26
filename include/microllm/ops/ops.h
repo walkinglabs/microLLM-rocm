@@ -363,6 +363,12 @@ struct CausalGqaAttentionDiagnostics {
 [[nodiscard]] Tensor dequantize_int8(
     const Int8ScaledTensor& input, DType output_dtype = DType::Float32,
     const OpContext& context = {});
+// Correctness baseline for [M,K] floating input times [K,N] symmetric INT8
+// weights. It explicitly dequantizes the complete weight then calls matmul;
+// no fused or native-INT8 speed claim is implied by this API.
+[[nodiscard]] Tensor int8_weight_matmul(
+    const Tensor& input, const Int8ScaledTensor& weight,
+    const OpContext& context = {});
 [[nodiscard]] Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                                 DType output_dtype = DType::BFloat16,
                                 const OpContext& context = {});

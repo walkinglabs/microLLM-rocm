@@ -51,9 +51,23 @@ def main():
     torch.testing.assert_close(
         actual_restored, expected_quantized.float() * scale, rtol=0, atol=0
     )
+    activation = torch.tensor(
+        [1.0, -2.0, -1.0, 0.5, 2.0, 3.0], dtype=torch.float32
+    ).reshape(3, 2)
+    actual_matmul = torch.tensor(
+        [float(value) for value in actual["matmul"].split(",")],
+        dtype=torch.float32,
+    ).reshape(3, 5)
+    torch.testing.assert_close(
+        actual_matmul,
+        activation @ (expected_quantized.float() * scale),
+        rtol=0,
+        atol=0,
+    )
     print("oracle=pytorch")
     print("shape=2x5")
     print("rounding=nearest-even")
+    print("matmul=explicit-dequantize-baseline")
     print("status=pass")
 
 

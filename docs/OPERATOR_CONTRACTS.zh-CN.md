@@ -46,6 +46,10 @@ PyTorch oracle是`torch.clamp(torch.round(x/scale),-127,127).to(torch.int8)`和
 `q.float()*scale`。CPU/HIP必须逐字节量化相等；HIP还要求反量化测量窗没有H2D或D2H。
 这是一条权重表示/还原合同，不是INT8 GEMM、Transformer推理或训练合同。
 
+`int8_weight_matmul(input, weight)`是`[M,K] × [K,N] → [M,N]`正确性基线，input和输出
+保持FP32/FP16/BF16同dtype。它先完整反量化weight，再调用普通matmul；PyTorch比较完整输出。
+shape/device/scale不匹配必须拒绝。临时浮点weight是公开代价，不能把这条路径报告成INT8加速。
+
 ## BF16 weight gradient
 
 `bf16_weight_gradient(input_fp32, output_gradient_fp32)` 接受两个连续二维 FP32 Tensor：

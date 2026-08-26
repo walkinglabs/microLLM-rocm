@@ -1357,6 +1357,29 @@ Tensor dequantize_int8(
 #endif
 }
 
+Tensor int8_weight_matmul(
+    const Tensor& input, const Int8ScaledTensor& weight,
+    const OpContext& context) {
+    if (!input.defined() || input.ndim() != 2 || !input.is_contiguous() ||
+        (input.dtype() != DType::Float32 &&
+         input.dtype() != DType::Float16 &&
+         input.dtype() != DType::BFloat16)) {
+        throw std::invalid_argument(
+            "INT8 weight matmul requires contiguous rank-two FP32, FP16, or BF16 input");
+    }
+    if (!weight.values.defined() || weight.values.ndim() != 2 ||
+        weight.values.shape()[0] != input.shape()[1]) {
+        throw std::invalid_argument(
+            "INT8 weight matmul requires [M,K] input and [K,N] values");
+    }
+    if (weight.values.device() != input.device()) {
+        throw std::invalid_argument(
+            "INT8 weight matmul input and weight devices must match");
+    }
+    const auto restored = dequantize_int8(weight, input.dtype(), context);
+    return matmul(input, restored, context);
+}
+
 void fill_(Tensor& tensor, float value, [[maybe_unused]] const OpContext& context) {
     require_forward_float(tensor, "tensor");
     if (tensor.device().is_cpu()) {

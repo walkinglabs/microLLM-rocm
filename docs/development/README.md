@@ -703,3 +703,5 @@ the next gate. Records are append-only except for factual corrections.
   exposes one copy-paste CTest preset for the complete build/install/relocation/consumer package contract.
 - [2026-08-26-int8-weight-contract.md](2026-08-26-int8-weight-contract.md):
   records the one-byte Tensor, explicit scale, CPU/HIP/PyTorch and official-safetensors boundary.
+- [2026-08-26-int8-weight-matmul-baseline.md](2026-08-26-int8-weight-matmul-baseline.md):
+  fixes the complete-output explicit-dequantize Linear control before performance work.

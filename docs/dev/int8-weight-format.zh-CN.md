@@ -140,7 +140,8 @@ PyTorch oracle只在配置所用的Python能`import torch`时注册。官方safe
 ## 7. 当前不能声称什么
 
 - 没有把官方Qwen/DeepSeek整模参数转换为这套INT8格式；
-- 没有INT8 Linear/Attention/FFN模型路由；
+- `int8_weight_matmul`已经提供正确性基线，但会先还原完整浮点权重，因此不是INT8加速；
+- 没有INT8 Attention/FFN模型路由；
 - 没有融合“读INT8、乘scale、做GEMM”的Kernel；
 - 没有INT8训练、量化感知训练或校准数据流程；
 - 没有本节点的端到端tokens/s加速结论。
@@ -148,3 +149,19 @@ PyTorch oracle只在配置所用的Python能`import torch`时注册。官方safe
 MI300X原始INT8矩阵硬件探测已经证明硬件能执行高速INT8×INT8→INT32，但“硬件能算”和
 “模型已经走这条路径”是两件事。下一节点应先做一个带完整输出PyTorch门的weight-only Linear，
 分别测“先反量化再GEMM”和“融合/原生INT8 GEMM”，再决定是否接入Transformer。
+
+当前正确性基线可以直接调用：
+
+```cpp
+auto output = microllm::ops::int8_weight_matmul(input, packed);
+```
+
+它只接受`input [M,K]`与`packed.values [K,N]`，输出dtype跟随FP32/FP16/BF16 input。实现等价于：
+
+```text
+完整 weight = dequantize_int8(packed, input.dtype)
+output = matmul(input, weight)
+```
+
+这条路径的价值是固定shape、舍入、错误与完整输出答案。因为临时weight重新变成2或4字节，
+不能用一字节文件大小推导它的运行峰值，也不能把它的速度称为INT8硬件速度。

@@ -28,5 +28,10 @@ int main() {
     std::cout << "shape=2,5\nscale=0.25\n";
     print_values("quantized", quantized.values.to_int8_vector());
     print_values("restored", restored.to_vector());
+    const auto activation = microllm::Tensor::from_vector(
+        {1.0F, -2.0F, -1.0F, 0.5F, 2.0F, 3.0F}, {3, 2});
+    print_values("matmul",
+                 microllm::ops::int8_weight_matmul(
+                     activation, quantized).to_vector());
     return 0;
 }

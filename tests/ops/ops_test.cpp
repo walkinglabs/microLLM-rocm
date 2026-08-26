@@ -1926,6 +1926,36 @@ TEST(CpuInt8WeightOpsTest, LoadedTensorPairValidatesMetadataAndScale) {
                  std::invalid_argument);
 }
 
+TEST(CpuInt8WeightOpsTest, MatmulBaselineMatchesExplicitDequantizedWeight) {
+    const auto input = Tensor::from_vector(
+        {1.0F, -2.0F, 0.5F, -1.0F, 3.0F, 2.0F}, {2, 3});
+    const auto weight = quantize_int8(
+        Tensor::from_vector(
+            {1.0F, -2.0F, 0.5F, 3.0F,
+             -1.0F, 2.0F, 4.0F, -0.5F,
+             2.5F, 1.5F, -3.0F, 0.0F},
+            {3, 4}),
+        0.5F);
+    for (const auto dtype :
+         {DType::Float32, DType::Float16, DType::BFloat16}) {
+        const auto typed_input = input.cast(dtype);
+        const auto actual = int8_weight_matmul(typed_input, weight);
+        const auto reference = matmul(
+            typed_input, dequantize_int8(weight, dtype));
+        EXPECT_EQ(actual.dtype(), dtype);
+        EXPECT_EQ(actual.shape(), (Shape{2, 4}));
+        EXPECT_EQ(actual.to_vector(), reference.to_vector());
+    }
+    EXPECT_THROW((void)int8_weight_matmul(
+                     input.reshape({6}), weight),
+                 std::invalid_argument);
+    EXPECT_THROW((void)int8_weight_matmul(
+                     input,
+                     {Tensor::from_int8_vector({1, 2, 3, 4}, {2, 2}),
+                      Tensor::from_vector({0.5F}, {})}),
+                 std::invalid_argument);
+}
+
 TEST(CallerOwnedBackwardTest, CpuOutputsMatchAllocatingReferences) {
     const auto input = Tensor::from_vector({-2, -1, 0, 1, 2, 3}, {2, 3});
     const auto weight = Tensor::from_vector({1, 0.5F, 2}, {3});

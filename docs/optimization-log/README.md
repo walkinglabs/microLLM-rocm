@@ -1104,6 +1104,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Official HF fixtures SVG](assets/official-hf-fixtures.svg) | 权重规模与结构/许可门 |
 | [experiments/352-int8-weight-contract.md](experiments/352-int8-weight-contract.md) | 一字节Tensor、显式scale与跨框架weight-only合同 |
 | [INT8 weight contract SVG](assets/int8-weight-contract.svg) | 存储缩减、四类正确性门与未接模型边界 |
+| [experiments/353-int8-weight-matmul-baseline.md](experiments/353-int8-weight-matmul-baseline.md) | 完整反量化+matmul正确性和allocation基线 |
+| [INT8 matmul baseline SVG](assets/int8-weight-matmul-baseline.svg) | 从I8权重到完整浮点临时量的公开代价 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
