@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520">
+  <rect width="1400" height="520" fill="#0b1020"/>
+  <style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:25px;font-weight:700}.sub{font-size:12px;fill:#94a3b8}.head{font-size:14px;font-weight:700}.small{font-size:11px;fill:#94a3b8}</style>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#38bdf8"/></marker></defs>
+  <text x="38" y="44" class="title">Block-0 trace after exact core + O projection</text>
+  <text x="38" y="70" class="sub">296100 used as a microscope · no performance claim</text>
+  <rect x="70" y="130" width="220" height="90" rx="11" fill="#131b2e" stroke="#22c55e"/><text x="180" y="165" class="head" text-anchor="middle">context</text><text x="180" y="192" class="small" text-anchor="middle">exact</text>
+  <line x1="290" y1="175" x2="350" y2="175" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
+  <rect x="365" y="130" width="220" height="90" rx="11" fill="#131b2e" stroke="#22c55e"/><text x="475" y="165" class="head" text-anchor="middle">O projection</text><text x="475" y="192" class="small" text-anchor="middle">must become exact</text>
+  <line x1="585" y1="175" x2="645" y2="175" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
+  <rect x="660" y="130" width="220" height="90" rx="11" fill="#131b2e" stroke="#22c55e"/><text x="770" y="165" class="head" text-anchor="middle">FFN norm</text><text x="770" y="192" class="small" text-anchor="middle">expected exact</text>
+  <line x1="880" y1="175" x2="940" y2="175" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
+  <rect x="955" y="130" width="220" height="90" rx="11" fill="#131b2e" stroke="#f97316"/><text x="1065" y="165" class="head" text-anchor="middle">FFN output</text><text x="1065" y="192" class="small" text-anchor="middle">candidate first drift</text>
+  <line x1="1175" y1="175" x2="1235" y2="175" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
+  <rect x="1250" y="130" width="110" height="90" rx="11" fill="#131b2e" stroke="#64748b"/><text x="1305" y="165" class="head" text-anchor="middle">block</text><text x="1305" y="192" class="small" text-anchor="middle">output</text>
+  <line x1="110" y1="330" x2="1290" y2="330" stroke="#334155" stroke-width="4"/><circle cx="260" cy="330" r="12" fill="#22c55e"/><text x="260" y="368" class="small" text-anchor="middle">5 entries</text><circle cx="520" cy="330" r="12" fill="#22c55e"/><text x="520" y="368" class="small" text-anchor="middle">5 misses</text><circle cx="780" cy="330" r="12" fill="#22c55e"/><text x="780" y="368" class="small" text-anchor="middle">163 hits</text><circle cx="1040" cy="330" r="12" fill="#22c55e"/><text x="1040" y="368" class="small" text-anchor="middle">168 dispatch</text><circle cx="1290" cy="330" r="12" fill="#22c55e"/><text x="1290" y="368" class="small" text-anchor="middle">50 records</text>
+  <rect x="70" y="430" width="1290" height="45" rx="9" fill="#111827" stroke="#334155"/><text x="100" y="458" class="sub">The first nonzero stage selects one FFN component; O/default remains unchanged until model gates pass.</text>
+</svg>

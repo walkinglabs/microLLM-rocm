@@ -122,9 +122,45 @@ POST_EXACT_CORE_SPEC = importlib.util.spec_from_file_location(
 POST_EXACT_CORE = importlib.util.module_from_spec(POST_EXACT_CORE_SPEC)
 assert POST_EXACT_CORE_SPEC.loader is not None
 POST_EXACT_CORE_SPEC.loader.exec_module(POST_EXACT_CORE)
+POST_EXACT_O_SPEC = importlib.util.spec_from_file_location(
+    "audit_post_exact_o_block0_trace",
+    ROOT / "benchmarks/single_gpu/audit_post_exact_o_block0_trace.py")
+POST_EXACT_O = importlib.util.module_from_spec(POST_EXACT_O_SPEC)
+assert POST_EXACT_O_SPEC.loader is not None
+POST_EXACT_O_SPEC.loader.exec_module(POST_EXACT_O)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_post_exact_o_trace_command_and_route_are_scoped(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        command = POST_EXACT_O.command(
+            args, model, 4, Path("trace.jsonl"), Path("cache.bin"))
+        self.assertEqual(command[
+            command.index("--fp32-prefill-attention-o-solution-index") + 1],
+            "296100")
+        route = {
+            "status": "pass", "batch": 4, "token_count": 2048,
+            "trace_record_count": 50,
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_prefill_attention_qk_solution_index": 304681,
+            "fp32_prefill_attention_pv_solution_index": 295716,
+            "fp32_prefill_attention_o_solution_index": 296100,
+            "fp32_solution_registered_entries": 5,
+            "fp32_solution_cached_algorithms": 5,
+            "fp32_solution_registry_hits": 168,
+            "fp32_solution_cache_misses": 5,
+            "fp32_solution_cache_hits": 163,
+            "fp32_solution_dispatches": 168,
+        }
+        POST_EXACT_O.require_route(route, 4)
+
     def test_current_post_exact_core_trace_locates_o_projection(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-post-exact-core-block0-trace")

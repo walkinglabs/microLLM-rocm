@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Post-exact-O block trace runner](2026-08-26-post-exact-o-trace-infrastructure.md)
 - [2026-08-26: Scoped prefill O projection](2026-08-26-prefill-o-projection-scope.md)
 - [2026-08-26: O projection after exact core](2026-08-26-post-exact-core-o-projection.md)
 - [2026-08-26: Post-exact-core block trace runner](2026-08-26-post-exact-core-trace-infrastructure.md)
