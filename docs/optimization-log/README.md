@@ -991,6 +991,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [serving batch SVG](../../benchmarks/results/2026-08-25-serving-batch-scale/batch-scale.svg) | micro/PyTorch batch扩展与每请求资源 |
 | [experiments/295-cross-batch-logit-audit.md](experiments/295-cross-batch-logit-audit.md) | DeepSeek内部batch漂移、行/argmax排除与精度隔离交接 |
 | [cross-batch SVG](../../benchmarks/results/2026-08-25-deepseek-cross-batch-logits/cross-batch.svg) | step0/1/2完整logits Max/RMS |
+| [experiments/296-cross-batch-precision-isolation.md](experiments/296-cross-batch-precision-isolation.md) | 四精度岛隔离与BF16 FFN block trace准入 |
+| [precision-isolation SVG](../../benchmarks/results/2026-08-25-deepseek-cross-batch-precision/precision-isolation.svg) | FP32/FFN/Attention/both完整logits漂移 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

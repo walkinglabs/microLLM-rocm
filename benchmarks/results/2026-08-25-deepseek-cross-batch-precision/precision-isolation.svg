@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="620" viewBox="0 0 1280 620">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:13px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">DeepSeek step0 cross-batch precision isolation</text>
+<text x="30" y="62" class="muted">B1 reference · FP32 linear and two BF16 islands · complete logits</text>
+<text x="30" y="110" class="label">fp32-linear</text>
+<text x="190" y="108" class="label">B1</text>
+<rect x="235" y="92" width="2.00" height="20" rx="4" fill="#22c55e"/>
+<text x="252.00" y="107" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="190" y="134" class="label">B2</text>
+<rect x="235" y="118" width="15.02" height="20" rx="4" fill="#ef4444"/>
+<text x="265.02" y="133" class="label">Max 1.354e-03 · RMS 2.184e-04</text>
+<text x="190" y="160" class="label">B4</text>
+<rect x="235" y="144" width="12.70" height="20" rx="4" fill="#ef4444"/>
+<text x="262.70" y="159" class="label">Max 1.144e-03 · RMS 2.168e-04</text>
+<text x="190" y="186" class="label">B8</text>
+<rect x="235" y="170" width="11.90" height="20" rx="4" fill="#ef4444"/>
+<text x="261.90" y="185" class="label">Max 1.072e-03 · RMS 2.294e-04</text>
+<text x="30" y="238" class="label">bf16-ffn</text>
+<text x="190" y="236" class="label">B1</text>
+<rect x="235" y="220" width="2.00" height="20" rx="4" fill="#22c55e"/>
+<text x="252.00" y="235" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="190" y="262" class="label">B2</text>
+<rect x="235" y="246" width="699.11" height="20" rx="4" fill="#ef4444"/>
+<text x="949.11" y="261" class="label">Max 6.299e-02 · RMS 2.517e-02</text>
+<text x="190" y="288" class="label">B4</text>
+<rect x="235" y="272" width="532.70" height="20" rx="4" fill="#ef4444"/>
+<text x="782.70" y="287" class="label">Max 4.799e-02 · RMS 1.224e-02</text>
+<text x="190" y="314" class="label">B8</text>
+<rect x="235" y="298" width="524.71" height="20" rx="4" fill="#ef4444"/>
+<text x="774.71" y="313" class="label">Max 4.727e-02 · RMS 1.237e-02</text>
+<text x="30" y="366" class="label">bf16-attention</text>
+<text x="190" y="364" class="label">B1</text>
+<rect x="235" y="348" width="2.00" height="20" rx="4" fill="#22c55e"/>
+<text x="252.00" y="363" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="190" y="390" class="label">B2</text>
+<rect x="235" y="374" width="190.93" height="20" rx="4" fill="#ef4444"/>
+<text x="440.93" y="389" class="label">Max 1.720e-02 · RMS 3.212e-03</text>
+<text x="190" y="416" class="label">B4</text>
+<rect x="235" y="400" width="204.36" height="20" rx="4" fill="#ef4444"/>
+<text x="454.36" y="415" class="label">Max 1.841e-02 · RMS 3.386e-03</text>
+<text x="190" y="442" class="label">B8</text>
+<rect x="235" y="426" width="232.76" height="20" rx="4" fill="#ef4444"/>
+<text x="482.76" y="441" class="label">Max 2.097e-02 · RMS 4.278e-03</text>
+<text x="30" y="494" class="label">bf16-both</text>
+<text x="190" y="492" class="label">B1</text>
+<rect x="235" y="476" width="2.00" height="20" rx="4" fill="#22c55e"/>
+<text x="252.00" y="491" class="label">Max 0.000e+00 · RMS 0.000e+00</text>
+<text x="190" y="518" class="label">B2</text>
+<rect x="235" y="502" width="551.47" height="20" rx="4" fill="#ef4444"/>
+<text x="801.47" y="517" class="label">Max 4.968e-02 · RMS 9.998e-03</text>
+<text x="190" y="544" class="label">B4</text>
+<rect x="235" y="528" width="750.00" height="20" rx="4" fill="#ef4444"/>
+<text x="1000.00" y="543" class="label">Max 6.757e-02 · RMS 1.735e-02</text>
+<text x="190" y="570" class="label">B8</text>
+<rect x="235" y="554" width="573.29" height="20" rx="4" fill="#ef4444"/>
+<text x="823.29" y="569" class="label">Max 5.165e-02 · RMS 9.698e-03</text>
+</svg>

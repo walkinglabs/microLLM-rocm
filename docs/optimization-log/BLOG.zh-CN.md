@@ -4629,3 +4629,17 @@ batch内部行位级相同、host argmax与device token全相同，因此排除�
 通用batch GEMM；否则定位首次放大的低精度island。scheduler默认继续冻结。
 
 ![DeepSeek cross-batch logits](../../benchmarks/results/2026-08-25-deepseek-cross-batch-logits/cross-batch.svg)
+
+## 313. Experiment 296：FFN是Batch漂移的主要放大器
+
+保持BF16 KV和同一Auto Attention，只切Linear权重岛。FP32 Linear的Max/RMS为
+0.001354/0.000229；Attention-only为0.020970/0.004278；FFN-only为0.062985/0.025171；当前
+both为0.067570/0.017350。
+
+32进程确定、converted tensor计数与四策略完全一致、host/device argmax全过。FP32底噪说明通用
+GEMM也随batch shape变化，但FFN-only把Max放大46.5倍，是主要来源；Attention是次要贡献。
+
+下一步不改精度，给cached step0增加诊断trace。先只看embedding、28个block、final norm和logits，
+找到第一个放大层，再打开该层gate/up/down细节。
+
+![Cross-batch precision isolation](../../benchmarks/results/2026-08-25-deepseek-cross-batch-precision/precision-isolation.svg)

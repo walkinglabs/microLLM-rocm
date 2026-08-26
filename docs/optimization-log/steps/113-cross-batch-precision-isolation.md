@@ -1,6 +1,6 @@
 # Step 113 — Cross-batch precision-island isolation
 
-Status: planned
+Status: complete; BF16 FFN selected
 
 Experiment 295证明DeepSeek batch shape在step0就产生完整logits漂移，同时排除行索引和argmax。
 
@@ -21,3 +21,9 @@ Experiment 295证明DeepSeek batch shape在step0就产生完整logits漂移，�
 
 若FP32仍有同等级漂移，下一步trace通用batch GEMM/Norm；若某个BF16 island首次放大，则对该island
 做逐层输出trace。任何修复必须同时保持当前B2性能和Experiment 288默认收益。
+
+## 实测结果
+
+32进程确定且host/device argmax一致。Max/RMS：FP32 0.001354/0.000229，Attention-only
+0.020970/0.004278，FFN-only 0.062985/0.025171，both 0.067570/0.017350。FFN-only是主要放大
+源，Step 114进入cached step0 block trace；不改precision或scheduler。

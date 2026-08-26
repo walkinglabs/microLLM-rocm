@@ -18471,6 +18471,103 @@ def validate_cross_batch_logit_audit(
             int(summary.get("first_non_bitwise_step", -1)))
 
 
+def validate_cross_batch_precision_isolation(
+        errors: list[str]) -> tuple[int, float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-deepseek-cross-batch-precision")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    policies = {row.get("precision_island"): row
+                for row in summary.get("policy_summaries", [])}
+    ids = {(row.get("precision_island"), row.get("batch"),
+            row.get("process_run")) for row in raw}
+    expected = {
+        "fp32-linear": (0.0013535022735595703, 0.00022941562718764653),
+        "bf16-ffn": (0.06298542022705078, 0.02517114265302031),
+        "bf16-attention": (0.020970463752746582, 0.004277777149359912),
+        "bf16-both": (0.06757020950317383, 0.017349767052212035),
+    }
+    if (summary.get("record_type") != "cross_batch_precision_isolation" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 32 or len(raw) != 32 or
+            len(ids) != 32 or summary.get("case_rows") != 16 or
+            summary.get("vocabulary_size") != 151936 or
+            summary.get("policies") != list(expected) or
+            summary.get("batches") != [1, 2, 4, 8] or
+            summary.get("runs_per_case") != 2 or
+            summary.get("all_repeat_bitwise_equal") is not True or
+            summary.get("all_host_device_argmax_equal") is not True or
+            set(policies) != set(expected)):
+        errors.append("cross-batch precision summary/raw identity changed")
+    for policy, (maximum, rms) in expected.items():
+        row = policies.get(policy, {})
+        if (row.get("maximum_cross_batch_error") != maximum or
+                row.get("maximum_cross_batch_rms_error") != rms or
+                row.get("cross_batch_bitwise_case_count") != 1 or
+                row.get("all_argmax_tokens_equal") is not True):
+            errors.append(f"cross-batch precision policy changed: {policy}")
+    converted = {
+        "fp32-linear": (0, 0), "bf16-ffn": (84, 0),
+        "bf16-attention": (0, 112), "bf16-both": (84, 112),
+    }
+    for policy, counts in converted.items():
+        rows = [row for row in raw if row.get("precision_island") == policy]
+        if (len(rows) != 8 or
+                any((row.get("bf16_ffn_converted_tensors"),
+                     row.get("bf16_attention_converted_tensors")) != counts or
+                    row.get("cached_attention_materialized_policy") != "auto-enabled" or
+                    row.get("host_device_argmax_equal") is not True
+                    for row in rows)):
+            errors.append(f"cross-batch precision route changed: {policy}")
+    if (analysis.get("decision") !=
+            "trace BF16 FFN block outputs before changing batch policy" or
+            analysis.get("process_rows") != 32 or
+            analysis.get("bf16_ffn_max_amplification_over_fp32") !=
+                46.535141800246606 or
+            analysis.get("fp32_drift_present") is not True or
+            analysis.get("bf16_ffn_is_primary_amplifier") is not True or
+            analysis.get("bf16_attention_is_secondary_amplifier") is not True or
+            analysis.get("all_step0_argmax_tokens_equal") is not True or
+            analysis.get("scheduler_default_admitted") is not False):
+        errors.append("cross-batch precision analysis changed")
+    if (check.get("measurement_commit") !=
+            "0a09653b84eb3655d16b9fd9b62b06202bfaac78" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 32 or
+            check.get("auto_enabled_rows") != 32 or
+            check.get("bf16_ffn_is_primary_amplifier") is not True or
+            check.get("scheduler_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("cross-batch precision verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "precision-isolation.svg"):
+        if not (root / name).is_file():
+            errors.append(f"cross-batch precision evidence missing: {name}")
+    try:
+        ET.parse(root / "precision-isolation.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid cross-batch precision SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_cross_batch_precision.py").read_text(encoding="utf-8")
+    if ("bf16-attention" not in runner or
+            "bf16_ffn_converted_tensors" not in runner or
+            "complete_values_compared_per_run" not in runner):
+        errors.append("cross-batch precision runner contract changed")
+    return (len(raw), expected["fp32-linear"][0], expected["bf16-ffn"][0],
+            expected["bf16-attention"][0])
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19351,6 +19448,9 @@ def main() -> int:
         serving_batch_deep_torch = validate_serving_batch_scale(errors)
     cross_batch_rows, cross_batch_maximum, cross_batch_rms, \
         cross_batch_first = validate_cross_batch_logit_audit(errors)
+    precision_batch_rows, precision_batch_fp32, precision_batch_ffn, \
+        precision_batch_attention = \
+        validate_cross_batch_precision_isolation(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -19974,6 +20074,10 @@ def main() -> int:
           f"cross_batch={cross_batch_rows}/"
           f"{cross_batch_maximum:.4f}/"
           f"{cross_batch_rms:.4f}/{cross_batch_first} "
+          f"batch_precision={precision_batch_rows}/"
+          f"{precision_batch_fp32:.4f}/"
+          f"{precision_batch_ffn:.4f}/"
+          f"{precision_batch_attention:.4f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

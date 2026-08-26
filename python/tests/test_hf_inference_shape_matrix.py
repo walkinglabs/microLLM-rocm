@@ -33,6 +33,27 @@ PRECISION_SPEC.loader.exec_module(PRECISION)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_precision_isolation_selects_bf16_ffn(self):
+        root = ROOT / "benchmarks/results/2026-08-25-deepseek-cross-batch-precision"
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        by_policy = {row["precision_island"]: row
+                     for row in summary["policy_summaries"]}
+        self.assertEqual(summary["process_rows"], 32)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertTrue(summary["all_host_device_argmax_equal"])
+        self.assertEqual(by_policy["fp32-linear"]["maximum_cross_batch_error"],
+                         0.0013535022735595703)
+        self.assertEqual(by_policy["bf16-ffn"]["maximum_cross_batch_error"],
+                         0.06298542022705078)
+        self.assertEqual(
+            by_policy["bf16-attention"]["maximum_cross_batch_error"],
+            0.020970463752746582)
+        self.assertEqual(verification["measurement_commit"],
+                         "0a09653b84eb3655d16b9fd9b62b06202bfaac78")
+        ET.parse(root / "precision-isolation.svg")
+
     def test_precision_isolation_summary_separates_weight_islands(self):
         measurements = []
         for run in (1, 2):
