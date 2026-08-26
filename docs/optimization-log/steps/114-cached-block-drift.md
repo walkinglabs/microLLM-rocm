@@ -1,6 +1,6 @@
 # Step 114 — Cached step-0 block drift
 
-Status: planned
+Status: complete; block 0 selected
 
 Experiment 296选择BF16 FFN作为主要放大源。当前trace只支持prefill；本节点先让`--trace-output`在
 cached decode的选定`--cache-logits-step`上激活，而且只允许warmup 0、steps 1的诊断运行。
@@ -15,3 +15,7 @@ cached decode的选定`--cache-logits-step`上激活，而且只允许warmup 0�
 
 第二阶段只对选中的第一个放大block开启detail，比较attention residual、FFN norm、input BF16、gate、
 up、activated、down和block output。trace运行不做性能声明。
+
+第一阶段已完成：Embedding位级相同，Block 0是第一处非零和第一处超过FP32同层10倍的边界。
+Block 0的FP32 Max为`7.62e-6`，BF16 FFN-only为`0.003909`（512.88倍）。第二阶段移到
+Step 115，仍不改变precision或scheduler默认。

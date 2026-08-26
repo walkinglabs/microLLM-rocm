@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="650" viewBox="0 0 1420 650">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:12px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">Cached step0 B1/B2 block drift</text>
+<text x="30" y="62" class="muted">complete block outputs · linear y scale · FP32 Linear vs BF16 FFN-only</text>
+<text x="30" y="100" class="label">fp32-linear</text>
+<rect x="170" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="182" y="325" class="label" text-anchor="middle" transform="rotate(70 182 325)">0</text>
+<rect x="208" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="220" y="325" class="label" text-anchor="middle" transform="rotate(70 220 325)">1</text>
+<rect x="246" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="258" y="325" class="label" text-anchor="middle" transform="rotate(70 258 325)">2</text>
+<rect x="284" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="296" y="325" class="label" text-anchor="middle" transform="rotate(70 296 325)">3</text>
+<rect x="322" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="334" y="325" class="label" text-anchor="middle" transform="rotate(70 334 325)">4</text>
+<rect x="360" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="372" y="325" class="label" text-anchor="middle" transform="rotate(70 372 325)">5</text>
+<rect x="398" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="410" y="325" class="label" text-anchor="middle" transform="rotate(70 410 325)">6</text>
+<rect x="436" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="448" y="325" class="label" text-anchor="middle" transform="rotate(70 448 325)">7</text>
+<rect x="474" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="486" y="325" class="label" text-anchor="middle" transform="rotate(70 486 325)">8</text>
+<rect x="512" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="524" y="325" class="label" text-anchor="middle" transform="rotate(70 524 325)">9</text>
+<rect x="550" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="562" y="325" class="label" text-anchor="middle" transform="rotate(70 562 325)">10</text>
+<rect x="588" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="600" y="325" class="label" text-anchor="middle" transform="rotate(70 600 325)">11</text>
+<rect x="626" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="638" y="325" class="label" text-anchor="middle" transform="rotate(70 638 325)">12</text>
+<rect x="664" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="676" y="325" class="label" text-anchor="middle" transform="rotate(70 676 325)">13</text>
+<rect x="702" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="714" y="325" class="label" text-anchor="middle" transform="rotate(70 714 325)">14</text>
+<rect x="740" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="752" y="325" class="label" text-anchor="middle" transform="rotate(70 752 325)">15</text>
+<rect x="778" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="790" y="325" class="label" text-anchor="middle" transform="rotate(70 790 325)">16</text>
+<rect x="816" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="828" y="325" class="label" text-anchor="middle" transform="rotate(70 828 325)">17</text>
+<rect x="854" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="866" y="325" class="label" text-anchor="middle" transform="rotate(70 866 325)">18</text>
+<rect x="892" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="904" y="325" class="label" text-anchor="middle" transform="rotate(70 904 325)">19</text>
+<rect x="930" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="942" y="325" class="label" text-anchor="middle" transform="rotate(70 942 325)">20</text>
+<rect x="968" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="980" y="325" class="label" text-anchor="middle" transform="rotate(70 980 325)">21</text>
+<rect x="1006" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="1018" y="325" class="label" text-anchor="middle" transform="rotate(70 1018 325)">22</text>
+<rect x="1044" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="1056" y="325" class="label" text-anchor="middle" transform="rotate(70 1056 325)">23</text>
+<rect x="1082" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="1094" y="325" class="label" text-anchor="middle" transform="rotate(70 1094 325)">24</text>
+<rect x="1120" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="1132" y="325" class="label" text-anchor="middle" transform="rotate(70 1132 325)">25</text>
+<rect x="1158" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="1170" y="325" class="label" text-anchor="middle" transform="rotate(70 1170 325)">26</text>
+<rect x="1196" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="1208" y="325" class="label" text-anchor="middle" transform="rotate(70 1208 325)">27</text>
+<rect x="1234" y="302.29" width="24" height="2.71" fill="#38bdf8"/>
+<text x="1246" y="325" class="label" text-anchor="middle" transform="rotate(70 1246 325)">28</text>
+<rect x="1272" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="1284" y="325" class="label" text-anchor="middle" transform="rotate(70 1284 325)">29</text>
+<rect x="1310" y="303.00" width="24" height="2.00" fill="#38bdf8"/>
+<text x="1322" y="325" class="label" text-anchor="middle" transform="rotate(70 1322 325)">30</text>
+<text x="30" y="360" class="label">bf16-ffn</text>
+<rect x="170" y="563.00" width="24" height="2.00" fill="#f97316"/>
+<text x="182" y="585" class="label" text-anchor="middle" transform="rotate(70 182 585)">0</text>
+<rect x="208" y="563.00" width="24" height="2.00" fill="#f97316"/>
+<text x="220" y="585" class="label" text-anchor="middle" transform="rotate(70 220 585)">1</text>
+<rect x="246" y="563.00" width="24" height="2.00" fill="#f97316"/>
+<text x="258" y="585" class="label" text-anchor="middle" transform="rotate(70 258 585)">2</text>
+<rect x="284" y="560.96" width="24" height="4.04" fill="#f97316"/>
+<text x="296" y="585" class="label" text-anchor="middle" transform="rotate(70 296 585)">3</text>
+<rect x="322" y="559.26" width="24" height="5.74" fill="#f97316"/>
+<text x="334" y="585" class="label" text-anchor="middle" transform="rotate(70 334 585)">4</text>
+<rect x="360" y="560.15" width="24" height="4.85" fill="#f97316"/>
+<text x="372" y="585" class="label" text-anchor="middle" transform="rotate(70 372 585)">5</text>
+<rect x="398" y="557.51" width="24" height="7.49" fill="#f97316"/>
+<text x="410" y="585" class="label" text-anchor="middle" transform="rotate(70 410 585)">6</text>
+<rect x="436" y="556.36" width="24" height="8.64" fill="#f97316"/>
+<text x="448" y="585" class="label" text-anchor="middle" transform="rotate(70 448 585)">7</text>
+<rect x="474" y="551.67" width="24" height="13.33" fill="#f97316"/>
+<text x="486" y="585" class="label" text-anchor="middle" transform="rotate(70 486 585)">8</text>
+<rect x="512" y="547.59" width="24" height="17.41" fill="#f97316"/>
+<text x="524" y="585" class="label" text-anchor="middle" transform="rotate(70 524 585)">9</text>
+<rect x="550" y="549.03" width="24" height="15.97" fill="#f97316"/>
+<text x="562" y="585" class="label" text-anchor="middle" transform="rotate(70 562 585)">10</text>
+<rect x="588" y="555.31" width="24" height="9.69" fill="#f97316"/>
+<text x="600" y="585" class="label" text-anchor="middle" transform="rotate(70 600 585)">11</text>
+<rect x="626" y="552.79" width="24" height="12.21" fill="#f97316"/>
+<text x="638" y="585" class="label" text-anchor="middle" transform="rotate(70 638 585)">12</text>
+<rect x="664" y="554.22" width="24" height="10.78" fill="#f97316"/>
+<text x="676" y="585" class="label" text-anchor="middle" transform="rotate(70 676 585)">13</text>
+<rect x="702" y="546.76" width="24" height="18.24" fill="#f97316"/>
+<text x="714" y="585" class="label" text-anchor="middle" transform="rotate(70 714 585)">14</text>
+<rect x="740" y="543.10" width="24" height="21.90" fill="#f97316"/>
+<text x="752" y="585" class="label" text-anchor="middle" transform="rotate(70 752 585)">15</text>
+<rect x="778" y="538.46" width="24" height="26.54" fill="#f97316"/>
+<text x="790" y="585" class="label" text-anchor="middle" transform="rotate(70 790 585)">16</text>
+<rect x="816" y="545.75" width="24" height="19.25" fill="#f97316"/>
+<text x="828" y="585" class="label" text-anchor="middle" transform="rotate(70 828 585)">17</text>
+<rect x="854" y="547.89" width="24" height="17.11" fill="#f97316"/>
+<text x="866" y="585" class="label" text-anchor="middle" transform="rotate(70 866 585)">18</text>
+<rect x="892" y="547.99" width="24" height="17.01" fill="#f97316"/>
+<text x="904" y="585" class="label" text-anchor="middle" transform="rotate(70 904 585)">19</text>
+<rect x="930" y="544.47" width="24" height="20.53" fill="#f97316"/>
+<text x="942" y="585" class="label" text-anchor="middle" transform="rotate(70 942 585)">20</text>
+<rect x="968" y="544.77" width="24" height="20.23" fill="#f97316"/>
+<text x="980" y="585" class="label" text-anchor="middle" transform="rotate(70 980 585)">21</text>
+<rect x="1006" y="542.70" width="24" height="22.30" fill="#f97316"/>
+<text x="1018" y="585" class="label" text-anchor="middle" transform="rotate(70 1018 585)">22</text>
+<rect x="1044" y="536.42" width="24" height="28.58" fill="#f97316"/>
+<text x="1056" y="585" class="label" text-anchor="middle" transform="rotate(70 1056 585)">23</text>
+<rect x="1082" y="507.12" width="24" height="57.88" fill="#f97316"/>
+<text x="1094" y="585" class="label" text-anchor="middle" transform="rotate(70 1094 585)">24</text>
+<rect x="1120" y="508.43" width="24" height="56.57" fill="#f97316"/>
+<text x="1132" y="585" class="label" text-anchor="middle" transform="rotate(70 1132 585)">25</text>
+<rect x="1158" y="526.58" width="24" height="38.42" fill="#f97316"/>
+<text x="1170" y="585" class="label" text-anchor="middle" transform="rotate(70 1170 585)">26</text>
+<rect x="1196" y="482.06" width="24" height="82.94" fill="#f97316"/>
+<text x="1208" y="585" class="label" text-anchor="middle" transform="rotate(70 1208 585)">27</text>
+<rect x="1234" y="375.00" width="24" height="190.00" fill="#f97316"/>
+<text x="1246" y="585" class="label" text-anchor="middle" transform="rotate(70 1246 585)">28</text>
+<rect x="1272" y="541.08" width="24" height="23.92" fill="#f97316"/>
+<text x="1284" y="585" class="label" text-anchor="middle" transform="rotate(70 1284 585)">29</text>
+<rect x="1310" y="544.47" width="24" height="20.53" fill="#f97316"/>
+<text x="1322" y="585" class="label" text-anchor="middle" transform="rotate(70 1322 585)">30</text>
+</svg>

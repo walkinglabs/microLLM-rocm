@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "trace block zero internals before changing precision or batch policy",
+  "process_rows": 4,
+  "selected_stage_count": 31,
+  "embedding_bitwise_equal": true,
+  "first_nonzero_stage": "inference.cached.blocks.0",
+  "first_tenfold_bf16_ffn_stage": "inference.cached.blocks.0",
+  "block0_fp32_maximum_error": 0.000007621943950653076,
+  "block0_bf16_ffn_maximum_error": 0.003909111022949219,
+  "block0_bf16_ffn_max_amplification_over_fp32": 512.8758553274682,
+  "block27_bf16_ffn_maximum_error": 0.5828399658203125,
+  "logit_bf16_ffn_maximum_error": 0.06298542022705078,
+  "logit_bf16_ffn_rms_error": 0.02517114265302031,
+  "precision_default_changed": false,
+  "scheduler_default_admitted": false,
+  "next_experiment": "trace block zero attention residual and FFN internal boundaries"
+}

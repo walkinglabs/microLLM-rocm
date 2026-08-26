@@ -18568,6 +18568,102 @@ def validate_cross_batch_precision_isolation(
             expected["bf16-attention"][0])
 
 
+def validate_cached_block_drift(
+        errors: list[str]) -> tuple[int, float, float, str]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-25-deepseek-cached-block-drift")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    policies = {row.get("precision_island"): row
+                for row in summary.get("policy_summaries", [])}
+    expected_stage = "inference.cached.blocks.0"
+    if (summary.get("record_type") != "cached_block_drift_audit" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 4 or len(raw) != 4 or
+            summary.get("selected_stage_count") != 31 or
+            summary.get("runs_per_policy") != 2 or
+            summary.get("policies") != ["fp32-linear", "bf16-ffn"] or
+            summary.get("first_tenfold_bf16_ffn_stage") != expected_stage or
+            set(policies) != {"fp32-linear", "bf16-ffn"}):
+        errors.append("cached block drift summary/raw identity changed")
+    fp32 = {row.get("name"): row for row in
+            policies.get("fp32-linear", {}).get("stages", [])}
+    ffn = {row.get("name"): row for row in
+           policies.get("bf16-ffn", {}).get("stages", [])}
+    embedding = "inference.cached.embedding"
+    block27 = "inference.cached.blocks.27"
+    logits = "inference.cached.logits"
+    if (len(fp32) != 31 or len(ffn) != 31 or
+            fp32.get(embedding, {}).get("b1_vs_b2_row0", {}).get("maximum") != 0.0 or
+            ffn.get(embedding, {}).get("b1_vs_b2_row0", {}).get("maximum") != 0.0 or
+            fp32.get(expected_stage, {}).get("b1_vs_b2_row0", {}).get("maximum") !=
+                0.000007621943950653076 or
+            ffn.get(expected_stage, {}).get("b1_vs_b2_row0", {}).get("maximum") !=
+                0.003909111022949219 or
+            ffn.get(block27, {}).get("b1_vs_b2_row0", {}).get("maximum") !=
+                0.5828399658203125 or
+            ffn.get(logits, {}).get("b1_vs_b2_row0", {}).get("maximum") !=
+                0.06298542022705078):
+        errors.append("cached block drift key stages changed")
+    if (any(row.get("status") != "pass" or row.get("context") != 2048 or
+            row.get("decode_step") != 0 or len(row.get("stages", [])) != 31
+            for row in raw) or
+            sorted(row.get("trace_record_count_b1") for row in raw) !=
+                [39, 39, 44, 44] or
+            sorted(row.get("trace_record_count_b2") for row in raw) !=
+                [39, 39, 44, 44]):
+        errors.append("cached block drift raw process contract changed")
+    if (analysis.get("decision") !=
+            "trace block zero internals before changing precision or batch policy" or
+            analysis.get("first_nonzero_stage") != expected_stage or
+            analysis.get("block0_bf16_ffn_max_amplification_over_fp32") !=
+                512.8758553274682 or
+            analysis.get("precision_default_changed") is not False or
+            analysis.get("scheduler_default_admitted") is not False):
+        errors.append("cached block drift analysis changed")
+    if (check.get("measurement_commit") !=
+            "1ba27b7d8a566d987be2f2dbf4a8d5dd2e67c64f" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 4 or
+            check.get("selected_stage_count") != 31 or
+            check.get("first_tenfold_bf16_ffn_stage") != expected_stage or
+            check.get("precision_default_changed") is not False or
+            check.get("scheduler_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 374, "total": 374} or
+            check.get("sanitizer_label") != {"passed": 372, "total": 372} or
+            check.get("hip_label") != {"passed": 192, "total": 192} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("cached block drift verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "block-drift.svg"):
+        if not (root / name).is_file():
+            errors.append(f"cached block drift evidence missing: {name}")
+    try:
+        ET.parse(root / "block-drift.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid cached block drift SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_cached_block_drift.py").read_text(encoding="utf-8")
+    if ("first_tenfold_bf16_ffn_stage" not in runner or
+            "selected_stage_count" not in runner or
+            "trace values truncated" not in runner):
+        errors.append("cached block drift runner contract changed")
+    return (len(raw),
+            float(ffn.get(expected_stage, {}).get(
+                "b1_vs_b2_row0", {}).get("maximum", 0.0)),
+            float(ffn.get(block27, {}).get(
+                "b1_vs_b2_row0", {}).get("maximum", 0.0)),
+            str(summary.get("first_tenfold_bf16_ffn_stage", "")))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19451,6 +19547,8 @@ def main() -> int:
     precision_batch_rows, precision_batch_fp32, precision_batch_ffn, \
         precision_batch_attention = \
         validate_cross_batch_precision_isolation(errors)
+    cached_block_rows, cached_block_zero, cached_block_last, \
+        cached_block_first = validate_cached_block_drift(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20078,6 +20176,9 @@ def main() -> int:
           f"{precision_batch_fp32:.4f}/"
           f"{precision_batch_ffn:.4f}/"
           f"{precision_batch_attention:.4f} "
+          f"cached_block={cached_block_rows}/"
+          f"{cached_block_zero:.4f}/{cached_block_last:.4f}/"
+          f"{cached_block_first} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

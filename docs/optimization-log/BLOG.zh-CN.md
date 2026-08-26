@@ -4643,3 +4643,18 @@ GEMM也随batch shape变化，但FFN-only把Max放大46.5倍，是主要来源�
 找到第一个放大层，再打开该层gate/up/down细节。
 
 ![Cross-batch precision isolation](../../benchmarks/results/2026-08-25-deepseek-cross-batch-precision/precision-isolation.svg)
+
+## 314. Experiment 297：别只看最终Logits，误差在第0层已经跳起来了
+
+我们把DeepSeek cached step0拆成31个完整边界：Embedding、28个Transformer block、final norm和
+logits。B1与B2第0行输入完全相同，FP32 Linear和BF16 FFN-only各跑两个fresh process。
+
+Embedding位级相同。第一个差异出现在Block 0：FP32 Max/RMS只有7.62e-6/1.91e-6，BF16 FFN-only
+却是0.003909/0.000348，Max放大512.88倍。误差随后穿过全部28层，到Block 27达到
+0.582840/0.054506，再被final norm压回最终logits的0.062985/0.025171。
+
+这说明只盯最终logits会错过中间最大的漂移，但“Block 0输出不同”仍不等于“已经找到具体算子”。
+所以默认precision和scheduler继续冻结；下一步只打开Block 0内部的attention residual、BF16 FFN
+input、gate/up/activated/down，找到第一处真正的跃迁。
+
+![Cached block drift](../../benchmarks/results/2026-08-25-deepseek-cached-block-drift/block-drift.svg)

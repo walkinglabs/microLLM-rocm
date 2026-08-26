@@ -39,6 +39,32 @@ BLOCK_DRIFT_SPEC.loader.exec_module(BLOCK_DRIFT)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_cached_block_drift_locates_block_zero(self):
+        root = ROOT / "benchmarks/results/2026-08-25-deepseek-cached-block-drift"
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        policies = {row["precision_island"]: row
+                    for row in summary["policy_summaries"]}
+        fp32 = {row["name"]: row for row in policies["fp32-linear"]["stages"]}
+        ffn = {row["name"]: row for row in policies["bf16-ffn"]["stages"]}
+        block0 = "inference.cached.blocks.0"
+        self.assertEqual(summary["process_rows"], 4)
+        self.assertEqual(summary["selected_stage_count"], 31)
+        self.assertEqual(summary["first_tenfold_bf16_ffn_stage"], block0)
+        self.assertEqual(fp32["inference.cached.embedding"]
+                         ["b1_vs_b2_row0"]["maximum"], 0.0)
+        self.assertEqual(fp32[block0]["b1_vs_b2_row0"]["maximum"],
+                         0.000007621943950653076)
+        self.assertEqual(ffn[block0]["b1_vs_b2_row0"]["maximum"],
+                         0.003909111022949219)
+        self.assertEqual(analysis["block27_bf16_ffn_maximum_error"],
+                         0.5828399658203125)
+        self.assertEqual(verification["measurement_commit"],
+                         "1ba27b7d8a566d987be2f2dbf4a8d5dd2e67c64f")
+        ET.parse(root / "block-drift.svg")
+
     def test_block_drift_summary_selects_first_tenfold_stage(self):
         processes = []
         for policy in BLOCK_DRIFT.POLICIES:

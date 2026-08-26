@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 296 isolates DeepSeek's step-0
-> batch drift. FP32 Linear Max/RMS is 0.001354/0.000229; BF16 Attention-only is
-> 0.020970/0.004278; BF16 FFN-only is 0.062985/0.025171 and is the primary
-> amplifier. Precision and scheduler defaults remain unchanged while cached block
-> outputs locate the first amplification layer. See the
-> [precision-island experiment](docs/optimization-log/experiments/296-cross-batch-precision-isolation.md).
+> **Current optimization checkpoint:** Experiment 297 traces DeepSeek's cached
+> step-0 output across all 28 blocks. The embedding is bitwise equal and block 0
+> is the first differing boundary: FP32 Linear Max is `7.62e-6`, while BF16
+> FFN-only reaches `0.003909` (512.88x). Precision and scheduler defaults remain
+> unchanged while block-0 internals are isolated. See the
+> [cached block-drift experiment](docs/optimization-log/experiments/297-cached-block-drift.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
