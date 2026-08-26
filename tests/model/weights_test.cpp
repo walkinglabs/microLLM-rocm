@@ -82,7 +82,8 @@ TEST(ModelWeightsTest, StrictLoadIsAtomicAndNonStrictLoadReportsEveryProblem) {
     EXPECT_THROW((void)target.load_state_dict(broken), std::invalid_argument);
     expect_state_equal(target.state_dict(), before);
 
-    const auto report = target.load_state_dict(broken, {.strict = false, .mapping = {}});
+    const auto report = target.load_state_dict(
+        broken, {.strict = false, .mapping = {}, .aliases = {}});
     EXPECT_FALSE(report.complete());
     EXPECT_EQ(report.missing.size(), 1U);
     EXPECT_EQ(report.unexpected.size(), 1U);
@@ -149,7 +150,7 @@ TEST(ModelWeightsTest, QwenStyleMappingTransposesLinearWeights) {
                          Tensor::from_vector(tensor.to_vector(), tensor.shape()));
     }
     const auto report = target.load_state_dict(
-        external, {.strict = true, .mapping = mapping});
+        external, {.strict = true, .mapping = mapping, .aliases = {}});
     EXPECT_TRUE(report.complete());
     expect_state_equal(target.state_dict(), native);
 }
@@ -179,6 +180,44 @@ TEST(ModelWeightsTest, QwenStyleMappingIncludesQkNormWhenConfigured) {
               "model.layers.0.self_attn.k_norm.weight");
     EXPECT_EQ(mapping.at("blocks.0.attention.q_norm.weight").transform,
               WeightTransform::Identity);
+}
+
+TEST(ModelWeightsTest, StrictTiedAliasMustExactlyMatchPrimarySource) {
+    auto config = weight_config(true);
+    config.attention_head_dimension = 6;
+    config.qk_norm = true;
+    TransformerModel source(config, 709);
+    const auto native = source.state_dict();
+    const auto mapping = qwen_style_weight_mapping(config);
+    io::StateDict external;
+    for (const auto& [target, spec] : mapping) {
+        auto tensor = native.at(target);
+        if (spec.transform == WeightTransform::Transpose2D) {
+            tensor = tensor.transpose(0, 1).contiguous();
+        }
+        external.emplace(spec.name, Tensor::from_vector(
+            tensor.to_vector(), tensor.shape()));
+    }
+    external.emplace("lm_head.weight", Tensor::from_vector(
+        external.at("model.embed_tokens.weight").to_vector(),
+        external.at("model.embed_tokens.weight").shape()));
+    const LoadWeightsOptions options{
+        .strict = true, .mapping = mapping,
+        .aliases = qwen3_tied_weight_aliases(config)};
+    TransformerModel target(
+        config, 711, ParameterInitialization::Uninitialized);
+    EXPECT_TRUE(target.load_state_dict(external, options).complete());
+    expect_state_equal(target.state_dict(), native);
+
+    auto changed = external.at("lm_head.weight").to_vector();
+    changed[0] += 1.0F;
+    external.at("lm_head.weight") = Tensor::from_vector(
+        changed, external.at("lm_head.weight").shape());
+    TransformerModel rejected(
+        config, 713, ParameterInitialization::Uninitialized);
+    EXPECT_THROW((void)rejected.load_state_dict(external, options),
+                 std::invalid_argument);
+    EXPECT_THROW((void)rejected.forward(tokens()), std::logic_error);
 }
 
 TEST(ModelWeightsTest, LoadsSingleAndIndexedSafetensorsFiles) {

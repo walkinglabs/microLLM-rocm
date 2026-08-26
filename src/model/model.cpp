@@ -3626,6 +3626,13 @@ LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
             report.incompatible.push_back("mapping target is not a model parameter: " + target);
         }
     }
+    for (const auto& [source_alias, target] : options.aliases) {
+        (void)source_alias;
+        if (!target_names.contains(target)) {
+            report.incompatible.push_back(
+                "alias target is not a model parameter: " + target);
+        }
+    }
 
     struct Prepared {
         std::string name;
@@ -3683,6 +3690,24 @@ LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
                         : clone_tensor(source, parameter->data().device());
         prepared.push_back({target_name, parameter, std::move(copy)});
     }
+    for (const auto& [source_alias, target] : options.aliases) {
+        const auto alias = state.find(source_alias);
+        const auto prepared_target = std::find_if(
+            prepared.begin(), prepared.end(),
+            [&](const auto& item) { return item.name == target; });
+        if (alias == state.end()) {
+            report.missing.push_back(target + " alias <- " + source_alias);
+            continue;
+        }
+        consumed.insert(source_alias);
+        if (prepared_target == prepared.end() || !alias->second.defined() ||
+            alias->second.dtype() != DType::Float32 ||
+            alias->second.shape() != prepared_target->tensor.shape() ||
+            alias->second.to_vector() != prepared_target->tensor.to_vector()) {
+            report.incompatible.push_back(
+                "tied alias payload differs: " + source_alias + " -> " + target);
+        }
+    }
     for (const auto& [name, tensor] : state) {
         (void)tensor;
         if (!consumed.contains(name)) report.unexpected.push_back(name);
@@ -3723,8 +3748,16 @@ LoadWeightsReport TransformerModel::load_safetensors_files(
     }
 
     std::vector<io::SafetensorsTensorInfo> metadata;
+    std::map<std::string, std::filesystem::path> source_paths;
     for (const auto& path : paths) {
         auto shard = io::inspect_safetensors(path);
+        for (const auto& info : shard) {
+            if (!source_paths.emplace(info.name, path).second) {
+                throw std::runtime_error(
+                    "duplicate tensor across streamed safetensors shards: " +
+                    info.name);
+            }
+        }
         metadata.insert(metadata.end(),
                         std::make_move_iterator(shard.begin()),
                         std::make_move_iterator(shard.end()));
@@ -3781,6 +3814,30 @@ LoadWeightsReport TransformerModel::load_safetensors_files(
         }
         consumed.insert(source_name);
         targets_by_source[source_name].push_back({target_name, parameter, transform});
+    }
+    for (const auto& [source_alias, target] : options.aliases) {
+        if (!target_names.contains(target)) {
+            report.incompatible.push_back(
+                "alias target is not a model parameter: " + target);
+            continue;
+        }
+        const auto alias_path = source_paths.find(source_alias);
+        const auto target_mapping = options.mapping.find(target);
+        const auto primary_source = target_mapping == options.mapping.end()
+            ? target : target_mapping->second.name;
+        const auto primary_path = source_paths.find(primary_source);
+        if (alias_path == source_paths.end()) {
+            report.missing.push_back(target + " alias <- " + source_alias);
+            continue;
+        }
+        consumed.insert(source_alias);
+        if (primary_path == source_paths.end() ||
+            !io::safetensors_payloads_equal(
+                alias_path->second, source_alias,
+                primary_path->second, primary_source)) {
+            report.incompatible.push_back(
+                "tied alias payload differs: " + source_alias + " -> " + target);
+        }
     }
     for (const auto& info : metadata) {
         if (!consumed.contains(info.name)) report.unexpected.push_back(info.name);
@@ -3963,6 +4020,12 @@ WeightMapping qwen_style_weight_mapping(const ModelConfig& config) {
                         WeightSource{"lm_head.weight", WeightTransform::Transpose2D});
     }
     return mapping;
+}
+
+WeightAliases qwen3_tied_weight_aliases(const ModelConfig& config) {
+    config.validate();
+    if (!config.qk_norm || !config.tie_embeddings) return {};
+    return {{"lm_head.weight", "token_embedding.weight"}};
 }
 
 }  // namespace microllm::model

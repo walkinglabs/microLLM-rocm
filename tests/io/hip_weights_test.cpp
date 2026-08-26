@@ -61,7 +61,7 @@ TEST(HipWeightsTest, LoadsSafetensorsDirectlyToGpuAndIntoGpuModel) {
     target.to(Device::hip());
     runtime::reset_transfer_stats();
     const auto report = target.load_safetensors(
-        path, {.strict = true, .mapping = {}});
+        path, {.strict = true, .mapping = {}, .aliases = {}});
     const auto transfers = runtime::transfer_stats();
     EXPECT_TRUE(report.complete());
     EXPECT_EQ(transfers.host_to_device_bytes,
@@ -127,6 +127,62 @@ TEST(HipWeightsTest, LoadsMixedInt8WeightAndScaleWithoutDequantizeD2H) {
     std::filesystem::remove(path, ignored);
 }
 
+TEST(HipWeightsTest, StrictStreamingVerifiesTiedAliasBeforeAnyH2D) {
+    require_gpu();
+    auto qwen3 = config();
+    qwen3.attention_head_dimension = 6;
+    qwen3.qk_norm = true;
+    qwen3.tie_embeddings = true;
+    model::TransformerModel source(qwen3, 461);
+    const auto native = source.state_dict();
+    const auto mapping = model::qwen_style_weight_mapping(qwen3);
+    StateDict external;
+    for (const auto& [target, spec] : mapping) {
+        auto tensor = native.at(target);
+        if (spec.transform == model::WeightTransform::Transpose2D) {
+            tensor = tensor.transpose(0, 1).contiguous();
+        }
+        external.emplace(spec.name, Tensor::from_vector(
+            tensor.to_vector(), tensor.shape()));
+    }
+    external.emplace("lm_head.weight", Tensor::from_vector(
+        external.at("model.embed_tokens.weight").to_vector(),
+        external.at("model.embed_tokens.weight").shape()));
+    const model::LoadWeightsOptions options{
+        .strict = true, .mapping = mapping,
+        .aliases = model::qwen3_tied_weight_aliases(qwen3)};
+    const auto good_path = temporary_path();
+    save_safetensors(good_path, external,
+                     {.dtype = WeightFileDType::BFloat16});
+    model::TransformerModel loaded(
+        qwen3, 463, model::ParameterInitialization::Uninitialized);
+    loaded.to(Device::hip(0));
+    EXPECT_TRUE(loaded.load_safetensors(good_path, options).complete());
+    EXPECT_TRUE(loaded.forward_inference(
+        Tensor::from_int32_vector({1}, {1, 1}).to(Device::hip(0))).defined());
+
+    auto bad_values = external.at("lm_head.weight").to_vector();
+    bad_values[0] += 1.0F;
+    external.at("lm_head.weight") = Tensor::from_vector(
+        bad_values, external.at("lm_head.weight").shape());
+    const auto bad_path = temporary_path();
+    save_safetensors(bad_path, external,
+                     {.dtype = WeightFileDType::BFloat16});
+    model::TransformerModel rejected(
+        qwen3, 467, model::ParameterInitialization::Uninitialized);
+    rejected.to(Device::hip(0));
+    runtime::reset_transfer_stats();
+    EXPECT_THROW((void)rejected.load_safetensors(bad_path, options),
+                 std::invalid_argument);
+    EXPECT_EQ(runtime::transfer_stats().host_to_device_calls, 0U);
+    EXPECT_THROW((void)rejected.forward_inference(
+                     Tensor::from_int32_vector({1}, {1, 1}).to(Device::hip(0))),
+                 std::logic_error);
+    std::error_code ignored;
+    std::filesystem::remove(good_path, ignored);
+    std::filesystem::remove(bad_path, ignored);
+}
+
 TEST(HipWeightsTest, StreamsMultipleShardsAfterWholeSetPreflight) {
     require_gpu();
     const auto first_path = temporary_path();
@@ -150,7 +206,8 @@ TEST(HipWeightsTest, StreamsMultipleShardsAfterWholeSetPreflight) {
     target.to(Device::hip());
     runtime::reset_transfer_stats();
     const auto report = target.load_safetensors_files(
-        {first_path, second_path}, {.strict = true, .mapping = {}});
+        {first_path, second_path},
+        {.strict = true, .mapping = {}, .aliases = {}});
     const auto transfers = runtime::transfer_stats();
     EXPECT_TRUE(report.complete());
     EXPECT_EQ(transfers.host_to_device_bytes,
@@ -172,7 +229,8 @@ TEST(HipWeightsTest, StreamsMultipleShardsAfterWholeSetPreflight) {
     missing.to(Device::hip());
     runtime::reset_transfer_stats();
     EXPECT_THROW((void)missing.load_safetensors_files(
-                     {first_path}, {.strict = true, .mapping = {}}),
+                     {first_path},
+                     {.strict = true, .mapping = {}, .aliases = {}}),
                  std::invalid_argument);
     EXPECT_EQ(runtime::transfer_stats().host_to_device_calls, 0U);
 
@@ -182,7 +240,7 @@ TEST(HipWeightsTest, StreamsMultipleShardsAfterWholeSetPreflight) {
     runtime::reset_transfer_stats();
     EXPECT_THROW((void)duplicate.load_safetensors_files(
                      {first_path, first_path},
-                     {.strict = true, .mapping = {}}),
+                     {.strict = true, .mapping = {}, .aliases = {}}),
                  std::runtime_error);
     EXPECT_EQ(runtime::transfer_stats().host_to_device_calls, 0U);
 
@@ -208,7 +266,7 @@ TEST(HipWeightsTest, StreamsMultipleShardsAfterWholeSetPreflight) {
     indexed.to(Device::hip());
     runtime::reset_transfer_stats();
     const auto indexed_report = indexed.load_safetensors_index(
-        index_path, {.strict = true, .mapping = {}});
+        index_path, {.strict = true, .mapping = {}, .aliases = {}});
     EXPECT_TRUE(indexed_report.complete());
     EXPECT_EQ(runtime::transfer_stats().host_to_device_bytes,
               static_cast<std::size_t>(source.parameter_count()) * 2U);

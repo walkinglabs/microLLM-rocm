@@ -424,6 +424,8 @@ int main(int argc, char** argv) {
         model.to(device);
         microllm::model::LoadWeightsOptions load_options;
         load_options.mapping = microllm::model::qwen_style_weight_mapping(external.model);
+        load_options.aliases =
+            microllm::model::qwen3_tied_weight_aliases(external.model);
         const auto load_start = std::chrono::steady_clock::now();
         microllm::runtime::reset_transfer_stats();
         const auto report = model.load_safetensors(weights_path, load_options);

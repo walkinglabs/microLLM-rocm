@@ -776,6 +776,60 @@ SafetensorsIndex inspect_safetensors_index(
     return output;
 }
 
+bool safetensors_payloads_equal(
+    const std::filesystem::path& left_path, const std::string& left_name,
+    const std::filesystem::path& right_path, const std::string& right_name) {
+    std::ifstream left(left_path, std::ios::binary);
+    std::ifstream right(right_path, std::ios::binary);
+    if (!left || !right) {
+        throw std::runtime_error("cannot open safetensors alias payload files");
+    }
+    const auto left_file = parse_file_header(left, left_path);
+    const auto right_file = parse_file_header(right, right_path);
+    const auto find = [](const auto& tensors, const std::string& name)
+        -> const TensorDescriptor& {
+        const auto found = std::find_if(
+            tensors.begin(), tensors.end(),
+            [&](const auto& item) { return item.name == name; });
+        if (found == tensors.end()) {
+            throw std::runtime_error("safetensors alias tensor is missing: " + name);
+        }
+        return *found;
+    };
+    const auto& left_tensor = find(left_file.tensors, left_name);
+    const auto& right_tensor = find(right_file.tensors, right_name);
+    const auto left_bytes = left_tensor.end - left_tensor.begin;
+    const auto right_bytes = right_tensor.end - right_tensor.begin;
+    if (left_tensor.dtype != right_tensor.dtype ||
+        left_tensor.shape != right_tensor.shape || left_bytes != right_bytes) {
+        return false;
+    }
+    left.seekg(static_cast<std::streamoff>(
+        left_file.data_start + left_tensor.begin));
+    right.seekg(static_cast<std::streamoff>(
+        right_file.data_start + right_tensor.begin));
+    constexpr std::size_t chunk_bytes = 1024U * 1024U;
+    std::vector<char> left_chunk(chunk_bytes);
+    std::vector<char> right_chunk(chunk_bytes);
+    std::uint64_t remaining = left_bytes;
+    while (remaining != 0) {
+        const auto count = static_cast<std::size_t>(
+            std::min<std::uint64_t>(remaining, chunk_bytes));
+        left.read(left_chunk.data(), static_cast<std::streamsize>(count));
+        right.read(right_chunk.data(), static_cast<std::streamsize>(count));
+        if (!left || !right) {
+            throw std::runtime_error("cannot read safetensors alias payload");
+        }
+        if (!std::equal(left_chunk.begin(), left_chunk.begin() +
+                            static_cast<std::ptrdiff_t>(count),
+                        right_chunk.begin())) {
+            return false;
+        }
+        remaining -= count;
+    }
+    return true;
+}
+
 StateDict load_safetensors_index(const std::filesystem::path& index_path, Device target) {
     const auto weight_map = inspect_safetensors_index(index_path);
     std::map<std::filesystem::path, std::set<std::string>> names_by_file;

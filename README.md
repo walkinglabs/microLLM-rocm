@@ -289,7 +289,8 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > config/vocab/merges, and writes the shared local manifest without vendoring payloads.
 > Qwen3-0.6B is now additionally fixture/parser-ready: its config has 596,049,920 unique
 > runtime parameters, while the 311-Tensor file stores 751,632,384 values because tied
-> embedding/lm_head payloads are byte-identical. Strict alias loading and logits remain pending.
+> embedding/lm_head payloads are byte-identical. Bounded strict alias loading now passes;
+> complete FP32 logits and four greedy tokens align with Transformers on MI300X.
 
 </details>
 
@@ -1021,12 +1022,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 426/426 | host code, Qwen2/Qwen3 parser, explicit-head/QK-Norm graph and package gates |
-| ASan/UBSan CPU | 423/423 | host lifetime, Qwen3 config/QK-Norm state and package linking |
-| MI300X/gfx942 HIP label | 212/212 | allocator/arena/Stream/Graph, explicit-head/QK-Norm forward/backward and model routes |
-| PyTorch-enabled CPU build | 428/428 | dispatcher parity, Qwen3 parser and 53/53 explicit-head/QK-Norm full-graph alignment |
+| CPU Debug | 429/429 | host code, Qwen3 strict alias/evidence, explicit-head/QK-Norm graph and package gates |
+| ASan/UBSan CPU | 426/426 | host lifetime, bounded alias comparison, Qwen3 state and package linking |
+| MI300X/gfx942 HIP label | 213/213 | allocator/arena/Stream/Graph, Qwen3 strict streaming and explicit-head/QK-Norm |
+| PyTorch-enabled CPU build | 431/431 | dispatcher parity, Qwen3 strict evidence and 53/53 explicit-head/QK-Norm alignment |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 156 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 157 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1272,6 +1273,9 @@ PyTorch checkpoints, CPU cache parity and MI300X forward/backward with zero payl
 [Experiment 361](docs/optimization-log/experiments/361-qwen3-fixture-parser.md) pins official
 Qwen3-0.6B config/tokenizer/header and exposes its byte-identical tied lm_head duplicate; parser
 is ready, while strict alias load and official logits are deliberately still pending.
+[Experiment 362](docs/optimization-log/experiments/362-qwen3-official-alignment.md) verifies the
+tied alias before streaming and aligns all 151,936 logits at Max/RMS 3.86e-5/8.44e-6 plus four
+exact greedy tokens against Transformers on MI300X.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

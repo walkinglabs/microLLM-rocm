@@ -16,7 +16,7 @@ struct HuggingFaceModelConfig {
     std::int64_t eos_token_id = -1;
 };
 
-// First compatibility target: dense Qwen2/Qwen2.5 decoder configs.
+// Dense Qwen2/Qwen2.5 and Qwen3 decoder config compatibility.
 [[nodiscard]] HuggingFaceModelConfig load_huggingface_config(
     const std::filesystem::path& path);
 

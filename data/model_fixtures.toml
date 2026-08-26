@@ -25,7 +25,7 @@ parameter_count = 751632384
 tensor_count = 311
 tokenizer_family = "qwen3"
 inference_token_ids = [1]
-expected_generated_tokens = []
+expected_generated_tokens = [14582, 25, 16246, 264]
 training_tokens = "1,2,3,4"
 
 [[model]]

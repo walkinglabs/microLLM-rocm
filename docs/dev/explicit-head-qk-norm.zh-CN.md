@@ -21,5 +21,6 @@ load、自动求导、checkpoint与Qwen-style mapping。
 前向、全部梯度与cache/full-prefix；HIP测试要求与CPU对齐且执行窗零payload传输；独立PyTorch
 全图比较53/53通过。
 
-这还不等于Qwen3官方兼容。官方兼容还需要解析对应`model_type`、`head_dim`、RoPE配置和实际
-checkpoint，并做完整logits/token门。
+固定Qwen3-0.6B现已完成后续官方门：parser读取`model_type/head_dim`，strict loader验证重复tied
+head，MI300X完整logits Max/RMS为3.86e-5/8.44e-6，四个greedy token与Transformers一致。
+这个结论仍不推广到其他Qwen3规模、长上下文、低精度或训练。

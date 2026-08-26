@@ -149,6 +149,8 @@ int main(int argc, char** argv) {
         microllm::model::LoadWeightsOptions load_options;
         load_options.mapping =
             microllm::model::qwen_style_weight_mapping(external.model);
+        load_options.aliases =
+            microllm::model::qwen3_tied_weight_aliases(external.model);
         const auto load_report = model.load_safetensors(command.weights, load_options);
         microllm::runtime::synchronize(device);
 

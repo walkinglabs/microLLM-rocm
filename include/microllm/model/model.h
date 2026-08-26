@@ -28,10 +28,15 @@ struct WeightSource {
 };
 
 using WeightMapping = std::map<std::string, WeightSource>;
+// External source name -> internal target parameter. A strict loader consumes
+// the extra source only after proving its serialized values exactly equal the
+// primary source for that tied target.
+using WeightAliases = std::map<std::string, std::string>;
 
 struct LoadWeightsOptions {
     bool strict = true;
     WeightMapping mapping;
+    WeightAliases aliases;
 };
 
 struct LoadWeightsReport {
@@ -113,6 +118,7 @@ struct AttentionCoreArenaStats {
 enum class ParameterInitialization { Random, Uninitialized };
 
 [[nodiscard]] WeightMapping qwen_style_weight_mapping(const ModelConfig& config);
+[[nodiscard]] WeightAliases qwen3_tied_weight_aliases(const ModelConfig& config);
 
 class TransformerModel {
 public:

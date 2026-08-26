@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 426/426, ASan/UBSan 423/423, PyTorch-enabled CPU 428/428, single-GPU HIP label 212/212, RCCL label 55/55; 156 registered test files | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 429/429, ASan/UBSan 426/426, PyTorch-enabled CPU 431/431, single-GPU HIP label 213/213, RCCL label 55/55; 157 registered test files | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte and signed INT8 one-byte CPU/MI300X storage, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -22,7 +22,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | FP8 training/inference | smoke-tested | native E4 path, dynamic activation amax, O-only column weights and full official logits; Exp153 rejects model E5 while retaining mixed-format primitives | four full precision gates still fail; layer calibration and full training curve |
 | Qwen2.5-0.5B | smoke-tested | official weights, tool-call chat, full-logit oracle and Release steady decode at 1.01x–3.39x PyTorch over T1–2048/B1–8/N1–64 | repeated-process full matrix and multi-step SFT |
 | DeepSeek-R1-Distill-Qwen-1.5B | smoke-tested | official 339 tensors; current T2048/B2/N64 is 1.1393x PyTorch with exact 64 tokens, 5.23/6.38GB peak and equal KV bytes | broader repeated shape matrix, longer reasoning/SFT and identical resident-weight policy |
-| Official HF fixture registry | fixture-ready | pinned Qwen2.5/DeepSeek/Qwen3 revisions; complete BF16 headers reproduce 290/339 tensors and 494,032,768/1,777,088,000 parameters; Qwen3 file is 311 tensors/751,632,384 stored values vs 596,049,920 unique runtime params due byte-identical tied head | Qwen3 strict alias/logits, mirrors and more families |
+| Official HF fixture registry | fixture-ready | pinned Qwen2.5/DeepSeek/Qwen3 revisions; complete BF16 headers reproduce 290/339 tensors and 494,032,768/1,777,088,000 parameters; Qwen3 311 stored tensors→310 strict runtime targets after bounded exact tied-alias verification | mirrors/offline hosting and more families |
+| Qwen3-0.6B | smoke-tested | official MI300X FP32 strict load; 151,936 logits Max/RMS 3.86e-5/8.44e-6, argmax and tokens `[14582,25,16246,264]` match Transformers; 296 tok/s, 2.384GB resident | longer contexts, BF16/training and other Qwen3 scales |
 | Operator context | smoke-tested | explicit Stream ordering and mismatch tests | low-level C descriptor |
 | CPU Transformer Autograd | smoke-tested | dedicated graph construction tests, finite differences, PyTorch full-graph gradients | more dtypes |
 | HIP Autograd | smoke-tested | CPU/HIP full Transformer gradient comparison; zero host transfers during graph execution | optimized reductions/more dtypes |
@@ -39,8 +40,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Decoder Transformer structure | smoke-tested | tiny GQA plus explicit head_dim/QK-Norm; PyTorch 53/53, logits Max2.68e-7, exact loss/all gradients; CPU/HIP/cache parity | official Qwen3 parser/checkpoint and broader families |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | smoke-tested | BPE round-trip + immutable licensed range + Model-S smoke | full corpus/reference train |
-| Weight/state API | smoke-tested | independent state_dict, atomic load, Qwen mapping, mixed I8/F32 state pairs, single/multi/index transactional HIP streaming | model-bound INT8 routing and architecture validation |
-| safetensors | smoke-tested | F32/BF16/F16 plus preserved I8/F32 pairs, shards/index/corruption/CPU-HIP, official Python interop, transactional streaming and read-only mmap visits | FP8/INT4 and standardized per-channel metadata |
+| Weight/state API | smoke-tested | independent state_dict, atomic load, Qwen2/3 mapping, verified tied source aliases, mixed I8/F32 pairs and transactional HIP streaming | broader architecture validation |
+| safetensors | smoke-tested | F32/BF16/F16 plus I8/F32, shards/index/corruption/CPU-HIP, bounded exact named-payload alias compare, Python interop and mmap visits | FP8/INT4 standardized metadata |
 | C++ training CLI | smoke-tested | CPU save/resume fixture and Model-S HIP real-text steps | validation/report CLI |
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |

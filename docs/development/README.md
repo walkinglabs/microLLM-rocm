@@ -721,3 +721,5 @@ the next gate. Records are append-only except for factual corrections.
   records the non-equal Attention width and full CPU/HIP/PyTorch graph gate.
 - [2026-08-26-qwen3-fixture-parser.md](2026-08-26-qwen3-fixture-parser.md):
   separates Qwen3 runtime parameters from its byte-identical stored tied head.
+- [2026-08-26-qwen3-official-alignment.md](2026-08-26-qwen3-official-alignment.md):
+  records bounded strict alias verification and complete official logits/tokens.

@@ -174,6 +174,30 @@ TEST(SafetensorsTest, LoadsMultipleShardsAndIndexWeightMap) {
     EXPECT_EQ(indexed.at("b.weight").to_vector(), combined.at("b.weight").to_vector());
 }
 
+TEST(SafetensorsTest, ComparesNamedAliasPayloadsExactlyAndBoundedly) {
+    TemporaryDirectory directory;
+    const auto first = directory.path() / "aliases.safetensors";
+    const auto second = directory.path() / "other.safetensors";
+    save_safetensors(first,
+        {{"embedding", Tensor::from_vector({1, 2, 3, 4}, {2, 2})},
+         {"same_head", Tensor::from_vector({1, 2, 3, 4}, {2, 2})},
+         {"different", Tensor::from_vector({1, 2, 3, 5}, {2, 2})}});
+    save_safetensors(second,
+        {{"cross_file", Tensor::from_vector({1, 2, 3, 4}, {2, 2})},
+         {"wrong_shape", Tensor::from_vector({1, 2, 3, 4}, {4})}});
+    EXPECT_TRUE(safetensors_payloads_equal(
+        first, "embedding", first, "same_head"));
+    EXPECT_TRUE(safetensors_payloads_equal(
+        first, "embedding", second, "cross_file"));
+    EXPECT_FALSE(safetensors_payloads_equal(
+        first, "embedding", first, "different"));
+    EXPECT_FALSE(safetensors_payloads_equal(
+        first, "embedding", second, "wrong_shape"));
+    EXPECT_THROW((void)safetensors_payloads_equal(
+                     first, "missing", first, "embedding"),
+                 std::runtime_error);
+}
+
 TEST(SafetensorsTest, RejectsCorruptionUnsupportedDataAndDuplicateShards) {
     TemporaryDirectory directory;
     EXPECT_THROW(save_safetensors(directory.path() / "empty.safetensors", {}),

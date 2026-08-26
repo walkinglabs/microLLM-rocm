@@ -35,8 +35,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   forward, loss, all-gradient, cache and mapping gates; official parser remains separate;
 - [x] parse pinned Qwen3-0.6B head_dim/QK-Norm/no-bias config and validate its
   311-Tensor BF16 fixture, separating unique runtime parameters from stored tied payloads;
-- [ ] verify the byte-identical tied lm_head alias during strict streaming, then run
-  official Qwen3 complete logits and generation tokens;
+- [x] verify the byte-identical tied lm_head alias during bounded strict streaming and
+  align official Qwen3-0.6B complete logits/greedy tokens with Transformers on MI300X;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

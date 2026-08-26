@@ -61,7 +61,7 @@ if declared_graph != covered_graph:
 
 declared_weight_io = public_names(
     "include/microllm/io/safetensors.h",
-    ["StateDict", "SafetensorsIndex", "SafetensorsVisitReport",
+    ["StateDict", "SafetensorsIndex", "SafetensorsVisitReport", "bool",
      "std::vector<SafetensorsTensorInfo>", "void"],
 )
 expected_weight_io = {
@@ -72,6 +72,7 @@ expected_weight_io = {
     "inspect_safetensors",
     "inspect_safetensors_index",
     "visit_safetensors",
+    "safetensors_payloads_equal",
 }
 if declared_weight_io != expected_weight_io:
     errors.append(
@@ -80,7 +81,7 @@ if declared_weight_io != expected_weight_io:
     )
 declared_weight_model = public_names(
     "include/microllm/model/model.h",
-    ["io::StateDict", "LoadWeightsReport", "WeightMapping",
+    ["io::StateDict", "LoadWeightsReport", "WeightMapping", "WeightAliases",
      "Int8WeightPreparationReport",
      "Bf16GroupedQkvPrewarmReport", "void"],
 )
@@ -93,6 +94,7 @@ expected_weight_model = {
     "load_safetensors_index",
     "save_safetensors",
     "qwen_style_weight_mapping",
+    "qwen3_tied_weight_aliases",
     "set_bf16_ffn_arena_enabled",
     "set_bf16_ffn_norm_fusion_enabled",
     "set_bf16_qkv_arena_enabled",

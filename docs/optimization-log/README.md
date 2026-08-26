@@ -1122,6 +1122,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Explicit head/QK SVG](assets/explicit-head-qk-norm.svg) | 投影shape与53/53独立证据 |
 | [experiments/361-qwen3-fixture-parser.md](experiments/361-qwen3-fixture-parser.md) | 官方Qwen3 config/header与tied重复边界 |
 | [Qwen3 fixture SVG](assets/qwen3-fixture-parser.svg) | unique参数与stored payload双口径 |
+| [experiments/362-qwen3-official-alignment.md](experiments/362-qwen3-official-alignment.md) | Qwen3 strict alias与官方完整logits/token |
+| [Qwen3 official SVG](assets/qwen3-official-alignment.svg) | bounded load、Max/RMS、token与MI300X资源 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

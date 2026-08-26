@@ -47,6 +47,12 @@ SafetensorsVisitReport visit_safetensors(
     const SafetensorsTensorVisitor& visitor);
 [[nodiscard]] SafetensorsIndex inspect_safetensors_index(
     const std::filesystem::path& index_path);
+// Exact bounded comparison of two named raw payloads. Dtype and shape must also
+// match; missing names are errors. This is used to verify serialized tied aliases
+// before strict streaming mutates model parameters.
+[[nodiscard]] bool safetensors_payloads_equal(
+    const std::filesystem::path& left_path, const std::string& left_name,
+    const std::filesystem::path& right_path, const std::string& right_name);
 
 [[nodiscard]] StateDict load_safetensors(
     const std::filesystem::path& path, Device target = Device::cpu());

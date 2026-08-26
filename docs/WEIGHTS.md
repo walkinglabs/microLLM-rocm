@@ -67,6 +67,10 @@ auto report = model.load_state_dict(weights, options);
 
 non-strict 不是“忽略错误后模型一定可用”。调用者必须阅读 `missing`、`unexpected` 和 `incompatible`。
 
+Qwen3等文件可能在config声明tied时仍序列化一份重复`lm_head.weight`。`WeightAliases`不是
+ignore列表：strict loader先要求alias与内部target的主source dtype/shape/payload完全相同，再消费
+重复名字。流式路径使用1MiB buffer有界逐字节比较，失败发生在任何参数H2D之前。
+
 ## 4. 为什么外部线性权重要转置
 
 microLLM 的线性权重使用：
