@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Native128 finalize cleanup](2026-08-26-native128-finalize-cleanup.md)
 - [2026-08-26: Native128 finalize rejection](2026-08-26-native128-finalize-reject.md)
 - [2026-08-26: Native128 finalize infrastructure](2026-08-26-native128-finalize-infrastructure.md)
 - [2026-08-26: Finalize architecture gap audit](../optimization-log/experiments/323-finalize-architecture-gap.md)

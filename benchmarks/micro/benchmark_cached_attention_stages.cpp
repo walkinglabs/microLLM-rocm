@@ -28,7 +28,6 @@ struct Options {
     std::int64_t gqa_tile_columns = 32;
     std::int64_t finalize_threads = 256;
     bool materialized = false;
-    bool native128 = false;
     bool gqa_value_reuse = false;
     std::string cache_dtype = "bf16";
     std::string order = "forward";
@@ -78,8 +77,6 @@ Options parse(int argc, char** argv) {
                 argv[index + 1], "gqa-tile-columns");
         } else if (name == "--materialized") {
             result.materialized = boolean(argv[index + 1], "materialized");
-        } else if (name == "--native128") {
-            result.native128 = boolean(argv[index + 1], "native128");
         } else if (name == "--gqa-value-reuse") {
             result.gqa_value_reuse = boolean(
                 argv[index + 1], "gqa-value-reuse");
@@ -111,7 +108,6 @@ Options parse(int argc, char** argv) {
          result.gqa_tile_columns != 32 && result.gqa_tile_columns != 64) ||
         (result.finalize_threads != 64 && result.finalize_threads != 128 &&
          result.finalize_threads != 256) ||
-        (result.native128 && !result.materialized) ||
         (result.cache_dtype != "fp32" && result.cache_dtype != "bf16") ||
         (result.order != "forward" && result.order != "reverse") ||
         result.warmup < 3 || result.repetitions <= 0 ||
@@ -300,12 +296,6 @@ int main(int argc, char** argv) {
                     device_query, device_key, device_value, repeats, scale,
                     options.finalize_threads);
         }
-        microllm::Tensor device_native128;
-        if (options.native128) {
-            device_native128 =
-                microllm::ops::cached_gqa_attention_materialized_scores_native128(
-                    device_query, device_key, device_value, repeats, scale);
-        }
         microllm::Tensor device_split_pv;
         if (options.pv_splits > 0) {
             device_split_pv =
@@ -346,15 +336,6 @@ int main(int argc, char** argv) {
                 materialized_values, expected_context_values);
             materialized_bitwise_equal = materialized_values == fused_values;
         }
-        Error native128_error;
-        bool native128_bitwise_equal_materialized = true;
-        if (options.native128) {
-            const auto native_values = device_native128.to_vector();
-            const auto materialized_values = device_materialized.to_vector();
-            native128_error = compare(native_values, expected_context_values);
-            native128_bitwise_equal_materialized =
-                native_values == materialized_values;
-        }
         Error split_pv_error;
         bool split_pv_bitwise_equal_materialized = true;
         if (options.pv_splits > 0) {
@@ -391,10 +372,6 @@ int main(int argc, char** argv) {
               split_error.rms <= 8.0e-5)) &&
             (!options.materialized ||
              (materialized_error.finite && materialized_bitwise_equal)) &&
-            (!options.native128 ||
-             (native128_error.finite &&
-              native128_error.maximum <= 8.0e-4F &&
-              native128_error.rms <= 8.0e-5)) &&
             (options.pv_splits == 0 ||
              (split_pv_error.finite && split_pv_error.maximum <= 8.0e-4F &&
               split_pv_error.rms <= 8.0e-5 &&
@@ -442,11 +419,6 @@ int main(int argc, char** argv) {
                     device_query, device_key, device_value, repeats, scale,
                     options.finalize_threads);
         };
-        const auto native128_operation = [&] {
-            device_native128 =
-                microllm::ops::cached_gqa_attention_materialized_scores_native128(
-                    device_query, device_key, device_value, repeats, scale);
-        };
         const auto split_pv_operation = [&] {
             device_split_pv =
                 microllm::ops::cached_gqa_attention_split_pv_exact_softmax(
@@ -467,7 +439,6 @@ int main(int argc, char** argv) {
         Timing fused_timing;
         Timing split_timing;
         Timing materialized_timing;
-        Timing native128_timing;
         Timing split_pv_timing;
         Timing gqa_value_reuse_timing;
         microllm::runtime::reset_transfer_stats();
@@ -484,10 +455,6 @@ int main(int argc, char** argv) {
                 materialized_timing = measure(
                     materialized_operation, options, device);
             }
-            if (options.native128) {
-                native128_timing = measure(
-                    native128_operation, options, device);
-            }
             if (options.pv_splits > 0) {
                 split_pv_timing = measure(
                     split_pv_operation, options, device);
@@ -497,10 +464,6 @@ int main(int argc, char** argv) {
                     gqa_value_reuse_operation, options, device);
             }
         } else {
-            if (options.native128) {
-                native128_timing = measure(
-                    native128_operation, options, device);
-            }
             if (options.gqa_value_reuse) {
                 gqa_value_reuse_timing = measure(
                     gqa_value_reuse_operation, options, device);
@@ -537,8 +500,6 @@ int main(int argc, char** argv) {
              split_timing.backend_allocation_calls_per_invocation != 0.0) ||
             (options.materialized &&
              materialized_timing.backend_allocation_calls_per_invocation != 0.0) ||
-            (options.native128 &&
-             native128_timing.backend_allocation_calls_per_invocation != 0.0) ||
             (options.pv_splits > 0 &&
              split_pv_timing.backend_allocation_calls_per_invocation != 0.0) ||
             (options.gqa_value_reuse &&
@@ -611,15 +572,6 @@ int main(int argc, char** argv) {
                       << ",\"materialized_bitwise_equal_current\":"
                       << (materialized_bitwise_equal ? "true" : "false");
         }
-        if (options.native128) {
-            std::cout << ",\"native128_max_error\":"
-                      << native128_error.maximum
-                      << ",\"native128_rms_error\":"
-                      << native128_error.rms
-                      << ",\"native128_bitwise_equal_materialized\":"
-                      << (native128_bitwise_equal_materialized
-                              ? "true" : "false");
-        }
         if (options.pv_splits > 0) {
             const auto probability_bytes = score_elements * sizeof(float);
             const auto partial_elements = static_cast<std::uint64_t>(
@@ -660,9 +612,6 @@ int main(int argc, char** argv) {
         }
         if (options.materialized) {
             print_timing("materialized", materialized_timing);
-        }
-        if (options.native128) {
-            print_timing("native128", native128_timing);
         }
         if (options.pv_splits > 0) {
             print_timing("split_pv", split_pv_timing);

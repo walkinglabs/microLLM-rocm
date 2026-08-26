@@ -1,6 +1,6 @@
 # Step 140 — Native 128-lane cached Attention finalizer
 
-Status: completed by Experiment 324; rejected, cleanup pending
+Status: completed by Experiment 324; rejected and removed
 
 实现独立、显式、default-off的native128 operator：
 
@@ -16,3 +16,5 @@ Event/wall、allocation与transfer。T2048每个case都必须Event≥1.05×、wa
 
 结果：16/16完整输出通过，Max≤3.73e-9；T2048 Event/wall约1.003×，0/4性能case通过。candidate拒绝，
 不进入模型。下一提交删除candidate并关闭finalize局部线。
+
+清理完成：native128 API、Kernel、benchmark flag、runner和candidate tests删除；current256与历史证据保留。

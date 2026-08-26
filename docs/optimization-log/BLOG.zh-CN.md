@@ -4981,4 +4981,6 @@ lane和旧tree，只减少物理线程，没有缩小归约结构。
 native128完整输出16/16通过，但T2048 Event/wall只有约1.003×，0/4过门。减少128个闲置线程没有带来
 预期收益，说明dominant顺序P×V更受内存/指令流限制。candidate删除，finalize局部线关闭。
 
+清理提交随后删除API、Kernel、benchmark flag和runner，current256路径保持不变。
+
 ![Native128 result](../../benchmarks/results/2026-08-26-native128-finalize/native128.svg)

@@ -330,6 +330,16 @@ def main() -> int:
     assert native["t2048_performance_pass_count"] == 0
     assert native["candidate_admitted"] is False
     ET.parse(native_root / "native128.svg")
+    assert not (ROOT / "benchmarks/single_gpu/native128_finalize_matrix.py").exists()
+    native_sources = "\n".join(
+        (ROOT / relative).read_text(encoding="utf-8")
+        for relative in (
+            "include/microllm/ops/ops.h", "src/ops/ops.cpp",
+            "src/ops/hip/kernels.h", "src/ops/hip/basic_kernels.hip",
+            "benchmarks/micro/benchmark_cached_attention_stages.cpp",
+            "tests/ops/ops_test.cpp", "tests/ops/hip_ops_test.cpp",
+        ))
+    assert "native128" not in native_sources.lower()
     for removed in (
         "benchmarks/single_gpu/fp32_prefill_ffn_model_gate.py",
         "benchmarks/single_gpu/fp32_prefill_ffn_all_exact_gate.py",

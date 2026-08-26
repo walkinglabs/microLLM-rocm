@@ -45,8 +45,8 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > Kernel share is finalize `42.27%`, GEMM `33.25%`, scores `7.88%`. The next node
 > tested native128 in 16 complete-output processes. Accuracy passes, but T2048
 > Event/wall improve only about `1.003x`; 0/4 cases pass the performance gate.
-> The candidate is rejected and cached-finalize local search is closed. Candidate
-> code is scheduled for removal; the next gap audit targets current GEMM `33.25%`.
+> The candidate and runner have been removed, and cached-finalize local search is
+> closed. The next gap audit targets current GEMM `33.25%`.
 > See the [native128 rejection](docs/optimization-log/experiments/324-native128-finalize-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures

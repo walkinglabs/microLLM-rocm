@@ -158,12 +158,6 @@ FFN_DOWN_SPEC = importlib.util.spec_from_file_location(
 FFN_DOWN = importlib.util.module_from_spec(FFN_DOWN_SPEC)
 assert FFN_DOWN_SPEC.loader is not None
 FFN_DOWN_SPEC.loader.exec_module(FFN_DOWN)
-NATIVE128_SPEC = importlib.util.spec_from_file_location(
-    "native128_finalize_matrix",
-    ROOT / "benchmarks/single_gpu/native128_finalize_matrix.py")
-NATIVE128 = importlib.util.module_from_spec(NATIVE128_SPEC)
-assert NATIVE128_SPEC.loader is not None
-NATIVE128_SPEC.loader.exec_module(NATIVE128)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
@@ -189,32 +183,6 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(verification["focused_gates"]["formal_processes"],
                          "16/16")
         ET.parse(root / "native128.svg")
-
-    def test_native128_summary_requires_every_t2048_case(self):
-        rows = []
-        for sequence in NATIVE128.SEQUENCES:
-            for batch in NATIVE128.BATCHES:
-                for dtype in NATIVE128.DTYPES:
-                    for run in (1, 2):
-                        speed = 1.06
-                        if sequence == 2048 and batch == 2 and dtype == "bf16":
-                            speed = 1.01
-                        rows.append({
-                            "sequence": sequence, "batch": batch,
-                            "cache_dtype": dtype, "process_run": run,
-                            "native128_max_error": 1.0e-6,
-                            "native128_rms_error": 1.0e-7,
-                            "native128_bitwise_equal_materialized": False,
-                            "native128_event_speedup": speed,
-                            "native128_wall_speedup": speed,
-                            "native128_backend_allocation_calls_per_invocation": 0,
-                        })
-        summary = NATIVE128.summarize(rows)
-        self.assertEqual(summary["process_rows"], 16)
-        self.assertEqual(summary["case_count"], 8)
-        self.assertEqual(summary["t2048_performance_pass_count"], 3)
-        self.assertFalse(summary["candidate_admitted"])
-        ET.fromstring(NATIVE128.render(summary))
 
     def test_current_finalize_gap_selects_native_not_logical_128(self):
         root = (ROOT / "benchmarks/results" /

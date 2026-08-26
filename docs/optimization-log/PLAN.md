@@ -169,7 +169,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [138](steps/138-clean-upstream-long-context-profile.md) | complete | clean T2048/B2/N64基线与profile | 1.1393×PyTorch；finalize当前42.27% |
 | [139](steps/139-finalize-architecture-gap-audit.md) | complete | finalize新架构gap审计 | 选择原生128-lane，不模拟256 tree |
 | [140](steps/140-native-128-finalize.md) | complete; rejected | native128 finalize operator | accuracy过；T2048约1.003×，0/4性能过门 |
-| [141](steps/141-finalize-cleanup-gemm-gap.md) | planned | 删除candidate并审计GEMM 33.25% | 只选未覆盖的当前shape |
+| [141](steps/141-finalize-cleanup-gemm-gap.md) | cleanup complete; GEMM audit planned | 删除candidate并审计GEMM 33.25% | 只选未覆盖的当前shape |
 
 ## 为什么按这个顺序
 
