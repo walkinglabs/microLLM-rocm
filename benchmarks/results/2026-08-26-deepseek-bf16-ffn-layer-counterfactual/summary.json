@@ -1,0 +1,299 @@
+{
+  "all_host_device_argmax_equal": true,
+  "all_repeat_bitwise_equal": true,
+  "all_within_batch_bitwise_equal": false,
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "case_rows": 12,
+  "cases": [
+    {
+      "batch": 1,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 82.8255867625,
+      "peak_bytes": 7477495808,
+      "precision_policy": "fp32-linear",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.0,
+      "versus_fp32_b1_maximum_rms_error": 0.0,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.0013535022735595703,
+      "cross_batch_maximum_rms_error": 0.00021844923306147106,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 158.8848734275,
+      "peak_bytes": 7846639616,
+      "precision_policy": "fp32-linear",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.0013535022735595703,
+      "versus_fp32_b1_maximum_rms_error": 0.00021844923306147106,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 4,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.001143813133239746,
+      "cross_batch_maximum_rms_error": 0.00021677970863949865,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 300.709884975,
+      "peak_bytes": 8584927232,
+      "precision_policy": "fp32-linear",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.001143813133239746,
+      "versus_fp32_b1_maximum_rms_error": 0.00021677970863949865,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 8,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.0010721683502197266,
+      "cross_batch_maximum_rms_error": 0.00022941562718764653,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 527.9114276225,
+      "peak_bytes": 10061502464,
+      "precision_policy": "fp32-linear",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.0010721683502197266,
+      "versus_fp32_b1_maximum_rms_error": 0.00022941562718764653,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 1,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 84.63753682800001,
+      "peak_bytes": 5165385728,
+      "precision_policy": "bf16-all",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.0463862419128418,
+      "versus_fp32_b1_maximum_rms_error": 0.00838721577102064,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.06298542022705078,
+      "cross_batch_maximum_rms_error": 0.02517114265302031,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 163.45731384,
+      "peak_bytes": 5534529536,
+      "precision_policy": "bf16-all",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.0596574991941452,
+      "versus_fp32_b1_maximum_rms_error": 0.022761604698666442,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 4,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.047992706298828125,
+      "cross_batch_maximum_rms_error": 0.01223710771471302,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 308.20890139200003,
+      "peak_bytes": 6272817152,
+      "precision_policy": "bf16-all",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.04593229293823242,
+      "versus_fp32_b1_maximum_rms_error": 0.010424965511665175,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 8,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.04727339744567871,
+      "cross_batch_maximum_rms_error": 0.012372239175272907,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 542.5638120685,
+      "peak_bytes": 7749392384,
+      "precision_policy": "bf16-all",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.053683362901210785,
+      "versus_fp32_b1_maximum_rms_error": 0.010586367385696438,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 1,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": true,
+      "cross_batch_maximum_error": 0.0,
+      "cross_batch_maximum_rms_error": 0.0,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 84.94154150099999,
+      "peak_bytes": 5247961088,
+      "precision_policy": "bf16-except-block0",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.039053380489349365,
+      "versus_fp32_b1_maximum_rms_error": 0.0073349844869589,
+      "within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.04336473345756531,
+      "cross_batch_maximum_rms_error": 0.008777898980496102,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 163.072983934,
+      "peak_bytes": 5617104896,
+      "precision_policy": "bf16-except-block0",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.0370030403137207,
+      "versus_fp32_b1_maximum_rms_error": 0.0073093005330612726,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 4,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.054094791412353516,
+      "cross_batch_maximum_rms_error": 0.008503009769534487,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 306.408643119,
+      "peak_bytes": 6355392512,
+      "precision_policy": "bf16-except-block0",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.03585934638977051,
+      "versus_fp32_b1_maximum_rms_error": 0.007023863650638072,
+      "within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 8,
+      "complete_values_compared_per_run": 151936,
+      "cross_batch_bitwise_equal": false,
+      "cross_batch_maximum_error": 0.0569688081741333,
+      "cross_batch_maximum_rms_error": 0.014383304459231288,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "median_throughput_tokens_per_second": 539.109200566,
+      "peak_bytes": 7831967744,
+      "precision_policy": "bf16-except-block0",
+      "repeat_bitwise_equal": true,
+      "runs": 2,
+      "versus_fp32_b1_maximum_error": 0.04685080051422119,
+      "versus_fp32_b1_maximum_rms_error": 0.013183788478866832,
+      "within_batch_bitwise_equal": false
+    }
+  ],
+  "policies": [
+    "fp32-linear",
+    "bf16-all",
+    "bf16-except-block0"
+  ],
+  "policy_summaries": [
+    {
+      "all_argmax_tokens_equal": true,
+      "converted_tensors": 0,
+      "cross_batch_bitwise_case_count": 1,
+      "fp32_layers": [],
+      "maximum_cross_batch_error": 0.0013535022735595703,
+      "maximum_cross_batch_rms_error": 0.00022941562718764653,
+      "maximum_versus_fp32_b1_error": 0.0013535022735595703,
+      "precision_policy": "fp32-linear"
+    },
+    {
+      "all_argmax_tokens_equal": true,
+      "converted_tensors": 84,
+      "cross_batch_bitwise_case_count": 1,
+      "fp32_layers": [],
+      "maximum_cross_batch_error": 0.06298542022705078,
+      "maximum_cross_batch_rms_error": 0.02517114265302031,
+      "maximum_versus_fp32_b1_error": 0.0596574991941452,
+      "precision_policy": "bf16-all"
+    },
+    {
+      "all_argmax_tokens_equal": true,
+      "converted_tensors": 81,
+      "cross_batch_bitwise_case_count": 1,
+      "fp32_layers": [
+        0
+      ],
+      "maximum_cross_batch_error": 0.0569688081741333,
+      "maximum_cross_batch_rms_error": 0.014383304459231288,
+      "maximum_versus_fp32_b1_error": 0.04685080051422119,
+      "precision_policy": "bf16-except-block0"
+    }
+  ],
+  "process_rows": 24,
+  "record_type": "bf16_ffn_layer_counterfactual",
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "status": "pass",
+  "vocabulary_size": 151936
+}

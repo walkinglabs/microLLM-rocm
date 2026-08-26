@@ -51,6 +51,36 @@ LAYER_COUNTERFACTUAL_SPEC.loader.exec_module(LAYER_COUNTERFACTUAL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_bf16_ffn_layer_counterfactual_rejects_block_zero(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-deepseek-bf16-ffn-layer-counterfactual")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        policies = {row["precision_policy"]: row
+                    for row in summary["policy_summaries"]}
+        cases = {(row["precision_policy"], row["batch"]): row
+                 for row in summary["cases"]}
+        self.assertEqual(summary["process_rows"], 24)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertTrue(summary["all_host_device_argmax_equal"])
+        self.assertFalse(summary["all_within_batch_bitwise_equal"])
+        self.assertEqual(policies["bf16-all"]["converted_tensors"], 84)
+        self.assertEqual(policies["bf16-except-block0"]["converted_tensors"], 81)
+        self.assertEqual(policies["bf16-all"]["maximum_cross_batch_error"],
+                         0.06298542022705078)
+        self.assertEqual(
+            policies["bf16-except-block0"]["maximum_cross_batch_error"],
+            0.0569688081741333)
+        self.assertGreater(
+            cases[("bf16-except-block0", 8)]["cross_batch_maximum_error"],
+            cases[("bf16-all", 8)]["cross_batch_maximum_error"])
+        self.assertEqual(analysis["peak_bytes_added_by_block0_fp32"], 82575360)
+        self.assertEqual(verification["measurement_commit"],
+                         "985fe2a80c834379091db34655a8fcaae6b7f651")
+        ET.parse(root / "counterfactual.svg")
+
     def test_bf16_ffn_layer_counterfactual_has_exact_conversion_contract(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 8, "warmup": 1,

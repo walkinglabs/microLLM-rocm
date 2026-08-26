@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "decision": "reject block-zero-only FP32 and test decode-shape algorithm consistency",
+  "process_rows": 24,
+  "case_rows": 12,
+  "all_repeat_bitwise_equal": true,
+  "all_host_device_argmax_equal": true,
+  "all_step0_argmax_tokens_equal": true,
+  "all_within_batch_rows_bitwise_equal": false,
+  "fp32_maximum_cross_batch_error": 0.0013535022735595703,
+  "bf16_all_maximum_cross_batch_error": 0.06298542022705078,
+  "block0_fp32_maximum_cross_batch_error": 0.0569688081741333,
+  "block0_fp32_maximum_error_improvement": 0.09552388522976762,
+  "bf16_all_maximum_cross_batch_rms_error": 0.02517114265302031,
+  "block0_fp32_maximum_cross_batch_rms_error": 0.014383304459231288,
+  "block0_fp32_maximum_rms_improvement": 0.42857959777581167,
+  "b2_maximum_ratio_block0_fp32_over_bf16_all": 0.6884884359149065,
+  "b4_maximum_ratio_block0_fp32_over_bf16_all": 1.1271460933153168,
+  "b8_maximum_ratio_block0_fp32_over_bf16_all": 1.2050923194085101,
+  "b8_rms_ratio_block0_fp32_over_bf16_all": 1.1625465896244298,
+  "peak_bytes_added_by_block0_fp32": 82575360,
+  "minimum_throughput_ratio_block0_fp32_over_bf16_all": 0.9936328014776189,
+  "converted_tensor_contract": {
+    "fp32-linear": 0,
+    "bf16-all": 84,
+    "bf16-except-block0": 81
+  },
+  "precision_default_changed": false,
+  "scheduler_default_admitted": false,
+  "discarded_attempt": "all workers passed but the pre-publication summarizer used a nonexistent throughput field",
+  "next_experiment": "inventory and test one common BF16 gate-up solution across decode rows 1,2,4,8"
+}

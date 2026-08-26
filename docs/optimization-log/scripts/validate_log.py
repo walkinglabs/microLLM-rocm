@@ -18767,6 +18767,123 @@ def validate_cached_block_detail(
             float(metric(down, "relative_l2") or 0.0))
 
 
+def validate_bf16_ffn_layer_counterfactual(
+        errors: list[str]) -> tuple[int, float, float, float, int]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-deepseek-bf16-ffn-layer-counterfactual")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    policies = {row.get("precision_policy"): row
+                for row in summary.get("policy_summaries", [])}
+    cases = {(row.get("precision_policy"), row.get("batch")): row
+             for row in summary.get("cases", [])}
+    expected = {
+        "fp32-linear": (0, [], 0.0013535022735595703,
+                         0.00022941562718764653),
+        "bf16-all": (84, [], 0.06298542022705078,
+                      0.02517114265302031),
+        "bf16-except-block0": (81, [0], 0.0569688081741333,
+                                0.014383304459231288),
+    }
+    if (summary.get("record_type") != "bf16_ffn_layer_counterfactual" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 24 or len(raw) != 24 or
+            summary.get("case_rows") != 12 or len(cases) != 12 or
+            summary.get("vocabulary_size") != 151936 or
+            summary.get("policies") != list(expected) or
+            summary.get("batches") != [1, 2, 4, 8] or
+            summary.get("runs_per_case") != 2 or
+            summary.get("all_repeat_bitwise_equal") is not True or
+            summary.get("all_within_batch_bitwise_equal") is not False or
+            summary.get("all_host_device_argmax_equal") is not True or
+            set(policies) != set(expected)):
+        errors.append("BF16 FFN layer counterfactual summary/raw identity changed")
+    for policy, (converted, layers, maximum, rms) in expected.items():
+        row = policies.get(policy, {})
+        selected = [item for item in raw
+                    if item.get("precision_policy") == policy]
+        if (row.get("converted_tensors") != converted or
+                row.get("fp32_layers") != layers or
+                row.get("maximum_cross_batch_error") != maximum or
+                row.get("maximum_cross_batch_rms_error") != rms or
+                row.get("cross_batch_bitwise_case_count") != 1 or
+                row.get("all_argmax_tokens_equal") is not True or
+                len(selected) != 8 or
+                any(item.get("bf16_ffn_converted_tensors") != converted or
+                    item.get("bf16_ffn_fp32_layers") != layers or
+                    item.get("host_device_argmax_equal") is not True or
+                    item.get("cached_attention_materialized_policy") !=
+                        "auto-enabled" for item in selected)):
+            errors.append(f"BF16 FFN layer policy changed: {policy}")
+    if (cases.get(("bf16-except-block0", 2), {}).get(
+            "cross_batch_maximum_error") != 0.04336473345756531 or
+            cases.get(("bf16-except-block0", 4), {}).get(
+                "cross_batch_maximum_error") != 0.054094791412353516 or
+            cases.get(("bf16-except-block0", 8), {}).get(
+                "cross_batch_maximum_error") != 0.0569688081741333 or
+            cases.get(("bf16-except-block0", 8), {}).get(
+                "peak_bytes") - cases.get(("bf16-all", 8), {}).get(
+                    "peak_bytes") != 82575360):
+        errors.append("BF16 FFN layer counterfactual key cases changed")
+    if (analysis.get("decision") !=
+            "reject block-zero-only FP32 and test decode-shape algorithm consistency" or
+            analysis.get("block0_fp32_maximum_error_improvement") !=
+                0.09552388522976762 or
+            analysis.get("block0_fp32_maximum_rms_improvement") !=
+                0.42857959777581167 or
+            analysis.get("b4_maximum_ratio_block0_fp32_over_bf16_all") !=
+                1.1271460933153168 or
+            analysis.get("b8_maximum_ratio_block0_fp32_over_bf16_all") !=
+                1.2050923194085101 or
+            analysis.get("peak_bytes_added_by_block0_fp32") != 82575360 or
+            analysis.get("precision_default_changed") is not False or
+            analysis.get("scheduler_default_admitted") is not False):
+        errors.append("BF16 FFN layer counterfactual analysis changed")
+    if (check.get("measurement_commit") !=
+            "985fe2a80c834379091db34655a8fcaae6b7f651" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 24 or
+            check.get("converted_tensor_counts") != [0, 84, 81] or
+            check.get("all_repeat_bitwise_equal") is not True or
+            check.get("all_within_batch_rows_bitwise_equal") is not False or
+            check.get("precision_default_changed") is not False or
+            check.get("scheduler_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 375, "total": 375} or
+            check.get("sanitizer_label") != {"passed": 373, "total": 373} or
+            check.get("hip_label") != {"passed": 193, "total": 193} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("BF16 FFN layer counterfactual verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "counterfactual.svg"):
+        if not (root / name).is_file():
+            errors.append(f"BF16 FFN layer evidence missing: {name}")
+    try:
+        ET.parse(root / "counterfactual.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid BF16 FFN layer SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_bf16_ffn_layer_counterfactual.py").read_text(
+                  encoding="utf-8")
+    if ("bf16-ffn-fp32-layers" not in runner or
+            "decode_tokens_per_second" not in runner or
+            "EXPECTED_CONVERTED" not in runner or
+            "within_batch_bitwise_equal" not in runner):
+        errors.append("BF16 FFN layer counterfactual runner contract changed")
+    return (len(raw), expected["bf16-all"][2],
+            expected["bf16-except-block0"][2],
+            cases.get(("bf16-except-block0", 8), {}).get(
+                "median_throughput_tokens_per_second", 0.0),
+            analysis.get("peak_bytes_added_by_block0_fp32", 0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -19655,6 +19772,9 @@ def main() -> int:
     cached_detail_rows, cached_detail_context, cached_detail_cast, \
         cached_detail_gate, cached_detail_down = \
         validate_cached_block_detail(errors)
+    bf16_layer_rows, bf16_layer_all, bf16_layer_block0, \
+        bf16_layer_b8_tps, bf16_layer_peak = \
+        validate_bf16_ffn_layer_counterfactual(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20288,6 +20408,9 @@ def main() -> int:
           f"cached_detail={cached_detail_rows}/"
           f"{cached_detail_context:.4e}/{cached_detail_cast:.4e}/"
           f"{cached_detail_gate:.4f}/{cached_detail_down:.4e} "
+          f"bf16_layer={bf16_layer_rows}/{bf16_layer_all:.4f}/"
+          f"{bf16_layer_block0:.4f}/{bf16_layer_b8_tps:.2f}/"
+          f"{bf16_layer_peak} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

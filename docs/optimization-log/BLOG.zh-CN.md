@@ -4674,3 +4674,17 @@ logits明显收敛，才进入前N层边界搜索；若几乎没变，就拒绝�
 GEMM算法一致性。默认precision和scheduler不动。
 
 ![Cached block-0 detail](../../benchmarks/results/2026-08-26-deepseek-cached-block-detail/block-detail.svg)
+
+## 316. Experiment 299：第一层有责任，但只修第一层不稳
+
+我们让Block 0 FFN留在FP32，其余27层仍用BF16。converted tensors从84变81，24个fresh process
+重复位级相同。全局最大Max从0.062985降到0.056969，只改善9.55%；RMS改善42.86%。
+
+拆开batch后反例出现了：B2 Max降到0.6885x，B4却升到1.1271x，B8升到1.2051x，B8 RMS也升到
+1.1625x。三份FP32权重固定增加82.6MB peak，B8吞吐为0.9936x。它不是可推广的精度策略。
+
+更值得注意的是，B>1的相同行在全FP32控制里也不是位级相同，只是误差小得多。下一步不继续扩大
+FP32层数，而是枚举DeepSeek gate/up在M1/2/4/8的共同hipBLASLt solution，并用同一index做完整
+模型反驳。版本局部index只用于实验，不写进默认。
+
+![Block-0 FP32 counterfactual](../../benchmarks/results/2026-08-26-deepseek-bf16-ffn-layer-counterfactual/counterfactual.svg)
