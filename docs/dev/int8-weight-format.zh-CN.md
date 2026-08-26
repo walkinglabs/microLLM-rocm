@@ -175,3 +175,6 @@ output = matmul(input, weight)
 HIP整模准备使用`quantize_int8_dynamic`：amax、scale和I8 payload都在GPU产生。官方Qwen准备
 已做到168个Linear、1.431GB扫描、权重D2H为0；但完整logits和token严重失败，因此
 `--int8-linear true`只是显式研究开关，不能用于声称正确的Qwen推理。
+`--int8-weight-scale-mode output-column-amax`进一步为每个输出列保存scale，显著降低误差并恢复
+一个token，但首个argmax仍错误。scalar与column两种合理粒度连续失败后，当前官方weight-only
+精度路线已关闭。

@@ -124,6 +124,7 @@
     "dequantize_fp8": "tests/ops/ops_test.cpp",
     "quantize_int8": "tests/ops/ops_test.cpp",
     "quantize_int8_dynamic": "tests/ops/ops_test.cpp",
+    "quantize_int8_columns_dynamic": "tests/ops/ops_test.cpp",
     "dequantize_int8": "tests/ops/ops_test.cpp",
     "int8_weight_matmul": "tests/ops/ops_test.cpp",
     "int8_weight_matmul_with_implementation": "tests/ops/hip_ops_test.cpp",

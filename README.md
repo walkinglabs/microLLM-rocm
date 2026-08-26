@@ -1016,10 +1016,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 418/418 | host code, CLI, model/graph, dynamic INT8 model preparation, benchmark and package gates |
-| ASan/UBSan CPU | 415/415 | host lifetime, dynamic scale state, one-way model state and instrumented-package linking |
-| MI300X/gfx942 HIP label | 210/210 | allocator/arena/Stream/Graph, device-only INT8 preparation, whole-model candidate and bindings |
-| PyTorch-enabled CPU build | 419/419 | dispatcher parity, INT8 operator/model oracle, optimizer state, full graph/model oracle and package paths |
+| CPU Debug | 420/420 | host code, CLI, model/graph, scalar/column INT8 preparation, benchmark and package gates |
+| ASan/UBSan CPU | 417/417 | host lifetime, scalar/column scale state, one-way model state and package linking |
+| MI300X/gfx942 HIP label | 211/211 | allocator/arena/Stream/Graph, device scalar/column INT8 preparation and rejected model route |
+| PyTorch-enabled CPU build | 421/421 | dispatcher parity, INT8 column/model oracle, optimizer state, full graph/model oracle and package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
 | Registered test files | 156 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
@@ -1252,6 +1252,9 @@ explicit and inference-only.
 [Experiment 356](docs/optimization-log/experiments/356-official-int8-device-amax-reject.md) moves
 all 168 Qwen weight-amax scans onto GPU and cuts residency to 0.903GB, but rejects the official
 route at complete-logit Max/RMS 15.203/3.467 and changed tokens.
+[Experiment 357](docs/optimization-log/experiments/357-official-int8-column-reject.md) improves
+Max/RMS to 5.061/1.286 with output-column scales but still changes Qwen argmax/token; the current
+official weight-only INT8 precision line is closed.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

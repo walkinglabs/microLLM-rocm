@@ -87,6 +87,8 @@ def main() -> int:
         b"--int8-linear",
         b"int8_device_weight_bytes_scanned",
         b"single_representation_int8_linear_explicit",
+        b"--int8-weight-scale-mode",
+        b"output-column-amax",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

@@ -290,11 +290,14 @@ struct ScaledTensor {
 // byte per element and `scale` stores one same-device FP32 scalar. The represented
 // floating value is values[i] * scale[0]; -128 is deliberately unused so the range
 // is symmetric around zero.
+enum class Int8ScaleMode { Scalar, OutputColumn };
+
 struct Int8ScaledTensor {
     Tensor values;
     Tensor scale;
     float scale_value = 1.0F;
     bool host_scale_available = false;
+    Int8ScaleMode scale_mode = Int8ScaleMode::Scalar;
 };
 
 struct Bf16FfnDiagnostics {
@@ -361,6 +364,9 @@ struct CausalGqaAttentionDiagnostics {
 [[nodiscard]] Int8ScaledTensor quantize_int8(
     const Tensor& input, float scale, const OpContext& context = {});
 [[nodiscard]] Int8ScaledTensor quantize_int8_dynamic(
+    const Tensor& input, float minimum_scale = 1.0e-8F,
+    const OpContext& context = {});
+[[nodiscard]] Int8ScaledTensor quantize_int8_columns_dynamic(
     const Tensor& input, float minimum_scale = 1.0e-8F,
     const OpContext& context = {});
 // Restores FP32/FP16/BF16 without copying the scale back to the host on HIP.

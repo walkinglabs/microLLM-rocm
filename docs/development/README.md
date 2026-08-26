@@ -711,3 +711,5 @@ the next gate. Records are append-only except for factual corrections.
   records transactional whole-model preparation, decode gain and the prefill counterexample.
 - [2026-08-26-official-int8-device-amax.md](2026-08-26-official-int8-device-amax.md):
   keeps zero-D2H preparation while rejecting official Qwen on complete logits and tokens.
+- [2026-08-26-official-int8-column-scale.md](2026-08-26-official-int8-column-scale.md):
+  retains column primitives but closes the current official weight-only INT8 precision line.

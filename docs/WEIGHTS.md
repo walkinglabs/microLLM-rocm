@@ -161,6 +161,8 @@ inference，Autograd、重新加载和`state_dict()`会拒绝。M=1 FP32输入�
 回到完整反量化基线，因此它尚不是默认或通用INT8模型路径。
 HIP准备使用device-only amax，不回传权重payload。固定Qwen虽然常驻显著下降且短decode更快，
 完整logits与token仍失败；这证明文件和准备API可用，不证明量化模型正确。
+逐输出通道scale同样是显式API；它改善误差但仍未恢复官方Qwen首token，因此不能写成兼容的
+量化checkpoint或默认推理路径。
 
 默认计算仍是 FP32。推理可在加载后调用 `prepare_bf16_ffn_inference()` 和
 `prepare_bf16_attention_inference()`，事务式地把 FFN 与 Q/K/V/O 权重替换成单份 BF16；

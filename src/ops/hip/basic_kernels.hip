@@ -737,18 +737,22 @@ template <typename Output>
 __global__ void dequantize_int8_kernel(const std::int8_t* input,
                                        Output* output,
                                        std::int64_t elements,
-                                       const float* scale) {
+                                       const float* scale,
+                                       std::int64_t columns,
+                                       bool column_scales) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
                        threadIdx.x;
     if (index < elements) {
         output[index] = store_from_float<Output>(
-            static_cast<float>(input[index]) * scale[0]);
+            static_cast<float>(input[index]) *
+            scale[column_scales ? index % columns : 0]);
     }
 }
 
 __global__ void int8_weight_matmul_decode_kernel(
     const float* input, const std::int8_t* weight, const float* scale,
-    float* output, std::int64_t inner, std::int64_t columns) {
+    float* output, std::int64_t inner, std::int64_t columns,
+    bool column_scales) {
     const auto column = static_cast<std::int64_t>(blockIdx.x);
     __shared__ float partial[kBlockSize];
     float sum = 0.0F;
@@ -763,7 +767,36 @@ __global__ void int8_weight_matmul_decode_kernel(
         if (threadIdx.x < stride) partial[threadIdx.x] += partial[threadIdx.x + stride];
         __syncthreads();
     }
-    if (threadIdx.x == 0) output[column] = partial[0] * scale[0];
+    if (threadIdx.x == 0) {
+        output[column] = partial[0] * scale[column_scales ? column : 0];
+    }
+}
+
+template <typename Input>
+__global__ void int8_column_scale_kernel(
+    const Input* input, float* scales, std::int64_t rows,
+    std::int64_t columns, float minimum_scale) {
+    __shared__ float scratch[kBlockSize];
+    const auto column = static_cast<std::int64_t>(blockIdx.x);
+    float maximum = 0.0F;
+    for (std::int64_t row = threadIdx.x; row < rows; row += blockDim.x) {
+        maximum = fmaxf(maximum,
+            fabsf(load_as_float(input[row * columns + column])));
+    }
+    maximum = block_reduce_max(maximum, scratch);
+    if (threadIdx.x == 0) scales[column] = fmaxf(maximum / 127.0F, minimum_scale);
+}
+
+template <typename Input>
+__global__ void quantize_int8_column_scale_kernel(
+    const Input* input, std::int8_t* output, std::int64_t elements,
+    std::int64_t columns, const float* scales) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= elements) return;
+    auto value = load_as_float(input[index]) / scales[index % columns];
+    if (isnan(value)) value = 0.0F;
+    value = fminf(127.0F, fmaxf(-127.0F, value));
+    output[index] = static_cast<std::int8_t>(__float2int_rn(value));
 }
 
 template <typename Input, typename Output>
@@ -3712,6 +3745,45 @@ void launch_quantize_int8_dynamic(
 }
 
 template <typename Input>
+void launch_int8_columns_for_input(
+    const Input* input, std::int8_t* output, float* scales,
+    std::int64_t rows, std::int64_t columns, float minimum_scale,
+    hipStream_t stream) {
+    hipLaunchKernelGGL(int8_column_scale_kernel<Input>,
+                       dim3(static_cast<unsigned>(columns)),
+                       dim3(kBlockSize), 0, stream, input, scales, rows,
+                       columns, minimum_scale);
+    check_launch("int8_column_scale_kernel");
+    hipLaunchKernelGGL(quantize_int8_column_scale_kernel<Input>,
+                       dim3(grid_size(rows * columns)), dim3(kBlockSize), 0,
+                       stream, input, output, rows * columns, columns, scales);
+    check_launch("quantize_int8_column_scale_kernel");
+}
+
+void launch_quantize_int8_columns_dynamic(
+    const void* input, DType input_dtype, std::int8_t* output,
+    float* scales, std::int64_t rows, std::int64_t columns,
+    float minimum_scale, void* stream) {
+    switch (input_dtype) {
+        case DType::Float32:
+            launch_int8_columns_for_input(static_cast<const float*>(input),
+                output, scales, rows, columns, minimum_scale,
+                as_stream(stream)); break;
+        case DType::Float16:
+            launch_int8_columns_for_input(static_cast<const __half*>(input),
+                output, scales, rows, columns, minimum_scale,
+                as_stream(stream)); break;
+        case DType::BFloat16:
+            launch_int8_columns_for_input(
+                static_cast<const hip_bfloat16*>(input), output, scales, rows,
+                columns, minimum_scale, as_stream(stream)); break;
+        default:
+            throw std::invalid_argument(
+                "column INT8 input must be FP32, FP16, or BF16");
+    }
+}
+
+template <typename Input>
 void launch_dynamic_quantize_for_input(
     const Input* input, void* output, DType fp8_dtype, float* scale,
     float* partial_maxima, std::int64_t partial_count,
@@ -3968,7 +4040,8 @@ void launch_dequantize_fp8(const void* input, DType fp8_dtype, void* output,
 
 void launch_dequantize_int8(const std::int8_t* input, void* output,
                             DType output_dtype, std::int64_t elements,
-                            const float* scale, void* stream) {
+                            const float* scale, std::int64_t columns,
+                            bool column_scales, void* stream) {
     if (elements == 0) return;
     const auto grid = dim3(grid_size(elements));
     const auto block = dim3(kBlockSize);
@@ -3976,7 +4049,8 @@ void launch_dequantize_int8(const std::int8_t* input, void* output,
     case enum_value:                                                            \
         hipLaunchKernelGGL((dequantize_int8_kernel<cpp_type>), grid, block, 0, \
                            as_stream(stream), input,                            \
-                           static_cast<cpp_type*>(output), elements, scale);    \
+                           static_cast<cpp_type*>(output), elements, scale,     \
+                           columns, column_scales);                             \
         break
     switch (output_dtype) {
         MICROLLM_INT8_DEQUANT_CASE(float, DType::Float32);
@@ -3992,7 +4066,8 @@ void launch_dequantize_int8(const std::int8_t* input, void* output,
 
 void launch_int8_weight_matmul_decode(
     const float* input, const std::int8_t* weight, const float* scale,
-    float* output, std::int64_t inner, std::int64_t columns, void* stream) {
+    float* output, std::int64_t inner, std::int64_t columns,
+    bool column_scales, void* stream) {
     if (inner <= 0 || columns <= 0) {
         throw std::invalid_argument(
             "INT8 fused decode matmul requires positive inner and output dimensions");
@@ -4000,7 +4075,7 @@ void launch_int8_weight_matmul_decode(
     hipLaunchKernelGGL(int8_weight_matmul_decode_kernel,
                        dim3(static_cast<unsigned>(columns)),
                        dim3(kBlockSize), 0, as_stream(stream), input, weight,
-                       scale, output, inner, columns);
+                       scale, output, inner, columns, column_scales);
     check_launch("int8_weight_matmul_decode_kernel");
 }
 

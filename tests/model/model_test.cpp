@@ -786,6 +786,18 @@ TEST(TransformerModelTest, Int8InferencePreparationReplacesEveryLinearTransactio
                  std::logic_error);
 }
 
+TEST(TransformerModelTest, Int8OutputColumnPreparationRetainsOneScalePerOutput) {
+    TransformerModel model(tiny_config(), 19);
+    const auto report = model.prepare_int8_inference_weights(
+        Int8WeightScaleMode::OutputColumnAmax);
+    EXPECT_EQ(report.linears_covered, 8U);
+    EXPECT_GT(report.scale_bytes_retained,
+              report.linears_covered * sizeof(float));
+    const auto logits = model.forward_inference(
+        Tensor::from_int32_vector({1}, {1, 1}));
+    EXPECT_EQ(logits.shape(), (Shape{1, 1, 16}));
+}
+
 TEST(TransformerModelTest, Fp8TensorAmaxPreparationReportsIndependentWeightScales) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

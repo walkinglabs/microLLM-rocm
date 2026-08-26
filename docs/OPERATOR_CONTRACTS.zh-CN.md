@@ -55,6 +55,9 @@ FP32 `[1,N]`。真实K/N完整输出、零payload传输和少一次逻辑分配�
 `quantize_int8_dynamic`在CPU按完整Tensor amax/127计算scale；HIP使用两级device归约并直接量化，
 返回device-authoritative scale，热路径不得有H2D/D2H。官方模型准备可复用该原语，但其数值
 仍必须通过完整logits，不能以零传输代替精度证据。
+`quantize_int8_columns_dynamic`只接受连续二维weight，为每个输出列产生一个device F32 scale；
+反量化和`FusedDecode`按列读取。CPU/HIP完整值与零传输门保留，但官方Qwen精度失败，所以该
+原语不能成为默认模型策略。
 
 ## BF16 weight gradient
 

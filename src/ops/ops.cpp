@@ -1348,6 +1348,55 @@ Int8ScaledTensor quantize_int8_dynamic(
 #endif
 }
 
+Int8ScaledTensor quantize_int8_columns_dynamic(
+    const Tensor& input, float minimum_scale,
+    [[maybe_unused]] const OpContext& context) {
+    if (!input.defined() || input.ndim() != 2 || !input.is_contiguous() ||
+        (input.dtype() != DType::Float32 && input.dtype() != DType::Float16 &&
+         input.dtype() != DType::BFloat16) || !std::isfinite(minimum_scale) ||
+        minimum_scale <= 0.0F) {
+        throw std::invalid_argument(
+            "column INT8 quantize requires contiguous rank-two floating input and positive minimum scale");
+    }
+    const auto rows = input.shape()[0];
+    const auto columns = input.shape()[1];
+    if (input.device().is_cpu()) {
+        const auto values = input.to_vector();
+        std::vector<float> scales(static_cast<std::size_t>(columns), minimum_scale);
+        std::vector<std::int8_t> quantized(values.size());
+        for (std::int64_t column = 0; column < columns; ++column) {
+            float maximum = 0.0F;
+            for (std::int64_t row = 0; row < rows; ++row) {
+                const auto value = values[static_cast<std::size_t>(row * columns + column)];
+                if (!std::isfinite(value)) throw std::invalid_argument("column INT8 quantize requires finite input");
+                maximum = std::max(maximum, std::abs(value));
+            }
+            scales[static_cast<std::size_t>(column)] =
+                std::max(maximum / 127.0F, minimum_scale);
+        }
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            auto value = std::clamp(values[index] /
+                scales[index % static_cast<std::size_t>(columns)], -127.0F, 127.0F);
+            quantized[index] = static_cast<std::int8_t>(round_to_nearest_even(value));
+        }
+        return {Tensor::from_int8_vector(quantized, input.shape()),
+                Tensor::from_vector(scales, {columns}), minimum_scale, false,
+                Int8ScaleMode::OutputColumn};
+    }
+    Tensor output(input.shape(), DType::Int8, input.device());
+    Tensor scales({columns}, DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+    hip::launch_quantize_int8_columns_dynamic(
+        input.data(), input.dtype(), static_cast<std::int8_t*>(output.data()),
+        static_cast<float*>(scales.data()), rows, columns, minimum_scale,
+        context.native_stream(input.device()));
+    return {std::move(output), std::move(scales), minimum_scale, false,
+            Int8ScaleMode::OutputColumn};
+#else
+    throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+}
+
 Tensor dequantize_int8(
     const Int8ScaledTensor& input, DType output_dtype,
     [[maybe_unused]] const OpContext& context) {
@@ -1356,8 +1405,12 @@ Tensor dequantize_int8(
         throw std::invalid_argument(
             "INT8 dequantize requires contiguous int8 values");
     }
+    const auto expected_scales =
+        input.scale_mode == Int8ScaleMode::OutputColumn &&
+                input.values.ndim() == 2
+            ? input.values.shape()[1] : 1;
     if (!input.scale.defined() || input.scale.dtype() != DType::Float32 ||
-        input.scale.numel() != 1 || !input.scale.is_contiguous() ||
+        input.scale.numel() != expected_scales || !input.scale.is_contiguous() ||
         input.scale.device() != input.values.device()) {
         throw std::invalid_argument(
             "INT8 dequantize scale must be one contiguous same-device FP32 value");
@@ -1381,7 +1434,9 @@ Tensor dequantize_int8(
         const auto quantized = input.values.to_int8_vector();
         std::vector<float> restored(quantized.size());
         for (std::size_t index = 0; index < quantized.size(); ++index) {
-            restored[index] = static_cast<float>(quantized[index]) * scales[0];
+            restored[index] = static_cast<float>(quantized[index]) *
+                scales[input.scale_mode == Int8ScaleMode::OutputColumn
+                           ? index % static_cast<std::size_t>(expected_scales) : 0];
         }
         return Tensor::from_vector(restored, input.values.shape(), output_dtype);
     }
@@ -1391,6 +1446,8 @@ Tensor dequantize_int8(
         static_cast<const std::int8_t*>(input.values.data()), output.data(),
         output_dtype, input.values.numel(),
         static_cast<const float*>(input.scale.data()),
+        input.values.ndim() == 2 ? input.values.shape()[1] : 1,
+        input.scale_mode == Int8ScaleMode::OutputColumn,
         context.native_stream(input.values.device()));
     return output;
 #else
@@ -1427,10 +1484,13 @@ Tensor int8_weight_matmul_with_implementation(
             "INT8 weight matmul input and weight devices must match");
     }
     if (implementation == Int8WeightMatmulImplementation::FusedDecode) {
+        const auto expected_scales =
+            weight.scale_mode == Int8ScaleMode::OutputColumn
+                ? weight.values.shape()[1] : 1;
         if (!input.device().is_hip() || input.dtype() != DType::Float32 ||
             input.shape()[0] != 1 || !weight.values.is_contiguous() ||
             !weight.scale.defined() || weight.scale.dtype() != DType::Float32 ||
-            weight.scale.numel() != 1 || !weight.scale.is_contiguous() ||
+            weight.scale.numel() != expected_scales || !weight.scale.is_contiguous() ||
             weight.scale.device() != input.device()) {
             throw std::invalid_argument(
                 "fused INT8 decode matmul requires HIP FP32 [1,K], contiguous I8 [K,N], and same-device FP32 scalar scale");
@@ -1443,7 +1503,9 @@ Tensor int8_weight_matmul_with_implementation(
             static_cast<const std::int8_t*>(weight.values.data()),
             static_cast<const float*>(weight.scale.data()),
             static_cast<float*>(output.data()), input.shape()[1],
-            weight.values.shape()[1], context.native_stream(input.device()));
+            weight.values.shape()[1],
+            weight.scale_mode == Int8ScaleMode::OutputColumn,
+            context.native_stream(input.device()));
         return output;
 #else
         throw std::runtime_error(

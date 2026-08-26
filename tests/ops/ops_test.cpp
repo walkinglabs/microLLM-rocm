@@ -1911,6 +1911,20 @@ TEST(CpuInt8WeightOpsTest, DynamicScaleUsesTensorAmaxAndMinimum) {
                  std::invalid_argument);
 }
 
+TEST(CpuInt8WeightOpsTest, OutputColumnScalesPreserveIndependentRanges) {
+    const auto input = Tensor::from_vector(
+        {1.0F, 100.0F, 2.0F, 200.0F, 3.0F, 300.0F}, {3, 2});
+    const auto columns = quantize_int8_columns_dynamic(input);
+    EXPECT_EQ(columns.scale_mode, Int8ScaleMode::OutputColumn);
+    EXPECT_EQ(columns.scale.shape(), (Shape{2}));
+    EXPECT_FLOAT_EQ(columns.scale.to_vector()[0], 3.0F / 127.0F);
+    EXPECT_FLOAT_EQ(columns.scale.to_vector()[1], 300.0F / 127.0F);
+    expect_near(dequantize_int8(columns).to_vector(), input.to_vector(), 1.3F);
+    EXPECT_THROW((void)quantize_int8_columns_dynamic(
+                     Tensor::from_vector({1.0F}, {1})),
+                 std::invalid_argument);
+}
+
 TEST(CpuInt8WeightOpsTest, LoadedTensorPairValidatesMetadataAndScale) {
     const Int8ScaledTensor loaded{
         Tensor::from_int8_vector({-4, 0, 7, 127}, {2, 2}),

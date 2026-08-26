@@ -1084,6 +1084,26 @@ TEST(HipInt8WeightOpsTest, DynamicAmaxAndQuantizeStayEntirelyOnDevice) {
     expect_near(restored.to_vector(), {-127.0F, -2.0F, 0.0F, 64.0F});
 }
 
+TEST(HipInt8WeightOpsTest, OutputColumnScalesStayOnDeviceAndFeedFusedDecode) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto weight_cpu = Tensor::from_vector(
+        {1.0F, 100.0F, 2.0F, 200.0F, 3.0F, 300.0F}, {3, 2});
+    runtime::reset_transfer_stats();
+    const auto columns = quantize_int8_columns_dynamic(weight_cpu.to(gpu));
+    runtime::synchronize(gpu);
+    const auto preparation = runtime::transfer_stats();
+    EXPECT_EQ(preparation.host_to_device_calls, 1U);  // source only
+    EXPECT_EQ(preparation.device_to_host_calls, 0U);
+    EXPECT_EQ(columns.scale_mode, Int8ScaleMode::OutputColumn);
+    const auto input = Tensor::from_vector({1.0F, -2.0F, 0.5F}, {1, 3}).to(gpu);
+    const auto explicit_output = int8_weight_matmul_with_implementation(
+        input, columns, Int8WeightMatmulImplementation::ExplicitDequantize);
+    const auto fused_output = int8_weight_matmul_with_implementation(
+        input, columns, Int8WeightMatmulImplementation::FusedDecode);
+    expect_near(fused_output.to_vector(), explicit_output.to_vector(), 1.0e-4F);
+}
+
 TEST(HipInt8WeightOpsTest, MatmulBaselineMatchesCpuWithoutPayloadTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);

@@ -492,7 +492,7 @@ public:
             auto output = ops::int8_weight_matmul_with_implementation(
                 flat,
                 {weight_.data(), int8_inference_scale_, int8_scale_value_,
-                 int8_host_scale_available_},
+                 int8_host_scale_available_, int8_scale_mode_},
                 implementation, context);
             auto shape = input.shape();
             shape.back() = weight_.data().shape()[1];
@@ -629,10 +629,14 @@ public:
                 fp8_inference_activation_scale_.to(device);
         }
     }
-    [[nodiscard]] ops::Int8ScaledTensor prepare_int8_inference_candidate() const {
+    [[nodiscard]] ops::Int8ScaledTensor prepare_int8_inference_candidate(
+        Int8WeightScaleMode scale_mode) const {
         if (weight_.data().dtype() != DType::Float32 ||
             int8_inference_scale_.defined()) {
             throw std::logic_error("Linear INT8 inference preparation is invalid");
+        }
+        if (scale_mode == Int8WeightScaleMode::OutputColumnAmax) {
+            return ops::quantize_int8_columns_dynamic(weight_.data());
         }
         return weight_.data().device().is_hip()
                    ? ops::quantize_int8_dynamic(weight_.data())
@@ -642,6 +646,7 @@ public:
     void commit_int8_inference_candidate(ops::Int8ScaledTensor candidate) {
         int8_scale_value_ = candidate.scale_value;
         int8_host_scale_available_ = candidate.host_scale_available;
+        int8_scale_mode_ = candidate.scale_mode;
         int8_inference_scale_ = std::move(candidate.scale);
         weight_ = Value(std::move(candidate.values), false);
     }
@@ -671,6 +676,7 @@ private:
     Tensor int8_inference_scale_;
     float int8_scale_value_ = 1.0F;
     bool int8_host_scale_available_ = true;
+    ops::Int8ScaleMode int8_scale_mode_ = ops::Int8ScaleMode::Scalar;
 };
 
 class Bf16QkvArenaCache {
@@ -3460,7 +3466,8 @@ bool TransformerModel::fp8_inference_weights_prepared() const noexcept {
     return impl_->fp8_inference_prepared;
 }
 
-Int8WeightPreparationReport TransformerModel::prepare_int8_inference_weights() {
+Int8WeightPreparationReport TransformerModel::prepare_int8_inference_weights(
+    Int8WeightScaleMode scale_mode) {
     if (!impl_->parameters_initialized || impl_->int8_inference_prepared ||
         impl_->fp8_inference_prepared || impl_->bf16_ffn_prepared ||
         impl_->bf16_attention_prepared ||
@@ -3484,10 +3491,12 @@ Int8WeightPreparationReport TransformerModel::prepare_int8_inference_weights() {
     for (const auto* linear : linears) {
         const auto elements = static_cast<std::uint64_t>(
             linear->weight_data().numel());
-        candidates.push_back(linear->prepare_int8_inference_candidate());
+        candidates.push_back(linear->prepare_int8_inference_candidate(scale_mode));
         report.fp32_bytes_released += elements * sizeof(float);
         report.int8_bytes_retained += elements;
-        report.scale_bytes_retained += sizeof(float);
+        report.scale_bytes_retained +=
+            static_cast<std::uint64_t>(candidates.back().scale.numel()) *
+            sizeof(float);
         if (linear->weight_data().device().is_hip()) {
             report.device_weight_bytes_scanned += elements * sizeof(float);
             ++report.device_amax_tensors;

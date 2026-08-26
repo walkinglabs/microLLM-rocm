@@ -74,6 +74,7 @@ struct Options {
     bool bf16_attention = false;
     bool fp8_linear = false;
     bool int8_linear = false;
+    std::string int8_weight_scale_mode = "tensor-amax";
     float fp8_activation_scale = 0.025F;
     float fp8_activation_minimum_scale = 1.0e-4F;
     float fp8_weight_scale = 0.005F;
@@ -252,6 +253,9 @@ Options options(int argc, char** argv) {
                 throw std::invalid_argument("--int8-linear must be true or false");
             }
             result.int8_linear = value == "true";
+        }
+        else if (name == "--int8-weight-scale-mode") {
+            result.int8_weight_scale_mode = argv[index + 1];
         }
         else if (name == "--fp8-activation-scale") {
             result.fp8_activation_scale = std::stof(argv[index + 1]);
@@ -591,6 +595,11 @@ Options options(int argc, char** argv) {
         (result.fp8_linear || result.bf16_ffn || result.bf16_attention)) {
         throw std::invalid_argument(
             "INT8 Linear is exclusive with FP8 and BF16 preparation");
+    }
+    if (result.int8_weight_scale_mode != "tensor-amax" &&
+        result.int8_weight_scale_mode != "output-column-amax") {
+        throw std::invalid_argument(
+            "--int8-weight-scale-mode must be tensor-amax or output-column-amax");
     }
     if (result.fp8_weight_scale_mode != "fixed" &&
         result.fp8_weight_scale_mode != "tensor-amax" &&
@@ -1598,7 +1607,10 @@ int main(int argc, char** argv) {
             microllm::ops::clear_fp8_dynamic_quant_stats();
         }
         if (command.int8_linear) {
-            int8_report = model.prepare_int8_inference_weights();
+            int8_report = model.prepare_int8_inference_weights(
+                command.int8_weight_scale_mode == "output-column-amax"
+                    ? microllm::model::Int8WeightScaleMode::OutputColumnAmax
+                    : microllm::model::Int8WeightScaleMode::TensorAmax);
         }
         microllm::runtime::synchronize(device);
         const auto preparation_finish = std::chrono::steady_clock::now();
@@ -1931,6 +1943,8 @@ int main(int argc, char** argv) {
                       << "\""
                       << ",\"int8_linear\":"
                       << (command.int8_linear ? "true" : "false")
+                      << ",\"int8_weight_scale_mode\":\""
+                      << command.int8_weight_scale_mode << "\""
                       << ",\"int8_device_weight_bytes_scanned\":"
                       << int8_report.device_weight_bytes_scanned
                       << ",\"int8_device_amax_tensors\":"
@@ -2766,6 +2780,8 @@ int main(int argc, char** argv) {
                   << fp8_report.scale_bytes_retained
                   << ",\"int8_linear\":"
                   << (command.int8_linear ? "true" : "false")
+                  << ",\"int8_weight_scale_mode\":\""
+                  << command.int8_weight_scale_mode << "\""
                   << ",\"int8_weight_bytes_retained\":"
                   << int8_report.int8_bytes_retained
                   << ",\"int8_scale_bytes_retained\":"
