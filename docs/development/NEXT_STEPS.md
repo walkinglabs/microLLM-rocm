@@ -255,8 +255,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   99.42%–99.96%; mean/weighted/general gradients keep the ordinary path;
 - [x] attribute remaining FP32 F+B gap: manual submission of the same fused producers is
   4.855×–5.271× custom Autograd and 3.859×–4.105× native; close mathematical Kernel tuning;
-- [ ] compare C++ Autograd Function and `torch.compile` capture against the same manual
-  upper bound; stop the adapter training line if neither materially closes submission gaps;
+- [x] reject `torch.compile` capture: compiled/eager 0.584×–0.610×,
+  compiled/native 0.462×–0.476×, cold 55.8–1160.3ms; gradient gate passes and loss
+  reduction-order delta remains explicit;
+- [ ] compare a C++ Autograd Function against the same manual upper bound; stop the
+  adapter training line if it does not materially close submission gaps;
 - [ ] define a typed low-precision SwiGLU backward contract before replacing the readable
   PyTorch fallback formulas;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.

@@ -679,3 +679,16 @@ Attribute the remaining F+B cost without changing GPU math:
 
 Manual peak is intentionally not used as a production comparison because the attribution
 loop keeps explicit outputs alive. Event/wall and complete loss/gradients are the causal evidence.
+
+Test whether AOTAutograd/Inductor removes the Python callback boundary:
+
+```bash
+/path/to/rocm-venv/bin/python \
+  benchmarks/single_gpu/pytorch_swiglu_compile_matrix.py \
+  --library build/torch-rocm/bindings/torch/libmicrollm_torch_ops.so \
+  --output /tmp/microllm-swiglu-compile \
+  --runs 2 --warmup 5 --repetitions 25
+```
+
+Cold compile is reported separately. The runner records the narrow AMDSMI-zero workaround
+needed by the validated pre-release Torch build rather than silently changing device discovery.

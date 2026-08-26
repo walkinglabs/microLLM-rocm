@@ -436,6 +436,7 @@
     "python/tests/test_pytorch_swiglu_backward_result.py",
     "python/tests/test_pytorch_swiglu_scalar_seed.py",
     "python/tests/test_pytorch_swiglu_autograd_attribution.py",
+    "python/tests/test_pytorch_swiglu_compile_result.py",
     "python/tests/test_data_parallel_verification_matrix.py",
     "python/tests/test_data_parallel_bucket_matrix.py",
     "python/tests/test_distributed_model_workload.py",

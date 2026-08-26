@@ -1068,6 +1068,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Scalar-seed SVG](assets/pytorch-rocm-swiglu-scalar-seed.svg) | F+B时间与peak前后对比 |
 | [experiments/334-pytorch-swiglu-autograd-attribution.md](experiments/334-pytorch-swiglu-autograd-attribution.md) | 剩余差距定位到Autograd提交 |
 | [Autograd attribution SVG](assets/pytorch-rocm-swiglu-autograd-attribution.svg) | native/custom/manual三路Event |
+| [experiments/335-pytorch-swiglu-compile-reject.md](experiments/335-pytorch-swiglu-compile-reject.md) | compiled比eager更慢且有冷启动 |
+| [SwiGLU compile SVG](assets/pytorch-rocm-swiglu-compile.svg) | 四路steady/cold结果 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

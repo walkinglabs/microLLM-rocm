@@ -5090,3 +5090,14 @@ manual比custom快4.855×–5.271×，证明剩余时间在Python callback/Autog
 不是HIP数学。数学Kernel局部线关闭，下一步只允许C++ Autograd或compiled graph。
 
 ![SwiGLU Autograd attribution](assets/pytorch-rocm-swiglu-autograd-attribution.svg)
+
+## 351. Experiment 335：compile没有消除opaque边界
+
+八进程结果中，compiled/eager只有0.584×–0.610×，compiled/native 0.462×–0.476×，manual比
+compiled快7.696×–8.635×。首次shape冷启动还要1160.3ms。梯度正确，1M loss因归约tree变化差
+0.00390625。
+
+Inductor不能穿过opaque Custom Op融合HIP Kernel，AOT路径反而增加开销。因此compiled推荐拒绝；
+最后相邻候选只剩C++ Autograd Function。
+
+![SwiGLU compile result](assets/pytorch-rocm-swiglu-compile.svg)

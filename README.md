@@ -933,12 +933,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 392/392 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 389/389 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 393/393 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 390/390 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 201/201 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 395/395 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 396/396 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 137 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 138 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1330,6 +1330,9 @@ ordinary path. The result remains `0.773×–0.781×` native Torch, so no traini
 A three-way attribution then holds math constant: manual fused submission is
 `4.855×–5.271×` the Python-registered custom Autograd path and `3.859×–4.105×`
 native. The remaining gap is framework submission, so SwiGLU arithmetic tuning is closed.
+`torch.compile` does not close it: eight-process compiled/eager is only
+`0.584×–0.610×`, cold start is `55.8–1160.3 ms`, and the opaque Custom Op remains a
+boundary. Gradients pass; the 1M compiled loss reduction delta `0.00390625` is explicit.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

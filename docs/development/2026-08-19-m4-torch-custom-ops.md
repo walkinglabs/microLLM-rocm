@@ -70,3 +70,9 @@ Three-way attribution holds the fused producers constant. Manual submission is
 mathematical SwiGLU Kernel line and moves the next experiment to C++ Autograd or graph
 capture. See
 [Experiment 334](../optimization-log/experiments/334-pytorch-swiglu-autograd-attribution.md).
+
+Inductor/AOTAutograd is also measured and rejected for this opaque operation. Eight
+processes give compiled/eager `0.584×–0.610×`, with a `55.8–1160.3 ms` median cold
+compile range. Gradients remain aligned; the compiled 1M sum changes reduction order by
+`0.00390625`. C++ Autograd is the final adjacent adapter candidate. See
+[Experiment 335](../optimization-log/experiments/335-pytorch-swiglu-compile-reject.md).
