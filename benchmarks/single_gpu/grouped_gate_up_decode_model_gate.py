@@ -48,7 +48,7 @@ def command(args, model: dict, policy: str, warmup: int, steps: int,
     ids = COMMON.expanded(model["inference"]["token_ids"], 2048)
     result = [
         str(args.binary), "--config", model["config"], "--weights", model["weights"],
-        "--tokens", ",".join(str(value) for value in ids),
+        "--tokens", ids,
         "--device", "hip", "--top-k", "1", "--batch", "2",
         "--use-cache", "true", "--cache-prefill-mode", "full",
         "--decode-mode", "steady", "--batch-argmax-mode", "device",
