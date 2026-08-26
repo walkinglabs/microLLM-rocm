@@ -1082,6 +1082,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Cached Softmax SVG](assets/pytorch-rocm-cached-softmax.svg) | width4096 Torch/block/cache Event图 |
 | [experiments/341-pytorch-wave-softmax-reject.md](experiments/341-pytorch-wave-softmax-reject.md) | broad wave归约因BF16 wall失败而删除 |
 | [Wave Softmax reject SVG](assets/pytorch-rocm-wave-softmax-reject.svg) | 两dtype Event/wall与1.05门 |
+| [experiments/342-pytorch-fp16-wave-softmax.md](experiments/342-pytorch-fp16-wave-softmax.md) | FP16-only wave谓词通过 |
+| [FP16 wave Softmax SVG](assets/pytorch-rocm-fp16-wave-softmax.svg) | selective/fallback Event与wall |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

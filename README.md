@@ -241,6 +241,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > the two-dtype gate. A future retry must be an explicit FP16-only policy; results
 > are not averaged across dtypes.
 
+> The explicit FP16-only retry passes: width4096 Event/wall improves
+> `1.077×/1.080×`; BF16 compiles the retained shared-tree fallback and measures
+> `1.002×/1.004×` baseline. FP16 still reaches only `0.615×` PyTorch, so this is a
+> selective local keep rather than a wide-row parity claim.
+
 </details>
 
 ## Why this project exists
@@ -949,12 +954,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 399/399 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 396/396 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 400/400 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 397/397 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 202/202 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 402/402 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 403/403 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 144 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 145 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1362,6 +1367,8 @@ uses a bounded FP32 shared exponential cache and improves another `1.217×–1.2
 remains at `0.550×–0.576×`; full-block reduction barriers are still an open measured gap.
 The broad wave-shuffle replacement was removed: FP16 passed at `1.071×/1.070×`
 Event/wall, but BF16 wall was only `1.033×`. Any further route must be explicitly FP16-only.
+That explicit route now compiles FP16 wave/BF16 tree and reaches `1.077×/1.080×`
+for affected FP16 Event/wall; current FP16/PyTorch is still only `0.615×`.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

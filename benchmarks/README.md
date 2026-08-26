@@ -764,3 +764,15 @@ python3 docs/optimization-log/scripts/render_pytorch_wave_softmax_reject.py \
   --candidate benchmarks/results/2026-08-26-pytorch-rocm-wave-softmax-reject \
   --output docs/optimization-log/assets/pytorch-rocm-wave-softmax-reject.svg
 ```
+
+The accepted retry is explicitly FP16-only. Its matrix lives at
+`benchmarks/results/2026-08-26-pytorch-rocm-fp16-wave-softmax`: width4096 FP16 improves
+1.077×/1.080× Event/wall, while the compile-time BF16 fallback stays at
+1.002×/1.004× baseline. Render it with:
+
+```bash
+python3 docs/optimization-log/scripts/render_pytorch_fp16_wave_softmax.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-cached-softmax \
+  --candidate benchmarks/results/2026-08-26-pytorch-rocm-fp16-wave-softmax \
+  --output docs/optimization-log/assets/pytorch-rocm-fp16-wave-softmax.svg
+```

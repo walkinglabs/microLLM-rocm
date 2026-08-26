@@ -5169,3 +5169,14 @@ width4096 Event/wall也提高1.071×/1.070×。但BF16只有1.050×/1.033×，wa
 cached shared-tree保持默认。若继续，只能新建FP16-only谓词实验，并明确BF16走fallback。
 
 ![Wave typed Softmax rejection](assets/pytorch-rocm-wave-softmax-reject.svg)
+
+## 358. Experiment 342：窄策略不是给失败方案改名
+
+新实验在实现前就把范围写成FP16-only。cached Kernel增加编译期布尔参数：`__half`实例用wave，
+`hip_bfloat16`实例保留shared tree。它不是跑完后按结果挑dtype。
+
+正式六进程中，FP16 width4096 Event/wall提高1.077×/1.080×；BF16 fallback为
+1.002×/1.004×。10格精度、pointer和peak门通过。因此窄策略保留，而Experiment 341的广义拒绝
+继续有效。FP16/PyTorch仍只有0.615×，下一步必须重新profile，不能宣称wide parity。
+
+![FP16-only wave typed Softmax](assets/pytorch-rocm-fp16-wave-softmax.svg)

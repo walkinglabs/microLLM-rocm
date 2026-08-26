@@ -45,6 +45,8 @@ unsigned grid_size(std::int64_t elements) {
 
 __device__ float block_reduce_sum(float value, float* scratch);
 __device__ float block_reduce_max(float value, float* scratch);
+__device__ float block_reduce_sum_wave(float value, float* scratch);
+__device__ float block_reduce_max_wave(float value, float* scratch);
 
 __global__ void fill_kernel(float* output, std::int64_t elements, float value) {
     const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
@@ -846,7 +848,7 @@ __global__ void softmax_typed_block_kernel(
     }
 }
 
-template <typename T>
+template <typename T, bool UseWaveReduction>
 __global__ void softmax_typed_block_cached_kernel(
     const T* input, T* output, std::int64_t rows, std::int64_t width) {
     const auto row = static_cast<std::int64_t>(blockIdx.x);
@@ -860,7 +862,12 @@ __global__ void softmax_typed_block_cached_kernel(
             fmaxf(local_maximum, load_as_float(input[base + column]));
     }
     __shared__ float reduction[kBlockSize];
-    const auto maximum = block_reduce_max(local_maximum, reduction);
+    float maximum = 0.0F;
+    if constexpr (UseWaveReduction) {
+        maximum = block_reduce_max_wave(local_maximum, reduction);
+    } else {
+        maximum = block_reduce_max(local_maximum, reduction);
+    }
 
     extern __shared__ float exponentials[];
     float local_denominator = 0.0F;
@@ -871,7 +878,12 @@ __global__ void softmax_typed_block_cached_kernel(
         exponentials[column] = value;
         local_denominator += value;
     }
-    const auto denominator = block_reduce_sum(local_denominator, reduction);
+    float denominator = 0.0F;
+    if constexpr (UseWaveReduction) {
+        denominator = block_reduce_sum_wave(local_denominator, reduction);
+    } else {
+        denominator = block_reduce_sum(local_denominator, reduction);
+    }
     const auto inverse = 1.0F / denominator;
     for (std::int64_t column = threadIdx.x; column < width;
          column += blockDim.x) {
@@ -1176,6 +1188,66 @@ __device__ float block_reduce_max(float value, float* scratch) {
     // scratch[0] while slower lanes are still loading the previous result.
     __syncthreads();
     return result;
+}
+
+__device__ float wave_reduce_max(float value) {
+    for (unsigned offset = static_cast<unsigned>(warpSize) / 2U;
+         offset > 0; offset >>= 1U) {
+        value = fmaxf(value, __shfl_down(value, offset, warpSize));
+    }
+    return __shfl(value, 0, warpSize);
+}
+
+__device__ float wave_reduce_sum(float value) {
+    for (unsigned offset = static_cast<unsigned>(warpSize) / 2U;
+         offset > 0; offset >>= 1U) {
+        value += __shfl_down(value, offset, warpSize);
+    }
+    return __shfl(value, 0, warpSize);
+}
+
+__device__ float block_reduce_max_wave(float value, float* scratch) {
+    value = wave_reduce_max(value);
+    if (blockDim.x <= static_cast<unsigned>(warpSize)) return value;
+
+    const auto lane = static_cast<unsigned>(threadIdx.x) %
+                      static_cast<unsigned>(warpSize);
+    const auto wave = static_cast<unsigned>(threadIdx.x) /
+                      static_cast<unsigned>(warpSize);
+    const auto wave_count =
+        (blockDim.x + static_cast<unsigned>(warpSize) - 1U) /
+        static_cast<unsigned>(warpSize);
+    if (lane == 0) scratch[wave] = value;
+    __syncthreads();
+    if (wave == 0) {
+        const auto partial = lane < wave_count ? scratch[lane] : -INFINITY;
+        const auto maximum = wave_reduce_max(partial);
+        if (lane == 0) scratch[0] = maximum;
+    }
+    __syncthreads();
+    return scratch[0];
+}
+
+__device__ float block_reduce_sum_wave(float value, float* scratch) {
+    value = wave_reduce_sum(value);
+    if (blockDim.x <= static_cast<unsigned>(warpSize)) return value;
+
+    const auto lane = static_cast<unsigned>(threadIdx.x) %
+                      static_cast<unsigned>(warpSize);
+    const auto wave = static_cast<unsigned>(threadIdx.x) /
+                      static_cast<unsigned>(warpSize);
+    const auto wave_count =
+        (blockDim.x + static_cast<unsigned>(warpSize) - 1U) /
+        static_cast<unsigned>(warpSize);
+    if (lane == 0) scratch[wave] = value;
+    __syncthreads();
+    if (wave == 0) {
+        const auto partial = lane < wave_count ? scratch[lane] : 0.0F;
+        const auto total = wave_reduce_sum(partial);
+        if (lane == 0) scratch[0] = total;
+    }
+    __syncthreads();
+    return scratch[0];
 }
 
 template <typename Input>
@@ -4009,7 +4081,8 @@ void launch_softmax_typed(const void* input, void* output, DType dtype,
             } else {
                 if (use_cached) {
                     hipLaunchKernelGGL(
-                        softmax_typed_block_cached_kernel<__half>, grid, block,
+                        (softmax_typed_block_cached_kernel<__half, true>), grid,
+                        block,
                         static_cast<std::size_t>(width) * sizeof(float),
                         as_stream(stream), static_cast<const __half*>(input),
                         static_cast<__half*>(output), rows, width);
@@ -4030,8 +4103,9 @@ void launch_softmax_typed(const void* input, void* output, DType dtype,
             } else {
                 if (use_cached) {
                     hipLaunchKernelGGL(
-                        softmax_typed_block_cached_kernel<hip_bfloat16>, grid,
-                        block, static_cast<std::size_t>(width) * sizeof(float),
+                        (softmax_typed_block_cached_kernel<hip_bfloat16, false>),
+                        grid, block,
+                        static_cast<std::size_t>(width) * sizeof(float),
                         as_stream(stream),
                         static_cast<const hip_bfloat16*>(input),
                         static_cast<hip_bfloat16*>(output), rows, width);

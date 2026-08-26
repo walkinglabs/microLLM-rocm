@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE = ROOT / "benchmarks/results/2026-08-26-pytorch-rocm-cached-softmax"
-CANDIDATE = ROOT / "benchmarks/results/2026-08-26-pytorch-rocm-wave-softmax-reject"
+CANDIDATE = ROOT / "benchmarks/results/2026-08-26-pytorch-rocm-fp16-wave-softmax"
 
 
 def workers(path: Path) -> list[dict]:
@@ -29,7 +29,7 @@ def medians(rows: list[dict], field: str) -> dict[tuple[str, int], float]:
 
 
 def main() -> int:
-    renderer = ROOT / "docs/optimization-log/scripts/render_pytorch_wave_softmax_reject.py"
+    renderer = ROOT / "docs/optimization-log/scripts/render_pytorch_fp16_wave_softmax.py"
     ast.parse(renderer.read_text(encoding="utf-8"))
     baseline = workers(BASELINE)
     candidate = workers(CANDIDATE)
@@ -42,20 +42,24 @@ def main() -> int:
                for row in summary["groups"])
 
     base_event = medians(baseline, "microllm_event_ms")
-    wave_event = medians(candidate, "microllm_event_ms")
+    new_event = medians(candidate, "microllm_event_ms")
     base_wall = medians(baseline, "microllm_wall_ms")
-    wave_wall = medians(candidate, "microllm_wall_ms")
+    new_wall = medians(candidate, "microllm_wall_ms")
     bf16 = ("bf16", 4096)
     fp16 = ("fp16", 4096)
-    assert base_event[bf16] / wave_event[bf16] >= 1.05
-    assert base_wall[bf16] / wave_wall[bf16] < 1.05
-    assert base_event[fp16] / wave_event[fp16] >= 1.05
-    assert base_wall[fp16] / wave_wall[fp16] >= 1.05
+    assert 0.95 <= base_event[bf16] / new_event[bf16] <= 1.05
+    assert 0.95 <= base_wall[bf16] / new_wall[bf16] <= 1.05
+    assert base_event[fp16] / new_event[fp16] >= 1.05
+    assert base_wall[fp16] / new_wall[fp16] >= 1.05
+    current = {(row["dtype"], row["width"]): row["event_speedup_median"]
+               for row in summary["groups"]}
+    assert current[fp16] >= 0.60
+
     source = (ROOT / "src/ops/hip/basic_kernels.hip").read_text(encoding="utf-8")
+    assert "softmax_typed_block_cached_kernel<__half, true>" in source
     assert "softmax_typed_block_cached_kernel<hip_bfloat16, false>" in source
-    assert "softmax_typed_block_cached_kernel<hip_bfloat16, true>" not in source
-    ET.parse(ROOT / "docs/optimization-log/assets/pytorch-rocm-wave-softmax-reject.svg")
-    print("PyTorch wave Softmax rejection contract: pass")
+    ET.parse(ROOT / "docs/optimization-log/assets/pytorch-rocm-fp16-wave-softmax.svg")
+    print("PyTorch FP16 wave Softmax result contract: pass")
     return 0
 
 

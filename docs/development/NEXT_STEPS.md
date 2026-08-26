@@ -278,8 +278,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] test broad wave-level reduction and remove it: FP16 width4096 improves
   1.071×/1.070× Event/wall, but BF16 reaches only 1.050×/1.033× and fails the
   two-dtype 1.05 gate;
-- [ ] test an explicit FP16-only wave predicate as a separate policy; do not average the
-  rejected BF16 row into a broad keep decision.
+- [x] admit an explicit FP16-only wave predicate: width4096 Event/wall improves
+  1.077×/1.080×, while compile-time BF16 fallback remains 1.002×/1.004× baseline;
+- [ ] profile the remaining FP16 width4096 0.615× PyTorch gap before another local
+  candidate; broad BF16 wave remains closed.
 
 ## P2.5 — production data parallel reducer
 
