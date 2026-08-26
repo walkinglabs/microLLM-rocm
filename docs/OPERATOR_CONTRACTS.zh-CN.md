@@ -31,6 +31,9 @@ gate/up。PyTorch bridge只有在FP32 gradient `numel>0`且全部stride为0时�
 PyTorch SwiGLU Autograd由C++ Function实现，FP32调用上述fused producers；FP16/BF16在
 `NoGradGuard`内使用in-place ATen公式。它不承诺double backward。FakeTensor无backing pointer时只
 返回Meta shape，不能把null pointer包装成Storage。
+`swiglu_backward_typed_out_`要求gate/up/gradient/两个output为同shape/device/dtype且连续，dtype仅
+FP16/BF16；FP32计算后每个output舍入一次。它不alias、不广播、不接受zero-stride；scalar-seed仍是
+独立FP32合同。
 
 ## BF16 weight gradient
 

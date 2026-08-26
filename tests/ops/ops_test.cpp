@@ -1882,6 +1882,23 @@ TEST(CallerOwnedBackwardTest, CpuOutputsMatchAllocatingReferences) {
             scalar_gate_gradient, scalar_up_gradient, input, up,
             Tensor::from_vector({1, 2}, {2})),
         std::invalid_argument);
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto low_gate = input.cast(dtype);
+        const auto low_up = up.cast(dtype);
+        const auto low_gradient = gradient.cast(dtype);
+        Tensor low_gate_gradient(input.shape(), dtype);
+        Tensor low_up_gradient(input.shape(), dtype);
+        swiglu_backward_typed_out_(
+            low_gate_gradient, low_up_gradient,
+            low_gate, low_up, low_gradient);
+        const auto low_reference = swiglu_backward(
+            low_gate.cast(DType::Float32), low_up.cast(DType::Float32),
+            low_gradient.cast(DType::Float32));
+        EXPECT_EQ(low_gate_gradient.to_vector(),
+                  low_reference.first.cast(dtype).to_vector());
+        EXPECT_EQ(low_up_gradient.to_vector(),
+                  low_reference.second.cast(dtype).to_vector());
+    }
 
     const auto rope_gradient = Tensor::from_vector(
         {1, 2, 3, 4, -1, -2, -3, -4}, {1, 2, 1, 4});

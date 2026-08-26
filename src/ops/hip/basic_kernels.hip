@@ -2452,6 +2452,23 @@ __global__ void swiglu_backward_scalar_seed_kernel(
     up_gradient[index] = gradient * silu_value;
 }
 
+template <typename T>
+__global__ void swiglu_backward_typed_kernel(
+    const T* gate, const T* up, const T* gradient,
+    T* gate_gradient, T* up_gradient, std::int64_t elements) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= elements) return;
+    const auto gate_value = load_as_float(gate[index]);
+    const auto up_value = load_as_float(up[index]);
+    const auto gradient_value = load_as_float(gradient[index]);
+    const auto probability = sigmoid_device(gate_value);
+    gate_gradient[index] = store_from_float<T>(
+        gradient_value * up_value * probability *
+        (1.0F + gate_value * (1.0F - probability)));
+    up_gradient[index] = store_from_float<T>(
+        gradient_value * gate_value * probability);
+}
+
 __global__ void rope_backward_kernel(const float* gradient, float* input_gradient,
                                      std::int64_t pairs, std::int64_t head_width,
                                      std::int64_t sequence_size,
@@ -4614,6 +4631,39 @@ void launch_swiglu_backward_scalar_seed(
         dim3(kBlockSize), 0, as_stream(stream), gate, up, scalar_gradient,
         gate_gradient, up_gradient, elements);
     check_launch("swiglu_backward_scalar_seed_kernel");
+}
+
+void launch_swiglu_backward_typed(
+    const void* gate, const void* up, const void* gradient,
+    void* gate_gradient, void* up_gradient, DType dtype,
+    std::int64_t elements, void* stream) {
+    if (elements == 0) return;
+    const auto grid = dim3(grid_size(elements));
+    const auto block = dim3(kBlockSize);
+    switch (dtype) {
+        case DType::Float16:
+            hipLaunchKernelGGL(
+                swiglu_backward_typed_kernel<__half>, grid, block, 0,
+                as_stream(stream), static_cast<const __half*>(gate),
+                static_cast<const __half*>(up),
+                static_cast<const __half*>(gradient),
+                static_cast<__half*>(gate_gradient),
+                static_cast<__half*>(up_gradient), elements);
+            break;
+        case DType::BFloat16:
+            hipLaunchKernelGGL(
+                swiglu_backward_typed_kernel<hip_bfloat16>, grid, block, 0,
+                as_stream(stream), static_cast<const hip_bfloat16*>(gate),
+                static_cast<const hip_bfloat16*>(up),
+                static_cast<const hip_bfloat16*>(gradient),
+                static_cast<hip_bfloat16*>(gate_gradient),
+                static_cast<hip_bfloat16*>(up_gradient), elements);
+            break;
+        default:
+            throw std::invalid_argument(
+                "typed swiglu backward requires float16 or bfloat16");
+    }
+    check_launch("swiglu_backward_typed_kernel");
 }
 
 void launch_rope_backward(const float* gradient, float* input_gradient,

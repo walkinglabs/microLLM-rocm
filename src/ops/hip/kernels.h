@@ -240,6 +240,10 @@ void launch_swiglu_backward_scalar_seed(
     const float* gate, const float* up, const float* scalar_gradient,
     float* gate_gradient, float* up_gradient,
     std::int64_t elements, void* stream = nullptr);
+void launch_swiglu_backward_typed(
+    const void* gate, const void* up, const void* gradient,
+    void* gate_gradient, void* up_gradient, DType dtype,
+    std::int64_t elements, void* stream = nullptr);
 void launch_rope_backward(const float* gradient, float* input_gradient,
                           std::int64_t elements, std::int64_t head_width,
                           std::int64_t sequence_size, std::int64_t sequence_stride,

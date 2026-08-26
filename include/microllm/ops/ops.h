@@ -761,6 +761,12 @@ void swiglu_backward_scalar_seed_out_(
     Tensor& gate_gradient, Tensor& up_gradient,
     const Tensor& gate, const Tensor& up, const Tensor& scalar_gradient,
     const OpContext& context = {});
+// Low-precision training boundary. Inputs, seed, and both outputs share one
+// Float16/BFloat16 dtype; arithmetic is evaluated in FP32 and rounded once per output.
+void swiglu_backward_typed_out_(
+    Tensor& gate_gradient, Tensor& up_gradient,
+    const Tensor& gate, const Tensor& up, const Tensor& gradient,
+    const OpContext& context = {});
 [[nodiscard]] Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim = 1,
                                    std::int64_t position_offset = 0,
                                    float base = 10000.0F,

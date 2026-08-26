@@ -5,7 +5,6 @@
 #include <utility>
 
 #include <ATen/ATen.h>
-#include <ATen/core/grad_mode.h>
 #include <torch/csrc/autograd/custom_function.h>
 #include <torch/csrc/autograd/variable.h>
 #include <torch/library.h>
@@ -272,6 +271,55 @@ std::tuple<at::Tensor, at::Tensor> meta_swiglu_backward_scalar_seed(
     return {at::empty_like(gate), at::empty_like(up)};
 }
 
+std::tuple<at::Tensor, at::Tensor> swiglu_backward_typed(
+    const at::Tensor& gate, const at::Tensor& up,
+    const at::Tensor& gradient) {
+    TORCH_CHECK((gate.scalar_type() == at::kHalf ||
+                 gate.scalar_type() == at::kBFloat16) &&
+                    up.scalar_type() == gate.scalar_type() &&
+                    gradient.scalar_type() == gate.scalar_type(),
+                "typed SwiGLU backward requires matching float16/bfloat16 tensors");
+    TORCH_CHECK(gate.sizes() == up.sizes() && gate.sizes() == gradient.sizes(),
+                "typed SwiGLU backward shapes must match");
+    TORCH_CHECK(gate.device() == up.device() && gate.device() == gradient.device(),
+                "typed SwiGLU backward devices must match");
+    TORCH_CHECK(gate.is_contiguous() && up.is_contiguous() && gradient.is_contiguous(),
+                "typed SwiGLU backward tensors must be contiguous");
+    auto gate_gradient = at::empty_like(gate);
+    auto up_gradient = at::empty_like(up);
+    if (gate.numel() == 0) {
+        return {std::move(gate_gradient), std::move(up_gradient)};
+    }
+    auto gate_gradient_tensor = external_tensor(gate_gradient);
+    auto up_gradient_tensor = external_tensor(up_gradient);
+    const auto gate_tensor = external_tensor(gate);
+    const auto up_tensor = external_tensor(up);
+    const auto gradient_tensor = external_tensor(gradient);
+    const auto context = gate.device().is_cpu()
+                             ? microllm::ops::OpContext{}
+                             : microllm::ops::OpContext::from_external_stream(
+                                   microllm_device(gate), current_stream(gate));
+    microllm::ops::swiglu_backward_typed_out_(
+        gate_gradient_tensor, up_gradient_tensor, gate_tensor, up_tensor,
+        gradient_tensor, context);
+    return {std::move(gate_gradient), std::move(up_gradient)};
+}
+
+std::tuple<at::Tensor, at::Tensor> meta_swiglu_backward_typed(
+    const at::Tensor& gate, const at::Tensor& up,
+    const at::Tensor& gradient) {
+    TORCH_CHECK((gate.scalar_type() == at::kHalf ||
+                 gate.scalar_type() == at::kBFloat16) &&
+                    up.scalar_type() == gate.scalar_type() &&
+                    gradient.scalar_type() == gate.scalar_type(),
+                "typed SwiGLU backward requires matching float16/bfloat16 tensors");
+    TORCH_CHECK(gate.sizes() == up.sizes() && gate.sizes() == gradient.sizes(),
+                "typed SwiGLU backward shapes must match");
+    TORCH_CHECK(gate.device() == up.device() && gate.device() == gradient.device(),
+                "typed SwiGLU backward devices must match");
+    return {at::empty_like(gate), at::empty_like(up)};
+}
+
 class SwiGLUAutogradFunction
     : public torch::autograd::Function<SwiGLUAutogradFunction> {
 public:
@@ -305,18 +353,9 @@ public:
             auto result = swiglu_backward(gate, up, gradient.contiguous());
             return {std::get<0>(result), std::get<1>(result)};
         }
-        at::NoGradGuard no_grad;
-        const auto probability = at::sigmoid(gate);
-        auto up_gradient = gate * probability;
-        up_gradient.mul_(gradient);
-        auto gate_gradient = at::ones_like(probability);
-        gate_gradient.sub_(probability);
-        gate_gradient.mul_(gate);
-        gate_gradient.add_(1);
-        gate_gradient.mul_(probability);
-        gate_gradient.mul_(up);
-        gate_gradient.mul_(gradient);
-        return {gate_gradient, up_gradient};
+        auto result = swiglu_backward_typed(
+            gate, up, gradient.contiguous());
+        return {std::get<0>(result), std::get<1>(result)};
     }
 };
 
@@ -334,6 +373,8 @@ TORCH_LIBRARY(microllm, library) {
         "swiglu_backward(Tensor gate, Tensor up, Tensor gradient) -> (Tensor, Tensor)");
     library.def(
         "swiglu_backward_scalar_seed(Tensor gate, Tensor up, Tensor scalar_gradient) -> (Tensor, Tensor)");
+    library.def(
+        "swiglu_backward_typed(Tensor gate, Tensor up, Tensor gradient) -> (Tensor, Tensor)");
 }
 
 TORCH_LIBRARY_IMPL(microllm, CPU, library) {
@@ -342,6 +383,7 @@ TORCH_LIBRARY_IMPL(microllm, CPU, library) {
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
     library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
+    library.impl("swiglu_backward_typed", &swiglu_backward_typed);
 }
 
 TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
@@ -350,6 +392,7 @@ TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
     library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
+    library.impl("swiglu_backward_typed", &swiglu_backward_typed);
 }
 
 TORCH_LIBRARY_IMPL(microllm, Autograd, library) {
@@ -363,4 +406,5 @@ TORCH_LIBRARY_IMPL(microllm, Meta, library) {
     library.impl("swiglu_backward", &meta_swiglu_backward);
     library.impl(
         "swiglu_backward_scalar_seed", &meta_swiglu_backward_scalar_seed);
+    library.impl("swiglu_backward_typed", &meta_swiglu_backward_typed);
 }

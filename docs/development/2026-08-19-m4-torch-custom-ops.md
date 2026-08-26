@@ -83,3 +83,9 @@ F+B rows improve `1.286×–1.475×` versus Python Autograd; FP32 reaches
 `1.136×–1.144×` native Torch with 1,536-byte measured peak. Low-precision peak returns
 to native while speed reaches `0.799×–0.812×`. See
 [Experiment 336](../optimization-log/experiments/336-pytorch-swiglu-cpp-autograd.md).
+
+FP16/BF16 backward now uses one typed fused HIP Kernel instead of the C++ ATen formula.
+It evaluates derivatives in FP32 and rounds each output once. The four 64K/1M rows are
+`1.257×–1.319×` the ATen fallback and `1.048×–1.084×` native Torch with equal peak.
+This closes the scoped SwiGLU adapter line. See
+[Experiment 337](../optimization-log/experiments/337-pytorch-swiglu-typed-backward.md).

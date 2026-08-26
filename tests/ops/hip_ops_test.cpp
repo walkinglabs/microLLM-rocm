@@ -3576,6 +3576,33 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
                 scalar_seed_reference.first.to_vector(), 1.0e-6F);
     expect_near(scalar_seed_up_gradient.to_vector(),
                 scalar_seed_reference.second.to_vector(), 1.0e-6F);
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto low_gate_cpu = input.cast(dtype);
+        const auto low_up_cpu = up.cast(dtype);
+        const auto low_gradient_cpu = gradient.cast(dtype);
+        Tensor low_gate_gradient_cpu(input.shape(), dtype);
+        Tensor low_up_gradient_cpu(input.shape(), dtype);
+        swiglu_backward_typed_out_(
+            low_gate_gradient_cpu, low_up_gradient_cpu,
+            low_gate_cpu, low_up_cpu, low_gradient_cpu);
+        const auto low_gate = low_gate_cpu.to(gpu);
+        const auto low_up = low_up_cpu.to(gpu);
+        const auto low_gradient = low_gradient_cpu.to(gpu);
+        Tensor low_gate_gradient(input.shape(), dtype, gpu);
+        Tensor low_up_gradient(input.shape(), dtype, gpu);
+        runtime::reset_transfer_stats();
+        swiglu_backward_typed_out_(
+            low_gate_gradient, low_up_gradient,
+            low_gate, low_up, low_gradient);
+        runtime::synchronize(gpu);
+        const auto low_transfers = runtime::transfer_stats();
+        EXPECT_EQ(low_transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(low_transfers.device_to_host_calls, 0U);
+        EXPECT_EQ(low_gate_gradient.to_vector(),
+                  low_gate_gradient_cpu.to_vector());
+        EXPECT_EQ(low_up_gradient.to_vector(),
+                  low_up_gradient_cpu.to_vector());
+    }
     const auto device_rope_gradient = rope_gradient.to(gpu);
     Tensor caller_rope_gradient(rope_gradient.shape(), DType::Float32, gpu);
     rope_backward_out_(caller_rope_gradient, device_rope_gradient);

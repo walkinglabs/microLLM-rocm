@@ -150,6 +150,8 @@ materializing it. This is a layout contract inside the wrapper, not a user-facin
 SwiGLU Autograd is implemented in C++; Python registration remains only for add/multiply.
 GCC's false-positive array-bounds warning inside Torch's custom-function header is disabled
 only for the optional adapter target.
+FP16/BF16 SwiGLU Autograd calls a typed fused engine backward; it does not build an ATen
+formula graph. FP32 retains the general/scalar-seed producers.
 
 ## RCCL build
 

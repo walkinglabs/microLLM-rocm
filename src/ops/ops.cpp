@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <initializer_list>
 #include <limits>
 #include <memory>
 #include <set>
@@ -4201,6 +4202,79 @@ void swiglu_backward_scalar_seed_out_(
         up_gradient.data(), up_gradient.device(), up_reference.data(),
         up_reference.device(),
         static_cast<std::size_t>(up_gradient.numel()) * sizeof(float));
+}
+
+void swiglu_backward_typed_out_(
+    Tensor& gate_gradient, Tensor& up_gradient,
+    const Tensor& gate, const Tensor& up, const Tensor& gradient,
+    [[maybe_unused]] const OpContext& context) {
+    for (const auto* tensor : std::initializer_list<const Tensor*>{
+             &gate_gradient, &up_gradient, &gate, &up, &gradient}) {
+        if (tensor->dtype() != DType::Float16 &&
+            tensor->dtype() != DType::BFloat16) {
+            throw std::invalid_argument(
+                "typed swiglu backward requires float16 or bfloat16 tensors");
+        }
+        if (!tensor->is_contiguous()) {
+            throw std::invalid_argument(
+                "typed swiglu backward requires contiguous tensors");
+        }
+    }
+    require_same_dtype(gate, up);
+    require_same_dtype(gate, gradient);
+    require_same_dtype(gate, gate_gradient);
+    require_same_dtype(gate, up_gradient);
+    require_same_shape(gate, up);
+    require_same_shape(gate, gradient);
+    require_same_shape(gate, gate_gradient);
+    require_same_shape(gate, up_gradient);
+    require_same_device(gate, up);
+    require_same_device(gate, gradient);
+    require_same_device(gate, gate_gradient);
+    require_same_device(gate, up_gradient);
+    const std::set<const void*> pointers{
+        gate_gradient.data(), up_gradient.data(), gate.data(), up.data(),
+        gradient.data()};
+    if (pointers.size() != 5) {
+        throw std::invalid_argument(
+            "typed swiglu backward tensors must not alias");
+    }
+    if (gate.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_swiglu_backward_typed(
+            gate.data(), up.data(), gradient.data(), gate_gradient.data(),
+            up_gradient.data(), gate.dtype(), gate.numel(),
+            context.native_stream(gate.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto gate_values = gate.to_vector();
+    const auto up_values = up.to_vector();
+    const auto gradient_values = gradient.to_vector();
+    std::vector<float> gate_values_gradient(gate_values.size());
+    std::vector<float> up_values_gradient(up_values.size());
+    for (std::size_t index = 0; index < gate_values.size(); ++index) {
+        const auto probability = sigmoid(gate_values[index]);
+        gate_values_gradient[index] =
+            gradient_values[index] * up_values[index] * probability *
+            (1.0F + gate_values[index] * (1.0F - probability));
+        up_values_gradient[index] =
+            gradient_values[index] * gate_values[index] * probability;
+    }
+    const auto gate_reference = from_values(
+        std::move(gate_values_gradient), gate.shape(), gate.dtype());
+    const auto up_reference = from_values(
+        std::move(up_values_gradient), up.shape(), up.dtype());
+    const auto bytes = static_cast<std::size_t>(gate.numel()) *
+                       dtype_size(gate.dtype());
+    runtime::copy_bytes(
+        gate_gradient.data(), gate_gradient.device(), gate_reference.data(),
+        gate_reference.device(), bytes);
+    runtime::copy_bytes(
+        up_gradient.data(), up_gradient.device(), up_reference.data(),
+        up_reference.device(), bytes);
 }
 
 Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim,

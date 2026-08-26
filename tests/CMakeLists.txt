@@ -610,6 +610,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.PyTorchSwiGLUCppAutogradContract PROPERTIES
         LABELS "cpu;benchmark;torch;autograd;backward;performance;memory;schema")
     add_test(
+        NAME Benchmark.PyTorchSwiGLUTypedBackwardContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_pytorch_swiglu_typed_backward.py
+    )
+    set_tests_properties(Benchmark.PyTorchSwiGLUTypedBackwardContract PROPERTIES
+        LABELS "cpu;benchmark;torch;dtype;autograd;backward;performance;memory;schema")
+    add_test(
         NAME Benchmark.DataParallelVerificationMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py

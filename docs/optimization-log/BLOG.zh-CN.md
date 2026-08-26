@@ -5112,3 +5112,14 @@ Autograd全部提升1.286×–1.475×。FP32 64K/1M达到native Torch的1.144×/
 fused backward。
 
 ![C++ Autograd result](assets/pytorch-rocm-swiglu-cpp-autograd.svg)
+
+## 353. Experiment 337：低精度两条导数也只发一个Kernel
+
+typed backward让FP16/BF16输入在FP32算导数、输出只舍入一次。相对C++ ATen多算子提升
+1.257×–1.319×，相对native Torch达到1.048×–1.084×，peak完全相同。BF16梯度bit-exact，
+FP16 Max仅2.38e-7。
+
+至此SwiGLU adapter在FP32/FP16/BF16声明shape都达到native parity，局部线关闭。下一优化必须来自
+新的图/模型profile。
+
+![Typed SwiGLU backward](assets/pytorch-rocm-swiglu-typed-backward.svg)

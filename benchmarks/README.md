@@ -704,3 +704,15 @@ python3 benchmarks/single_gpu/compare_pytorch_swiglu_cpp_autograd.py \
 
 Admission requires every dtype/shape to improve at least 1.1× over Python, no peak
 regression, all precision gates, and FP32 at least 1.05× native Torch.
+
+Compare typed fused FP16/BF16 backward with the accepted C++ ATen baseline:
+
+```bash
+python3 benchmarks/single_gpu/compare_pytorch_swiglu_typed_backward.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-custom-op-swiglu-cpp-autograd \
+  --candidate benchmarks/results/2026-08-26-pytorch-rocm-custom-op-swiglu-typed-backward \
+  --output /tmp/microllm-swiglu-typed-backward.json
+```
+
+The gate requires ≥1.2× the ATen formula, ≥1.03× native, equal native peak and complete
+dtype-specific gradients for every FP16/BF16 row.

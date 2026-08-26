@@ -1,0 +1,64 @@
+{
+  "correctness_pass": true,
+  "decision": "keep_typed_fused_backward",
+  "groups": [
+    {
+      "aten_peak_extra_bytes": 132608.0,
+      "dtype": "fp16",
+      "elements": 65536,
+      "maximum_error": 2.384185791015625e-07,
+      "maximum_rms_error": 2.0825006163960325e-09,
+      "native_peak_extra_bytes": 132608.0,
+      "shape": "medium",
+      "tolerance": 0.004,
+      "typed_peak_extra_bytes": 132608.0,
+      "typed_vs_aten_event": 1.3047627897809644,
+      "typed_vs_native_event": 1.073531625553351
+    },
+    {
+      "aten_peak_extra_bytes": 2098688.0,
+      "dtype": "fp16",
+      "elements": 1048576,
+      "maximum_error": 2.384185791015625e-07,
+      "maximum_rms_error": 1.8915251587259263e-09,
+      "native_peak_extra_bytes": 2098688.0,
+      "shape": "large",
+      "tolerance": 0.004,
+      "typed_peak_extra_bytes": 2098688.0,
+      "typed_vs_aten_event": 1.2804316280870949,
+      "typed_vs_native_event": 1.0475591548663785
+    },
+    {
+      "aten_peak_extra_bytes": 132608.0,
+      "dtype": "bf16",
+      "elements": 65536,
+      "maximum_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "native_peak_extra_bytes": 132608.0,
+      "shape": "medium",
+      "tolerance": 0.0625,
+      "typed_peak_extra_bytes": 132608.0,
+      "typed_vs_aten_event": 1.3188555602464338,
+      "typed_vs_native_event": 1.0836690715655979
+    },
+    {
+      "aten_peak_extra_bytes": 2098688.0,
+      "dtype": "bf16",
+      "elements": 1048576,
+      "maximum_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "native_peak_extra_bytes": 2098688.0,
+      "shape": "large",
+      "tolerance": 0.0625,
+      "typed_peak_extra_bytes": 2098688.0,
+      "typed_vs_aten_event": 1.2569841363183918,
+      "typed_vs_native_event": 1.0545795056111733
+    }
+  ],
+  "memory_gate_pass": true,
+  "native_gate_pass": true,
+  "record_type": "pytorch_rocm_swiglu_typed_backward_comparison",
+  "schema_version": 1,
+  "speed_gate_pass": true,
+  "status": "pass"
+}

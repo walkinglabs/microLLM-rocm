@@ -261,8 +261,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] replace the Python SwiGLU callback with C++ Autograd: C++/Python improves
   1.286×–1.475×, FP32 reaches 1.136×–1.144× native with 1,536B peak, and low-precision
   peak returns to native;
-- [ ] implement a typed fused FP16/BF16 SwiGLU backward only if it beats the current
-  C++ ATen formula and keeps native-equivalent peak; FP32 adapter tuning is closed;
+- [x] implement typed fused FP16/BF16 SwiGLU backward: 1.257×–1.319× C++ ATen,
+  1.048×–1.084× native Torch, equal peak, BF16 exact and FP16 Max2.38e-7;
+- [ ] start another adapter optimization only from a new graph/model profile; the
+  FP32/FP16/BF16 SwiGLU scoped line is closed;
 - [ ] define a typed low-precision SwiGLU backward contract before replacing the readable
   PyTorch fallback formulas;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
