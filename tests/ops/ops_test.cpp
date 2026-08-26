@@ -1838,6 +1838,66 @@ TEST(CpuFp8OpsTest, MixedE5ActivationAndE4WeightMatchDequantizedReference) {
     EXPECT_FLOAT_EQ(activation_fp8.scale_value, 1000.0F / 57344.0F);
 }
 
+TEST(CallerOwnedBackwardTest, CpuOutputsMatchAllocatingReferences) {
+    const auto input = Tensor::from_vector({-2, -1, 0, 1, 2, 3}, {2, 3});
+    const auto weight = Tensor::from_vector({1, 0.5F, 2}, {3});
+    const auto gradient = Tensor::from_vector({1, 2, 3, -1, -2, -3}, {2, 3});
+    const auto probabilities = softmax(input);
+    Tensor softmax_gradient(input.shape());
+    softmax_backward_out_(softmax_gradient, probabilities, gradient);
+    EXPECT_EQ(softmax_gradient.to_vector(),
+              softmax_backward(probabilities, gradient).to_vector());
+
+    Tensor input_gradient(input.shape());
+    Tensor weight_gradient(weight.shape());
+    Tensor row_workspace({2});
+    rms_norm_backward_out_(input_gradient, weight_gradient, row_workspace,
+                           input, weight, gradient);
+    const auto rms_reference = rms_norm_backward(input, weight, gradient);
+    EXPECT_EQ(input_gradient.to_vector(), rms_reference.first.to_vector());
+    EXPECT_EQ(weight_gradient.to_vector(), rms_reference.second.to_vector());
+
+    const auto up = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
+    Tensor gate_gradient(input.shape());
+    Tensor up_gradient(input.shape());
+    swiglu_backward_out_(gate_gradient, up_gradient, input, up, gradient);
+    const auto swiglu_reference = swiglu_backward(input, up, gradient);
+    EXPECT_EQ(gate_gradient.to_vector(), swiglu_reference.first.to_vector());
+    EXPECT_EQ(up_gradient.to_vector(), swiglu_reference.second.to_vector());
+
+    const auto rope_gradient = Tensor::from_vector(
+        {1, 2, 3, 4, -1, -2, -3, -4}, {1, 2, 1, 4});
+    Tensor rope_input_gradient(rope_gradient.shape());
+    rope_backward_out_(rope_input_gradient, rope_gradient);
+    EXPECT_EQ(rope_input_gradient.to_vector(),
+              rope_backward(rope_gradient).to_vector());
+
+    const auto logits = Tensor::from_vector({2, 1, 0, 100, -100, 0}, {2, 3});
+    const auto targets = Tensor::from_int32_vector({0, -100}, {2});
+    const auto seed = Tensor::from_vector({0.75F}, {});
+    Tensor logits_gradient(logits.shape());
+    Tensor loss_rows({2, 2});
+    Tensor loss_factor(Shape{});
+    cross_entropy_backward_out_(
+        logits_gradient, loss_rows, loss_factor, logits, targets, seed);
+    EXPECT_EQ(logits_gradient.to_vector(),
+              cross_entropy_backward(logits, targets, seed).to_vector());
+
+    const auto indices = Tensor::from_int32_vector({2, 0, 2}, {3});
+    const auto embedding_gradient = Tensor::from_vector(
+        {1, 2, 3, 4, 5, 6}, {3, 2});
+    Tensor embedding_weight_gradient({4, 2});
+    embedding_weight_gradient.fill(0.0F);
+    embedding_backward_add_(
+        embedding_weight_gradient, embedding_gradient, indices);
+    EXPECT_EQ(embedding_weight_gradient.to_vector(),
+              embedding_backward(embedding_gradient, indices, 4).to_vector());
+
+    auto alias = probabilities;
+    EXPECT_THROW(softmax_backward_out_(alias, probabilities, gradient),
+                 std::invalid_argument);
+}
+
 TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
     const Shape shape{2, 2};
     const Strides strides{2, 1};

@@ -129,6 +129,30 @@ ml_status ml_rope_out_on_stream(ml_tensor* output, const ml_tensor* input,
 ml_status ml_cross_entropy_out_on_stream(
     ml_tensor* output, ml_tensor* row_workspace, const ml_tensor* logits,
     const ml_tensor* targets, ml_stream* stream);
+ml_status ml_embedding_backward_add_on_stream(
+    ml_tensor* weight_gradient, const ml_tensor* gradient,
+    const ml_tensor* indices, ml_stream* stream);
+ml_status ml_softmax_backward_out_on_stream(
+    ml_tensor* input_gradient, const ml_tensor* output,
+    const ml_tensor* gradient, ml_stream* stream);
+ml_status ml_rms_norm_backward_out_on_stream(
+    ml_tensor* input_gradient, ml_tensor* weight_gradient,
+    ml_tensor* row_inverse_rms_workspace, const ml_tensor* input,
+    const ml_tensor* weight, const ml_tensor* gradient, float epsilon,
+    ml_stream* stream);
+ml_status ml_swiglu_backward_out_on_stream(
+    ml_tensor* gate_gradient, ml_tensor* up_gradient,
+    const ml_tensor* gate, const ml_tensor* up, const ml_tensor* gradient,
+    ml_stream* stream);
+ml_status ml_rope_backward_out_on_stream(
+    ml_tensor* input_gradient, const ml_tensor* gradient,
+    int64_t sequence_dim, int64_t position_offset, float base,
+    ml_stream* stream);
+ml_status ml_cross_entropy_backward_out_on_stream(
+    ml_tensor* logits_gradient, ml_tensor* row_stats_workspace,
+    ml_tensor* factor_workspace, const ml_tensor* logits,
+    const ml_tensor* targets, const ml_tensor* loss_gradient,
+    ml_stream* stream);
 
 #ifdef __cplusplus
 }

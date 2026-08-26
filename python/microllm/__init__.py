@@ -14,7 +14,9 @@ _CAPI_NAMES = {
     "add_out",
     "causal_gqa_attention_out",
     "cross_entropy_out",
+    "cross_entropy_backward_out",
     "embedding_out",
+    "embedding_backward_add",
     "hip_device_count",
     "matmul",
     "matmul_out",
@@ -23,9 +25,13 @@ _CAPI_NAMES = {
     "softmax",
     "softmax_out",
     "rms_norm_out",
+    "rms_norm_backward_out",
     "rope_out",
+    "rope_backward_out",
     "rms_norm_bf16_out",
     "swiglu_out",
+    "swiglu_backward_out",
+    "softmax_backward_out",
 }
 
 _PROFILING_NAMES = {"HipEventProfileScope", "ProfileScope",

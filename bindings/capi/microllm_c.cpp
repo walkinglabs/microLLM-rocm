@@ -664,4 +664,75 @@ ML_EXPORT ml_status ml_cross_entropy_out_on_stream(
     });
 }
 
+ML_EXPORT ml_status ml_embedding_backward_add_on_stream(
+    ml_tensor* weight_gradient, const ml_tensor* gradient,
+    const ml_tensor* indices, ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::embedding_backward_add_(
+            require_tensor(weight_gradient), require_tensor(gradient),
+            require_tensor(indices), stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_softmax_backward_out_on_stream(
+    ml_tensor* input_gradient, const ml_tensor* output,
+    const ml_tensor* gradient, ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::softmax_backward_out_(
+            require_tensor(input_gradient), require_tensor(output),
+            require_tensor(gradient), stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_rms_norm_backward_out_on_stream(
+    ml_tensor* input_gradient, ml_tensor* weight_gradient,
+    ml_tensor* row_inverse_rms_workspace, const ml_tensor* input,
+    const ml_tensor* weight, const ml_tensor* gradient, float epsilon,
+    ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::rms_norm_backward_out_(
+            require_tensor(input_gradient), require_tensor(weight_gradient),
+            require_tensor(row_inverse_rms_workspace), require_tensor(input),
+            require_tensor(weight), require_tensor(gradient), epsilon,
+            stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_swiglu_backward_out_on_stream(
+    ml_tensor* gate_gradient, ml_tensor* up_gradient,
+    const ml_tensor* gate, const ml_tensor* up, const ml_tensor* gradient,
+    ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::swiglu_backward_out_(
+            require_tensor(gate_gradient), require_tensor(up_gradient),
+            require_tensor(gate), require_tensor(up), require_tensor(gradient),
+            stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_rope_backward_out_on_stream(
+    ml_tensor* input_gradient, const ml_tensor* gradient,
+    int64_t sequence_dim, int64_t position_offset, float base,
+    ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::rope_backward_out_(
+            require_tensor(input_gradient), require_tensor(gradient),
+            sequence_dim, position_offset, base, stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_cross_entropy_backward_out_on_stream(
+    ml_tensor* logits_gradient, ml_tensor* row_stats_workspace,
+    ml_tensor* factor_workspace, const ml_tensor* logits,
+    const ml_tensor* targets, const ml_tensor* loss_gradient,
+    ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::cross_entropy_backward_out_(
+            require_tensor(logits_gradient), require_tensor(row_stats_workspace),
+            require_tensor(factor_workspace), require_tensor(logits),
+            require_tensor(targets), require_tensor(loss_gradient),
+            stream_context(stream));
+    });
+}
+
 }  // extern "C"

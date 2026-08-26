@@ -2801,7 +2801,7 @@ Tensor softmax_backward(const Tensor& output, const Tensor& gradient,
         throw std::invalid_argument("softmax backward requires a non-empty final dimension");
     }
     const auto width = output.shape().back();
-    const auto rows = output.numel() / width;
+    [[maybe_unused]] const auto rows = output.numel() / width;
     if (output.device().is_hip()) {
         require_contiguous(output, "output");
         require_contiguous(gradient, "gradient");
@@ -2832,6 +2832,46 @@ Tensor softmax_backward(const Tensor& output, const Tensor& gradient,
         }
     }
     return from_values(std::move(input_gradient), output.shape());
+}
+
+void softmax_backward_out_(Tensor& input_gradient, const Tensor& output,
+                           const Tensor& gradient,
+                           [[maybe_unused]] const OpContext& context) {
+    require_float(input_gradient, "input_gradient");
+    require_float(output, "output");
+    require_float(gradient, "gradient");
+    require_same_shape(output, gradient);
+    require_same_shape(output, input_gradient);
+    require_same_device(output, gradient);
+    require_same_device(output, input_gradient);
+    if (output.ndim() == 0 || output.shape().back() == 0 ||
+        !output.is_contiguous() || !gradient.is_contiguous() ||
+        !input_gradient.is_contiguous()) {
+        throw std::invalid_argument("softmax_backward_out contract is invalid");
+    }
+    const std::set<const void*> pointers{
+        input_gradient.data(), output.data(), gradient.data()};
+    if (pointers.size() != 3) {
+        throw std::invalid_argument("softmax_backward_out output must not alias inputs");
+    }
+    const auto width = output.shape().back();
+    [[maybe_unused]] const auto rows = output.numel() / width;
+    if (output.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_softmax_backward(
+            static_cast<const float*>(output.data()),
+            static_cast<const float*>(gradient.data()),
+            static_cast<float*>(input_gradient.data()), rows, width,
+            context.native_stream(output.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = softmax_backward(output, gradient, context);
+    runtime::copy_bytes(input_gradient.data(), input_gradient.device(),
+                        reference.data(), reference.device(),
+                        static_cast<std::size_t>(reference.numel()) * sizeof(float));
 }
 
 TensorPair rms_norm_backward(const Tensor& input, const Tensor& weight,
@@ -2899,6 +2939,81 @@ TensorPair rms_norm_backward(const Tensor& input, const Tensor& weight,
     }
     return {from_values(std::move(input_gradient), input.shape()),
             from_values(std::move(weight_gradient), weight.shape())};
+}
+
+void rms_norm_backward_out_(
+    Tensor& input_gradient, Tensor& weight_gradient,
+    Tensor& row_inverse_rms_workspace, const Tensor& input,
+    const Tensor& weight, const Tensor& gradient, float epsilon,
+    [[maybe_unused]] const OpContext& context) {
+    require_float(input_gradient, "input_gradient");
+    require_float(weight_gradient, "weight_gradient");
+    require_float(row_inverse_rms_workspace, "row_workspace");
+    require_float(input, "input");
+    require_float(weight, "weight");
+    require_float(gradient, "gradient");
+    require_same_shape(input, gradient);
+    require_same_shape(input, input_gradient);
+    require_same_shape(weight, weight_gradient);
+    require_same_device(input, weight);
+    require_same_device(input, gradient);
+    require_same_device(input, input_gradient);
+    require_same_device(input, weight_gradient);
+    require_same_device(input, row_inverse_rms_workspace);
+    if (epsilon <= 0.0F || input.ndim() == 0 || weight.ndim() != 1 ||
+        weight.shape()[0] != input.shape().back()) {
+        throw std::invalid_argument("rms_norm_backward_out shape or epsilon is invalid");
+    }
+    const auto width = input.shape().back();
+    const auto rows = input.numel() / width;
+    if (row_inverse_rms_workspace.shape() != Shape({rows}) ||
+        !input.is_contiguous() || !weight.is_contiguous() ||
+        !gradient.is_contiguous() || !input_gradient.is_contiguous() ||
+        !weight_gradient.is_contiguous() ||
+        !row_inverse_rms_workspace.is_contiguous()) {
+        throw std::invalid_argument("rms_norm_backward_out workspace/layout is invalid");
+    }
+    const std::set<const void*> pointers{
+        input_gradient.data(), weight_gradient.data(),
+        row_inverse_rms_workspace.data(), input.data(), weight.data(),
+        gradient.data()};
+    if (pointers.size() != 6) {
+        throw std::invalid_argument("rms_norm_backward_out tensors must not alias");
+    }
+    if (input.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_rms_norm_backward(
+            static_cast<const float*>(input.data()),
+            static_cast<const float*>(weight.data()),
+            static_cast<const float*>(gradient.data()),
+            static_cast<float*>(input_gradient.data()),
+            static_cast<float*>(weight_gradient.data()),
+            static_cast<float*>(row_inverse_rms_workspace.data()),
+            rows, width, epsilon, context.native_stream(input.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = rms_norm_backward(
+        input, weight, gradient, epsilon, context);
+    runtime::copy_bytes(input_gradient.data(), input_gradient.device(),
+                        reference.first.data(), reference.first.device(),
+                        static_cast<std::size_t>(input_gradient.numel()) * sizeof(float));
+    runtime::copy_bytes(weight_gradient.data(), weight_gradient.device(),
+                        reference.second.data(), reference.second.device(),
+                        static_cast<std::size_t>(weight_gradient.numel()) * sizeof(float));
+    const auto values = input.to_vector();
+    auto* workspace = row_inverse_rms_workspace.data_float();
+    for (std::int64_t row = 0; row < rows; ++row) {
+        float square_sum = 0.0F;
+        for (std::int64_t column = 0; column < width; ++column) {
+            const auto value = values[static_cast<std::size_t>(row * width + column)];
+            square_sum += value * value;
+        }
+        workspace[row] = 1.0F / std::sqrt(
+            square_sum / static_cast<float>(width) + epsilon);
+    }
 }
 
 void kv_cache_store_(Tensor& cache, const Tensor& current, std::int64_t position,
@@ -3964,6 +4079,57 @@ TensorPair swiglu_backward(const Tensor& gate, const Tensor& up, const Tensor& g
             from_values(std::move(up_gradient), up.shape())};
 }
 
+void swiglu_backward_out_(Tensor& gate_gradient, Tensor& up_gradient,
+                          const Tensor& gate, const Tensor& up,
+                          const Tensor& gradient,
+                          [[maybe_unused]] const OpContext& context) {
+    require_float(gate_gradient, "gate_gradient");
+    require_float(up_gradient, "up_gradient");
+    require_float(gate, "gate");
+    require_float(up, "up");
+    require_float(gradient, "gradient");
+    require_same_shape(gate, up);
+    require_same_shape(gate, gradient);
+    require_same_shape(gate, gate_gradient);
+    require_same_shape(gate, up_gradient);
+    require_same_device(gate, up);
+    require_same_device(gate, gradient);
+    require_same_device(gate, gate_gradient);
+    require_same_device(gate, up_gradient);
+    if (!gate.is_contiguous() || !up.is_contiguous() ||
+        !gradient.is_contiguous() || !gate_gradient.is_contiguous() ||
+        !up_gradient.is_contiguous()) {
+        throw std::invalid_argument("swiglu_backward_out requires contiguous tensors");
+    }
+    const std::set<const void*> pointers{
+        gate_gradient.data(), up_gradient.data(), gate.data(), up.data(),
+        gradient.data()};
+    if (pointers.size() != 5) {
+        throw std::invalid_argument("swiglu_backward_out tensors must not alias");
+    }
+    if (gate.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_swiglu_backward(
+            static_cast<const float*>(gate.data()),
+            static_cast<const float*>(up.data()),
+            static_cast<const float*>(gradient.data()),
+            static_cast<float*>(gate_gradient.data()),
+            static_cast<float*>(up_gradient.data()), gate.numel(),
+            context.native_stream(gate.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = swiglu_backward(gate, up, gradient, context);
+    runtime::copy_bytes(gate_gradient.data(), gate_gradient.device(),
+                        reference.first.data(), reference.first.device(),
+                        static_cast<std::size_t>(gate_gradient.numel()) * sizeof(float));
+    runtime::copy_bytes(up_gradient.data(), up_gradient.device(),
+                        reference.second.data(), reference.second.device(),
+                        static_cast<std::size_t>(up_gradient.numel()) * sizeof(float));
+}
+
 Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim,
                      std::int64_t position_offset, float base,
                      [[maybe_unused]] const OpContext& context) {
@@ -4008,6 +4174,47 @@ Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim,
         }
     }
     return from_values(std::move(result), gradient.shape());
+}
+
+void rope_backward_out_(Tensor& input_gradient, const Tensor& gradient,
+                        std::int64_t sequence_dim,
+                        std::int64_t position_offset, float base,
+                        [[maybe_unused]] const OpContext& context) {
+    require_float(input_gradient, "input_gradient");
+    require_float(gradient, "gradient");
+    require_same_shape(input_gradient, gradient);
+    require_same_device(input_gradient, gradient);
+    const auto sequence = positive_dim(gradient, sequence_dim);
+    if (gradient.ndim() < 2 || sequence == gradient.ndim() - 1 ||
+        gradient.shape().back() % 2 != 0 || position_offset < 0 ||
+        base <= 0.0F || !gradient.is_contiguous() ||
+        !input_gradient.is_contiguous()) {
+        throw std::invalid_argument("rope_backward_out contract is invalid");
+    }
+    if (input_gradient.storage().data() == gradient.storage().data()) {
+        throw std::invalid_argument("rope_backward_out output must not alias input");
+    }
+    [[maybe_unused]] const auto head_width = gradient.shape().back();
+    [[maybe_unused]] const auto sequence_stride = contiguous_strides(gradient.shape())[
+        static_cast<std::size_t>(sequence)];
+    if (gradient.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_rope_backward(
+            static_cast<const float*>(gradient.data()),
+            static_cast<float*>(input_gradient.data()), gradient.numel(),
+            head_width, gradient.shape()[static_cast<std::size_t>(sequence)],
+            sequence_stride, position_offset, base,
+            context.native_stream(gradient.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = rope_backward(
+        gradient, sequence_dim, position_offset, base, context);
+    runtime::copy_bytes(input_gradient.data(), input_gradient.device(),
+                        reference.data(), reference.device(),
+                        static_cast<std::size_t>(input_gradient.numel()) * sizeof(float));
 }
 
 Tensor rope_split_half_backward(const Tensor& gradient,
@@ -4178,6 +4385,64 @@ Tensor cross_entropy_backward(const Tensor& logits, const Tensor& targets,
     const auto factor = loss_gradient.to_vector()[0] / static_cast<float>(valid_rows);
     for (auto& value : result) value *= factor;
     return from_values(std::move(result), logits.shape());
+}
+
+void cross_entropy_backward_out_(
+    Tensor& logits_gradient, Tensor& row_stats_workspace,
+    Tensor& factor_workspace, const Tensor& logits, const Tensor& targets,
+    const Tensor& loss_gradient, [[maybe_unused]] const OpContext& context) {
+    require_float(logits_gradient, "logits_gradient");
+    require_float(row_stats_workspace, "row_stats_workspace");
+    require_float(factor_workspace, "factor_workspace");
+    require_float(logits, "logits");
+    require_float(loss_gradient, "loss_gradient");
+    if (targets.dtype() != DType::Int32 || loss_gradient.numel() != 1 ||
+        logits.ndim() < 1 || logits.shape().back() <= 0) {
+        throw std::invalid_argument("cross_entropy_backward_out input contract is invalid");
+    }
+    require_same_device(logits, targets);
+    require_same_device(logits, loss_gradient);
+    require_same_device(logits, logits_gradient);
+    require_same_device(logits, row_stats_workspace);
+    require_same_device(logits, factor_workspace);
+    Shape target_shape(logits.shape().begin(), logits.shape().end() - 1);
+    const auto classes = logits.shape().back();
+    const auto rows = logits.numel() / classes;
+    if (targets.shape() != target_shape || logits_gradient.shape() != logits.shape() ||
+        row_stats_workspace.shape() != Shape({rows, 2}) ||
+        factor_workspace.shape() != Shape{} || !logits.is_contiguous() ||
+        !targets.is_contiguous() || !loss_gradient.is_contiguous() ||
+        !logits_gradient.is_contiguous() ||
+        !row_stats_workspace.is_contiguous() ||
+        !factor_workspace.is_contiguous()) {
+        throw std::invalid_argument("cross_entropy_backward_out workspace contract is invalid");
+    }
+    const std::set<const void*> pointers{
+        logits_gradient.data(), row_stats_workspace.data(), factor_workspace.data(),
+        logits.data(), targets.data(), loss_gradient.data()};
+    if (pointers.size() != 6) {
+        throw std::invalid_argument("cross_entropy_backward_out tensors must not alias");
+    }
+    if (logits.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_cross_entropy_backward(
+            static_cast<const float*>(logits.data()),
+            static_cast<const std::int32_t*>(targets.data()),
+            static_cast<const float*>(loss_gradient.data()),
+            static_cast<float*>(logits_gradient.data()),
+            static_cast<float*>(row_stats_workspace.data()),
+            static_cast<float*>(factor_workspace.data()), rows, classes,
+            context.native_stream(logits.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = cross_entropy_backward(
+        logits, targets, loss_gradient, context);
+    runtime::copy_bytes(logits_gradient.data(), logits_gradient.device(),
+                        reference.data(), reference.device(),
+                        static_cast<std::size_t>(logits_gradient.numel()) * sizeof(float));
 }
 
 Tensor causal_softmax_with_implementation(

@@ -224,7 +224,10 @@ a typed reduction Kernel exists; no temporary FP32 copy is inserted. FP32 causal
 also exposes caller-owned output plus scaled-Q, expanded-K/V and
 probability workspaces. Writable tensors must not alias each other or any input.
 RoPE, Embedding and CrossEntropy now have caller-owned outputs; loss additionally requires
-a caller-owned `[rows,2]` reduction workspace. Backward/training outputs remain outside.
+a caller-owned `[rows,2]` reduction workspace.
+Softmax/RMSNorm/SwiGLU/RoPE/CrossEntropy backward and Embedding gradient accumulation
+now have caller-owned APIs with explicit scratch. Full Autograd leaf-pool binding remains
+outside the ABI.
 
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:

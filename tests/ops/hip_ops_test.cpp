@@ -3536,6 +3536,57 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
     expect_near(rope_split_half_backward(rope_gradient.to(gpu)).to_vector(),
                 rope_split_half_backward(rope_gradient).to_vector(), 2.0e-5F);
 
+    const auto device_input = input.to(gpu);
+    const auto device_weight = weight.to(gpu);
+    const auto device_gradient = gradient.to(gpu);
+    const auto device_probabilities = probabilities.to(gpu);
+    Tensor caller_softmax_gradient(input.shape(), DType::Float32, gpu);
+    softmax_backward_out_(
+        caller_softmax_gradient, device_probabilities, device_gradient);
+    Tensor caller_input_gradient(input.shape(), DType::Float32, gpu);
+    Tensor caller_weight_gradient(weight.shape(), DType::Float32, gpu);
+    Tensor caller_rms_workspace({2}, DType::Float32, gpu);
+    rms_norm_backward_out_(
+        caller_input_gradient, caller_weight_gradient, caller_rms_workspace,
+        device_input, device_weight, device_gradient);
+    const auto device_up = up.to(gpu);
+    Tensor caller_gate_gradient(input.shape(), DType::Float32, gpu);
+    Tensor caller_up_gradient(input.shape(), DType::Float32, gpu);
+    swiglu_backward_out_(
+        caller_gate_gradient, caller_up_gradient, device_input, device_up,
+        device_gradient);
+    const auto device_rope_gradient = rope_gradient.to(gpu);
+    Tensor caller_rope_gradient(rope_gradient.shape(), DType::Float32, gpu);
+    rope_backward_out_(caller_rope_gradient, device_rope_gradient);
+    const auto device_logits = logits.to(gpu);
+    const auto device_targets = targets.to(gpu);
+    const auto device_seed = seed.to(gpu);
+    Tensor caller_logits_gradient(logits.shape(), DType::Float32, gpu);
+    Tensor caller_loss_rows({2, 2}, DType::Float32, gpu);
+    Tensor caller_loss_factor(Shape{}, DType::Float32, gpu);
+    cross_entropy_backward_out_(
+        caller_logits_gradient, caller_loss_rows, caller_loss_factor,
+        device_logits, device_targets, device_seed);
+    const auto device_embedding_gradient = embedding_gradient.to(gpu);
+    const auto device_indices = indices.to(gpu);
+    Tensor caller_embedding_gradient({4, 2}, DType::Float32, gpu);
+    fill_(caller_embedding_gradient, 0.0F);
+    embedding_backward_add_(
+        caller_embedding_gradient, device_embedding_gradient, device_indices);
+    runtime::synchronize(gpu);
+    expect_near(caller_softmax_gradient.to_vector(),
+                softmax_backward(probabilities, gradient).to_vector());
+    expect_near(caller_input_gradient.to_vector(), cpu_rms.first.to_vector(), 2.0e-4F);
+    expect_near(caller_weight_gradient.to_vector(), cpu_rms.second.to_vector(), 2.0e-4F);
+    expect_near(caller_gate_gradient.to_vector(), cpu_swiglu.first.to_vector());
+    expect_near(caller_up_gradient.to_vector(), cpu_swiglu.second.to_vector());
+    expect_near(caller_rope_gradient.to_vector(),
+                rope_backward(rope_gradient).to_vector(), 2.0e-5F);
+    expect_near(caller_logits_gradient.to_vector(),
+                cross_entropy_backward(logits, targets, seed).to_vector());
+    expect_near(caller_embedding_gradient.to_vector(),
+                embedding_backward(embedding_gradient, indices, 4).to_vector());
+
     const auto scores = Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8, 9}, {1, 3, 3});
     const auto score_gradient =
         Tensor::from_vector({1, 2, 3, -1, 0, 1, 2, -2, 0.5F}, {1, 3, 3});

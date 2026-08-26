@@ -107,6 +107,9 @@ cannot silently change ownership.
 RoPE and Embedding write directly to caller tensors. CrossEntropy makes both its scalar
 result and row-reduction workspace explicit. The same validation runs on CPU even though
 the simple reference does not consume workspace payload.
+Backward caller outputs cover Softmax, RMSNorm, SwiGLU, RoPE, CrossEntropy and Embedding
+accumulation. This is an operator seam; the eager graph still owns ordinary leaf gradient
+Storage until a separate external-pool contract is enabled.
 
 An operator implementation must not infer ownership from a data pointer. Output,
 workspace, device, and execution stream are explicit. This allows the same HIP

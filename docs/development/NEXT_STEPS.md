@@ -232,8 +232,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   105/105 pointers and T256 workspace pass with output Max 8.35e-7 and 0 copy;
 - [x] add caller-owned RoPE/Embedding/CrossEntropy plus explicit loss workspace;
   36/36 random outputs and 108/108 pointers pass with Max ≤9.54e-7 and 0 copy;
-- [ ] extend caller-owned output to backward/training families and implement typed
-  low-precision Softmax before claiming zero-copy model integration.
+- [x] add caller-owned backward for Softmax/RMSNorm/SwiGLU/RoPE/CrossEntropy and
+  Embedding accumulation; 114/114 PyTorch gradients and 285/285 pointers pass;
+- [ ] bind Autograd leaf gradients to an external pool and run full Transformer
+  forward/backward before claiming zero-copy training integration;
+- [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
 
 ## P2.5 — production data parallel reducer
 

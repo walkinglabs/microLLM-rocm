@@ -214,6 +214,28 @@ _lib.ml_cross_entropy_out_on_stream.argtypes = [
     _TensorPointer, _TensorPointer, _TensorPointer, _TensorPointer,
     _StreamPointer]
 _lib.ml_cross_entropy_out_on_stream.restype = ctypes.c_int
+_lib.ml_embedding_backward_add_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _StreamPointer]
+_lib.ml_embedding_backward_add_on_stream.restype = ctypes.c_int
+_lib.ml_softmax_backward_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _StreamPointer]
+_lib.ml_softmax_backward_out_on_stream.restype = ctypes.c_int
+_lib.ml_rms_norm_backward_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _TensorPointer,
+    _TensorPointer, _TensorPointer, ctypes.c_float, _StreamPointer]
+_lib.ml_rms_norm_backward_out_on_stream.restype = ctypes.c_int
+_lib.ml_swiglu_backward_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _TensorPointer,
+    _TensorPointer, _StreamPointer]
+_lib.ml_swiglu_backward_out_on_stream.restype = ctypes.c_int
+_lib.ml_rope_backward_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, ctypes.c_int64, ctypes.c_int64,
+    ctypes.c_float, _StreamPointer]
+_lib.ml_rope_backward_out_on_stream.restype = ctypes.c_int
+_lib.ml_cross_entropy_backward_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _TensorPointer,
+    _TensorPointer, _TensorPointer, _StreamPointer]
+_lib.ml_cross_entropy_backward_out_on_stream.restype = ctypes.c_int
 
 
 def _check(status: int) -> None:
@@ -640,6 +662,57 @@ def cross_entropy_out(output: Tensor, row_workspace: Tensor,
     _check(_lib.ml_cross_entropy_out_on_stream(
         output._handle, row_workspace._handle, logits._handle,
         targets._handle, stream._handle))
+
+
+def embedding_backward_add(weight_gradient: Tensor, gradient: Tensor,
+                           indices: Tensor, *, stream: Stream) -> None:
+    _check(_lib.ml_embedding_backward_add_on_stream(
+        weight_gradient._handle, gradient._handle, indices._handle,
+        stream._handle))
+
+
+def softmax_backward_out(input_gradient: Tensor, output: Tensor,
+                         gradient: Tensor, *, stream: Stream) -> None:
+    _check(_lib.ml_softmax_backward_out_on_stream(
+        input_gradient._handle, output._handle, gradient._handle,
+        stream._handle))
+
+
+def rms_norm_backward_out(
+        input_gradient: Tensor, weight_gradient: Tensor,
+        row_inverse_rms_workspace: Tensor, input: Tensor, weight: Tensor,
+        gradient: Tensor, *, epsilon: float = 1.0e-5,
+        stream: Stream) -> None:
+    _check(_lib.ml_rms_norm_backward_out_on_stream(
+        input_gradient._handle, weight_gradient._handle,
+        row_inverse_rms_workspace._handle, input._handle, weight._handle,
+        gradient._handle, float(epsilon), stream._handle))
+
+
+def swiglu_backward_out(gate_gradient: Tensor, up_gradient: Tensor,
+                        gate: Tensor, up: Tensor, gradient: Tensor, *,
+                        stream: Stream) -> None:
+    _check(_lib.ml_swiglu_backward_out_on_stream(
+        gate_gradient._handle, up_gradient._handle, gate._handle,
+        up._handle, gradient._handle, stream._handle))
+
+
+def rope_backward_out(input_gradient: Tensor, gradient: Tensor, *,
+                      sequence_dim: int = 1, position_offset: int = 0,
+                      base: float = 10000.0, stream: Stream) -> None:
+    _check(_lib.ml_rope_backward_out_on_stream(
+        input_gradient._handle, gradient._handle, int(sequence_dim),
+        int(position_offset), float(base), stream._handle))
+
+
+def cross_entropy_backward_out(
+        logits_gradient: Tensor, row_stats_workspace: Tensor,
+        factor_workspace: Tensor, logits: Tensor, targets: Tensor,
+        loss_gradient: Tensor, *, stream: Stream) -> None:
+    _check(_lib.ml_cross_entropy_backward_out_on_stream(
+        logits_gradient._handle, row_stats_workspace._handle,
+        factor_workspace._handle, logits._handle, targets._handle,
+        loss_gradient._handle, stream._handle))
 
 
 def hip_device_count() -> int:

@@ -735,18 +735,35 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
                              const OpContext& context = {});
 [[nodiscard]] Tensor softmax_backward(const Tensor& output, const Tensor& gradient,
                                       const OpContext& context = {});
+void softmax_backward_out_(Tensor& input_gradient, const Tensor& output,
+                           const Tensor& gradient,
+                           const OpContext& context = {});
 [[nodiscard]] TensorPair rms_norm_backward(const Tensor& input, const Tensor& weight,
                                            const Tensor& gradient, float epsilon = 1.0e-5F,
                                            const OpContext& context = {});
+void rms_norm_backward_out_(
+    Tensor& input_gradient, Tensor& weight_gradient,
+    Tensor& row_inverse_rms_workspace, const Tensor& input,
+    const Tensor& weight, const Tensor& gradient,
+    float epsilon = 1.0e-5F, const OpContext& context = {});
 [[nodiscard]] Tensor silu_backward(const Tensor& input, const Tensor& gradient,
                                    const OpContext& context = {});
 [[nodiscard]] TensorPair swiglu_backward(const Tensor& gate, const Tensor& up,
                                          const Tensor& gradient,
                                          const OpContext& context = {});
+void swiglu_backward_out_(Tensor& gate_gradient, Tensor& up_gradient,
+                          const Tensor& gate, const Tensor& up,
+                          const Tensor& gradient,
+                          const OpContext& context = {});
 [[nodiscard]] Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim = 1,
                                    std::int64_t position_offset = 0,
                                    float base = 10000.0F,
                                    const OpContext& context = {});
+void rope_backward_out_(Tensor& input_gradient, const Tensor& gradient,
+                        std::int64_t sequence_dim = 1,
+                        std::int64_t position_offset = 0,
+                        float base = 10000.0F,
+                        const OpContext& context = {});
 [[nodiscard]] Tensor rope_split_half_backward(
     const Tensor& gradient, std::int64_t sequence_dim = 1,
     std::int64_t position_offset = 0, float base = 10000.0F,
@@ -760,6 +777,10 @@ void embedding_backward_add_(Tensor& weight_gradient, const Tensor& gradient,
 [[nodiscard]] Tensor cross_entropy_backward(const Tensor& logits, const Tensor& targets,
                                             const Tensor& loss_gradient,
                                             const OpContext& context = {});
+void cross_entropy_backward_out_(
+    Tensor& logits_gradient, Tensor& row_stats_workspace,
+    Tensor& factor_workspace, const Tensor& logits, const Tensor& targets,
+    const Tensor& loss_gradient, const OpContext& context = {});
 [[nodiscard]] Tensor causal_softmax(const Tensor& scores, const OpContext& context = {});
 [[nodiscard]] Tensor causal_softmax_with_implementation(
     const Tensor& scores, CausalSoftmaxImplementation implementation,

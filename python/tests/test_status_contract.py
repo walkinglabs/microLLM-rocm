@@ -28,6 +28,7 @@ def main() -> int:
         "63/63 random Softmax/RMSNorm/SwiGLU rows",
         "MHA/GQA 15/15, 105/105 Attention pointers",
         "RoPE/Embedding/loss 36/36, 108/108 pointers",
+        "backward 114/114, 285/285 pointers",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -269,6 +270,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-pytorch-zero-copy-sequence-loss/analysis.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-sequence-loss/verification.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-sequence-loss/sequence-loss-matrix.svg",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-backward/summary.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-backward/analysis.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-backward/verification.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-backward/backward-matrix.svg",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -479,6 +484,27 @@ def main() -> int:
     assert groups["cross_entropy"]["rows"] == 12
     assert groups["cross_entropy"]["maximum_error"] < 1.0e-6
     ET.parse(sequence_root / "sequence-loss-matrix.svg")
+    backward_root = ROOT / (
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-backward")
+    backward = json.loads(
+        (backward_root / "summary.json").read_text(encoding="utf-8"))
+    assert backward["status"] == "pass_with_profiler_boundary"
+    assert backward["run_count"] == 3
+    assert backward["record_count"] == 114
+    assert backward["gradient_groups"] == 10
+    assert backward["pointer_matches"] == 285
+    assert backward["non_owning_wrappers"] == 285
+    assert backward["maximum_error"] < 8.6e-6
+    assert backward["maximum_rms_error"] < 1.5e-6
+    assert backward["total_wrapper_copy_bytes"] == 0
+    assert backward["rocprof_performance_claim"] is False
+    groups = {
+        (row["operation"], row["target"]): row
+        for row in backward["groups"]}
+    assert groups[("embedding_backward", "weight")]["maximum_error"] == 0.0
+    assert groups[("rms_norm_backward", "weight")]["maximum_error"] < 8.6e-6
+    assert groups[("cross_entropy_backward", "factor")]["maximum_error"] == 0.0
+    ET.parse(backward_root / "backward-matrix.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

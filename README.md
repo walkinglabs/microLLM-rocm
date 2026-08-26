@@ -1300,6 +1300,8 @@ FP32 MHA/GQA caller-owned Attention adds 15/15 contexts and 105/105 external poi
 context/workspace Max remain below `8.35e-7/2.99e-8` with zero wrapper copy.
 RoPE/Embedding/CrossEntropy add another 36/36 random outputs and 108/108 pointers;
 their maximum error is `9.54e-7`, and loss reduction storage is caller-owned.
+Caller-owned backward adds 114/114 PyTorch autograd outputs and 285/285 pointers; the
+largest Max/RMS is `8.59e-6/1.42e-6` for RMSNorm weight reduction, with zero wrapper copy.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and
