@@ -2795,17 +2795,37 @@ std::uint64_t TransformerModel::parameter_count() {
 }
 
 Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference() {
+    return prepare_bf16_ffn_inference({});
+}
+
+Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference(
+    const std::vector<std::int64_t>& fp32_layers) {
     if (impl_->bf16_ffn_prepared) {
         throw std::logic_error("BF16 FFN inference preparation is one-way and already complete");
     }
     if (impl_->config.linear_precision != LinearPrecision::Float32) {
         throw std::logic_error("BF16 inference preparation requires FP32 Linear policy");
     }
+    std::set<std::int64_t> excluded;
+    for (const auto layer : fp32_layers) {
+        if (layer < 0 || layer >= static_cast<std::int64_t>(impl_->blocks.size()) ||
+            !excluded.insert(layer).second) {
+            throw std::invalid_argument(
+                "BF16 FFN FP32 layers must be unique in-range indices");
+        }
+    }
     // Transactional helper keeps every FP32 source alive until all casts finish.
     const auto report = prepare_bf16_weights(
-        named_parameters(), impl_->blocks.size() * 3U, device(),
-        [](const std::string& name) {
-            return name.find(".feed_forward.") != std::string::npos;
+        named_parameters(), (impl_->blocks.size() - excluded.size()) * 3U,
+        device(), [&excluded](const std::string& name) {
+            if (name.find(".feed_forward.") == std::string::npos) return false;
+            for (const auto layer : excluded) {
+                if (name.starts_with(
+                        "blocks." + std::to_string(layer) + ".feed_forward.")) {
+                    return false;
+                }
+            }
+            return true;
         });
     impl_->bf16_ffn_prepared = true;
     return report;

@@ -155,6 +155,11 @@ public:
     // One-way inference preparation: each FFN FP32 weight is replaced by BF16.
     // No persistent FP32 copy remains inside the model after this call.
     [[nodiscard]] Bf16FfnPreparationReport prepare_bf16_ffn_inference();
+    // Explicit research policy: the listed Transformer blocks keep their FFN
+    // weights and activations in FP32 while every other FFN becomes BF16.
+    // Indices must be unique and in range. The operation remains one-way.
+    [[nodiscard]] Bf16FfnPreparationReport prepare_bf16_ffn_inference(
+        const std::vector<std::int64_t>& fp32_layers);
     [[nodiscard]] bool bf16_ffn_inference_prepared() const noexcept;
     // Opt-in graph-free inference workspace. One stable backing allocation is
     // cached per (device, flattened row count) and reused across all blocks.

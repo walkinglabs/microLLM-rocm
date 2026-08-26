@@ -146,6 +146,11 @@ PyTorch 全 BF16 的问题已由 BF16 专用 immutable hipBLASLt plan 修复：�
 Qwen/DeepSeek 四项 inference throughput 全部过线。这个结论仍不能推广到训练、长上下文、
 batch>1、Radeon 或其他 ROCm 版本。
 
+诊断时可以调用`prepare_bf16_ffn_inference(fp32_layers)`，或在HF CLI传
+`--bf16-ffn-fp32-layers`，让少数Block的FFN留在FP32。它不是同时保存两份权重：被选Block只留
+FP32，其余Block只留BF16。这样可以用实际converted count和完整logits回答“误差主要从哪几层
+注入”，而不是靠最终token猜测。层索引错误、重复或没有启用BF16 FFN都会立即失败。
+
 KV Cache的形状、字节公式、API和精度失败见
 [KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 

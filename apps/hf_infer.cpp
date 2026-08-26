@@ -50,6 +50,7 @@ struct Options {
     std::string tokenizer_family = "qwen2";
     std::string chat_user;
     bool bf16_ffn = false;
+    std::string bf16_ffn_fp32_layers;
     bool bf16_ffn_arena = false;
     std::int64_t bf16_ffn_arena_minimum_rows = 1;
     bool bf16_ffn_norm_fusion = false;
@@ -148,6 +149,8 @@ Options options(int argc, char** argv) {
                 throw std::invalid_argument("--bf16-ffn must be true or false");
             }
             result.bf16_ffn = value == "true";
+        } else if (name == "--bf16-ffn-fp32-layers") {
+            result.bf16_ffn_fp32_layers = argv[index + 1];
         } else if (name == "--bf16-ffn-arena") {
             const std::string value = argv[index + 1];
             if (value != "true" && value != "false") {
@@ -567,6 +570,10 @@ Options options(int argc, char** argv) {
     }
     if (!result.fp8_fp32_layers.empty() && !result.fp8_linear) {
         throw std::invalid_argument("--fp8-fp32-layers requires --fp8-linear true");
+    }
+    if (!result.bf16_ffn_fp32_layers.empty() && !result.bf16_ffn) {
+        throw std::invalid_argument(
+            "--bf16-ffn-fp32-layers requires --bf16-ffn true");
     }
     const auto continuous_arguments = result.continuous_slots > 0 ||
                                       !result.continuous_prompt_lengths.empty() ||
@@ -1025,6 +1032,32 @@ std::vector<std::int32_t> tokens(std::string_view text) {
         text, "--tokens must be comma-separated nonnegative IDs");
 }
 
+std::vector<std::int64_t> layer_indices(std::int64_t layers,
+                                        std::string_view text,
+                                        const char* error) {
+    if (text.empty()) return {};
+    std::vector<std::int64_t> result;
+    std::vector<bool> seen(static_cast<std::size_t>(layers), false);
+    for (const auto layer : nonnegative_values(text, error)) {
+        if (layer >= layers || seen[static_cast<std::size_t>(layer)]) {
+            throw std::invalid_argument(error);
+        }
+        seen[static_cast<std::size_t>(layer)] = true;
+        result.push_back(layer);
+    }
+    return result;
+}
+
+std::string json_indices(const std::vector<std::int64_t>& values) {
+    std::string output = "[";
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) output += ',';
+        output += std::to_string(values[index]);
+    }
+    output += ']';
+    return output;
+}
+
 std::vector<std::int64_t> positive_lengths(std::string_view text,
                                            const char* error) {
     const auto parsed = nonnegative_values(text, error);
@@ -1078,15 +1111,9 @@ std::vector<microllm::DType> cache_layer_dtypes(
     std::vector<microllm::DType> result(
         static_cast<std::size_t>(layers), base_dtype);
     if (fp32_layers.empty()) return result;
-    std::vector<bool> seen(static_cast<std::size_t>(layers), false);
-    for (const auto layer : nonnegative_values(
-             fp32_layers,
-             "--kv-cache-fp32-layers must be comma-separated nonnegative indices")) {
-        if (layer >= layers || seen[static_cast<std::size_t>(layer)]) {
-            throw std::invalid_argument(
-                "--kv-cache-fp32-layers must contain unique in-range layer indices");
-        }
-        seen[static_cast<std::size_t>(layer)] = true;
+    for (const auto layer : layer_indices(
+             layers, fp32_layers,
+             "--kv-cache-fp32-layers must contain unique in-range layer indices")) {
         result[static_cast<std::size_t>(layer)] = microllm::DType::Float32;
     }
     return result;
@@ -1297,6 +1324,9 @@ int main(int argc, char** argv) {
                                      : microllm::DType::Float32;
         const auto cache_dtypes = cache_layer_dtypes(
             external.model.layers, cache_dtype, command.kv_cache_fp32_layers);
+        const auto bf16_ffn_fp32_layers = layer_indices(
+            external.model.layers, command.bf16_ffn_fp32_layers,
+            "--bf16-ffn-fp32-layers must contain unique in-range layer indices");
         const auto device = command.device == "hip" ? microllm::Device::hip(0)
                                                      : microllm::Device::cpu();
         if (device.is_hip() && microllm::runtime::hip_device_count() == 0) {
@@ -1346,7 +1376,10 @@ int main(int argc, char** argv) {
         microllm::model::Bf16GroupedQkvPrewarmReport grouped_qkv_prewarm_report;
         microllm::runtime::reset_allocation_peak(device);
         const auto preparation_start = std::chrono::steady_clock::now();
-        if (command.bf16_ffn) bf16_report = model.prepare_bf16_ffn_inference();
+        if (command.bf16_ffn) {
+            bf16_report = model.prepare_bf16_ffn_inference(
+                bf16_ffn_fp32_layers);
+        }
         if (command.bf16_ffn_arena) {
             model.set_bf16_ffn_arena_enabled(
                 true, command.bf16_ffn_arena_minimum_rows);
@@ -2264,6 +2297,8 @@ int main(int argc, char** argv) {
                   << ",\"workload\":\"" << command.workload << "\""
                   << ",\"bf16_ffn_converted_tensors\":"
                   << bf16_report.converted_tensors
+                  << ",\"bf16_ffn_fp32_layers\":"
+                  << json_indices(bf16_ffn_fp32_layers)
                   << ",\"bf16_ffn_arena_enabled\":"
                   << (model.bf16_ffn_arena_enabled() ? "true" : "false")
                   << ",\"bf16_ffn_norm_fusion_enabled\":"

@@ -42,9 +42,58 @@ BLOCK_DETAIL_SPEC = importlib.util.spec_from_file_location(
 BLOCK_DETAIL = importlib.util.module_from_spec(BLOCK_DETAIL_SPEC)
 assert BLOCK_DETAIL_SPEC.loader is not None
 BLOCK_DETAIL_SPEC.loader.exec_module(BLOCK_DETAIL)
+LAYER_COUNTERFACTUAL_SPEC = importlib.util.spec_from_file_location(
+    "audit_bf16_ffn_layer_counterfactual",
+    ROOT / "benchmarks/single_gpu/audit_bf16_ffn_layer_counterfactual.py")
+LAYER_COUNTERFACTUAL = importlib.util.module_from_spec(LAYER_COUNTERFACTUAL_SPEC)
+assert LAYER_COUNTERFACTUAL_SPEC.loader is not None
+LAYER_COUNTERFACTUAL_SPEC.loader.exec_module(LAYER_COUNTERFACTUAL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_bf16_ffn_layer_counterfactual_has_exact_conversion_contract(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 8, "warmup": 1,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        command = LAYER_COUNTERFACTUAL.command(
+            args, model, "bf16-except-block0", 2, Path("logits.bin"))
+        self.assertEqual(command[command.index("--bf16-ffn") + 1], "true")
+        self.assertEqual(command[command.index("--bf16-ffn-fp32-layers") + 1],
+                         "0")
+        self.assertEqual(LAYER_COUNTERFACTUAL.EXPECTED_CONVERTED,
+                         {"fp32-linear": 0, "bf16-all": 84,
+                          "bf16-except-block0": 81})
+
+    def test_bf16_ffn_layer_counterfactual_summary_separates_policies(self):
+        measurements = []
+        for run in (1, 2):
+            for policy_index, policy in enumerate(LAYER_COUNTERFACTUAL.POLICIES):
+                for batch in LAYER_COUNTERFACTUAL.BATCHES:
+                    values = [0.0, 1.0, 2.0, 3.0]
+                    if policy_index and batch > 1:
+                        values = [0.0, 1.0 + policy_index / 10.0, 2.0, 3.0]
+                    measurements.append(({
+                        "precision_policy": policy, "batch": batch,
+                        "process_run": run, "within_batch_bitwise_equal": True,
+                        "host_device_argmax_equal": True,
+                        "device_argmax_token": 3,
+                        "throughput_tokens_per_second": 10.0 + batch,
+                        "engine_peak_bytes": 1000 + policy_index,
+                    }, values * batch))
+        summary = LAYER_COUNTERFACTUAL.summarize(measurements, 4)
+        policies = {row["precision_policy"]: row
+                    for row in summary["policy_summaries"]}
+        self.assertEqual(summary["process_rows"], 24)
+        self.assertEqual(summary["case_rows"], 12)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertEqual(policies["bf16-except-block0"]["converted_tensors"], 81)
+        self.assertAlmostEqual(
+            policies["bf16-except-block0"]["maximum_cross_batch_error"], 0.2)
+
     def test_current_cached_block_detail_locates_bf16_input_cast(self):
         root = ROOT / "benchmarks/results/2026-08-26-deepseek-cached-block-detail"
         summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))

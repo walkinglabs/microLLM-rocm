@@ -1589,6 +1589,34 @@ TEST(HipFp8OpsTest, SelectedFp32BlockRunsInsidePreparedHipModel) {
     for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
 }
 
+TEST(HipBf16FfnTest, SelectedFp32BlockRunsInsidePreparedHipModel) {
+    require_gpu();
+    if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";
+    model::ModelConfig config{.vocabulary_size = 16,
+                              .dimension = 8,
+                              .layers = 2,
+                              .heads = 2,
+                              .kv_heads = 1,
+                              .ffn_dimension = 16,
+                              .max_sequence_length = 8,
+                              .rope_base = 10000.0F,
+                              .tie_embeddings = false};
+    model::TransformerModel transformer(config, 241);
+    const auto gpu = Device::hip(0);
+    transformer.to(gpu);
+    const auto report = transformer.prepare_bf16_ffn_inference({0});
+    EXPECT_EQ(report.converted_tensors, 3U);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4})
+                            .to(gpu);
+    runtime::reset_transfer_stats();
+    const auto output = transformer.forward_inference(tokens);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    for (const auto value : output.to_vector()) EXPECT_TRUE(std::isfinite(value));
+}
+
 TEST(HipFp8OpsTest, DiagnosticModesStayOnDeviceAndUseOnlySelectedRounding) {
     require_gpu();
     const auto gpu = Device::hip(0);

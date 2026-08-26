@@ -373,6 +373,42 @@ TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceO
     EXPECT_THROW((void)model.prepare_bf16_ffn_inference(), std::logic_error);
 }
 
+TEST(TransformerModelTest, Bf16FfnPreparationCanKeepExplicitBlocksFp32) {
+    auto config = tiny_config();
+    config.layers = 2;
+    TransformerModel model(config, 19);
+    const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(input).to_vector();
+    const auto report = model.prepare_bf16_ffn_inference({0});
+    EXPECT_EQ(report.converted_tensors, 3U);
+    std::size_t block0_fp32 = 0;
+    std::size_t block1_bf16 = 0;
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        if (name.starts_with("blocks.0.feed_forward.") &&
+            name.ends_with(".weight")) {
+            EXPECT_EQ(parameter->data().dtype(), DType::Float32) << name;
+            ++block0_fp32;
+        }
+        if (name.starts_with("blocks.1.feed_forward.") &&
+            name.ends_with(".weight")) {
+            EXPECT_EQ(parameter->data().dtype(), DType::BFloat16) << name;
+            ++block1_bf16;
+        }
+    }
+    EXPECT_EQ(block0_fp32, 3U);
+    EXPECT_EQ(block1_bf16, 3U);
+    expect_near(model.forward_inference(input).to_vector(), before, 5.0e-2F);
+
+    TransformerModel duplicate(config, 20);
+    EXPECT_THROW((void)duplicate.prepare_bf16_ffn_inference({0, 0}),
+                 std::invalid_argument);
+    EXPECT_FALSE(duplicate.bf16_ffn_inference_prepared());
+    TransformerModel outside(config, 21);
+    EXPECT_THROW((void)outside.prepare_bf16_ffn_inference({2}),
+                 std::invalid_argument);
+    EXPECT_FALSE(outside.bf16_ffn_inference_prepared());
+}
+
 TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights) {
     auto config = tiny_config();
     config.attention_bias = true;

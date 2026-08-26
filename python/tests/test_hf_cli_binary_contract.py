@@ -33,6 +33,8 @@ def main() -> int:
         b"fp8_dynamic_clipped_tensor_calls",
         b"--bf16-ffn-arena",
         b"bf16_ffn_arena_capacity_bytes",
+        b"--bf16-ffn-fp32-layers",
+        b"bf16_ffn_fp32_layers",
         b"--bf16-ffn-arena-minimum-rows",
         b"bf16_ffn_arena_bypassed_calls",
         b"--bf16-qkv-arena",
@@ -135,6 +137,15 @@ def main() -> int:
         if rejected_logit_step.returncode == 0 or \
                 "requires an output" not in rejected_logit_step.stderr:
             raise RuntimeError("hf_infer accepted a logits step without output")
+        rejected_bf16_layers = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--bf16-ffn-fp32-layers", "0",
+        ], text=True, capture_output=True, check=False)
+        if rejected_bf16_layers.returncode == 0 or \
+                "requires --bf16-ffn true" not in rejected_bf16_layers.stderr:
+            raise RuntimeError(
+                "hf_infer accepted selective BF16 layers without BF16 FFN")
         independent_attention = subprocess.run([
             str(args.binary), "--config", str(missing),
             "--weights", str(missing), "--tokens", "1", "--device", "cpu",

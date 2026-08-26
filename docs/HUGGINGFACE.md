@@ -87,6 +87,11 @@ constant T2048只有全FP32 Cache通过。`fp32`默认值因此仍是必要fallb
 `--bf16-ffn`与`--bf16-attention`是独立的权重准备开关。普通运行通常同时开启；精度诊断可以只
 开启一个，用JSON中的两个`*_converted_tensors`字段验收实际路径。Attention-only不隐式准备FFN。
 
+`--bf16-ffn-fp32-layers 0,3`是在`--bf16-ffn true`基础上的显式研究开关：指定Block的三个FFN
+权重和激活保持FP32，其余Block仍单向准备为BF16。索引必须唯一且在模型层数内；JSON同时输出
+`bf16_ffn_fp32_layers`和实际转换数。空列表保持原来的全层BF16行为。这个接口用于可反驳的逐层
+精度实验，不会按模型名自动选择层，也不改变默认策略。
+
 `--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断。
 默认保存最后一步；`--cache-logits-step N`可选择`0 <= N < new_tokens`的具体decode步，包含
 batch的完整`[B,V]` FP32值。至少生成一个token；开启诊断输出的运行不作为正式性能排名。
