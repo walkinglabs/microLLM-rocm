@@ -5234,3 +5234,13 @@ Autograd合同，不能偷偷拿ctypes的预分配优势替换functional口径�
 仍只有0.813×/0.467×。所以API保留，模型宽度有收益，wide失败也不再能归因于output allocation。
 
 ![PyTorch Custom Op Softmax out](assets/pytorch-rocm-custom-op-softmax-out.svg)
+
+## 364. Experiment 348：旧失败少了一个关键变量
+
+BF16的256-thread wave曾失败，但FP16矩阵说明wide需要更多并行度。新合同固定BF16、cached范围、wave、
+1024 threads。core width4096从8.701/9.404降到5.157/5.960μs，Event/wall提高1.687×/1.578×。
+
+Custom out同步从8.758降到5.191μs，native比值0.467×→0.804×。所以BF16不是不能wave，旧实验缺的
+变量是workgroup size。当前FP16/BF16 wide为0.821×/0.804×，仍不写成parity。
+
+![BF16 wave1024 Softmax](assets/pytorch-rocm-bf16-wave1024-softmax.svg)

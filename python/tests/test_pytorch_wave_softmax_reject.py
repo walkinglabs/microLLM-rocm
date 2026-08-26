@@ -51,9 +51,6 @@ def main() -> int:
     assert base_wall[bf16] / wave_wall[bf16] < 1.05
     assert base_event[fp16] / wave_event[fp16] >= 1.05
     assert base_wall[fp16] / wave_wall[fp16] >= 1.05
-    source = (ROOT / "src/ops/hip/basic_kernels.hip").read_text(encoding="utf-8")
-    assert "softmax_typed_block_cached_kernel<hip_bfloat16, false>" in source
-    assert "softmax_typed_block_cached_kernel<hip_bfloat16, true>" not in source
     ET.parse(ROOT / "docs/optimization-log/assets/pytorch-rocm-wave-softmax-reject.svg")
     print("PyTorch wave Softmax rejection contract: pass")
     return 0

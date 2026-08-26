@@ -687,6 +687,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.PyTorchCustomOpSoftmaxOutContract PROPERTIES
         LABELS "cpu;benchmark;torch;dtype;softmax;mutation;performance;memory;schema")
     add_test(
+        NAME Benchmark.PyTorchBf16Wave1024SoftmaxContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_pytorch_bf16_wave1024_softmax.py
+    )
+    set_tests_properties(Benchmark.PyTorchBf16Wave1024SoftmaxContract PROPERTIES
+        LABELS "cpu;benchmark;torch;dtype;bf16;softmax;performance;memory;schema")
+    add_test(
         NAME Benchmark.DataParallelVerificationMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py

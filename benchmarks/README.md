@@ -841,3 +841,9 @@ Measure the caller-owned mutation schema against native `out=` with:
 
 Both sides allocate before timing. All ten peak deltas are zero; width1024 FP16/BF16 is
 1.116×/1.087× native out, while width4096 remains 0.813×/0.467×.
+
+The subsequent BF16-only 1024-thread wave gate changes core width4096 Event/wall by
+1.687×/1.578× and Custom-out Event by about 1.687×. Committed current results are in
+`2026-08-26-pytorch-rocm-bf16-wave1024-softmax` and
+`2026-08-26-pytorch-rocm-custom-op-softmax-out-wave1024`; current wide native-out ratios
+are FP16/BF16 0.821×/0.804×.

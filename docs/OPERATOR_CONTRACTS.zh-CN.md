@@ -65,7 +65,7 @@ BF16 舍入语义。它不承诺与 FP32 gradient bit-exact，也不会自动改
 | `matmul_scaled_with_implementation` | 与 matmul/transpose 合同相同，输出再乘有限 factor | `(op(A)@op(B))*factor` | `2e-4,2e-4` | matmul 合同错、factor 为 Inf/NaN |
 | `embedding` | weight `[V,D]`，index `S`，输出 `S+[D]` | `F.embedding` | 默认 | weight 非二维、index 非 Int32/越界、设备不同 |
 | `softmax` | `[...,D] -> [...,D]`，仅最后一维；HIP支持FP32/FP16/BF16 | `torch.softmax(x,-1)` | FP32 `2e-6,2e-5`；低精度逐dtype门 | 空最后维、非最后维、非连续 |
-| `softmax_typed_out_` | FP16/BF16同shape/dtype/device caller输出；FP32 reduction后只舍入output；width≤32 serial，之后block；2048–8192用≤32KiB LDS cache，仅FP16用1024-thread wave | `torch.softmax(x,-1)` | FP16 Max≤`5e-4`、BF16≤`4e-3`；边界1/17/32/33/64/65/128/129/1024/2047/2048/4096/8192/8193 | FP32/FP8、dim、shape/device/alias/stride错 |
+| `softmax_typed_out_` | FP16/BF16同shape/dtype/device caller输出；FP32 reduction后只舍入output；width≤32 serial，之后block；2048–8192用≤32KiB LDS cache及1024-thread wave | `torch.softmax(x,-1)` | FP16 Max≤`5e-4`、BF16≤`4e-3`；边界1/17/32/33/64/65/128/129/1024/2047/2048/4096/8192/8193 | FP32/FP8、dim、shape/device/alias/stride错 |
 | `torch.ops.microllm.softmax` | functional最后一维Softmax；FP32/FP16/BF16；CPU/ROCm/Meta/C++ Autograd；新output | `torch.softmax(x,-1)`及同seed梯度 | 同上；10格forward、三dtype梯度、current Stream/fullgraph | scalar、整数、非连续；wide性能不作普遍领先声明 |
 | `torch.ops.microllm.softmax_out` | `Tensor(a!)` caller output，返回同pointer；inference-only | `torch.softmax(x,-1,out=y)` | 10格Max/RMS、pointer、native/custom peak均0 | requires-grad、alias、shape/dtype/device/stride错 |
 | `rms_norm` | input `[...,D]`，weight `[D]` | `F.rms_norm` | `2e-4,2e-4` | weight shape 错、epsilon<=0 |

@@ -1094,6 +1094,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Custom Op Softmax SVG](assets/pytorch-rocm-custom-op-softmax.svg) | 十格native比与wide反例 |
 | [experiments/347-pytorch-custom-op-softmax-out.md](experiments/347-pytorch-custom-op-softmax-out.md) | caller-owned mutation/alias合同 |
 | [Custom Op Softmax out SVG](assets/pytorch-rocm-custom-op-softmax-out.svg) | native out十格与零peak |
+| [experiments/348-pytorch-bf16-wave1024-softmax.md](experiments/348-pytorch-bf16-wave1024-softmax.md) | BF16 1024-thread wave反驳旧256结论 |
+| [BF16 wave1024 SVG](assets/pytorch-rocm-bf16-wave1024-softmax.svg) | core/Custom out前后Event |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

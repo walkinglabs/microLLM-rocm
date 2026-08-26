@@ -48,7 +48,7 @@ def main() -> int:
     assert values[512][1] / values[1024][1] >= 1.05
     assert values[1024][2] >= 0.85
     source = (ROOT / "src/ops/hip/basic_kernels.hip").read_text(encoding="utf-8")
-    assert "constexpr unsigned fp16_cached_threads = 1024" in source
+    assert "constexpr unsigned cached_wave_threads = 1024" in source
     ET.parse(ROOT / "docs/optimization-log/assets/pytorch-rocm-softmax-thread-matrix.svg")
     print("PyTorch Softmax thread matrix contract: pass")
     return 0

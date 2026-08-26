@@ -293,8 +293,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   FP16/BF16;
 - [x] add caller-owned `Tensor(a!)` Softmax out with exact pointer, inference-only
   gradient rejection and zero peak; width1024 FP16/BF16 reaches 1.116×/1.087× native out;
-- [ ] profile BF16 width4096 scheduling separately: caller-owned FP16/BF16 remains
-  0.813×/0.467×, and the rejected broad-wave result forbids one shared policy.
+- [x] admit BF16 cached wave1024: core width4096 Event/wall improves
+  1.687×/1.578× and Custom out improves about 1.687×; current native-out ratios are
+  FP16/BF16 0.821×/0.804×;
+- [ ] stop local thread/exp tuning and select the next target from a model or adapter
+  profile; 1024 is the legal workgroup ceiling and both wide dtypes remain partial.
 
 ## P2.5 — production data parallel reducer
 

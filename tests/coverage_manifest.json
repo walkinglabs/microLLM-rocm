@@ -451,6 +451,7 @@
     "python/tests/test_pytorch_softmax_attribution.py",
     "python/tests/test_pytorch_custom_op_softmax.py",
     "python/tests/test_pytorch_custom_op_softmax_out.py",
+    "python/tests/test_pytorch_bf16_wave1024_softmax.py",
     "python/tests/test_data_parallel_verification_matrix.py",
     "python/tests/test_data_parallel_bucket_matrix.py",
     "python/tests/test_distributed_model_workload.py",

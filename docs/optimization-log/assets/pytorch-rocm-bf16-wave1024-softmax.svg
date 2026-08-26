@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="650" viewBox="0 0 1240 650">
+<rect width="1240" height="650" fill="#f7f9fc"/>
+<text x="620" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">BF16 Needed More Waves, Not the Old Broad Policy</text>
+<text x="620" y="79" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">BF16 rows8 × width4096 Event time · lower is better · MI300X</text>
+<line x1="100" y1="525.0" x2="800" y2="525.0" stroke="#dbe1ea"/>
+<text x="88" y="530.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">0 μs</text>
+<line x1="100" y1="445.0" x2="800" y2="445.0" stroke="#dbe1ea"/>
+<text x="88" y="450.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">2 μs</text>
+<line x1="100" y1="365.0" x2="800" y2="365.0" stroke="#dbe1ea"/>
+<text x="88" y="370.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">4 μs</text>
+<line x1="100" y1="285.0" x2="800" y2="285.0" stroke="#dbe1ea"/>
+<text x="88" y="290.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">6 μs</text>
+<line x1="100" y1="205.0" x2="800" y2="205.0" stroke="#dbe1ea"/>
+<text x="88" y="210.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">8 μs</text>
+<line x1="100" y1="125.0" x2="800" y2="125.0" stroke="#dbe1ea"/>
+<text x="88" y="130.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">10 μs</text>
+<rect x="138" y="176.9" width="84" height="348.1" rx="8" fill="#aab3c2"/>
+<text x="180" y="166.9" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#172033">8.701</text>
+<text x="180" y="558" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">core tree256</text>
+<rect x="303" y="318.7" width="84" height="206.3" rx="8" fill="#198754"/>
+<text x="345" y="308.7" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#172033">5.157</text>
+<text x="345" y="558" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">core wave1024</text>
+<rect x="468" y="174.7" width="84" height="350.3" rx="8" fill="#d39b45"/>
+<text x="510" y="164.7" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#172033">8.758</text>
+<text x="510" y="558" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">Custom out before</text>
+<rect x="633" y="317.4" width="84" height="207.6" rx="8" fill="#2b8a66"/>
+<text x="675" y="307.4" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#172033">5.191</text>
+<text x="675" y="558" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">Custom out after</text>
+<rect x="845" y="125" width="345" height="400" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="875" y="168" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Scoped keep</text>
+<text x="875" y="216" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ 10 / 10 precision + resources</text>
+<text x="875" y="266" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">core Event / wall 1.687× / 1.578×</text>
+<text x="875" y="299" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">Custom out Event 1.687×</text>
+<text x="875" y="349" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">ctypes / PyTorch = 0.888×</text>
+<text x="875" y="382" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">Custom out / native = 0.804×</text>
+<text x="875" y="432" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">predicate = BF16 + cached range</text>
+<text x="875" y="463" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">+ wave + 1024 threads</text>
+<text x="620" y="615" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">Thread count is part of the algorithm contract</text>
+</svg>

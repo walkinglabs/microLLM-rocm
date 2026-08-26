@@ -57,7 +57,7 @@ def main() -> int:
 
     source = (ROOT / "src/ops/hip/basic_kernels.hip").read_text(encoding="utf-8")
     assert "softmax_typed_block_cached_kernel<__half, true>" in source
-    assert "softmax_typed_block_cached_kernel<hip_bfloat16, false>" in source
+    assert "constexpr unsigned cached_wave_threads = 1024" in source
     ET.parse(ROOT / "docs/optimization-log/assets/pytorch-rocm-fp16-wave-softmax.svg")
     print("PyTorch FP16 wave Softmax result contract: pass")
     return 0
