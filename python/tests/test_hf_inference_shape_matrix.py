@@ -161,6 +161,19 @@ FFN_DOWN_SPEC.loader.exec_module(FFN_DOWN)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_finalize_gap_selects_native_not_logical_128(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-finalize-architecture-gap-audit")
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        self.assertEqual(analysis["current_physical_threads"], 256)
+        self.assertEqual(analysis["deepseek_width"], 128)
+        self.assertEqual(analysis["idle_threads_during_pv"], 128)
+        self.assertEqual(
+            analysis["rejected_exact_mapping_preserved_logical_lanes"], 256)
+        self.assertIn("native 128-lane", analysis["selected_hypothesis"])
+        self.assertTrue(analysis["numerical_order_changes"])
+        ET.parse(root / "finalize-gap.svg")
+
     def test_current_clean_long_context_baseline_and_profile(self):
         baseline_root = (ROOT / "benchmarks/results" /
                          "2026-08-26-clean-deepseek-t2048")

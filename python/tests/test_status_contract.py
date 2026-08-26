@@ -45,6 +45,8 @@ def main() -> int:
         "Kernel 820.74ms",
         "finalize 346.92ms/42.27%",
         "GEMM 272.93ms/33.25%",
+        "native 128 changes reduction tree/lane stride",
+        "old 128 mapping emulated 256 logical lanes",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",
@@ -160,6 +162,8 @@ def main() -> int:
         "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/analysis.json",
         "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/verification.json",
         "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/profile-delta.svg",
+        "benchmarks/results/2026-08-26-finalize-architecture-gap-audit/analysis.json",
+        "benchmarks/results/2026-08-26-finalize-architecture-gap-audit/finalize-gap.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -307,6 +311,13 @@ def main() -> int:
         "cached Attention finalize"
     assert clean_profile["kernel_profile"]["negative_call_delta_names"] == []
     ET.parse(clean_profile_root / "profile-delta.svg")
+    finalize_gap_root = ROOT / (
+        "benchmarks/results/2026-08-26-finalize-architecture-gap-audit")
+    finalize_gap = json.loads(
+        (finalize_gap_root / "analysis.json").read_text(encoding="utf-8"))
+    assert finalize_gap["idle_threads_during_pv"] == 128
+    assert finalize_gap["numerical_order_changes"] is True
+    ET.parse(finalize_gap_root / "finalize-gap.svg")
     for removed in (
         "benchmarks/single_gpu/fp32_prefill_ffn_model_gate.py",
         "benchmarks/single_gpu/fp32_prefill_ffn_all_exact_gate.py",

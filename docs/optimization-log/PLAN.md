@@ -167,7 +167,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [136](steps/136-post-exact-gate-up-trace-cleanup.md) | complete | exact gate/up后的首差与route清理 | down首差；候选CLI/scope/runner已删 |
 | [137](steps/137-fp32-ffn-down-solutions.md) | complete; rejected, track closed | M2048–16384 down共同FP32 solution | exact仅296100；最差0.506× |
 | [138](steps/138-clean-upstream-long-context-profile.md) | complete | clean T2048/B2/N64基线与profile | 1.1393×PyTorch；finalize当前42.27% |
-| [139](steps/139-finalize-architecture-gap-audit.md) | planned | finalize新架构gap审计 | 与五条旧路线结构去重后才实现 |
+| [139](steps/139-finalize-architecture-gap-audit.md) | complete | finalize新架构gap审计 | 选择原生128-lane，不模拟256 tree |
+| [140](steps/140-native-128-finalize.md) | planned | native128 finalize operator | 完整输出后才计时；T2048双性能门 |
 
 ## 为什么按这个顺序
 

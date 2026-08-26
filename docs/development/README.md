@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Finalize architecture gap audit](../optimization-log/experiments/323-finalize-architecture-gap.md)
 - [2026-08-26: Clean long-context baseline and profile](2026-08-26-clean-long-context-profile.md)
 - [2026-08-26: FP32 FFN down rejection](2026-08-26-fp32-ffn-down-reject.md)
 - [2026-08-26: FP32 FFN down runner](2026-08-26-fp32-ffn-down-runner.md)

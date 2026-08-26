@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "experiment": 323,
+  "status": "one_new_operator_hypothesis_selected",
+  "current_finalize_share": 0.42269118556170254,
+  "current_physical_threads": 256,
+  "deepseek_width": 128,
+  "idle_threads_during_pv": 128,
+  "rejected_exact_mapping_preserved_logical_lanes": 256,
+  "selected_hypothesis": "native 128-lane max/sum reduction plus 128-column P-by-V",
+  "structural_difference": "The reduction tree, lane stride, shared reduction footprint, and P-by-V physical lanes are all 128 rather than emulating 256 logical lanes.",
+  "numerical_order_changes": true,
+  "operator_gate": "DeepSeek T512/T2048, B1/B2, FP32/BF16 cache; complete output tolerance before Event/wall timing.",
+  "model_gate_required_on_operator_success": true,
+  "rebuttal": "If native 128 does not improve both Event and wall on every T2048 DeepSeek case, stop the finalize local line."
+}

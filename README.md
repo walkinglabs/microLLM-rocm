@@ -43,8 +43,10 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > DeepSeek T2048/B2/N64. microLLM/PyTorch are `177.77/156.04 tok/s` (`1.1393x`),
 > all 64 tokens match, peak is `5.23/6.38 GB`, and KV bytes match exactly. Current
 > Kernel share is finalize `42.27%`, GEMM `33.25%`, scores `7.88%`. The next node
-> must propose a genuinely new finalize architecture, not reopen rejected mappings.
-> See the [clean baseline and profile](docs/optimization-log/experiments/322-clean-long-context-profile.md).
+> selects one genuinely new operator hypothesis: a native 128-lane reduction and
+> 128-column P×V, unlike the rejected 128-thread mapping that emulated 256 logical
+> lanes. Numerical order changes, so complete-output tolerance precedes timing.
+> See the [finalize gap audit](docs/optimization-log/experiments/323-finalize-architecture-gap.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

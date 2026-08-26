@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1250" height="500" viewBox="0 0 1250 500">
+  <rect width="1250" height="500" fill="#0b1020"/>
+  <style>.title{font:700 24px ui-monospace,monospace;fill:#f8fafc}.head{font:700 16px ui-monospace,monospace;fill:#e5e7eb}.small{font:13px ui-monospace,monospace;fill:#94a3b8}.box{fill:#131b2e;stroke-width:2}</style>
+  <text x="40" y="48" class="title">Finalize architecture gap audit</text>
+  <rect x="60" y="120" width="330" height="180" rx="14" class="box" stroke="#f97316"/>
+  <text x="225" y="160" text-anchor="middle" class="head">Current 256</text>
+  <text x="225" y="195" text-anchor="middle" class="small">256-lane max + sum tree</text>
+  <text x="225" y="225" text-anchor="middle" class="small">width 128 P×V</text>
+  <text x="225" y="255" text-anchor="middle" class="small">128 threads idle in P×V</text>
+  <rect x="460" y="120" width="330" height="180" rx="14" class="box" stroke="#64748b"/>
+  <text x="625" y="160" text-anchor="middle" class="head">Old 128 mapping</text>
+  <text x="625" y="195" text-anchor="middle" class="small">128 physical threads</text>
+  <text x="625" y="225" text-anchor="middle" class="small">still emulate 256 logical lanes</text>
+  <text x="625" y="255" text-anchor="middle" class="small">old tree preserved · rejected</text>
+  <rect x="860" y="120" width="330" height="180" rx="14" class="box" stroke="#22c55e"/>
+  <text x="1025" y="160" text-anchor="middle" class="head">New native 128</text>
+  <text x="1025" y="195" text-anchor="middle" class="small">128-lane max + sum tree</text>
+  <text x="1025" y="225" text-anchor="middle" class="small">128 lanes own 128 columns</text>
+  <text x="1025" y="255" text-anchor="middle" class="small">new numerical order · unproven</text>
+  <path d="M390 210H460M790 210H860" stroke="#475569" stroke-width="3"/>
+  <rect x="135" y="365" width="980" height="70" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="625" y="397" text-anchor="middle" class="small">Gate: complete output tolerance first · then Event + wall · every T2048 DeepSeek case</text>
+  <text x="625" y="420" text-anchor="middle" class="small">Failure closes cached-finalize local search; success still requires a complete-model gate.</text>
+</svg>

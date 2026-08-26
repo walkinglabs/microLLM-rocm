@@ -4965,3 +4965,13 @@ K8960/N1536有15个共同候选，唯一block exact仍是296100，但四个M只�
 下一步先证明候选架构与五条旧路线真的不同，否则停止finalize局部线。
 
 ![Current clean profile](../../benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/profile-delta.svg)
+
+## 340. Experiment 323：旧128线程不是原生128归约
+
+当前256-thread finalizer在DeepSeek width128的P×V阶段有128线程闲置。旧128 mapping仍模拟256条logical
+lane和旧tree，只减少物理线程，没有缩小归约结构。
+
+新候选native128会真正使用128-lane tree、stride和128-column P×V。数值顺序变化，因此先过完整输出，
+再测Event/wall；T2048任一case失败就删除并关闭finalize局部线。
+
+![Finalize gap](../../benchmarks/results/2026-08-26-finalize-architecture-gap-audit/finalize-gap.svg)
