@@ -158,9 +158,30 @@ FFN_DOWN_SPEC = importlib.util.spec_from_file_location(
 FFN_DOWN = importlib.util.module_from_spec(FFN_DOWN_SPEC)
 assert FFN_DOWN_SPEC.loader is not None
 FFN_DOWN_SPEC.loader.exec_module(FFN_DOWN)
+GROUPED_DECODE_SPEC = importlib.util.spec_from_file_location(
+    "grouped_gate_up_decode_model_gate",
+    ROOT / "benchmarks/single_gpu/grouped_gate_up_decode_model_gate.py")
+GROUPED_DECODE = importlib.util.module_from_spec(GROUPED_DECODE_SPEC)
+assert GROUPED_DECODE_SPEC.loader is not None
+GROUPED_DECODE_SPEC.loader.exec_module(GROUPED_DECODE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_grouped_decode_command_registers_rows2_only(self):
+        args = type("Args", (), {"binary": Path("micro")})()
+        model = {"config": "c", "weights": "w", "inference": {"token_ids": [1]}}
+        command = GROUPED_DECODE.command(args, model, "grouped65193", 0, 1)
+        self.assertIn("--bf16-ffn-arena", command)
+        self.assertEqual(command[command.index(
+            "--bf16-grouped-gate-up-algorithm-index") + 1], "65193")
+        route = {"status":"pass","batch":2,"token_count":2048,"decode_tokens":64,
+            "kv_cache_dtype":"bf16","bf16_ffn_arena_enabled":True,
+            "bf16_grouped_gate_up_algorithm_index":65193,
+            "bf16_grouped_gate_up_registered_entries":1,
+            "bf16_grouped_gate_up_dispatches":1792,
+            "bf16_grouped_gate_up_plan_entries":28}
+        GROUPED_DECODE.require(route,"grouped65193",0,1)
+
     def test_current_grouped_gate_up_rows2_selects_deepseek_only(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-bf16-grouped-gate-up-row2")
