@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from microllm.profiling import profile, profile_scope
+from microllm.profiling import export_perfetto, profile, profile_scope
 
 
 class ProfilingApiTest(unittest.TestCase):
@@ -44,6 +44,16 @@ class ProfilingApiTest(unittest.TestCase):
                 self.assertEqual(row["schema_version"], 1)
                 self.assertEqual(row["framework"], "microllm-python")
                 self.assertGreaterEqual(row["duration_ns"], 0)
+                self.assertIsInstance(row["thread_id"], int)
+
+            perfetto = Path(directory) / "trace.json"
+            report = export_perfetto(output, perfetto)
+            self.assertEqual(report["events"], 4)
+            document = json.loads(perfetto.read_text())
+            self.assertEqual(len(document["traceEvents"]), 4)
+            self.assertTrue(all(event["ph"] == "X"
+                                for event in document["traceEvents"]))
+            self.assertEqual(document["metadata"]["source"], "microllm-python")
 
     def test_invalid_identity_and_metadata_fail_before_call(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -52,6 +62,9 @@ class ProfilingApiTest(unittest.TestCase):
                 profile_scope("", output=output)
             with self.assertRaises(ValueError):
                 profile_scope("x", output=output, metadata={"bad": float("nan")})
+            output.write_text("\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "empty"):
+                export_perfetto(output, Path(directory) / "empty.json")
 
 
 if __name__ == "__main__":

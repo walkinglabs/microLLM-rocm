@@ -100,7 +100,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client plus build-tree and relocated-install C-only Config consumers | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error plus sync/async `@profile` and nested scope JSONL | packaging/broader ops |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
-| In-process profiling | smoke-tested | C++ TraceSession/TraceTimer and standard-library Python decorator/scope, filtered binary values, CPU/HIP tests | async Event completion, rocprof markers and Perfetto export |
+| In-process profiling | smoke-tested | C++ TraceSession plus Python decorator/scope and Perfetto Trace Event export, filtered binary values, CPU/HIP tests | async Event completion and rocprof marker correlation |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
 | Profiling/autotune | smoke-tested | rocprofv3, exact registries including isolated prefill Q/K/V/QK/P×V/O scopes, complete output/state before timing, real Attention batch-invariance harness and Autograd/layout diagnostics | automated model regression and broader trace correlation |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |

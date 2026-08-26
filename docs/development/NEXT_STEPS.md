@@ -208,7 +208,8 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   forward/backward timing runner;
 - [x] manifest, raw JSONL, comparison JSON, and Markdown report artifacts;
 - [x] optional standard-library Python context manager/decorator with schema JSONL;
-- [ ] rocprof marker correlation and Chrome/Perfetto export.
+- [x] Chrome/Perfetto Trace Event export for Python schema spans;
+- [ ] rocprof marker correlation and merged CPU/GPU timeline.
 
 ## P2.5 — production data parallel reducer
 

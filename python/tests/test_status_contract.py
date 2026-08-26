@@ -204,6 +204,9 @@ def main() -> int:
         "benchmarks/results/2026-08-26-python-profile-api/analysis.json",
         "benchmarks/results/2026-08-26-python-profile-api/verification.json",
         "benchmarks/results/2026-08-26-python-profile-api/python-profile.svg",
+        "benchmarks/results/2026-08-26-python-perfetto-export/analysis.json",
+        "benchmarks/results/2026-08-26-python-perfetto-export/verification.json",
+        "benchmarks/results/2026-08-26-python-perfetto-export/perfetto-export.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (

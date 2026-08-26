@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"perfetto_export_complete","input":"python_profile_span JSONL","output":"Chrome Trace Event JSON","event_phase":"X","atomic_replace":true,"nested_depth_preserved":true,"thread_id_preserved":true,"error_metadata_preserved":true,"gpu_correlation_claimed":false}

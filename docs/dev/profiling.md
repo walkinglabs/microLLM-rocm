@@ -541,6 +541,8 @@ Python now provides `@profile(output="trace.jsonl")` and
 `profile_scope("name", output="trace.jsonl")` for schema-versioned wall spans. Sync,
 async, nested and error paths are tested. These spans do not synchronize GPU work and
 must not be interpreted as Kernel time. Future work must correlate ranges with rocprof
-markers, support asynchronous HIP Event completion, and export Perfetto ranges directly.
+markers and support asynchronous HIP Event completion. Use
+`export_perfetto("trace.jsonl", "trace.json")` to create a Chrome Trace Event file;
+this is a format conversion, not GPU correlation.
 
 Ad-hoc wall-clock timing around asynchronous kernels is not accepted evidence.

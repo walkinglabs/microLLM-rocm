@@ -15,7 +15,7 @@ _CAPI_NAMES = {
     "softmax",
 }
 
-_PROFILING_NAMES = {"ProfileScope", "profile", "profile_scope"}
+_PROFILING_NAMES = {"ProfileScope", "export_perfetto", "profile", "profile_scope"}
 __all__ = sorted(_CAPI_NAMES | _PROFILING_NAMES | {"torch_ops"})
 
 

@@ -56,6 +56,7 @@ class ProfileScope(AbstractContextManager["ProfileScope"]):
             "kind": "python_span",
             "name": self.name,
             "depth": self._depth,
+            "thread_id": threading.get_ident(),
             "start_ns": self._start_ns,
             "duration_ns": finish_ns - self._start_ns,
             "status": "error" if exception_type is not None else "pass",
@@ -102,4 +103,44 @@ def profile(function: _F | None = None, *, name: str | None = None,
     return decorate if function is None else decorate(function)
 
 
-__all__ = ["ProfileScope", "profile", "profile_scope"]
+def export_perfetto(input_jsonl: str | Path,
+                    output_json: str | Path) -> dict[str, Any]:
+    """Convert microLLM Python span JSONL to Chrome/Perfetto Trace Event JSON."""
+    source = Path(input_jsonl)
+    rows = [json.loads(line) for line in source.read_text(encoding="utf-8").splitlines()
+            if line]
+    if not rows:
+        raise ValueError("profile JSONL is empty")
+    for row in rows:
+        if (row.get("schema_version") != 1 or
+                row.get("record_type") != "python_profile_span" or
+                int(row.get("start_ns", -1)) < 0 or
+                int(row.get("duration_ns", -1)) < 0):
+            raise ValueError("profile JSONL contains an incompatible record")
+    origin = min(int(row["start_ns"]) for row in rows)
+    events = []
+    for row in rows:
+        events.append({
+            "name": row["name"], "cat": row["phase"], "ph": "X",
+            "ts": (int(row["start_ns"]) - origin) / 1000.0,
+            "dur": int(row["duration_ns"]) / 1000.0,
+            "pid": 0, "tid": int(row.get("thread_id", 0)),
+            "args": {"status": row["status"], "depth": row["depth"],
+                     "run_id": row["run_id"],
+                     "exception_type": row["exception_type"],
+                     **row["metadata"]},
+        })
+    document = {"traceEvents": events,
+                "displayTimeUnit": "ms",
+                "metadata": {"source": "microllm-python", "schema_version": 1}}
+    destination = Path(output_json)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(destination.name + ".tmp")
+    temporary.write_text(json.dumps(document, sort_keys=True) + "\n",
+                         encoding="utf-8")
+    temporary.replace(destination)
+    return {"events": len(events), "output": str(destination),
+            "origin_ns": origin}
+
+
+__all__ = ["ProfileScope", "export_perfetto", "profile", "profile_scope"]
