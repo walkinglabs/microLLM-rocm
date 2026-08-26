@@ -88,4 +88,68 @@ TEST(HipWeightsTest, LoadsSafetensorsDirectlyToGpuAndIntoGpuModel) {
     std::filesystem::remove(path, ignored);
 }
 
+TEST(HipWeightsTest, StreamsMultipleShardsAfterWholeSetPreflight) {
+    require_gpu();
+    const auto first_path = temporary_path();
+    const auto second_path = temporary_path();
+    model::TransformerModel source(config(), 431);
+    const auto expected = source.state_dict();
+    StateDict first;
+    StateDict second;
+    bool alternate = false;
+    for (const auto& item : expected) {
+        (alternate ? first : second).insert(item);
+        alternate = !alternate;
+    }
+    save_safetensors(first_path, first,
+                     {.dtype = WeightFileDType::BFloat16});
+    save_safetensors(second_path, second,
+                     {.dtype = WeightFileDType::BFloat16});
+
+    model::TransformerModel target(
+        config(), 433, model::ParameterInitialization::Uninitialized);
+    target.to(Device::hip());
+    runtime::reset_transfer_stats();
+    const auto report = target.load_safetensors_files(
+        {first_path, second_path}, {.strict = true, .mapping = {}});
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_TRUE(report.complete());
+    EXPECT_EQ(transfers.host_to_device_bytes,
+              static_cast<std::size_t>(source.parameter_count()) * 2U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(transfers.device_to_device_calls, 0U);
+    const auto actual = target.state_dict();
+    for (const auto& [name, tensor] : expected) {
+        const auto left = actual.at(name).to_vector();
+        const auto right = tensor.to_vector();
+        ASSERT_EQ(left.size(), right.size());
+        for (std::size_t index = 0; index < left.size(); ++index) {
+            EXPECT_NEAR(left[index], right[index], 2.0e-2F) << name;
+        }
+    }
+
+    model::TransformerModel missing(
+        config(), 439, model::ParameterInitialization::Uninitialized);
+    missing.to(Device::hip());
+    runtime::reset_transfer_stats();
+    EXPECT_THROW((void)missing.load_safetensors_files(
+                     {first_path}, {.strict = true, .mapping = {}}),
+                 std::invalid_argument);
+    EXPECT_EQ(runtime::transfer_stats().host_to_device_calls, 0U);
+
+    model::TransformerModel duplicate(
+        config(), 443, model::ParameterInitialization::Uninitialized);
+    duplicate.to(Device::hip());
+    runtime::reset_transfer_stats();
+    EXPECT_THROW((void)duplicate.load_safetensors_files(
+                     {first_path, first_path},
+                     {.strict = true, .mapping = {}}),
+                 std::runtime_error);
+    EXPECT_EQ(runtime::transfer_stats().host_to_device_calls, 0U);
+
+    std::error_code ignored;
+    std::filesystem::remove(first_path, ignored);
+    std::filesystem::remove(second_path, ignored);
+}
+
 }  // namespace microllm::io

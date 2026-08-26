@@ -10,7 +10,8 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 - [x] F32/BF16/F16 safetensors and sharded index;
 - [x] Qwen-style name and transpose mapping seam;
 - [x] single-file low-precision streaming into an uninitialized HIP model;
-- [ ] multi-shard/index streaming and memory-mapped loading;
+- [x] multi-shard streaming with whole-set preflight and bounded HIP staging;
+- [ ] indexed weight-map streaming and memory-mapped loading;
 - [ ] FP8/INT8/INT4 tensors and quantization metadata;
 - [ ] official Qwen checkpoint fixture and tokenizer files.
 

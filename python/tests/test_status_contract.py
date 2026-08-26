@@ -17,7 +17,7 @@ def main() -> int:
         "CPU 377/377",
         "ASan/UBSan 375/375",
         "PyTorch-enabled CPU 380/380",
-        "single-GPU HIP label 196/196",
+        "single-GPU HIP label 197/197",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -80,6 +80,7 @@ def main() -> int:
         "ASan/UBSan 372/372",
         "single-GPU HIP label 192/192",
         "single-GPU HIP label 195/195",
+        "single-GPU HIP label 196/196",
         "PyTorch-enabled CPU 377/377",
         "PyTorch-enabled CPU 379/379",
         "PyTorch-enabled build 323/323",
@@ -183,6 +184,9 @@ def main() -> int:
         "benchmarks/results/2026-08-26-grouped-gate-up-decode-model/model-gate.svg",
         "benchmarks/results/2026-08-26-clean-deepseek-local-saturation/analysis.json",
         "benchmarks/results/2026-08-26-clean-deepseek-local-saturation/local-saturation.svg",
+        "benchmarks/results/2026-08-26-multishard-streaming/analysis.json",
+        "benchmarks/results/2026-08-26-multishard-streaming/verification.json",
+        "benchmarks/results/2026-08-26-multishard-streaming/multishard-streaming.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (

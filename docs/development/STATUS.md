@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 377/377, ASan/UBSan 375/375, PyTorch-enabled CPU 380/380, single-GPU HIP label 196/196, RCCL label 53/53 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 377/377, ASan/UBSan 375/375, PyTorch-enabled CPU 380/380, single-GPU HIP label 197/197, RCCL label 53/53 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -37,8 +37,8 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Decoder Transformer structure | smoke-tested | tiny GQA graph topology, PyTorch logits/loss/all-gradient parity, CPU/HIP parity | overfit/full recipe |
 | Byte tokenizer/token dataset | smoke-tested | all-byte round-trip and cursor equivalence | real-corpus run |
 | BPE/TinyStories source | smoke-tested | BPE round-trip + immutable licensed range + Model-S smoke | full corpus/reference train |
-| Weight/state API | smoke-tested | independent state_dict, atomic strict/non-strict load, Qwen-style transpose mapping, official single-file device streaming | multi-shard streaming/model-specific architecture validation |
-| safetensors | smoke-tested | F32/BF16/F16, shards/index/corruption/CPU-HIP, Python two-way interop, low-precision single-file streaming | FP8/quantized formats, memory mapping and multi-shard streaming |
+| Weight/state API | smoke-tested | independent state_dict, atomic strict/non-strict load, Qwen mapping, single/multi-file transactional HIP streaming | indexed streaming/mmap and model-specific architecture validation |
+| safetensors | smoke-tested | F32/BF16/F16, shards/index/corruption/CPU-HIP, Python interop, bounded single/multi-file HIP streaming | FP8/quantized formats, index streaming and memory mapping |
 | C++ training CLI | smoke-tested | CPU save/resume fixture and Model-S HIP real-text steps | validation/report CLI |
 | Model-S TinyStories smoke | smoke-tested | immutable 1MiB train prefix, 10 HIP steps | full train/validation curve |
 | Tiny Transformer training | smoke-tested | 40-step overfit and finite gradients | validation split/Model-S |

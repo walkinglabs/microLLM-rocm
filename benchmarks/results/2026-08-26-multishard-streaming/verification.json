@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass","focused_cpu_model_test":"pass","focused_mi300x_streaming_test":"pass","mi300x_gfx942_hip":"197/197","cpu_debug":"377/377","asan_ubsan":"375/375","pytorch_enabled_cpu":"380/380","rccl":"53/53"}

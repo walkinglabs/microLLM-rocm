@@ -897,7 +897,7 @@ Current `main` gates:
 |---|---:|---|
 | CPU Debug | 377/377 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
 | ASan/UBSan CPU | 375/375 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 196/196 | allocator/arena/Stream/Graph, complete cached-Attention stages, BF16/FP8 and model paths |
+| MI300X/gfx942 HIP label | 197/197 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model and multi-shard streaming |
 | PyTorch-enabled CPU build | 380/380 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 53/53 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure and package gates |
 | Registered test files | 129 | machine-audited native/Python test sources; package consumers run inside the integration gate |
@@ -1182,7 +1182,7 @@ loading, Hugging Face-style name/transpose mapping, and single or sharded safete
 For an uninitialized HIP model, the single-file path preflights metadata and streams the
 original low-precision payload through bounded staging directly into parameter Storage.
 Pinned MI300X measurements are 0.580 s for Qwen2.5-0.5B and a 1.356 s median for DeepSeek
-Distill 1.5B; multi-shard/index streaming remains future work.
+Distill 1.5B; multi-shard HIP streaming is implemented, while indexed streaming and mmap remain future work.
 
 ```cpp
 #include <microllm/model/model.h>

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <iterator>
 #include <memory>
 #include <limits>
 #include <optional>
@@ -3504,13 +3505,33 @@ LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
 
 LoadWeightsReport TransformerModel::load_safetensors(
     const std::filesystem::path& path, const LoadWeightsOptions& options) {
+    return load_safetensors_files({path}, options);
+}
+
+LoadWeightsReport TransformerModel::load_safetensors_files(
+    const std::vector<std::filesystem::path>& paths,
+    const LoadWeightsOptions& options) {
+    if (paths.empty()) {
+        throw std::invalid_argument("streamed safetensors path list cannot be empty");
+    }
     if (impl_->parameters_initialized || !device().is_hip()) {
-        return load_state_dict(io::load_safetensors(path, device()), options);
+        return load_state_dict(io::load_safetensors_files(paths, device()), options);
     }
 
-    const auto metadata = io::inspect_safetensors(path);
+    std::vector<io::SafetensorsTensorInfo> metadata;
+    for (const auto& path : paths) {
+        auto shard = io::inspect_safetensors(path);
+        metadata.insert(metadata.end(),
+                        std::make_move_iterator(shard.begin()),
+                        std::make_move_iterator(shard.end()));
+    }
     std::map<std::string, const io::SafetensorsTensorInfo*> source_info;
-    for (const auto& info : metadata) source_info.emplace(info.name, &info);
+    for (const auto& info : metadata) {
+        if (!source_info.emplace(info.name, &info).second) {
+            throw std::runtime_error(
+                "duplicate tensor across streamed safetensors shards: " + info.name);
+        }
+    }
     const auto named = named_parameters();
     std::set<std::string> target_names;
     for (const auto& [name, parameter] : named) {
@@ -3599,44 +3620,40 @@ LoadWeightsReport TransformerModel::load_safetensors(
         staging[slot] = Tensor({maximum_elements[slot]}, dtype, device());
     }
 
-    io::visit_safetensors(path, [&](const io::SafetensorsTensorInfo& info,
-                                    std::span<const std::byte> bytes) {
-        const auto found = targets_by_source.find(info.name);
-        if (found == targets_by_source.end()) return;
-        const auto requires_staging = info.dtype != DType::Float32 || std::any_of(
-            found->second.begin(), found->second.end(), [](const auto& target) {
-                return target.transform == WeightTransform::Transpose2D;
-            });
-        Tensor source;
-        if (requires_staging) {
-            const auto slot = dtype_slot(info.dtype);
-            source = Tensor::from_storage(staging[slot].storage(), info.shape,
-                                          contiguous_strides(info.shape), 0, info.dtype);
-            runtime::copy_bytes(source.data(), device(), bytes.data(), Device::cpu(),
-                                bytes.size());
-        }
-        for (auto& target : found->second) {
-            if (!requires_staging) {
-                runtime::copy_bytes(target.parameter->mutable_data().data(), device(),
-                                    bytes.data(), Device::cpu(), bytes.size());
-            } else if (target.transform == WeightTransform::Transpose2D) {
-                ops::cast_transpose_2d_out_(source, target.parameter->mutable_data());
-            } else {
-                ops::cast_out_(source, target.parameter->mutable_data());
+    for (const auto& path : paths) {
+        io::visit_safetensors(path, [&](const io::SafetensorsTensorInfo& info,
+                                        std::span<const std::byte> bytes) {
+            const auto found = targets_by_source.find(info.name);
+            if (found == targets_by_source.end()) return;
+            const auto requires_staging = info.dtype != DType::Float32 || std::any_of(
+                found->second.begin(), found->second.end(), [](const auto& target) {
+                    return target.transform == WeightTransform::Transpose2D;
+                });
+            Tensor source;
+            if (requires_staging) {
+                const auto slot = dtype_slot(info.dtype);
+                source = Tensor::from_storage(staging[slot].storage(), info.shape,
+                                              contiguous_strides(info.shape), 0, info.dtype);
+                runtime::copy_bytes(source.data(), device(), bytes.data(), Device::cpu(),
+                                    bytes.size());
             }
-            target.parameter->zero_grad();
-            report.loaded.push_back(target.name);
-        }
-    });
+            for (auto& target : found->second) {
+                if (!requires_staging) {
+                    runtime::copy_bytes(target.parameter->mutable_data().data(), device(),
+                                        bytes.data(), Device::cpu(), bytes.size());
+                } else if (target.transform == WeightTransform::Transpose2D) {
+                    ops::cast_transpose_2d_out_(source, target.parameter->mutable_data());
+                } else {
+                    ops::cast_out_(source, target.parameter->mutable_data());
+                }
+                target.parameter->zero_grad();
+                report.loaded.push_back(target.name);
+            }
+        });
+    }
     runtime::synchronize(device());
     if (report.complete()) impl_->parameters_initialized = true;
     return report;
-}
-
-LoadWeightsReport TransformerModel::load_safetensors_files(
-    const std::vector<std::filesystem::path>& paths,
-    const LoadWeightsOptions& options) {
-    return load_state_dict(io::load_safetensors_files(paths, device()), options);
 }
 
 LoadWeightsReport TransformerModel::load_safetensors_index(
