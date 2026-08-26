@@ -751,6 +751,41 @@ TEST(TransformerModelTest, Fp8InferencePreparationCachesOneByteLinearWeights) {
                  std::logic_error);
 }
 
+TEST(TransformerModelTest, Int8InferencePreparationReplacesEveryLinearTransactionally) {
+    TransformerModel model(tiny_config(), 19);
+    const auto tokens = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto before = model.forward_inference(tokens).to_vector();
+    const auto state = model.state_dict();
+    const auto report = model.prepare_int8_inference_weights();
+    EXPECT_EQ(report.linears_covered, 8U);
+    EXPECT_EQ(report.fp32_bytes_released,
+              report.int8_bytes_retained * 4U);
+    EXPECT_EQ(report.scale_bytes_retained,
+              report.linears_covered * sizeof(float));
+    EXPECT_TRUE(model.int8_inference_weights_prepared());
+    std::size_t int8_weights = 0;
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        if (name.ends_with(".weight") &&
+            name.find("norm") == std::string::npos &&
+            name != "token_embedding.weight") {
+            EXPECT_EQ(parameter->data().dtype(), DType::Int8) << name;
+            EXPECT_FALSE(parameter->requires_grad()) << name;
+            ++int8_weights;
+        }
+    }
+    EXPECT_EQ(int8_weights, 8U);
+    expect_near(model.forward_inference(tokens).to_vector(), before, 0.12F);
+    EXPECT_THROW((void)model.forward(tokens), std::logic_error);
+    EXPECT_THROW((void)model.state_dict(), std::logic_error);
+    EXPECT_THROW((void)model.load_state_dict(state), std::logic_error);
+    EXPECT_THROW((void)model.prepare_int8_inference_weights(), std::logic_error);
+
+    TransformerModel unloaded(
+        tiny_config(), 19, ParameterInitialization::Uninitialized);
+    EXPECT_THROW((void)unloaded.prepare_int8_inference_weights(),
+                 std::logic_error);
+}
+
 TEST(TransformerModelTest, Fp8TensorAmaxPreparationReportsIndependentWeightScales) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

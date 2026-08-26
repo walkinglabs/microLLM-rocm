@@ -707,3 +707,5 @@ the next gate. Records are append-only except for factual corrections.
   fixes the complete-output explicit-dequantize Linear control before performance work.
 - [2026-08-26-int8-fused-decode.md](2026-08-26-int8-fused-decode.md):
   keeps an explicit memory-first M=1 route while preserving the resident-GEMM counterexample.
+- [2026-08-26-model-s-int8-inference.md](2026-08-26-model-s-int8-inference.md):
+  records transactional whole-model preparation, decode gain and the prefill counterexample.

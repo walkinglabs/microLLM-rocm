@@ -323,7 +323,8 @@ the chronological details are in the [optimization log](docs/optimization-log/RE
   training policy, and KV-cache decode;
 - portable symmetric weight-only INT8 with one-byte Tensor Storage, explicit same-device
   FP32 scale, CPU/HIP quantize/dequantize, PyTorch rounding oracle and official
-  safetensors interoperability; Transformer INT8 GEMM remains a separate unclaimed step;
+  safetensors interoperability and explicit one-way Transformer preparation; default/official
+  INT8 inference remains unclaimed because M>1 prefill regresses;
 - opt-in FP8 scalar, device Tensor-amax and FFN-only outer-row activation policies with
   explicit native/fallback counters; none is a default precision claim;
 - explicit clipped dynamic FP8 Tensor quantization with finite saturation, a compatibility-preserving
@@ -1015,10 +1016,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 416/416 | host code, CLI, model/graph, INT8 weight/Linear baseline, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 413/413 | host lifetime, one-byte Tensor views, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 208/208 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8/INT8 baseline and fused-decode candidate, model and bindings |
-| PyTorch-enabled CPU build | 417/417 | dispatcher parity, INT8 rounding/complete-matmul oracle, optimizer state, full operator/graph/model oracle and package paths |
+| CPU Debug | 417/417 | host code, CLI, model/graph, transactional INT8 model preparation, benchmark and package gates |
+| ASan/UBSan CPU | 414/414 | host lifetime, one-byte Tensor views, one-way model state and instrumented-package linking |
+| MI300X/gfx942 HIP label | 209/209 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8/INT8 whole-model candidate and bindings |
+| PyTorch-enabled CPU build | 418/418 | dispatcher parity, INT8 operator/model oracle, optimizer state, full graph/model oracle and package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
 | Registered test files | 156 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
@@ -1234,8 +1235,8 @@ hipBLASLt INT8xINT8→INT32 through 4096³ (416 TOPS, exact CPU samples); at tha
 Tensor and Transformer INT8 support were explicitly out of scope.
 [Experiment 352](docs/optimization-log/experiments/352-int8-weight-contract.md) now adds the
 public one-byte Tensor, symmetric scale contract, CPU/HIP kernels, PyTorch oracle and mixed
-I8/F32 safetensors path. It still makes no Transformer INT8 speed claim because an INT8 Linear
-or model route has not passed a complete-output gate.
+I8/F32 safetensors path. At that node no Transformer INT8 speed claim existed; Experiments
+353–355 subsequently add the explicit Linear and Model-S gates without changing defaults.
 [Experiment 353](docs/optimization-log/experiments/353-int8-weight-matmul-baseline.md) adds a
 complete-output `[M,K]×[K,N]` weight-only baseline. It explicitly dequantizes the full weight
 before ordinary matmul, so it is an oracle and allocation baseline rather than an acceleration
@@ -1244,6 +1245,10 @@ claim.
 M=1 fused route: 14.09×/7.51× Event over the C++ dequantize control and 2.09×/1.26× over the
 matched PyTorch per-call dequantize path. The DeepSeek resident-FP32 counterexample is only
 0.494×, so `Auto` remains unchanged.
+[Experiment 355](docs/optimization-log/experiments/355-model-s-int8-inference.md) adds one-way
+transactional whole-model preparation. Model-S context1 improves 1.719× and resident engine bytes
+fall 59.8%, while context4 falls to 0.472× and preparation peak rises 19.5%; the route remains
+explicit and inference-only.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

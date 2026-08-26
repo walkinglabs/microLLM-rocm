@@ -1108,6 +1108,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [INT8 matmul baseline SVG](assets/int8-weight-matmul-baseline.svg) | 从I8权重到完整浮点临时量的公开代价 |
 | [experiments/354-int8-fused-decode.md](experiments/354-int8-fused-decode.md) | M=1融合INT8读取、跨框架速度与resident-GEMM反例 |
 | [INT8 fused decode SVG](assets/int8-fused-decode.svg) | dequant收益、临时内存与DeepSeek反例 |
+| [experiments/355-model-s-int8-inference.md](experiments/355-model-s-int8-inference.md) | Model-S整模M=1收益与M>1反例 |
+| [Model-S INT8 SVG](assets/model-s-int8-boundary.svg) | throughput、常驻与事务准备峰值 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

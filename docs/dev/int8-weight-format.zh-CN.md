@@ -2,8 +2,8 @@
 
 这份文档用尽量简单的话解释microLLM当前的INT8能力。先说结论：框架已经能把浮点Tensor
 压成一字节INT8、带着scale保存到safetensors、在CPU或AMD GPU上还原，并与PyTorch逐值
-对齐。Transformer还没有把这种权重直接送进INT8 GEMM，因此现在不能把它叫作“INT8整模
-推理加速”。
+对齐。Transformer现在有显式、单向的INT8权重准备研究入口，但M>1 prefill会回到反量化基线，
+官方模型也尚未验收，因此不能把它叫作“通用INT8整模推理加速”。
 
 ## 1. 为什么一个INT8数字还不够
 
@@ -141,14 +141,15 @@ PyTorch oracle只在配置所用的Python能`import torch`时注册。官方safe
 
 - 没有把官方Qwen/DeepSeek整模参数转换为这套INT8格式；
 - `int8_weight_matmul`已经提供正确性基线，但会先还原完整浮点权重，因此不是INT8加速；
-- 没有INT8 Attention/FFN模型路由；
+- 没有通过M>1与官方模型门的默认Attention/FFN路线；
 - 没有融合“读INT8、乘scale、做GEMM”的Kernel；
 - 没有INT8训练、量化感知训练或校准数据流程；
 - 没有本节点的端到端tokens/s加速结论。
 
 MI300X原始INT8矩阵硬件探测已经证明硬件能执行高速INT8×INT8→INT32，但“硬件能算”和
 “模型已经走这条路径”是两件事。下一节点应先做一个带完整输出PyTorch门的weight-only Linear，
-分别测“先反量化再GEMM”和“融合/原生INT8 GEMM”，再决定是否接入Transformer。
+分别测“先反量化再GEMM”和“融合/原生INT8 GEMM”；当前显式Transformer接线正使用这两个
+边界，默认仍关闭。
 
 当前正确性基线可以直接调用：
 

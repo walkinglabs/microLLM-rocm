@@ -26,6 +26,7 @@ struct Options {
     std::int64_t batch = 1;
     std::int64_t context = 8;
     std::int64_t new_tokens = 16;
+    bool int8_weights = false;
 };
 
 std::int64_t integer(const char* value, const char* name) {
@@ -48,6 +49,13 @@ Options parse(int argc, char** argv) {
         else if (name == "--batch") options.batch = integer(argv[index + 1], "batch");
         else if (name == "--context") options.context = integer(argv[index + 1], "context");
         else if (name == "--new-tokens") options.new_tokens = integer(argv[index + 1], "new-tokens");
+        else if (name == "--int8-weights") {
+            const std::string_view value(argv[index + 1]);
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("int8-weights must be true or false");
+            }
+            options.int8_weights = value == "true";
+        }
         else throw std::invalid_argument("unknown option: " + std::string(name));
     }
     if (options.mode != "train" && options.mode != "generate") {
@@ -66,6 +74,9 @@ Options parse(int argc, char** argv) {
     }
     if (options.mode == "generate" && options.batch != 1) {
         throw std::invalid_argument("the first generation benchmark supports batch one");
+    }
+    if (options.int8_weights && options.mode != "generate") {
+        throw std::invalid_argument("INT8 weights are inference-only");
     }
     return options;
 }
@@ -117,6 +128,10 @@ int main(int argc, char** argv) {
         const auto wall_start = std::chrono::steady_clock::now();
         microllm::model::TransformerModel model(config, 20260819);
         if (device.is_hip()) model.to(device);
+        microllm::model::Int8WeightPreparationReport int8_report;
+        if (options.int8_weights) {
+            int8_report = model.prepare_int8_inference_weights();
+        }
         microllm::runtime::synchronize(device);
         const auto construction_finish = std::chrono::steady_clock::now();
         const auto construction_seconds =
@@ -213,9 +228,12 @@ int main(int argc, char** argv) {
                   << "\",\"architecture\":\"" << info.architecture
                   << "\",\"hip_runtime_version\":" << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
-                  << ",\"dtype\":\"float32\",\"batch\":" << options.batch
+                  << ",\"dtype\":\"" << (options.int8_weights ? "int8-weight-fp32-activation" : "float32")
+                  << "\",\"batch\":" << options.batch
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"fp32_weight_bytes\":" << config.weight_bytes(sizeof(float))
+                  << ",\"int8_weight_bytes\":" << int8_report.int8_bytes_retained
+                  << ",\"int8_scale_bytes\":" << int8_report.scale_bytes_retained
                   << ",\"context\":" << options.context
                   << ",\"steps\":" << options.steps
                   << ",\"warmup\":" << options.warmup

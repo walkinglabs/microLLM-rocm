@@ -65,6 +65,13 @@ struct Fp8WeightPreparationReport {
     float maximum_weight_scale = 0.0F;
 };
 
+struct Int8WeightPreparationReport {
+    std::size_t linears_covered = 0;
+    std::uint64_t fp32_bytes_released = 0;
+    std::uint64_t int8_bytes_retained = 0;
+    std::uint64_t scale_bytes_retained = 0;
+};
+
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 
 struct Bf16FfnArenaStats {
@@ -210,6 +217,8 @@ public:
     // computed independently from each Linear Tensor; activation scale remains fixed.
     [[nodiscard]] Fp8WeightPreparationReport prepare_fp8_inference_weights();
     [[nodiscard]] bool fp8_inference_weights_prepared() const noexcept;
+    [[nodiscard]] Int8WeightPreparationReport prepare_int8_inference_weights();
+    [[nodiscard]] bool int8_inference_weights_prepared() const noexcept;
     // Creates persistent BF16 forward mirrors for every Linear FP32 master.
     // Mirrors are derived runtime state and must be prepared after loading/restoring.
     [[nodiscard]] Bf16TrainingMirrors prepare_bf16_training_mirrors();

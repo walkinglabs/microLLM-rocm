@@ -45,6 +45,18 @@ float tensor_amax_scale(const Tensor& tensor, float zero_fallback) {
     return result > 0.0F ? result : zero_fallback;
 }
 
+float tensor_int8_scale(const Tensor& tensor) {
+    float maximum = 0.0F;
+    for (const auto value : tensor.to_vector()) {
+        if (!std::isfinite(value)) {
+            throw std::invalid_argument(
+                "INT8 inference weights must contain only finite values");
+        }
+        maximum = std::max(maximum, std::abs(value));
+    }
+    return std::max(maximum / 127.0F, 1.0e-8F);
+}
+
 void trace_detail(const std::string& prefix, const char* suffix,
                   const Tensor& tensor) {
     if (prefix.empty()) return;
@@ -367,6 +379,9 @@ public:
     }
 
     Value forward_without_bias(const Value& input) {
+        if (weight_.data().dtype() == DType::Int8) {
+            throw std::logic_error("INT8 weights are graph-free inference-only");
+        }
         if (precision_ == LinearPrecision::BFloat16) {
             return bf16_training_weight_.defined()
                        ? autograd::bf16_matmul(input, weight_, bf16_training_weight_)
@@ -461,6 +476,27 @@ public:
     }
     Tensor forward_tensor_without_bias(
         const Tensor& input, const ops::OpContext& context = {}) {
+        if (weight_.data().dtype() == DType::Int8) {
+            if (input.ndim() < 2 || !input.is_contiguous() ||
+                input.shape().back() != weight_.data().shape()[0]) {
+                throw std::invalid_argument(
+                    "prepared INT8 Linear requires contiguous [...,K] input");
+            }
+            const auto rows = input.numel() / input.shape().back();
+            const auto flat = input.reshape({rows, input.shape().back()});
+            const auto implementation =
+                rows == 1 && input.device().is_hip() &&
+                        input.dtype() == DType::Float32
+                    ? ops::Int8WeightMatmulImplementation::FusedDecode
+                    : ops::Int8WeightMatmulImplementation::ExplicitDequantize;
+            auto output = ops::int8_weight_matmul_with_implementation(
+                flat,
+                {weight_.data(), int8_inference_scale_, int8_scale_value_, true},
+                implementation, context);
+            auto shape = input.shape();
+            shape.back() = weight_.data().shape()[1];
+            return output.reshape(std::move(shape));
+        }
         if (precision_ == LinearPrecision::BFloat16) {
             return ops::bf16_matmul(
                 input, bf16_training_weight_.defined()
@@ -592,6 +628,24 @@ public:
                 fp8_inference_activation_scale_.to(device);
         }
     }
+    [[nodiscard]] ops::Int8ScaledTensor prepare_int8_inference_candidate() const {
+        if (weight_.data().dtype() != DType::Float32 ||
+            int8_inference_scale_.defined()) {
+            throw std::logic_error("Linear INT8 inference preparation is invalid");
+        }
+        return ops::quantize_int8(weight_.data(),
+                                  tensor_int8_scale(weight_.data()));
+    }
+    void commit_int8_inference_candidate(ops::Int8ScaledTensor candidate) {
+        int8_scale_value_ = candidate.scale_value;
+        int8_inference_scale_ = std::move(candidate.scale);
+        weight_ = Value(std::move(candidate.values), false);
+    }
+    void move_int8_inference_scale(Device device) {
+        if (int8_inference_scale_.defined()) {
+            int8_inference_scale_ = int8_inference_scale_.to(device);
+        }
+    }
 
 private:
     Value weight_;
@@ -610,6 +664,8 @@ private:
     bool fp8_inference_host_scale_available_ = true;
     ops::Fp8ScaleMode fp8_inference_scale_mode_ = ops::Fp8ScaleMode::Scalar;
     Tensor fp8_inference_activation_scale_;
+    Tensor int8_inference_scale_;
+    float int8_scale_value_ = 1.0F;
 };
 
 class Bf16QkvArenaCache {
@@ -1503,6 +1559,16 @@ public:
             linear->move_fp8_inference_scale(device);
         }
     }
+    void append_int8_inference_linears(std::vector<Linear*>& linears) {
+        for (auto* linear : {&query_, &key_, &value_, &output_}) {
+            linears.push_back(linear);
+        }
+    }
+    void move_int8_inference_scales(Device device) {
+        for (auto* linear : {&query_, &key_, &value_, &output_}) {
+            linear->move_int8_inference_scale(device);
+        }
+    }
     void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
         qkv_arena_cache_ = cache;
     }
@@ -1944,6 +2010,14 @@ public:
             linear->move_fp8_inference_scale(device);
         }
     }
+    void append_int8_inference_linears(std::vector<Linear*>& linears) {
+        for (auto* linear : {&gate_, &up_, &down_}) linears.push_back(linear);
+    }
+    void move_int8_inference_scales(Device device) {
+        for (auto* linear : {&gate_, &up_, &down_}) {
+            linear->move_int8_inference_scale(device);
+        }
+    }
 
 private:
     ModelConfig config_;
@@ -2158,6 +2232,14 @@ public:
         attention_.move_fp8_inference_scales(device);
         feed_forward_.move_fp8_inference_scales(device);
     }
+    void append_int8_inference_linears(std::vector<Linear*>& linears) {
+        attention_.append_int8_inference_linears(linears);
+        feed_forward_.append_int8_inference_linears(linears);
+    }
+    void move_int8_inference_scales(Device device) {
+        attention_.move_int8_inference_scales(device);
+        feed_forward_.move_int8_inference_scales(device);
+    }
 
 
 private:
@@ -2224,6 +2306,7 @@ struct TransformerModel::Impl {
     bool bf16_attention_prepared = false;
     bool bf16_training_mirrors_prepared = false;
     bool fp8_inference_prepared = false;
+    bool int8_inference_prepared = false;
     bool parameters_initialized = true;
 };
 
@@ -2263,6 +2346,10 @@ void TransformerModel::to(Device target) {
         for (auto& block : impl_->blocks) block->move_fp8_inference_scales(target);
         if (impl_->output_head) impl_->output_head->move_fp8_inference_scale(target);
     }
+    if (impl_->int8_inference_prepared) {
+        for (auto& block : impl_->blocks) block->move_int8_inference_scales(target);
+        if (impl_->output_head) impl_->output_head->move_int8_inference_scale(target);
+    }
 }
 
 Value TransformerModel::forward(const Tensor& token_ids) {
@@ -2270,7 +2357,7 @@ Value TransformerModel::forward(const Tensor& token_ids) {
         throw std::logic_error("model parameters must be loaded before forward");
     }
     if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared ||
-        impl_->fp8_inference_prepared) {
+        impl_->fp8_inference_prepared || impl_->int8_inference_prepared) {
         throw std::logic_error(
             "autograd forward is unavailable after one-way inference preparation; "
             "use forward_inference or forward_cached");
@@ -3368,6 +3455,48 @@ bool TransformerModel::fp8_inference_weights_prepared() const noexcept {
     return impl_->fp8_inference_prepared;
 }
 
+Int8WeightPreparationReport TransformerModel::prepare_int8_inference_weights() {
+    if (!impl_->parameters_initialized || impl_->int8_inference_prepared ||
+        impl_->fp8_inference_prepared || impl_->bf16_ffn_prepared ||
+        impl_->bf16_attention_prepared ||
+        impl_->bf16_training_mirrors_prepared ||
+        impl_->config.linear_precision != LinearPrecision::Float32) {
+        throw std::logic_error(
+            "INT8 inference preparation is invalid for model state");
+    }
+    std::vector<Linear*> linears;
+    linears.reserve(impl_->blocks.size() * 7U +
+                    (impl_->output_head ? 1U : 0U));
+    for (auto& block : impl_->blocks) {
+        block->append_int8_inference_linears(linears);
+    }
+    if (impl_->output_head) linears.push_back(impl_->output_head.get());
+
+    std::vector<ops::Int8ScaledTensor> candidates;
+    candidates.reserve(linears.size());
+    Int8WeightPreparationReport report;
+    report.linears_covered = linears.size();
+    for (const auto* linear : linears) {
+        const auto elements = static_cast<std::uint64_t>(
+            linear->weight_data().numel());
+        candidates.push_back(linear->prepare_int8_inference_candidate());
+        report.fp32_bytes_released += elements * sizeof(float);
+        report.int8_bytes_retained += elements;
+        report.scale_bytes_retained += sizeof(float);
+    }
+    runtime::synchronize(device());
+    for (std::size_t index = 0; index < linears.size(); ++index) {
+        linears[index]->commit_int8_inference_candidate(
+            std::move(candidates[index]));
+    }
+    impl_->int8_inference_prepared = true;
+    return report;
+}
+
+bool TransformerModel::int8_inference_weights_prepared() const noexcept {
+    return impl_->int8_inference_prepared;
+}
+
 Bf16TrainingMirrors TransformerModel::prepare_bf16_training_mirrors() {
     if (impl_->config.linear_precision != LinearPrecision::BFloat16 ||
         impl_->bf16_training_mirrors_prepared || impl_->bf16_ffn_prepared ||
@@ -3393,6 +3522,10 @@ bool TransformerModel::bf16_training_mirrors_prepared() const noexcept {
 }
 
 io::StateDict TransformerModel::state_dict(Device target) {
+    if (impl_->int8_inference_prepared) {
+        throw std::logic_error(
+            "state_dict is unavailable after one-way INT8 inference preparation");
+    }
     io::StateDict state;
     for (const auto& [name, parameter] : named_parameters()) {
         auto copy = Tensor::from_vector(parameter->data().to_vector(), parameter->data().shape());
@@ -3405,7 +3538,8 @@ io::StateDict TransformerModel::state_dict(Device target) {
 LoadWeightsReport TransformerModel::load_state_dict(const io::StateDict& state,
                                                      const LoadWeightsOptions& options) {
     if (impl_->bf16_ffn_prepared || impl_->bf16_attention_prepared ||
-        impl_->bf16_training_mirrors_prepared || impl_->fp8_inference_prepared) {
+        impl_->bf16_training_mirrors_prepared || impl_->fp8_inference_prepared ||
+        impl_->int8_inference_prepared) {
         throw std::logic_error(
             "load weights before preparing derived inference or training weights");
     }

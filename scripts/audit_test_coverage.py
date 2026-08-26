@@ -81,6 +81,7 @@ if declared_weight_io != expected_weight_io:
 declared_weight_model = public_names(
     "include/microllm/model/model.h",
     ["io::StateDict", "LoadWeightsReport", "WeightMapping",
+     "Int8WeightPreparationReport",
      "Bf16GroupedQkvPrewarmReport", "void"],
 )
 declared_weight_model.discard("to")
@@ -101,6 +102,7 @@ expected_weight_model = {
     "set_cached_attention_materialized_scores",
     "set_cached_attention_split_pv",
     "prewarm_bf16_grouped_qkv",
+    "prepare_int8_inference_weights",
 }
 if declared_weight_model != expected_weight_model:
     errors.append(

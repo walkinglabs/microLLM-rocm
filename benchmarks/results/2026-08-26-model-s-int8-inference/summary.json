@@ -1,0 +1,18 @@
+{
+  "device": "MI300X gfx942",
+  "processes": 3,
+  "warmup": 1,
+  "measured_runs": 2,
+  "new_tokens_per_run": 4,
+  "decision": "explicit_model_route_keep_auto_off",
+  "resident_bytes": {"fp32": 62344704, "int8": 25038508},
+  "preparation_peak_bytes": {"fp32": 62568976, "int8": 74780332},
+  "rows": [
+    {"context": 1, "fp32_tokens_per_second": 1417.739896,
+     "int8_tokens_per_second": 2437.23213, "ratio": 1.7191,
+     "output_guard": 12250},
+    {"context": 4, "fp32_tokens_per_second": 1344.675673,
+     "int8_tokens_per_second": 635.061457, "ratio": 0.4723,
+     "output_guard": 12256}
+  ]
+}

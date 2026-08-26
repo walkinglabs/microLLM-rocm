@@ -295,7 +295,9 @@
     "set_cached_attention_split_sequence": "tests/model/model_test.cpp",
     "set_cached_attention_materialized_scores": "tests/model/model_test.cpp",
     "prepare_bf16_training_mirrors": "tests/model/model_test.cpp",
-    "bf16_training_mirrors_prepared": "tests/model/model_test.cpp"
+    "bf16_training_mirrors_prepared": "tests/model/model_test.cpp",
+    "prepare_int8_inference_weights": "tests/model/model_test.cpp",
+    "int8_inference_weights_prepared": "tests/model/model_test.cpp"
   },
   "profiling_api": {
     "TraceSession": "tests/profiling/trace_test.cpp",

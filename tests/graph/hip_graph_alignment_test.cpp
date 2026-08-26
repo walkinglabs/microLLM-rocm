@@ -454,4 +454,39 @@ TEST(HipGraphAlignmentTest,
                       cpu_input.grad().to_vector(), 1.0e-6F);
 }
 
+TEST(HipGraphAlignmentTest,
+     Int8PreparedSingleTokenModelMatchesCpuAndStaysDeviceNative) {
+    require_graph_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 8,
+                                    .layers = 1,
+                                    .heads = 2,
+                                    .kv_heads = 1,
+                                    .ffn_dimension = 16,
+                                    .max_sequence_length = 4,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    const auto tokens = Tensor::from_int32_vector({3}, {1, 1});
+    model::TransformerModel cpu(config, 991);
+    const auto fp32 = cpu.forward_inference(tokens).to_vector();
+    const auto cpu_report = cpu.prepare_int8_inference_weights();
+    EXPECT_EQ(cpu_report.linears_covered, 8U);
+    const auto expected = cpu.forward_inference(tokens).to_vector();
+
+    model::TransformerModel hip(config, 991);
+    hip.to(Device::hip(0));
+    const auto hip_report = hip.prepare_int8_inference_weights();
+    EXPECT_EQ(hip_report.int8_bytes_retained,
+              cpu_report.int8_bytes_retained);
+    const auto device_tokens = tokens.to(Device::hip(0));
+    runtime::reset_transfer_stats();
+    const auto actual = hip.forward_inference(device_tokens);
+    runtime::synchronize(Device::hip(0));
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    expect_graph_near(actual.to_vector(), expected, 2.0e-3F);
+    expect_graph_near(actual.to_vector(), fp32, 0.12F);
+}
+
 }  // namespace microllm::autograd

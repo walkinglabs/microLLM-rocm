@@ -153,7 +153,12 @@ io::save_safetensors(
 
 当前`Preserve`只接受I8或F32 Tensor，防止不明确的隐式转换。完整量化、还原、HIP和
 文件命名合同见[INT8权重格式](dev/int8-weight-format.zh-CN.md)。能保存这对Tensor不等于
-Transformer已经使用INT8 GEMM；模型计算路由仍需单独实现和验收。
+Transformer已经使用INT8 GEMM；默认模型计算路由仍需单独实现和验收。
+
+`TransformerModel::prepare_int8_inference_weights()`提供显式、单向、事务式研究路线：全部
+Linear候选成功后才释放FP32 Linear权重；Embedding与Norm保持FP32。准备后只能调用graph-free
+inference，Autograd、重新加载和`state_dict()`会拒绝。M=1 FP32输入使用显式融合decode，M>1
+回到完整反量化基线，因此它尚不是默认或通用INT8模型路径。
 
 默认计算仍是 FP32。推理可在加载后调用 `prepare_bf16_ffn_inference()` 和
 `prepare_bf16_attention_inference()`，事务式地把 FFN 与 Q/K/V/O 权重替换成单份 BF16；
