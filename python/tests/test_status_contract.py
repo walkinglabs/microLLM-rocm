@@ -41,7 +41,10 @@ def main() -> int:
         "K8960/N1536 down solution matrix",
         "only 296100 block-exact",
         "speedups 0.506×/0.758×/0.686×/0.863×",
-        "current T2048/B2/N64 is 0.8158x",
+        "current T2048/B2/N64 is 1.1393x",
+        "Kernel 820.74ms",
+        "finalize 346.92ms/42.27%",
+        "GEMM 272.93ms/33.25%",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",
@@ -73,6 +76,7 @@ def main() -> int:
         "PyTorch-enabled CPU 379/379",
         "PyTorch-enabled build 323/323",
         "experiments through 287",
+        "current T2048/B2/N64 is 0.8158x",
         "scale-before-ready weighted overlap ordering",
         "Model-S sync smoke; weighted ready-overlap ordering",
         "environment with >87MB /dev/shm",
@@ -149,6 +153,13 @@ def main() -> int:
         "benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/analysis.json",
         "benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/verification.json",
         "benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/ffn-down-row-invariance.svg",
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048/summary.json",
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048/analysis.json",
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048/verification.json",
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/summary.json",
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/analysis.json",
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/verification.json",
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/profile-delta.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -283,6 +294,19 @@ def main() -> int:
     assert down["performance_admitted_count"] == 0
     assert down["recommended_index"] == -1
     ET.parse(down_root / "ffn-down-row-invariance.svg")
+    clean_root = ROOT / (
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048")
+    clean = json.loads((clean_root / "summary.json").read_text(encoding="utf-8"))
+    assert clean["rows"][0]["cross_framework_tokens_equal"] is True
+    assert clean["rows"][0]["throughput_ratio_microllm_over_pytorch"] > 1.13
+    clean_profile_root = ROOT / (
+        "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile")
+    clean_profile = json.loads(
+        (clean_profile_root / "summary.json").read_text(encoding="utf-8"))
+    assert clean_profile["kernel_profile"]["categories"][0]["category"] == \
+        "cached Attention finalize"
+    assert clean_profile["kernel_profile"]["negative_call_delta_names"] == []
+    ET.parse(clean_profile_root / "profile-delta.svg")
     for removed in (
         "benchmarks/single_gpu/fp32_prefill_ffn_model_gate.py",
         "benchmarks/single_gpu/fp32_prefill_ffn_all_exact_gate.py",

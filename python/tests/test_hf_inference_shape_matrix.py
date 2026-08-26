@@ -161,6 +161,54 @@ FFN_DOWN_SPEC.loader.exec_module(FFN_DOWN)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_clean_long_context_baseline_and_profile(self):
+        baseline_root = (ROOT / "benchmarks/results" /
+                         "2026-08-26-clean-deepseek-t2048")
+        baseline = json.loads((baseline_root / "summary.json").read_text(
+            encoding="utf-8"))
+        analysis = json.loads((baseline_root / "analysis.json").read_text(
+            encoding="utf-8"))
+        verification = json.loads((baseline_root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in
+               (baseline_root / "raw.jsonl").read_text(
+                   encoding="utf-8").splitlines() if line]
+        self.assertEqual(len(raw), 6)
+        self.assertEqual(baseline["runs_per_framework"], 3)
+        row = baseline["rows"][0]
+        self.assertTrue(row["cross_framework_tokens_equal"])
+        self.assertEqual(row["cross_framework_matching_prefix_tokens"], 64)
+        self.assertAlmostEqual(row["throughput_ratio_microllm_over_pytorch"],
+                               1.139273731551338)
+        self.assertEqual(row["microllm_peak_bytes"], 5229860864.0)
+        self.assertEqual(row["pytorch_peak_bytes"], 6381346816.0)
+        self.assertEqual(row["microllm_kv_cache_actual_bytes"], 121110528.0)
+        self.assertEqual(row["pytorch_kv_cache_actual_bytes"], 121110528.0)
+        self.assertEqual(analysis["matching_generated_tokens"], 64)
+        self.assertEqual(verification["runs_per_framework"], 3)
+
+        profile_root = (ROOT / "benchmarks/results" /
+                        "2026-08-26-clean-deepseek-t2048-profile")
+        profile = json.loads((profile_root / "summary.json").read_text(
+            encoding="utf-8"))
+        profile_analysis = json.loads((profile_root / "analysis.json").read_text(
+            encoding="utf-8"))
+        profile_verification = json.loads((profile_root / "verification.json").read_text(
+            encoding="utf-8"))
+        categories = {item["category"]: item for item in
+                      profile["kernel_profile"]["categories"]}
+        self.assertAlmostEqual(
+            categories["cached Attention finalize"]["kernel_share"],
+            0.42269118556170254)
+        self.assertAlmostEqual(categories["hipBLASLt GEMM"]["kernel_share"],
+                               0.3325377735483638)
+        self.assertEqual(profile["kernel_profile"][
+            "negative_call_delta_names"], [])
+        self.assertEqual(profile_analysis["largest_category"],
+                         "cached Attention finalize")
+        self.assertEqual(profile_verification["derived_forward_steps"], 128)
+        ET.parse(profile_root / "profile-delta.svg")
+
     def test_current_ffn_down_solution_matrix_rejects_exact_candidate(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-ffn-down-row-invariance")

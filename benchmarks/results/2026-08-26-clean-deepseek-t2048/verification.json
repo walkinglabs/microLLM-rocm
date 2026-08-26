@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "experiment": 322,
+  "status": "pass",
+  "measurement_commit": "5179352d25b3213d341b0f04f70d43f5a5d0daad",
+  "model_revision": "ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562",
+  "context": 2048,
+  "batch": 2,
+  "decode_tokens": 64,
+  "warmup": 2,
+  "steps": 5,
+  "runs_per_framework": 3,
+  "framework_order": "alternating",
+  "micro_precision": "BF16 FFN and Attention weights with FP32 activations",
+  "pytorch_precision": "full model BF16",
+  "cache_dtype": "BF16",
+  "cache_capacity_tokens": 2112,
+  "device_discovery_workaround": "explicit AMD SMI fallback",
+  "claims_not_made": [
+    "This one shape is not an all-workload PyTorch performance claim.",
+    "Different resident weight dtypes are reported rather than called identical.",
+    "The old historical baseline is not silently overwritten."
+  ]
+}

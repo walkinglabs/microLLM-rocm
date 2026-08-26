@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "experiment": 322,
+  "status": "pass",
+  "measurement_commit": "5179352d25b3213d341b0f04f70d43f5a5d0daad",
+  "profile_method": "(three-generation process minus one-generation process) divided by two",
+  "context": 2048,
+  "batch": 2,
+  "decode_tokens": 64,
+  "warmup": 1,
+  "one_step_count": 1,
+  "many_step_count": 3,
+  "derived_forward_steps": 128,
+  "materialized_score_policy": "auto-enabled",
+  "negative_call_delta_names": [],
+  "raw_stats_retained": [
+    "kernel", "hip_api", "memory_copy", "memory_allocation"
+  ],
+  "claims_not_made": [
+    "rocprof wall time is not the paired end-to-end throughput.",
+    "The old 61.57% Attention share is not reused as current evidence.",
+    "A category share alone does not prove a proposed replacement will be faster."
+  ]
+}

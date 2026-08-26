@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "experiment": 322,
+  "status": "current_profile_refreshed",
+  "total_kernel_ms": 820.736768,
+  "largest_category": "cached Attention finalize",
+  "finalize_ms": 346.9181975,
+  "finalize_share": 0.42269118556170254,
+  "gemm_ms": 272.9259775,
+  "gemm_share": 0.3325377735483638,
+  "attention_scores_ms": 64.641041,
+  "attention_scores_share": 0.07875977234152619,
+  "cast_ms": 33.744482,
+  "cast_share": 0.041114865710512434,
+  "backend_allocation_delta": 0,
+  "next_experiment": "Audit a new cached-Attention finalize architecture against the already rejected thread-map, split-PV, exact-reuse, and online routes before adding code."
+}

@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 321 screens the clean
-> `K8960/N1536` down descriptor. Only `296100` is repeated-block exact, but its
-> M2048/4096/8192/16384 speedups are `0.506/0.758/0.686/0.863x`; it is rejected
-> without a model route. The row-order solution track is closed. The next node
-> refreshes the clean-upstream T2048/B2/N64 baseline and profile.
-> See the [down solution rejection](docs/optimization-log/experiments/321-fp32-ffn-down-reject.md).
+> **Current optimization checkpoint:** Experiment 322 refreshes clean
+> DeepSeek T2048/B2/N64. microLLM/PyTorch are `177.77/156.04 tok/s` (`1.1393x`),
+> all 64 tokens match, peak is `5.23/6.38 GB`, and KV bytes match exactly. Current
+> Kernel share is finalize `42.27%`, GEMM `33.25%`, scores `7.88%`. The next node
+> must propose a genuinely new finalize architecture, not reopen rejected mappings.
+> See the [clean baseline and profile](docs/optimization-log/experiments/322-clean-long-context-profile.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

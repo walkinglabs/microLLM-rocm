@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "experiment": 322,
+  "status": "current_baseline_refreshed",
+  "microllm_tokens_per_second_median": 177.773566124,
+  "pytorch_tokens_per_second_median": 156.04113497985026,
+  "throughput_ratio_microllm_over_pytorch": 1.139273731551338,
+  "microllm_process_cv": 0.001984768557580516,
+  "pytorch_process_cv": 0.020778177840687806,
+  "matching_generated_tokens": 64,
+  "microllm_peak_bytes": 5229860864,
+  "pytorch_peak_bytes": 6381346816,
+  "peak_memory_ratio_microllm_over_pytorch": 0.8195544004734439,
+  "kv_cache_bytes_both": 121110528,
+  "kv_cache_utilization_both": 1.0,
+  "next_evidence": "Current clean rocprof phase delta in the paired profile directory."
+}

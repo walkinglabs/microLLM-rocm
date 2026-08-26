@@ -4955,3 +4955,13 @@ K8960/N1536有15个共同候选，唯一block exact仍是296100，但四个M只�
 热点才能成为新目标。
 
 ![FFN down row invariance](../../benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/ffn-down-row-invariance.svg)
+
+## 339. Experiment 322：回到clean upstream，当前已是1.139× PyTorch
+
+三轮交替进程中，microLLM/PyTorch中位数为177.77/156.04 tok/s，64 token exact，峰值5.23/6.38GB。
+旧0.8158×不再是当前结论。
+
+当前profile仍由finalize主导：346.92ms/42.27%；GEMM 272.93ms/33.25%，scores 64.64ms/7.88%。
+下一步先证明候选架构与五条旧路线真的不同，否则停止finalize局部线。
+
+![Current clean profile](../../benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/profile-delta.svg)

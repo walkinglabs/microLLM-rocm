@@ -1044,6 +1044,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Post-exact gate/up SVG](../../benchmarks/results/2026-08-26-post-exact-gate-up-ffn-trace/post-exact-gate-up-trace.svg) | 8进程7阶段完整值因果图 |
 | [experiments/321-fp32-ffn-down-reject.md](experiments/321-fp32-ffn-down-reject.md) | down唯一exact候选的0.506×性能反例 |
 | [FFN down SVG](../../benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/ffn-down-row-invariance.svg) | K8960/N1536的15候选矩阵 |
+| [experiments/322-clean-long-context-profile.md](experiments/322-clean-long-context-profile.md) | 当前1.1393×PyTorch与42.27% finalize热点 |
+| [Current clean profile SVG](../../benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/profile-delta.svg) | 1/3-generation当前Kernel分类 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
