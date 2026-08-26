@@ -91,6 +91,8 @@ def main() -> int:
         b"output-column-amax",
         b"--int8-weight-scope",
         b"attention-only",
+        b"attention-qkv-only",
+        b"attention-output-only",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

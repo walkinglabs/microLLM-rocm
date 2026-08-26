@@ -74,7 +74,10 @@ struct Int8WeightPreparationReport {
     std::size_t device_amax_tensors = 0;
 };
 enum class Int8WeightScaleMode { TensorAmax, OutputColumnAmax };
-enum class Int8WeightScope { AllLinear, FfnOnly, AttentionOnly, OutputHeadOnly };
+enum class Int8WeightScope {
+    AllLinear, FfnOnly, AttentionOnly, AttentionQkvOnly,
+    AttentionOutputOnly, OutputHeadOnly
+};
 
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 

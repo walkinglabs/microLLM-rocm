@@ -1575,6 +1575,12 @@ public:
             linears.push_back(linear);
         }
     }
+    void append_int8_qkv_linears(std::vector<Linear*>& linears) {
+        for (auto* linear : {&query_, &key_, &value_}) linears.push_back(linear);
+    }
+    void append_int8_output_linear(std::vector<Linear*>& linears) {
+        linears.push_back(&output_);
+    }
     void move_int8_inference_scales(Device device) {
         for (auto* linear : {&query_, &key_, &value_, &output_}) {
             linear->move_int8_inference_scale(device);
@@ -2248,6 +2254,10 @@ public:
         if (scope == Int8WeightScope::AllLinear ||
             scope == Int8WeightScope::AttentionOnly) {
             attention_.append_int8_inference_linears(linears);
+        } else if (scope == Int8WeightScope::AttentionQkvOnly) {
+            attention_.append_int8_qkv_linears(linears);
+        } else if (scope == Int8WeightScope::AttentionOutputOnly) {
+            attention_.append_int8_output_linear(linears);
         }
         if (scope == Int8WeightScope::AllLinear ||
             scope == Int8WeightScope::FfnOnly) {

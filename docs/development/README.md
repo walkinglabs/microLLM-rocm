@@ -715,3 +715,5 @@ the next gate. Records are append-only except for factual corrections.
   retains column primitives but closes the current official weight-only INT8 precision line.
 - [2026-08-26-official-int8-scope-matrix.md](2026-08-26-official-int8-scope-matrix.md):
   rejects FFN and withholds Attention pending one final QKV/O decomposition.
+- [2026-08-26-official-int8-attention-split.md](2026-08-26-official-int8-attention-split.md):
+  keeps the fixed gate and closes the current official PTQ weight-only INT8 line.

@@ -1,0 +1,17 @@
+{
+  "model": "Qwen2.5-0.5B pinned official fixture",
+  "scale_mode": "output-column-amax",
+  "thresholds": {"maximum_absolute_error": 0.1, "rms_error": 0.02},
+  "fp32_tokens": [24184, 220],
+  "scopes": [
+    {"scope": "attention-qkv-only", "linears": 72,
+     "maximum_absolute_error": 0.135469437, "rms_error": 0.0292542044,
+     "tokens": [24184, 220], "decode_tokens_per_second": 533.491104,
+     "resident_weight_bytes": 1901923840, "accepted": false},
+    {"scope": "attention-output-only", "linears": 24,
+     "maximum_absolute_error": 0.107553959, "rms_error": 0.0200397973,
+     "tokens": [24184, 220], "decode_tokens_per_second": 502.844465,
+     "resident_weight_bytes": 1918414336, "accepted": false}
+  ],
+  "decision": "reject_both_close_ptq_weight_only_int8_official_line"
+}

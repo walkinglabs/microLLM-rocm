@@ -802,6 +802,8 @@ TEST(TransformerModelTest, Int8MixedPrecisionScopesCoverOnlyRequestedLinears) {
     for (const auto& [scope, expected] :
          {std::pair{Int8WeightScope::FfnOnly, 3U},
           std::pair{Int8WeightScope::AttentionOnly, 4U},
+          std::pair{Int8WeightScope::AttentionQkvOnly, 3U},
+          std::pair{Int8WeightScope::AttentionOutputOnly, 1U},
           std::pair{Int8WeightScope::OutputHeadOnly, 1U}}) {
         TransformerModel model(tiny_config(), 29);
         const auto report = model.prepare_int8_inference_weights(

@@ -180,3 +180,5 @@ HIP整模准备使用`quantize_int8_dynamic`：amax、scale和I8 payload都在GP
 精度路线已关闭。
 显式`--int8-weight-scope`可隔离FFN、Attention或untied output head。官方Qwen FFN失败；
 Attention token一致但完整Max/RMS仍超过0.1/0.02门，因此尚未准入。
+最后的QKV-only和O-only也分别为0.1355/0.0293与0.1076/0.02004，虽然token一致但都未过固定门。
+当前官方PTQ weight-only INT8路线因此饱和关闭，不再继续细分。

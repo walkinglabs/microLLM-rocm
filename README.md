@@ -1258,6 +1258,9 @@ official weight-only INT8 precision line is closed.
 [Experiment 358](docs/optimization-log/experiments/358-official-int8-scope-matrix.md) rejects
 FFN-only at Max/RMS 5.153/1.294 and withholds token-exact Attention-only at 0.161/0.0346 pending
 one final QKV/O split against the fixed 0.1/0.02 gate.
+[Experiment 359](docs/optimization-log/experiments/359-official-int8-attention-split-saturation.md)
+rejects token-exact QKV-only at 0.1355/0.0293 and O-only at 0.1076/0.02004 without relaxing the
+fixed gate; the current official PTQ weight-only INT8 line is saturated and closed.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

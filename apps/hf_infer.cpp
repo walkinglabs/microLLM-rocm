@@ -608,9 +608,11 @@ Options options(int argc, char** argv) {
     if (result.int8_weight_scope != "all-linear" &&
         result.int8_weight_scope != "ffn-only" &&
         result.int8_weight_scope != "attention-only" &&
+        result.int8_weight_scope != "attention-qkv-only" &&
+        result.int8_weight_scope != "attention-output-only" &&
         result.int8_weight_scope != "output-head-only") {
         throw std::invalid_argument(
-            "--int8-weight-scope must be all-linear, ffn-only, attention-only, or output-head-only");
+            "--int8-weight-scope must be all-linear, ffn-only, attention-only, attention-qkv-only, attention-output-only, or output-head-only");
     }
     if (result.fp8_weight_scale_mode != "fixed" &&
         result.fp8_weight_scale_mode != "tensor-amax" &&
@@ -1626,6 +1628,10 @@ int main(int argc, char** argv) {
                     ? microllm::model::Int8WeightScope::FfnOnly
                     : command.int8_weight_scope == "attention-only"
                           ? microllm::model::Int8WeightScope::AttentionOnly
+                          : command.int8_weight_scope == "attention-qkv-only"
+                                ? microllm::model::Int8WeightScope::AttentionQkvOnly
+                          : command.int8_weight_scope == "attention-output-only"
+                                ? microllm::model::Int8WeightScope::AttentionOutputOnly
                           : command.int8_weight_scope == "output-head-only"
                                 ? microllm::model::Int8WeightScope::OutputHeadOnly
                                 : microllm::model::Int8WeightScope::AllLinear);
