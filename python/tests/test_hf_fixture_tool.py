@@ -59,17 +59,59 @@ training_tokens = "1,2"
         assert prepared.returncode == 0, prepared.stderr
         document = json.loads(manifest.read_text(encoding="utf-8"))
         assert document["models"][0]["parameter_count"] == 6
+        assert document["models"][0]["runtime_parameter_count"] == 6
+        assert document["models"][0]["stored_parameter_count"] == 6
         assert document["models"][0]["loaded_tensors"] == 2
         assert document["models"][0]["state"] == "fixture-ready"
         report = json.loads(evidence.read_text(encoding="utf-8"))
         assert report["status"] == "pass"
+        assert report["models"][0]["parameter_count"] == 6
+        assert report["models"][0]["runtime_parameter_count"] == 6
+        assert report["models"][0]["stored_parameter_count"] == 6
         assert report["models"][0]["weight_dtypes"] == ["F16", "F32"]
+
+        # A tied model can store two payloads but expose only one runtime
+        # parameter. The benchmark-facing legacy field follows runtime count;
+        # evidence retains the physical count and names both explicitly.
+        registry.write_text(
+            registry.read_text(encoding="utf-8").replace(
+                "parameter_count = 6\n",
+                "parameter_count = 6\nruntime_parameter_count = 4\n"),
+            encoding="utf-8")
+        prepared = subprocess.run([
+            sys.executable, str(TOOL), "prepare", "--registry", str(registry),
+            "--manifest", str(manifest), "--evidence", str(evidence),
+            "--model-source", f"fixture={source}",
+        ], capture_output=True, text=True)
+        assert prepared.returncode == 0, prepared.stderr
+        document = json.loads(manifest.read_text(encoding="utf-8"))
+        assert document["models"][0]["parameter_count"] == 4
+        assert document["models"][0]["runtime_parameter_count"] == 4
+        assert document["models"][0]["stored_parameter_count"] == 6
+        report = json.loads(evidence.read_text(encoding="utf-8"))
+        assert report["models"][0]["parameter_count"] == 6
+        assert report["models"][0]["runtime_parameter_count"] == 4
+        assert report["models"][0]["stored_parameter_count"] == 6
 
         validated = subprocess.run([
             sys.executable, str(TOOL), "validate", "--registry", str(registry),
             "--manifest", str(manifest),
         ], capture_output=True, text=True)
         assert validated.returncode == 0, validated.stderr
+
+        bad_registry = root / "bad-registry.toml"
+        bad_registry.write_text(
+            registry.read_text(encoding="utf-8").replace(
+                "runtime_parameter_count = 4",
+                "runtime_parameter_count = 7"),
+            encoding="utf-8")
+        rejected_count = subprocess.run([
+            sys.executable, str(TOOL), "prepare", "--registry", str(bad_registry),
+            "--manifest", str(root / "bad-manifest.json"),
+            "--model-source", f"fixture={source}",
+        ], capture_output=True, text=True)
+        assert rejected_count.returncode != 0
+        assert "runtime parameter count cannot exceed stored count" in rejected_count.stderr
 
         (source / "merges.txt").unlink()
         rejected = subprocess.run([

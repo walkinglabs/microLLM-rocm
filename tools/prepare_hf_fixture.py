@@ -59,6 +59,17 @@ def load_registry(path: Path) -> dict[str, dict]:
         if len(row["revision"]) != 40 or any(
                 character not in "0123456789abcdef" for character in row["revision"]):
             raise RuntimeError(f"{identifier} revision must be a pinned 40-character commit")
+        stored_count = row["parameter_count"]
+        if type(stored_count) is not int or stored_count <= 0:
+            raise RuntimeError(
+                f"{identifier} stored parameter count must be positive")
+        runtime_count = row.get("runtime_parameter_count", row["parameter_count"])
+        if type(runtime_count) is not int or runtime_count <= 0:
+            raise RuntimeError(
+                f"{identifier} runtime parameter count must be positive")
+        if runtime_count > stored_count:
+            raise RuntimeError(
+                f"{identifier} runtime parameter count cannot exceed stored count")
     return result
 
 
@@ -166,10 +177,13 @@ def prepare_one(row: dict, model_root: Path, tokenizer_root: Path) -> tuple[dict
     json.loads(config.read_text(encoding="utf-8"))
     json.loads(vocab.read_text(encoding="utf-8"))
     weight_entry, tensors, shards = inspect_weight_set(model_root)
-    parameter_count = sum(math.prod(shape) for shape, _dtype in tensors.values())
-    if parameter_count != row["parameter_count"]:
+    stored_parameter_count = sum(
+        math.prod(shape) for shape, _dtype in tensors.values())
+    if stored_parameter_count != row["parameter_count"]:
         raise RuntimeError(
-            f"{row['id']} parameter count {parameter_count} != {row['parameter_count']}")
+            f"{row['id']} parameter count {stored_parameter_count} != {row['parameter_count']}")
+    runtime_parameter_count = row.get(
+        "runtime_parameter_count", stored_parameter_count)
     if len(tensors) != row["tensor_count"]:
         raise RuntimeError(
             f"{row['id']} tensor count {len(tensors)} != {row['tensor_count']}")
@@ -188,7 +202,9 @@ def prepare_one(row: dict, model_root: Path, tokenizer_root: Path) -> tuple[dict
         "license": row["license"],
         "license_url": row["license_url"],
         "state": "fixture-ready",
-        "parameter_count": parameter_count,
+        "parameter_count": runtime_parameter_count,
+        "runtime_parameter_count": runtime_parameter_count,
+        "stored_parameter_count": stored_parameter_count,
         "loaded_tensors": len(tensors),
         "config": str(config.resolve()),
         "weights": str(weight_entry),
@@ -209,7 +225,9 @@ def prepare_one(row: dict, model_root: Path, tokenizer_root: Path) -> tuple[dict
         "revision": row["revision"],
         "license": row["license"],
         "state": "fixture-ready",
-        "parameter_count": parameter_count,
+        "parameter_count": stored_parameter_count,
+        "runtime_parameter_count": runtime_parameter_count,
+        "stored_parameter_count": stored_parameter_count,
         "tensor_count": len(tensors),
         "weight_file_count": len(shards),
         "weight_bytes": sum(path.stat().st_size for path in shards),
@@ -236,7 +254,9 @@ def validate_manifest(path: Path, registry: dict[str, dict]) -> dict:
         prepared, record = prepare_one(
             row, Path(model["config"]).resolve().parent,
             Path(model["vocab"]).resolve().parent)
-        for key in ("revision", "parameter_count", "loaded_tensors", "config", "weights",
+        for key in ("revision", "parameter_count", "runtime_parameter_count",
+                    "stored_parameter_count",
+                    "loaded_tensors", "config", "weights",
                     "vocab", "merges", "tokenizer_family", "license"):
             if model.get(key) != prepared.get(key):
                 raise RuntimeError(f"fixture manifest drift at {identifier}.{key}")

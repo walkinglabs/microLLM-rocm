@@ -237,17 +237,19 @@ io::visit_safetensors("model.safetensors", [](const auto& info, auto bytes) {
 - memory mapping；
 - 对所有分片先做全局 header 预检，再直接送到目标 GPU/rank；
 - FP8、INT4、逐通道INT8和对应scale/zero-point流式模型装载；
-- tied weight 不重复分配；
+- 更广模型家族和多分片中的 tied alias 合同；
 - 加载进度、取消和峰值内存报告。
 
-Qwen2.5-0.5B 已经通过一个固定官方 checkpoint 的严格加载和 logits 对齐；这仍不
-代表任意 Hugging Face 大模型都兼容。其他 Qwen 规模、Qwen3、DeepSeek、量化格式
+Qwen2.5-0.5B 与 Qwen3-0.6B 已分别通过一个固定官方 checkpoint 的严格加载和 logits
+对齐。Qwen3 的重复 tied lm_head 会先与 embedding 做有界逐字节验证，再跳过第二份
+runtime 分配。这仍不代表任意 Hugging Face 大模型都兼容；其他尺寸、架构和量化格式
 仍必须分别通过 config、权重、tokenizer 和完整 logits 门。
 
 官方fixture不把权重放进仓库。`tools/prepare_hf_fixture.py`读取
 `data/model_fixtures.toml`中的固定revision，支持下载或验证已有目录，并通过完整header/index
-重新计算参数量与Tensor数。生成的本地manifest可直接传给benchmark；可提交evidence不会记录
-本机payload路径。
+重新计算参数量与Tensor数。普通模型的存储值数和运行时参数数相同；Qwen3这类序列化重复
+tied payload的模型同时记录`stored_parameter_count`和`runtime_parameter_count`。生成的本地
+manifest可直接传给benchmark；可提交evidence不会记录本机payload路径。
 
 ## 10. 测试门
 
@@ -259,6 +261,7 @@ Qwen2.5-0.5B 已经通过一个固定官方 checkpoint 的严格加载和 logits
 - 加载后 forward 一致；
 - Qwen 名字和二维转置；
 - tied embedding 映射；
+- tied payload 的精确命名、分块逐字节验证、失败前零 H2D 和运行时去重；
 - F32/BF16/F16 round-trip，以及混合I8权重/F32 scale保真round-trip；
 - 单文件、多个分片和 index；
 - 损坏 header、不支持 dtype、重复权重和不安全路径；

@@ -1,5 +1,9 @@
 schema_version = 1
 
+# parameter_count is the number of values physically stored in safetensors.
+# runtime_parameter_count is optional and differs only when the runtime aliases
+# duplicated payloads such as a tied token embedding and language-model head.
+
 [[model]]
 id = "qwen2.5-0.5b"
 repo_id = "Qwen/Qwen2.5-0.5B"
@@ -22,6 +26,7 @@ revision = "c916fa4defd319b7d4e4da17604ca7338f4d99f5"
 license = "Apache-2.0"
 license_url = "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/LICENSE"
 parameter_count = 751632384
+runtime_parameter_count = 596049920
 tensor_count = 311
 tokenizer_family = "qwen3"
 inference_token_ids = [1]

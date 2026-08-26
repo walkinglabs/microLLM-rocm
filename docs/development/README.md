@@ -725,3 +725,5 @@ the next gate. Records are append-only except for factual corrections.
   records bounded strict alias verification and complete official logits/tokens.
 - [2026-08-26-qwen3-bf16-inference.md](2026-08-26-qwen3-bf16-inference.md):
   compares both BF16 implementations against one FP32 oracle and records speed/residency.
+- [2026-08-26-qwen3-fixture-runtime-counts.md](2026-08-26-qwen3-fixture-runtime-counts.md):
+  gives tied checkpoints separate stored/runtime parameter contracts for generic runners.

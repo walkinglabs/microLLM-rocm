@@ -20,7 +20,8 @@ roadmap. Passing a smaller smoke test does not complete a later item.
 - [ ] standardized FP8 files and packed INT4 software/storage path;
 - [x] add pinned official Qwen/DeepSeek fixture preparation: fixed revisions/licenses,
   complete safetensors header/index validation, exact parameter/Tensor counts,
-  config/vocab/merges gates and a shared local manifest; large payloads remain outside Git.
+  config/vocab/merges gates and a shared local manifest; Qwen3 tied payloads carry separate
+  stored/runtime counts, and large payloads remain outside Git.
 
 ## P1 — dense Qwen correctness target
 

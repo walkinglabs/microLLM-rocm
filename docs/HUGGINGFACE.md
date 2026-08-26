@@ -18,10 +18,17 @@ tokenizer_config     特殊 token 和聊天模板
 
 ## 2. 当前验证目标
 
-当前通过真机验证的是 `Qwen/Qwen2.5-0.5B` revision
-`060db6499f32faf8b98477b0a26969ef7d8b9987`。它有 494,032,768 个参数和 290 个
-权重 Tensor。默认路径把 BF16 文件准确转换成 FP32 reference；可选的单份 BF16 FFN
-准备路径已经在同一 revision 上完成 logits、exact token、显存和吞吐实测。
+当前通过真机验证的固定目标包括 `Qwen/Qwen2.5-0.5B` 和
+`Qwen/Qwen3-0.6B`。Qwen2.5 revision
+`060db6499f32faf8b98477b0a26969ef7d8b9987` 有 494,032,768 个运行时参数和
+290 个权重 Tensor。Qwen3 revision
+`c916fa4defd319b7d4e4da17604ca7338f4d99f5` 有 596,049,920 个运行时参数；
+文件保存 311 个 Tensor、751,632,384 个值，因为 token embedding 和 lm_head 的 tied
+payload 各保存了一份。Qwen3 strict loader 会先逐字节验证两份来源一致，再只建立
+310 个运行时目标。
+
+两种模型均已完成固定 prompt 的官方 logits/token 真机门。显式 BF16 路径有独立误差、
+常驻显存和吞吐证据；这些结果不自动推广到其他 Qwen 尺寸。
 
 ### 一条命令准备固定 fixture
 
@@ -35,7 +42,9 @@ python3 tools/prepare_hf_fixture.py prepare \
 ```
 
 注册表在`data/model_fixtures.toml`。工具下载指定revision，检查完整safetensors header/安全分片
-index、参数量、Tensor数、config、vocab与merges，再生成下文所有runner共用的manifest。Qwen来源标记
+index、参数量、Tensor数、config、vocab与merges，再生成下文所有runner共用的manifest。
+`stored_parameter_count`回答“文件里写了多少个值”，`runtime_parameter_count`回答“模型真正拥有
+多少个独立参数”；旧manifest的`parameter_count`保持为runner所需的运行时口径。Qwen来源标记
 Apache-2.0；DeepSeek Distill来源标记MIT。使用者仍应阅读注册表中的官方license链接。
 
 ## 3. 先检查 config
@@ -194,6 +203,7 @@ python tools/huggingface/compare_logits.py \
 - 基础 Instruct chat template 和三个特殊 token 已通过；工具调用模板尚未实现；
 - 当前 BF16 覆盖单份 Linear 混合推理和 FP32-master Linear 训练；continuous BF16
   training island 与 FP8 整网仍要分别报告；
-- Qwen3 的 QK-Norm、DeepSeek MLA/MoE 是不同结构。
+- 固定 Qwen3-0.6B 的显式 head dimension 与 QK-Norm 已通过；其他 Qwen3 尺寸、训练、
+  长上下文和量化策略仍要分别验收。DeepSeek MLA/MoE 是另一类结构。
 - 未初始化 HIP 模型的单文件权重已使用 header 预检和低精度 streaming；多 shard/index
   仍保留完整 StateDict 原子路径，不能把单文件加载速度推广到所有 checkpoint 布局。

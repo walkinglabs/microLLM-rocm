@@ -32,4 +32,7 @@ python3 tools/prepare_hf_fixture.py validate \
 Download mode requires the optional `huggingface_hub` package. Existing model and
 tokenizer directories can instead be supplied with repeated `--model-source` and
 `--tokenizer-source` arguments. The tool parses complete safetensors headers and checks
-parameter/Tensor counts, config, vocab and merges before writing the manifest.
+parameter/Tensor counts, config, vocab and merges before writing the manifest. Registry
+`parameter_count` means values physically stored in safetensors. A tied model may also
+declare `runtime_parameter_count`; generated manifests retain both counts while their
+legacy `parameter_count` field follows the runtime model expected by C++ and PyTorch.
