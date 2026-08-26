@@ -40,6 +40,11 @@ if(MICROLLM_HAS_HIP)
     target_link_libraries(microllm_bench_gradient_address_stability PRIVATE
         microllm::model microllm::training microllm::ops microllm::runtime
         hip::host)
+    add_executable(microllm_bench_external_gradient_pool
+                   single_gpu/benchmark_external_gradient_pool.cpp)
+    target_link_libraries(microllm_bench_external_gradient_pool PRIVATE
+        microllm::model microllm::training microllm::ops microllm::runtime
+        hip::host)
     add_executable(microllm_bench_optimizer_graph_model
                    single_gpu/benchmark_optimizer_graph_model.cpp)
     target_link_libraries(microllm_bench_optimizer_graph_model PRIVATE

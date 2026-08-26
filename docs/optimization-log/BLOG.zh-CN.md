@@ -4994,3 +4994,21 @@ DeepSeek B2 decode每步只有2行。三轮rows2 probe中solution65193稳定、6
 workload不再有值得继续的小改动。下一阶段必须换到serving、训练架构或新硬件/版本矩阵。
 
 ![Native128 result](../../benchmarks/results/2026-08-26-native128-finalize/native128.svg)
+
+## 344. Experiment 328：固定梯度地址不等于更快
+
+为了让PyTorch、RCCL或其他外部系统直接提供梯度内存，我们给Autograd叶子增加了显式
+`bind_grad_buffer`。可以把它想成先给每个参数画好一个固定格子：反向传播只能把答案写进这个
+格子，`zero_grad`擦掉内容却不换纸。
+
+Tiny的21个参数和Model-S的57个参数全部保持地址。Model-S的15,586,176个梯度元素在T8/T32
+都与普通路径bit-exact。这证明接口语义正确。
+
+但18个新进程、轮换执行顺序后的Event中位数只有0.871×、0.814×和0.792×；Model-S测量区
+峰值还增加6.75–10.69MiB。原因是普通Autograd能直接拿第一份梯度结果当最终存储，外部池却
+必须先清零，再额外执行第一次原地加法。每五步只少5次logical allocation，不足以抵消新增工作。
+
+因此这不是默认训练优化。接口保留给“地址稳定本身有价值”的互操作场景；若以后producer能直接
+写最终pool并删掉首次加法，必须重新做图级实验。
+
+![External gradient pool result](assets/external-gradient-pool-discard.svg)

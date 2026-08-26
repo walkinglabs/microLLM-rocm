@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 384/384, ASan/UBSan 381/381, PyTorch-enabled CPU 387/387, single-GPU HIP label 200/200, RCCL label 55/55 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 385/385, ASan/UBSan 382/382, PyTorch-enabled CPU 388/388, single-GPU HIP label 200/200, RCCL label 55/55 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -100,7 +100,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | C ABI v1 | smoke-tested | external descriptors/native Stream, forward outputs and six caller-owned backward families with explicit scratch; 58 symbols | Autograd external leaf pool |
 | Python ctypes API | smoke-tested | 3/3 bidirectional PyTorch ROCm native-Stream Event ordering; FP32 144MiB exposed, 0 wrapper copy; F16/BF16 180MiB, 0 copy, all Max 0; 63/63 random Softmax/RMSNorm/SwiGLU rows | packaging and model-family outputs |
 | External TensorView ops | smoke-tested | normalization 63/63; MHA/GQA 15/15, 105/105 Attention pointers; RoPE/Embedding/loss 36/36, 108/108 pointers; backward 114/114, 285/285 pointers | full Autograd/model external pool |
-| Autograd external leaf buffer | infrastructure smoke-tested, explicit | CPU branch/repeat/lifecycle/error gates and MI300X address/CPU-parity/no-transfer gate | Tiny/Model-S complete-gradient and performance matrix |
+| Autograd external leaf buffer | smoke-tested, explicit interop only | CPU/HIP lifecycle plus 18-process Tiny/Model-S matrix: 21/21 and 57/57 addresses stable, all gradients exact; Event 0.792×–0.871× and Model-S peak +6.75–10.69MiB reject default | foreign-runtime model binding and producer-direct pool writes |
 | In-process profiling | smoke-tested | 24/24 launch-correlated adds, residual ≤1.340us; target wait leaves 192/192-GEMM independent Stream pending with 0 device/Stream sync; PyTorch ordering passes but profiler injection aborts | resolve mixed-profiler conflict and multi-process clock model |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
 | Profiling/autotune | smoke-tested | rocprofv3, exact registries including isolated prefill Q/K/V/QK/P×V/O scopes, complete output/state before timing, real Attention batch-invariance harness and Autograd/layout diagnostics | automated model regression and broader trace correlation |

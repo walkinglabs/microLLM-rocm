@@ -543,6 +543,20 @@ python3 benchmarks/single_gpu/grouped_weight_gradient_matrix.py \
 It covers direct `N,T` and one-shared-transpose `N,N` layouts. A zero-supported row is a valid
 capability result, not a fallback performance measurement.
 
+Gate the explicit Autograd external leaf pool across complete Tiny/Model-S gradients,
+rotated process order, allocation counters, measured peak and Event/wall timing:
+
+```bash
+python3 benchmarks/single_gpu/external_gradient_pool_matrix.py \
+  --binary build/hip-release/benchmarks/microllm_bench_external_gradient_pool \
+  --output /tmp/microllm-external-gradient-pool \
+  --runs 3 --warmup 1 --repetitions 5
+```
+
+The timed scope is `zero_grad + forward + backward`; full-gradient host verification follows
+timing. Ratios are `baseline / external`. Current MI300X evidence keeps the API explicit for
+interop and rejects it as the default training policy.
+
 If grouped FP32 capability is absent, the packed counterfactual includes every D2D pack operation:
 
 ```bash

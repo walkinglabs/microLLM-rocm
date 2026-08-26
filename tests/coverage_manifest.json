@@ -428,6 +428,7 @@
     "python/tests/test_training_trajectory_evidence.py",
     "python/tests/test_bf16_weight_gradient_workspace_matrix.py",
     "python/tests/test_gradient_producer_out_matrix.py",
+    "python/tests/test_external_gradient_pool_matrix.py",
     "python/tests/test_data_parallel_verification_matrix.py",
     "python/tests/test_data_parallel_bucket_matrix.py",
     "python/tests/test_distributed_model_workload.py",

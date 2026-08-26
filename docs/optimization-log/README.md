@@ -1054,6 +1054,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Grouped rows2 SVG](../../benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/grouped-row2.svg) | 三轮Event/wall与稳定性 |
 | [experiments/326-grouped-decode-model-reject.md](experiments/326-grouped-decode-model-reject.md) | 1.00968×未过1.01模型门 |
 | [experiments/327-clean-deepseek-local-saturation.md](experiments/327-clean-deepseek-local-saturation.md) | 当前固定workload局部停止门 |
+| [experiments/328-external-gradient-pool-discard.md](experiments/328-external-gradient-pool-discard.md) | 全梯度exact、地址稳定但默认性能拒绝 |
+| [External gradient pool SVG](assets/external-gradient-pool-discard.svg) | 18进程Event/wall/峰值决策图 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

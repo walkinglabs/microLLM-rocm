@@ -236,8 +236,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   Embedding accumulation; 114/114 PyTorch gradients and 285/285 pointers pass;
 - [x] add explicit leaf-only Autograd gradient-buffer binding; CPU and MI300X tests prove
   address stability, repeated accumulation, zeroing and error boundaries;
-- [ ] bind every Tiny/Model-S leaf to one external pool and pass complete parameter Max/RMS,
-  address, allocation, peak-memory and Event/wall gates before claiming zero-copy training;
+- [x] bind every Tiny/Model-S leaf to one external pool: all gradients are exact and all
+  addresses stable, but Event is only 0.792×–0.871× and Model-S peak grows; keep the API
+  explicit for interoperability and reject it as the default engine training policy;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
 
 ## P2.5 — production data parallel reducer

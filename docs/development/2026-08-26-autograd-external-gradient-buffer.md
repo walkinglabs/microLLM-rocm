@@ -65,8 +65,8 @@ MI300X HIP测试覆盖：
 - GPU结果与CPU reference一致；
 - 清零和第二次backward仍使用原来的显存地址。
 
-这一步没有证明“更快”或“更省显存”。绑定缓冲区会把第一份贡献也做一次原地加法，可能
-增加Kernel。下一节点必须用Tiny和Model-S完整模型对比普通路径，完整检查每个命名参数的
-Max/RMS、地址、分配次数、峰值显存和Event/wall时间，再决定它只服务外部互操作还是也适合
-引擎内部训练。
-
+后续完整模型门已经完成。18个新进程覆盖Tiny T8、Model-S T8/T32并轮换先后顺序：Tiny
+21/21、Model-S 57/57地址稳定，15,586,176个Model-S梯度元素Max/RMS均为0。但Event中位数
+只有0.871×/0.814×/0.792×，Model-S测量区峰值增加6.75–10.69MiB。因此它只保留为显式
+互操作接口，不进入默认训练策略。完整证据见
+[Experiment 328](../optimization-log/experiments/328-external-gradient-pool-discard.md)。

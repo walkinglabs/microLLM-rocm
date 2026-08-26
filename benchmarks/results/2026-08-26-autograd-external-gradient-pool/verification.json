@@ -1,0 +1,20 @@
+{
+  "all_addresses_stable": true,
+  "all_gradients_exact": true,
+  "all_raw_records_pass": true,
+  "contexts": [
+    8,
+    32
+  ],
+  "models": [
+    "model-s",
+    "tiny"
+  ],
+  "processes": 18,
+  "rotated_orders": [
+    "baseline",
+    "external"
+  ],
+  "schema_version": 1,
+  "status": "pass"
+}

@@ -547,6 +547,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.GradientProducerOutMatrixContract PROPERTIES
         LABELS "cpu;benchmark;training;gradient;memory;schema")
     add_test(
+        NAME Benchmark.ExternalGradientPoolMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_external_gradient_pool_matrix.py
+    )
+    set_tests_properties(Benchmark.ExternalGradientPoolMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;autograd;training;gradient;memory;model;schema")
+    add_test(
         NAME Benchmark.DataParallelVerificationMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py
