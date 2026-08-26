@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Rejected FFN route cleanup](2026-08-26-prefill-ffn-route-cleanup.md)
 - [2026-08-26: Down after exact gate/up](2026-08-26-post-exact-gate-up-down.md)
 - [2026-08-26: Post-exact gate/up FFN runner](2026-08-26-post-exact-gate-up-runner.md)
 - [2026-08-26: All-exact FFN rejection](2026-08-26-prefill-ffn-all-exact-reject.md)

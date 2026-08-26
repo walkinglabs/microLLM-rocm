@@ -270,6 +270,20 @@ def main() -> int:
     assert post_gate_up["process_rows"] == 8
     assert post_gate_up["binary_files_retained"] == 0
     ET.parse(post_gate_up_root / "post-exact-gate-up-trace.svg")
+    for removed in (
+        "benchmarks/single_gpu/fp32_prefill_ffn_model_gate.py",
+        "benchmarks/single_gpu/fp32_prefill_ffn_all_exact_gate.py",
+        "benchmarks/single_gpu/audit_post_exact_gate_up_ffn.py",
+    ):
+        assert not (ROOT / removed).exists()
+    current_sources = "\n".join(
+        (ROOT / relative).read_text(encoding="utf-8")
+        for relative in (
+            "apps/hf_infer.cpp", "include/microllm/ops/context.h",
+            "src/model/model.cpp", "src/ops/optimized.cpp",
+        ))
+    assert "PrefillFfnGateUpProjection" not in current_sources
+    assert "fp32-prefill-ffn-gate-up-solution-index" not in current_sources
     print(f"status contract: pass components={len(names)}")
     return 0
 

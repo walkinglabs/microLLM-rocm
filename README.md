@@ -42,8 +42,9 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > **Current optimization checkpoint:** Experiment 320 uses exact Attention plus
 > exact gate/up as a diagnostic control. FFN norm, gate, up, and SwiGLU become
 > bitwise equal across and within batches; down projection is the first drift
-> (Max `1.05e-5–1.72e-5`). The rejected gate/up user route is now scheduled for
-> cleanup; the next operator screen targets `K8960/N1536` down projection.
+> (Max `1.05e-5–1.72e-5`). The rejected gate/up CLI/model route and candidate
+> runners have been removed. The next operator screen targets `K8960/N1536`
+> down projection without inheriting the failed route.
 > See the [post-exact gate/up trace](docs/optimization-log/experiments/320-post-exact-gate-up-down.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures

@@ -152,24 +152,6 @@ FFN_SOLUTIONS_SPEC = importlib.util.spec_from_file_location(
 FFN_SOLUTIONS = importlib.util.module_from_spec(FFN_SOLUTIONS_SPEC)
 assert FFN_SOLUTIONS_SPEC.loader is not None
 FFN_SOLUTIONS_SPEC.loader.exec_module(FFN_SOLUTIONS)
-FFN_MODEL_SPEC = importlib.util.spec_from_file_location(
-    "fp32_prefill_ffn_model_gate",
-    ROOT / "benchmarks/single_gpu/fp32_prefill_ffn_model_gate.py")
-FFN_MODEL = importlib.util.module_from_spec(FFN_MODEL_SPEC)
-assert FFN_MODEL_SPEC.loader is not None
-FFN_MODEL_SPEC.loader.exec_module(FFN_MODEL)
-FFN_ALL_SPEC = importlib.util.spec_from_file_location(
-    "fp32_prefill_ffn_all_exact_gate",
-    ROOT / "benchmarks/single_gpu/fp32_prefill_ffn_all_exact_gate.py")
-FFN_ALL = importlib.util.module_from_spec(FFN_ALL_SPEC)
-assert FFN_ALL_SPEC.loader is not None
-FFN_ALL_SPEC.loader.exec_module(FFN_ALL)
-POST_GATE_UP_SPEC = importlib.util.spec_from_file_location(
-    "audit_post_exact_gate_up_ffn",
-    ROOT / "benchmarks/single_gpu/audit_post_exact_gate_up_ffn.py")
-POST_GATE_UP = importlib.util.module_from_spec(POST_GATE_UP_SPEC)
-assert POST_GATE_UP_SPEC.loader is not None
-POST_GATE_UP_SPEC.loader.exec_module(POST_GATE_UP)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
@@ -187,7 +169,7 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
                          "post_exact_gate_up_ffn_stage_trace_audit")
         self.assertEqual((len(raw), summary["process_rows"]), (8, 8))
         self.assertEqual(summary["first_nonzero_stage"],
-                         POST_GATE_UP.BASE.PREFIX + ".ffn.down")
+                         "inference.cached_prefill.blocks.0.ffn.down")
         self.assertTrue(summary["all_repeat_metrics_equal"])
         for case in summary["cases"]:
             for stage in case["stages"][:4]:
@@ -204,38 +186,6 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(verification["scope_dispatches_per_process"], 224)
         self.assertFalse(list(root.glob("*.bin")))
         ET.parse(root / "post-exact-gate-up-trace.svg")
-
-    def test_post_exact_gate_up_trace_combines_six_scoped_keys(self):
-        args = type("Args", (), {
-            "binary": Path("micro"), "context": 2048,
-        })()
-        model = {
-            "config": "config.json", "weights": "model.bin",
-            "inference": {"token_ids": [1, 2]},
-        }
-        command = POST_GATE_UP.command(
-            args, model, 4, Path("trace.jsonl"), Path("cache.bin"),
-            Path("values"))
-        self.assertEqual(command[
-            command.index("--fp32-prefill-ffn-gate-up-solution-index") + 1],
-            "296100")
-        route = {
-            "status": "pass", "batch": 4, "token_count": 2048,
-            "trace_record_count": 55, "trace_binary_record_count": 7,
-            "fp32_prefill_q_solution_index": 296100,
-            "fp32_prefill_kv_solution_index": 292135,
-            "fp32_prefill_attention_qk_solution_index": 304681,
-            "fp32_prefill_attention_pv_solution_index": 295716,
-            "fp32_prefill_attention_o_solution_index": 296100,
-            "fp32_prefill_ffn_gate_up_solution_index": 296100,
-            "fp32_solution_registered_entries": 6,
-            "fp32_solution_cached_algorithms": 6,
-            "fp32_solution_registry_hits": 224,
-            "fp32_solution_cache_misses": 6,
-            "fp32_solution_cache_hits": 218,
-            "fp32_solution_dispatches": 224,
-        }
-        POST_GATE_UP.require_route(route, 4)
 
     def test_current_all_exact_ffn_gate_rejects_rms_worsening(self):
         root = (ROOT / "benchmarks/results" /
@@ -274,24 +224,6 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
                                0.0578331587000982)
         self.assertFalse(verification["admission"]["passed"])
         ET.parse(root / "ffn-all-exact-model-gate.svg")
-
-    def test_all_exact_ffn_runner_includes_b4_without_changing_scope(self):
-        args = type("Args", (), {
-            "binary": Path("micro"), "context": 2048,
-        })()
-        model = {
-            "config": "config.json", "weights": "model.bin",
-            "inference": {"token_ids": [1, 2]},
-        }
-        b4 = FFN_ALL.BASE.command(
-            args, model, "batch-selective", 4, 0)
-        self.assertEqual(b4[
-            b4.index("--fp32-prefill-ffn-gate-up-solution-index") + 1],
-            "296100")
-        self.assertNotIn("--fp32-prefill-q-solution-index", b4)
-        self.assertNotIn("--fp32-prefill-attention-qk-solution-index", b4)
-        self.assertTrue(all(values["ffn"] == 296100
-                            for values in FFN_ALL.SELECTIVE.values()))
 
     def test_current_prefill_ffn_model_gate_rejects_rms(self):
         root = (ROOT / "benchmarks/results" /
@@ -339,46 +271,6 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
                 candidate["engine_backend_allocation_calls_maximum"])
         self.assertFalse(verification["admission"]["passed"])
         ET.parse(root / "ffn-model-gate.svg")
-
-    def test_prefill_ffn_model_scope_is_batch_selective_and_counted(self):
-        args = type("Args", (), {
-            "binary": Path("micro"), "context": 2048,
-        })()
-        model = {
-            "config": "config.json", "weights": "model.bin",
-            "inference": {"token_ids": [1, 2]},
-        }
-        baseline = FFN_MODEL.command(
-            args, model, "upstream-exact", 2, 0)
-        self.assertNotIn(
-            "--fp32-prefill-ffn-gate-up-solution-index", baseline)
-        b2 = FFN_MODEL.command(
-            args, model, "batch-selective", 2, 0)
-        self.assertEqual(b2[
-            b2.index("--fp32-prefill-ffn-gate-up-solution-index") + 1],
-            "296100")
-        b4 = FFN_MODEL.command(
-            args, model, "batch-selective", 4, 0)
-        self.assertNotIn(
-            "--fp32-prefill-ffn-gate-up-solution-index", b4)
-        route = {
-            "status": "pass", "batch": 2, "token_count": 2048,
-            "decode_tokens": 1, "kv_cache_dtype": "bf16",
-            "fp32_prefill_q_solution_index": -1,
-            "fp32_prefill_kv_solution_index": -1,
-            "fp32_prefill_attention_qk_solution_index": -1,
-            "fp32_prefill_attention_pv_solution_index": -1,
-            "fp32_prefill_attention_o_solution_index": -1,
-            "fp32_prefill_ffn_gate_up_solution_index": 296100,
-            "fp32_solution_registered_entries": 1,
-            "fp32_solution_cached_algorithms": 1,
-            "fp32_solution_registry_hits": 56,
-            "fp32_solution_cache_misses": 1,
-            "fp32_solution_cache_hits": 55,
-            "fp32_solution_dispatches": 56,
-        }
-        FFN_MODEL.require_route(
-            route, "batch-selective", 2, 2048, 0)
 
     def test_current_ffn_solution_matrix_rejects_m8192(self):
         root = (ROOT / "benchmarks/results" /

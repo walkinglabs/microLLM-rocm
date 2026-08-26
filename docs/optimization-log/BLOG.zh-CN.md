@@ -4942,3 +4942,6 @@ exact Attention+gate/up后，FFN norm、gate、up和SwiGLU跨/内batch全部位�
 runner，再筛down的K8960/N1536 operator descriptor。
 
 ![Post-exact gate/up](../../benchmarks/results/2026-08-26-post-exact-gate-up-ffn-trace/post-exact-gate-up-trace.svg)
+
+失败route随后按合同删除：CLI、model scope和三个candidate runner不再存在；通用operator矩阵、filtered
+trace和raw证据保留。下一步从clean upstream筛down descriptor。

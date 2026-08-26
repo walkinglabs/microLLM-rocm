@@ -1,6 +1,6 @@
 # Step 136 — Post-exact gate/up trace and rejected-route cleanup
 
-Status: trace completed by Experiment 320; cleanup pending
+Status: completed by Experiment 320 and route cleanup
 
 Experiment 319已经关闭模型优化线，但296100仍可作最后一次诊断控制。固定exact Attention stack和exact
 gate/up，运行B1/2/4/8、两个fresh Release进程的七阶段FFN完整值trace：
@@ -16,3 +16,6 @@ FFN norm → gate → up → SwiGLU activation → down → outputs
 结果：norm、gate、up、activation跨/内batch全部exact；down统一首差，B2/B4/B8 Max为
 1.72e-5/1.05e-5/1.43e-5。下一提交执行candidate route清理，然后进入down operator矩阵。详见
 [`Experiment 320`](../experiments/320-post-exact-gate-up-down.md)。
+
+清理已完成：gate/up scope、CLI注册/输出和三个candidate runner删除；通用operator工具、trace基础设施与
+历史证据保留。源码缺失合同防止失败route重新出现。

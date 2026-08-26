@@ -1798,8 +1798,7 @@ public:
 
     Tensor forward_tensor(const Tensor& input,
                           const std::string& trace_prefix = {},
-                          bool prefill_trace_rows = false,
-                          const ops::OpContext& projection_context = {}) {
+                          bool prefill_trace_rows = false) {
         if (input.ndim() != 3) throw std::invalid_argument("FFN input must be BxTxD");
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
@@ -1859,8 +1858,8 @@ public:
                 gate = gate_.forward_scaled_input(scaled);
                 up = up_.forward_scaled_input(scaled);
             } else {
-                gate = gate_.forward_tensor(flat, projection_context);
-                up = up_.forward_tensor(flat, projection_context);
+                gate = gate_.forward_tensor(flat);
+                up = up_.forward_tensor(flat);
             }
             const auto activated = ops::swiglu(gate, up);
             auto* trace = profiling::TraceSession::current();
@@ -2052,16 +2051,12 @@ public:
         const auto ffn_details = trace != nullptr &&
                                  (trace->options().record_all_layer_details ||
                                   filtered_ffn_detail);
-        ops::OpContext ffn_projection_context;
-        ffn_projection_context.mode = ops::OpMode::Inference;
-        ffn_projection_context.fp32_solution_scope =
-            ops::Fp32SolutionScope::PrefillFfnGateUpProjection;
         auto ffn = feed_forward_.forward_tensor(
             ffn_input,
             ffn_details && !trace_prefix.empty()
                 ? ffn_trace_prefix
                 : std::string{},
-            ffn_details, ffn_projection_context);
+            ffn_details);
         trace_prefill_rows(trace_prefix, "ffn_output", ffn,
                            input.shape()[0], input.shape()[1]);
         auto output = ops::add(hidden, ffn);

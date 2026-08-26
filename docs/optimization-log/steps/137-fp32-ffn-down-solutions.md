@@ -1,6 +1,6 @@
 # Step 137 — FP32 FFN down row-invariant solutions
 
-Status: planned after route cleanup
+Status: planned; route cleanup complete
 
 Experiment 320把第一处差异移动到down。真实descriptor family为：
 
