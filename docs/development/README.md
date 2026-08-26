@@ -709,3 +709,5 @@ the next gate. Records are append-only except for factual corrections.
   keeps an explicit memory-first M=1 route while preserving the resident-GEMM counterexample.
 - [2026-08-26-model-s-int8-inference.md](2026-08-26-model-s-int8-inference.md):
   records transactional whole-model preparation, decode gain and the prefill counterexample.
+- [2026-08-26-official-int8-device-amax.md](2026-08-26-official-int8-device-amax.md):
+  keeps zero-D2H preparation while rejecting official Qwen on complete logits and tokens.

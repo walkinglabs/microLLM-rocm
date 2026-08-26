@@ -1016,10 +1016,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 417/417 | host code, CLI, model/graph, transactional INT8 model preparation, benchmark and package gates |
-| ASan/UBSan CPU | 414/414 | host lifetime, one-byte Tensor views, one-way model state and instrumented-package linking |
-| MI300X/gfx942 HIP label | 209/209 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8/INT8 whole-model candidate and bindings |
-| PyTorch-enabled CPU build | 418/418 | dispatcher parity, INT8 operator/model oracle, optimizer state, full graph/model oracle and package paths |
+| CPU Debug | 418/418 | host code, CLI, model/graph, dynamic INT8 model preparation, benchmark and package gates |
+| ASan/UBSan CPU | 415/415 | host lifetime, dynamic scale state, one-way model state and instrumented-package linking |
+| MI300X/gfx942 HIP label | 210/210 | allocator/arena/Stream/Graph, device-only INT8 preparation, whole-model candidate and bindings |
+| PyTorch-enabled CPU build | 419/419 | dispatcher parity, INT8 operator/model oracle, optimizer state, full graph/model oracle and package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
 | Registered test files | 156 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
@@ -1249,6 +1249,9 @@ matched PyTorch per-call dequantize path. The DeepSeek resident-FP32 counterexam
 transactional whole-model preparation. Model-S context1 improves 1.719× and resident engine bytes
 fall 59.8%, while context4 falls to 0.472× and preparation peak rises 19.5%; the route remains
 explicit and inference-only.
+[Experiment 356](docs/optimization-log/experiments/356-official-int8-device-amax-reject.md) moves
+all 168 Qwen weight-amax scans onto GPU and cuts residency to 0.903GB, but rejects the official
+route at complete-logit Max/RMS 15.203/3.467 and changed tokens.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

@@ -52,6 +52,9 @@ shape/device/scale不匹配必须拒绝。临时浮点weight是公开代价，�
 显式`FusedDecode`只接受HIP FP32 `[1,K]`和连续I8 `[K,N]`，一个block归约一个输出列，输出
 FP32 `[1,N]`。真实K/N完整输出、零payload传输和少一次逻辑分配必须通过；`Auto`当前仍等于
 `ExplicitDequantize`，因为DeepSeek resident-FP32性能反例未过门。
+`quantize_int8_dynamic`在CPU按完整Tensor amax/127计算scale；HIP使用两级device归约并直接量化，
+返回device-authoritative scale，热路径不得有H2D/D2H。官方模型准备可复用该原语，但其数值
+仍必须通过完整logits，不能以零传输代替精度证据。
 
 ## BF16 weight gradient
 

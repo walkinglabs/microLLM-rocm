@@ -84,6 +84,9 @@ def main() -> int:
         b"--inference-bthd-bf16-qk",
         b"inference_bthd_bf16_qk",
         b"bf16_grouped_qkv_retained_query_key_dispatches",
+        b"--int8-linear",
+        b"int8_device_weight_bytes_scanned",
+        b"single_representation_int8_linear_explicit",
     )
     missing = [value.decode() for value in required if value not in payload]
     if missing:

@@ -159,6 +159,8 @@ Transformer已经使用INT8 GEMM；默认模型计算路由仍需单独实现和
 Linear候选成功后才释放FP32 Linear权重；Embedding与Norm保持FP32。准备后只能调用graph-free
 inference，Autograd、重新加载和`state_dict()`会拒绝。M=1 FP32输入使用显式融合decode，M>1
 回到完整反量化基线，因此它尚不是默认或通用INT8模型路径。
+HIP准备使用device-only amax，不回传权重payload。固定Qwen虽然常驻显著下降且短decode更快，
+完整logits与token仍失败；这证明文件和准备API可用，不证明量化模型正确。
 
 默认计算仍是 FP32。推理可在加载后调用 `prepare_bf16_ffn_inference()` 和
 `prepare_bf16_attention_inference()`，事务式地把 FFN 与 Q/K/V/O 权重替换成单份 BF16；

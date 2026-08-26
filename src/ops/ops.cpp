@@ -1306,6 +1306,48 @@ Int8ScaledTensor quantize_int8(
     return {std::move(output), std::move(scale_tensor), scale, true};
 }
 
+Int8ScaledTensor quantize_int8_dynamic(
+    const Tensor& input, float minimum_scale,
+    [[maybe_unused]] const OpContext& context) {
+    if (!input.defined() || !input.is_contiguous() ||
+        (input.dtype() != DType::Float32 &&
+         input.dtype() != DType::Float16 &&
+         input.dtype() != DType::BFloat16) ||
+        !std::isfinite(minimum_scale) || minimum_scale <= 0.0F) {
+        throw std::invalid_argument(
+            "dynamic INT8 quantize requires contiguous floating input and positive finite minimum scale");
+    }
+    if (input.device().is_cpu()) {
+        float maximum = 0.0F;
+        for (const auto value : input.to_vector()) {
+            if (!std::isfinite(value)) {
+                throw std::invalid_argument(
+                    "dynamic INT8 quantize requires finite input");
+            }
+            maximum = std::max(maximum, std::abs(value));
+        }
+        return quantize_int8(input,
+                             std::max(maximum / 127.0F, minimum_scale),
+                             context);
+    }
+    Tensor output(input.shape(), DType::Int8, input.device());
+    Tensor scale(Shape{}, DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+    const auto partial_count = std::min<std::int64_t>(
+        1024, std::max<std::int64_t>(1, (input.numel() + 255) / 256));
+    Tensor partial({partial_count}, DType::Float32, input.device());
+    hip::launch_quantize_int8_dynamic(
+        input.data(), input.dtype(), static_cast<std::int8_t*>(output.data()),
+        static_cast<float*>(scale.data()), static_cast<float*>(partial.data()),
+        partial_count, input.numel(), minimum_scale,
+        context.native_stream(input.device()));
+    return {std::move(output), std::move(scale), minimum_scale, false};
+#else
+    throw std::runtime_error(
+        "microLLM was built without HIP operator support");
+#endif
+}
+
 Tensor dequantize_int8(
     const Int8ScaledTensor& input, DType output_dtype,
     [[maybe_unused]] const OpContext& context) {

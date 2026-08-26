@@ -360,6 +360,9 @@ struct CausalGqaAttentionDiagnostics {
 // infinities saturate. Input may be FP32/FP16/BF16 and must be contiguous.
 [[nodiscard]] Int8ScaledTensor quantize_int8(
     const Tensor& input, float scale, const OpContext& context = {});
+[[nodiscard]] Int8ScaledTensor quantize_int8_dynamic(
+    const Tensor& input, float minimum_scale = 1.0e-8F,
+    const OpContext& context = {});
 // Restores FP32/FP16/BF16 without copying the scale back to the host on HIP.
 [[nodiscard]] Tensor dequantize_int8(
     const Int8ScaledTensor& input, DType output_dtype = DType::Float32,

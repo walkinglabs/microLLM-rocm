@@ -73,6 +73,7 @@ struct Options {
     bool cached_attention_materialized_explicit = false;
     bool bf16_attention = false;
     bool fp8_linear = false;
+    bool int8_linear = false;
     float fp8_activation_scale = 0.025F;
     float fp8_activation_minimum_scale = 1.0e-4F;
     float fp8_weight_scale = 0.005F;
@@ -244,6 +245,13 @@ Options options(int argc, char** argv) {
                 throw std::invalid_argument("--fp8-linear must be true or false");
             }
             result.fp8_linear = value == "true";
+        }
+        else if (name == "--int8-linear") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument("--int8-linear must be true or false");
+            }
+            result.int8_linear = value == "true";
         }
         else if (name == "--fp8-activation-scale") {
             result.fp8_activation_scale = std::stof(argv[index + 1]);
@@ -578,6 +586,11 @@ Options options(int argc, char** argv) {
         result.fp8_weight_scale <= 0.0F) {
         throw std::invalid_argument(
             "FP8 Linear requires positive finite scales and is exclusive with BF16 preparation");
+    }
+    if (result.int8_linear &&
+        (result.fp8_linear || result.bf16_ffn || result.bf16_attention)) {
+        throw std::invalid_argument(
+            "INT8 Linear is exclusive with FP8 and BF16 preparation");
     }
     if (result.fp8_weight_scale_mode != "fixed" &&
         result.fp8_weight_scale_mode != "tensor-amax" &&
@@ -1538,6 +1551,7 @@ int main(int argc, char** argv) {
         microllm::model::Bf16FfnPreparationReport bf16_report;
         microllm::model::Bf16WeightPreparationReport bf16_attention_report;
         microllm::model::Fp8WeightPreparationReport fp8_report;
+        microllm::model::Int8WeightPreparationReport int8_report;
         microllm::model::Bf16GroupedQkvPrewarmReport grouped_qkv_prewarm_report;
         microllm::runtime::reset_allocation_peak(device);
         const auto preparation_start = std::chrono::steady_clock::now();
@@ -1582,6 +1596,9 @@ int main(int argc, char** argv) {
             fp8_report = model.prepare_fp8_inference_weights();
             microllm::ops::clear_fp8_dispatch_registry();
             microllm::ops::clear_fp8_dynamic_quant_stats();
+        }
+        if (command.int8_linear) {
+            int8_report = model.prepare_int8_inference_weights();
         }
         microllm::runtime::synchronize(device);
         const auto preparation_finish = std::chrono::steady_clock::now();
@@ -1888,7 +1905,10 @@ int main(int argc, char** argv) {
                 bf16_attention_report.bf16_bytes_retained -
                 fp8_report.fp32_bytes_released +
                 fp8_report.fp8_bytes_retained +
-                fp8_report.scale_bytes_retained;
+                fp8_report.scale_bytes_retained -
+                int8_report.fp32_bytes_released +
+                int8_report.int8_bytes_retained +
+                int8_report.scale_bytes_retained;
             std::cout << std::setprecision(9)
                       << "{\"schema_version\":1,\"status\":\"pass\""
                       << ",\"record_type\":\"official_continuous_serving_measurement\""
@@ -1900,13 +1920,21 @@ int main(int argc, char** argv) {
                       << ",\"loaded_tensors\":" << report.loaded.size()
                       << ",\"resident_weight_bytes\":" << resident_weight_bytes
                       << ",\"linear_precision_policy\":\""
-                      << (command.fp8_linear
+                      << (command.int8_linear
+                              ? "int8_weight_only_explicit"
+                              : command.fp8_linear
                               ? fp8_compute_policy(command)
                                              : command.bf16_attention
                                                    ? "bf16_ffn_attention"
                                                    : command.bf16_ffn ? "bf16_ffn"
                                                                       : "fp32")
                       << "\""
+                      << ",\"int8_linear\":"
+                      << (command.int8_linear ? "true" : "false")
+                      << ",\"int8_device_weight_bytes_scanned\":"
+                      << int8_report.device_weight_bytes_scanned
+                      << ",\"int8_device_amax_tensors\":"
+                      << int8_report.device_amax_tensors
                       << ",\"fp8_activation_scale\":"
                       << command.fp8_activation_scale
                       << ",\"fp8_activation_minimum_scale\":"
@@ -2569,14 +2597,18 @@ int main(int argc, char** argv) {
                   << microllm::runtime::hip_runtime_version()
                   << ",\"hip_driver_version\":" << microllm::runtime::hip_driver_version()
                   << ",\"compute_dtype\":\""
-                  << (command.fp8_linear
+                  << (command.int8_linear
+                          ? "float32_activation_with_int8_weights"
+                          : command.fp8_linear
                           ? fp8_compute_dtype(command)
                           : command.bf16_attention
                           ? "float32_with_bf16_ffn_attention"
                           : command.bf16_ffn ? "float32_with_bf16_ffn" : "float32")
                   << "\""
                   << ",\"inference_weight_policy\":\""
-                  << (command.fp8_linear
+                  << (command.int8_linear
+                          ? "single_representation_int8_linear_explicit"
+                          : command.fp8_linear
                           ? fp8_storage_policy(command)
                           : command.bf16_attention
                           ? "single_representation_bf16_ffn_attention"
@@ -2724,6 +2756,7 @@ int main(int argc, char** argv) {
                   << bf16_report.fp32_bytes_released
                   + bf16_attention_report.fp32_bytes_released
                   + fp8_report.fp32_bytes_released
+                  + int8_report.fp32_bytes_released
                   << ",\"bf16_weight_bytes_retained\":"
                   << bf16_report.bf16_bytes_retained
                   + bf16_attention_report.bf16_bytes_retained
@@ -2731,6 +2764,16 @@ int main(int argc, char** argv) {
                   << fp8_report.fp8_bytes_retained
                   << ",\"fp8_scale_bytes_retained\":"
                   << fp8_report.scale_bytes_retained
+                  << ",\"int8_linear\":"
+                  << (command.int8_linear ? "true" : "false")
+                  << ",\"int8_weight_bytes_retained\":"
+                  << int8_report.int8_bytes_retained
+                  << ",\"int8_scale_bytes_retained\":"
+                  << int8_report.scale_bytes_retained
+                  << ",\"int8_device_weight_bytes_scanned\":"
+                  << int8_report.device_weight_bytes_scanned
+                  << ",\"int8_device_amax_tensors\":"
+                  << int8_report.device_amax_tensors
                   << ",\"resident_weight_bytes\":"
                   << external.model.weight_bytes(sizeof(float)) -
                          bf16_report.fp32_bytes_released +
@@ -2739,7 +2782,10 @@ int main(int argc, char** argv) {
                          bf16_attention_report.bf16_bytes_retained -
                          fp8_report.fp32_bytes_released +
                          fp8_report.fp8_bytes_retained +
-                         fp8_report.scale_bytes_retained
+                         fp8_report.scale_bytes_retained -
+                         int8_report.fp32_bytes_released +
+                         int8_report.int8_bytes_retained +
+                         int8_report.scale_bytes_retained
                   << ",\"measurement_profile\":\""
                   << (command.warmup > 0 || command.steps > 1 ||
                               command.prefill_warmup > 0 || command.prefill_steps > 1

@@ -145,6 +145,10 @@ void launch_dequantize_fp8_column_scales(
 void launch_quantize_int8(const void* input, DType input_dtype,
                           std::int8_t* output, std::int64_t elements,
                           float inverse_scale, void* stream = nullptr);
+void launch_quantize_int8_dynamic(
+    const void* input, DType input_dtype, std::int8_t* output, float* scale,
+    float* partial_maxima, std::int64_t partial_count,
+    std::int64_t elements, float minimum_scale, void* stream = nullptr);
 void launch_dequantize_int8(const std::int8_t* input, void* output,
                             DType output_dtype, std::int64_t elements,
                             const float* scale, void* stream = nullptr);

@@ -1,0 +1,20 @@
+{
+  "device": "MI300X gfx942",
+  "model": "Qwen2.5-0.5B pinned official fixture",
+  "context": 1,
+  "device_amax_tensors": 168,
+  "device_weight_bytes_scanned": 1431306240,
+  "weight_preparation_ms": 18.544513,
+  "fp32_resident_weight_bytes": 1976131072,
+  "int8_resident_weight_bytes": 902652064,
+  "fp32_decode_tokens_per_second": 489.508487,
+  "int8_decode_tokens_per_second": 538.134063,
+  "fp32_tokens": [24184, 220],
+  "int8_tokens": [264, 8],
+  "logit_elements": 151936,
+  "logit_maximum_absolute_error": 15.2031391,
+  "logit_rms_error": 3.46728763,
+  "fp32_argmax": 24184,
+  "int8_argmax": 264,
+  "decision": "official_model_route_rejected_keep_device_preparation"
+}

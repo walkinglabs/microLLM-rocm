@@ -475,7 +475,14 @@ TEST(HipGraphAlignmentTest,
 
     model::TransformerModel hip(config, 991);
     hip.to(Device::hip(0));
+    runtime::reset_transfer_stats();
     const auto hip_report = hip.prepare_int8_inference_weights();
+    runtime::synchronize(Device::hip(0));
+    const auto preparation_transfers = runtime::transfer_stats();
+    EXPECT_EQ(preparation_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(preparation_transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(hip_report.device_amax_tensors, 8U);
+    EXPECT_GT(hip_report.device_weight_bytes_scanned, 0U);
     EXPECT_EQ(hip_report.int8_bytes_retained,
               cpu_report.int8_bytes_retained);
     const auto device_tokens = tokens.to(Device::hip(0));

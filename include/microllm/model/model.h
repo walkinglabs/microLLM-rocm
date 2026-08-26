@@ -70,6 +70,8 @@ struct Int8WeightPreparationReport {
     std::uint64_t fp32_bytes_released = 0;
     std::uint64_t int8_bytes_retained = 0;
     std::uint64_t scale_bytes_retained = 0;
+    std::uint64_t device_weight_bytes_scanned = 0;
+    std::size_t device_amax_tensors = 0;
 };
 
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;

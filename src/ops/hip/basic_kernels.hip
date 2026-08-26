@@ -1343,6 +1343,19 @@ __global__ void quantize_fp8_device_scale_kernel(
     }
 }
 
+template <typename Input>
+__global__ void quantize_int8_device_scale_kernel(
+    const Input* input, std::int8_t* output, std::int64_t elements,
+    const float* scale) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x +
+                       threadIdx.x;
+    if (index >= elements) return;
+    auto value = load_as_float(input[index]) / scale[0];
+    if (isnan(value)) value = 0.0F;
+    value = fminf(127.0F, fmaxf(-127.0F, value));
+    output[index] = static_cast<std::int8_t>(__float2int_rn(value));
+}
+
 template <typename Input, typename Output>
 __global__ void dequantize_fp8_device_scale_kernel(
     const Input* input, Output* output, std::int64_t elements,
@@ -3648,6 +3661,54 @@ void launch_quantize_int8(const void* input, DType input_dtype,
                 "INT8 quantize input must be FP32, FP16, or BF16");
     }
     check_launch("quantize_int8_kernel");
+}
+
+template <typename Input>
+void launch_dynamic_int8_for_input(
+    const Input* input, std::int8_t* output, float* scale,
+    float* partial_maxima, std::int64_t partial_count,
+    std::int64_t elements, float minimum_scale, hipStream_t stream) {
+    hipLaunchKernelGGL(fp8_tensor_scale_kernel<Input>,
+                       dim3(static_cast<unsigned>(partial_count)),
+                       dim3(kBlockSize), 0, stream, input, partial_maxima,
+                       elements);
+    check_launch("int8_tensor_scale_kernel");
+    hipLaunchKernelGGL(fp8_finalize_scale_kernel, dim3(1), dim3(kBlockSize),
+                       0, stream, partial_maxima, scale, partial_count,
+                       minimum_scale, 1.0F, 127.0F);
+    check_launch("int8_finalize_scale_kernel");
+    hipLaunchKernelGGL(quantize_int8_device_scale_kernel<Input>,
+                       dim3(grid_size(elements)), dim3(kBlockSize), 0, stream,
+                       input, output, elements, scale);
+    check_launch("quantize_int8_device_scale_kernel");
+}
+
+void launch_quantize_int8_dynamic(
+    const void* input, DType input_dtype, std::int8_t* output, float* scale,
+    float* partial_maxima, std::int64_t partial_count,
+    std::int64_t elements, float minimum_scale, void* stream) {
+    if (elements == 0) return;
+    if (partial_count <= 0 || partial_count > 1024) {
+        throw std::invalid_argument("dynamic INT8 partial count is invalid");
+    }
+    switch (input_dtype) {
+        case DType::Float32:
+            launch_dynamic_int8_for_input(static_cast<const float*>(input),
+                output, scale, partial_maxima, partial_count, elements,
+                minimum_scale, as_stream(stream)); break;
+        case DType::Float16:
+            launch_dynamic_int8_for_input(static_cast<const __half*>(input),
+                output, scale, partial_maxima, partial_count, elements,
+                minimum_scale, as_stream(stream)); break;
+        case DType::BFloat16:
+            launch_dynamic_int8_for_input(
+                static_cast<const hip_bfloat16*>(input), output, scale,
+                partial_maxima, partial_count, elements, minimum_scale,
+                as_stream(stream)); break;
+        default:
+            throw std::invalid_argument(
+                "dynamic INT8 input must be FP32, FP16, or BF16");
+    }
 }
 
 template <typename Input>

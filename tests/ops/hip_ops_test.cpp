@@ -1065,6 +1065,25 @@ TEST(HipInt8WeightOpsTest, CpuAndHipMatchEveryByteWithoutHotPathTransfers) {
     }
 }
 
+TEST(HipInt8WeightOpsTest, DynamicAmaxAndQuantizeStayEntirelyOnDevice) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    const auto input = Tensor::from_vector(
+        {-127.0F, -2.5F, 0.0F, 63.5F}, {2, 2}).to(gpu);
+    runtime::reset_transfer_stats();
+    const auto dynamic = quantize_int8_dynamic(input);
+    const auto restored = dequantize_int8(dynamic);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_FALSE(dynamic.host_scale_available);
+    EXPECT_EQ(dynamic.values.to_int8_vector(),
+              (std::vector<std::int8_t>{-127, -2, 0, 64}));
+    EXPECT_FLOAT_EQ(dynamic.scale.to_vector()[0], 1.0F);
+    expect_near(restored.to_vector(), {-127.0F, -2.0F, 0.0F, 64.0F});
+}
+
 TEST(HipInt8WeightOpsTest, MatmulBaselineMatchesCpuWithoutPayloadTransfers) {
     require_gpu();
     const auto gpu = Device::hip(0);

@@ -491,7 +491,8 @@ public:
                     : ops::Int8WeightMatmulImplementation::ExplicitDequantize;
             auto output = ops::int8_weight_matmul_with_implementation(
                 flat,
-                {weight_.data(), int8_inference_scale_, int8_scale_value_, true},
+                {weight_.data(), int8_inference_scale_, int8_scale_value_,
+                 int8_host_scale_available_},
                 implementation, context);
             auto shape = input.shape();
             shape.back() = weight_.data().shape()[1];
@@ -633,11 +634,14 @@ public:
             int8_inference_scale_.defined()) {
             throw std::logic_error("Linear INT8 inference preparation is invalid");
         }
-        return ops::quantize_int8(weight_.data(),
-                                  tensor_int8_scale(weight_.data()));
+        return weight_.data().device().is_hip()
+                   ? ops::quantize_int8_dynamic(weight_.data())
+                   : ops::quantize_int8(weight_.data(),
+                                        tensor_int8_scale(weight_.data()));
     }
     void commit_int8_inference_candidate(ops::Int8ScaledTensor candidate) {
         int8_scale_value_ = candidate.scale_value;
+        int8_host_scale_available_ = candidate.host_scale_available;
         int8_inference_scale_ = std::move(candidate.scale);
         weight_ = Value(std::move(candidate.values), false);
     }
@@ -666,6 +670,7 @@ private:
     Tensor fp8_inference_activation_scale_;
     Tensor int8_inference_scale_;
     float int8_scale_value_ = 1.0F;
+    bool int8_host_scale_available_ = true;
 };
 
 class Bf16QkvArenaCache {
@@ -3483,6 +3488,10 @@ Int8WeightPreparationReport TransformerModel::prepare_int8_inference_weights() {
         report.fp32_bytes_released += elements * sizeof(float);
         report.int8_bytes_retained += elements;
         report.scale_bytes_retained += sizeof(float);
+        if (linear->weight_data().device().is_hip()) {
+            report.device_weight_bytes_scanned += elements * sizeof(float);
+            ++report.device_amax_tensors;
+        }
     }
     runtime::synchronize(device());
     for (std::size_t index = 0; index < linears.size(); ++index) {

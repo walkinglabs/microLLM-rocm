@@ -171,3 +171,7 @@ output = matmul(input, weight)
 直接读取I8权重并按输出列归约，不生成浮点weight。Qwen/DeepSeek实测显著快于“每次反量化”，
 但DeepSeek仍只有PyTorch常驻FP32 GEMM的0.494×，所以`Auto`没有切换。M>1、FP16/BF16 input继续
 使用正确性基线。
+
+HIP整模准备使用`quantize_int8_dynamic`：amax、scale和I8 payload都在GPU产生。官方Qwen准备
+已做到168个Linear、1.431GB扫描、权重D2H为0；但完整logits和token严重失败，因此
+`--int8-linear true`只是显式研究开关，不能用于声称正确的Qwen推理。

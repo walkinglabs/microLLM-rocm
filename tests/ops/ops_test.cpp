@@ -1895,6 +1895,22 @@ TEST(CpuInt8WeightOpsTest, FloatingInputsAndOutputsShareOneExplicitScale) {
     }
 }
 
+TEST(CpuInt8WeightOpsTest, DynamicScaleUsesTensorAmaxAndMinimum) {
+    const auto dynamic = quantize_int8_dynamic(
+        Tensor::from_vector({-127.0F, -2.5F, 0.0F, 63.5F}, {2, 2}));
+    EXPECT_TRUE(dynamic.host_scale_available);
+    EXPECT_FLOAT_EQ(dynamic.scale_value, 1.0F);
+    EXPECT_EQ(dynamic.values.to_int8_vector(),
+              (std::vector<std::int8_t>{-127, -2, 0, 64}));
+    const auto minimum = quantize_int8_dynamic(
+        Tensor::from_vector({-0.01F, 0.01F}, {2}), 0.25F);
+    EXPECT_FLOAT_EQ(minimum.scale_value, 0.25F);
+    EXPECT_THROW((void)quantize_int8_dynamic(
+                     Tensor::from_vector(
+                         {std::numeric_limits<float>::infinity()}, {1})),
+                 std::invalid_argument);
+}
+
 TEST(CpuInt8WeightOpsTest, LoadedTensorPairValidatesMetadataAndScale) {
     const Int8ScaledTensor loaded{
         Tensor::from_int8_vector({-4, 0, 7, 127}, {2, 2}),
