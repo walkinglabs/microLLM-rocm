@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" viewBox="0 0 1500 700">
+<rect width="1500" height="700" fill="#f8fafc"/><text x="750" y="52" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700" fill="#172033">Experiment 354 · Fused M=1 INT8 Weight Matmul</text>
+<text x="750" y="82" text-anchor="middle" font-family="Arial" font-size="16" fill="#64748b">3 processes · 2 warm-up + 5 measured · complete output before timing</text>
+<g font-family="Arial"><rect x="70" y="130" width="650" height="460" rx="12" fill="#fff" stroke="#cbd5e1"/><text x="395" y="170" text-anchor="middle" font-size="21" font-weight="700" fill="#172033">Event speedup over per-call dequantize</text>
+<rect x="150" y="245" width="430" height="70" rx="8" fill="#16a34a"/><text x="595" y="288" font-size="20" font-weight="700" fill="#166534">14.09× C++</text><text x="150" y="335" font-size="16" fill="#475569">Qwen · 2.09× PyTorch dequant</text>
+<rect x="150" y="410" width="229" height="70" rx="8" fill="#22c55e"/><text x="395" y="453" font-size="20" font-weight="700" fill="#166534">7.51× C++</text><text x="150" y="500" font-size="16" fill="#475569">DeepSeek · 1.26× PyTorch dequant</text>
+<rect x="780" y="130" width="650" height="460" rx="12" fill="#fff" stroke="#cbd5e1"/><text x="1105" y="170" text-anchor="middle" font-size="21" font-weight="700" fill="#172033">Counterexample: resident FP32 GEMM / fused</text>
+<line x1="860" y1="360" x2="1350" y2="360" stroke="#2563eb" stroke-width="3"/><text x="1360" y="366" font-size="15" fill="#2563eb">1.0×</text>
+<rect x="900" y="360" width="130" height="28" fill="#f59e0b"/><text x="965" y="415" text-anchor="middle" font-size="18" fill="#92400e">Qwen 0.916×</text><rect x="1150" y="360" width="130" height="152" fill="#ef4444"/><text x="1215" y="540" text-anchor="middle" font-size="18" fill="#991b1b">Deep 0.494×</text>
+<text x="1105" y="565" text-anchor="middle" font-size="16" fill="#475569">saves 17.4 / 55.1 MB temporary · Max error 0</text></g>
+<text x="750" y="640" text-anchor="middle" font-family="Arial" font-size="19" font-weight="700" fill="#92400e">KEEP explicit FusedDecode for memory-first research · Auto remains the readable control</text></svg>

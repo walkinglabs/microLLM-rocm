@@ -1954,6 +1954,10 @@ TEST(CpuInt8WeightOpsTest, MatmulBaselineMatchesExplicitDequantizedWeight) {
                      {Tensor::from_int8_vector({1, 2, 3, 4}, {2, 2}),
                       Tensor::from_vector({0.5F}, {})}),
                  std::invalid_argument);
+    EXPECT_THROW((void)int8_weight_matmul_with_implementation(
+                     input, weight,
+                     Int8WeightMatmulImplementation::FusedDecode),
+                 std::invalid_argument);
 }
 
 TEST(CallerOwnedBackwardTest, CpuOutputsMatchAllocatingReferences) {

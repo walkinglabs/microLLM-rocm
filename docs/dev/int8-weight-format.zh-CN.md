@@ -165,3 +165,8 @@ output = matmul(input, weight)
 
 这条路径的价值是固定shape、舍入、错误与完整输出答案。因为临时weight重新变成2或4字节，
 不能用一字节文件大小推导它的运行峰值，也不能把它的速度称为INT8硬件速度。
+
+研究者可显式选择`Int8WeightMatmulImplementation::FusedDecode`。它只接受HIP FP32 `[1,K]`，
+直接读取I8权重并按输出列归约，不生成浮点weight。Qwen/DeepSeek实测显著快于“每次反量化”，
+但DeepSeek仍只有PyTorch常驻FP32 GEMM的0.494×，所以`Auto`没有切换。M>1、FP16/BF16 input继续
+使用正确性基线。

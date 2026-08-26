@@ -148,6 +148,10 @@ void launch_quantize_int8(const void* input, DType input_dtype,
 void launch_dequantize_int8(const std::int8_t* input, void* output,
                             DType output_dtype, std::int64_t elements,
                             const float* scale, void* stream = nullptr);
+void launch_int8_weight_matmul_decode(
+    const float* input, const std::int8_t* weight, const float* scale,
+    float* output, std::int64_t inner, std::int64_t columns,
+    void* stream = nullptr);
 void launch_scale_columns_by_first(
     void* values, DType dtype, std::int64_t rows, std::int64_t columns,
     const float* scales, void* stream = nullptr);

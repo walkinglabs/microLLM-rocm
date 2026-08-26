@@ -18,6 +18,7 @@ enum class AdamWImplementation { Auto, Scalar, Vectorized };
 enum class BiasGradientImplementation { Auto, ScalarColumns, CooperativeRows };
 enum class CausalSoftmaxImplementation { Auto, Rows128 };
 enum class SwiGLUImplementation { Auto, Scalar, Vectorized };
+enum class Int8WeightMatmulImplementation { Auto, ExplicitDequantize, FusedDecode };
 
 struct AdamWMultiTensorEntry {
     Tensor* parameter = nullptr;
@@ -368,6 +369,10 @@ struct CausalGqaAttentionDiagnostics {
 // no fused or native-INT8 speed claim is implied by this API.
 [[nodiscard]] Tensor int8_weight_matmul(
     const Tensor& input, const Int8ScaledTensor& weight,
+    const OpContext& context = {});
+[[nodiscard]] Tensor int8_weight_matmul_with_implementation(
+    const Tensor& input, const Int8ScaledTensor& weight,
+    Int8WeightMatmulImplementation implementation,
     const OpContext& context = {});
 [[nodiscard]] Tensor fp8_matmul(const ScaledTensor& left, const ScaledTensor& right,
                                 DType output_dtype = DType::BFloat16,

@@ -92,6 +92,10 @@ if(MICROLLM_HAS_HIP)
                    micro/benchmark_cached_attention_stages.cpp)
     target_link_libraries(microllm_bench_cached_attention_stages PRIVATE
         microllm::ops microllm::runtime hip::host)
+    add_executable(microllm_bench_int8_weight_matmul
+                   micro/benchmark_int8_weight_matmul.cpp)
+    target_link_libraries(microllm_bench_int8_weight_matmul PRIVATE
+        microllm::ops microllm::runtime hip::host)
 endif()
 
 if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
@@ -239,6 +243,12 @@ if(BUILD_TESTING)
                          --warmup 3 --repetitions 3 --order forward)
         set_tests_properties(Benchmark.HipCachedAttentionStages PROPERTIES
                              LABELS "hip;benchmark;attention;cache;precision;schema")
+    endif()
+    if(TARGET microllm_bench_int8_weight_matmul)
+        add_test(NAME Benchmark.HipInt8WeightMatmul
+                 COMMAND microllm_bench_int8_weight_matmul)
+        set_tests_properties(Benchmark.HipInt8WeightMatmul PROPERTIES
+                             LABELS "hip;benchmark;int8;weights;matmul;performance")
     endif()
     if(Python3_Interpreter_FOUND)
         add_test(NAME Benchmark.JsonSchema

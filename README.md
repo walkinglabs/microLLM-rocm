@@ -1017,7 +1017,7 @@ Current `main` gates:
 |---|---:|---|
 | CPU Debug | 416/416 | host code, CLI, model/graph, INT8 weight/Linear baseline, benchmark, four package gates and evidence schemas |
 | ASan/UBSan CPU | 413/413 | host lifetime, one-byte Tensor views, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 206/206 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8/INT8 Linear baseline, model, streaming and bindings |
+| MI300X/gfx942 HIP label | 208/208 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8/INT8 baseline and fused-decode candidate, model and bindings |
 | PyTorch-enabled CPU build | 417/417 | dispatcher parity, INT8 rounding/complete-matmul oracle, optimizer state, full operator/graph/model oracle and package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
 | Registered test files | 156 | machine-audited native/Python test sources; package consumers run inside the integration gate |
@@ -1240,6 +1240,10 @@ or model route has not passed a complete-output gate.
 complete-output `[M,K]×[K,N]` weight-only baseline. It explicitly dequantizes the full weight
 before ordinary matmul, so it is an oracle and allocation baseline rather than an acceleration
 claim.
+[Experiment 354](docs/optimization-log/experiments/354-int8-fused-decode.md) retains an explicit
+M=1 fused route: 14.09×/7.51× Event over the C++ dequantize control and 2.09×/1.26× over the
+matched PyTorch per-call dequantize path. The DeepSeek resident-FP32 counterexample is only
+0.494×, so `Auto` remains unchanged.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

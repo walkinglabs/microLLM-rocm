@@ -49,6 +49,9 @@ PyTorch oracle是`torch.clamp(torch.round(x/scale),-127,127).to(torch.int8)`和
 `int8_weight_matmul(input, weight)`是`[M,K] × [K,N] → [M,N]`正确性基线，input和输出
 保持FP32/FP16/BF16同dtype。它先完整反量化weight，再调用普通matmul；PyTorch比较完整输出。
 shape/device/scale不匹配必须拒绝。临时浮点weight是公开代价，不能把这条路径报告成INT8加速。
+显式`FusedDecode`只接受HIP FP32 `[1,K]`和连续I8 `[K,N]`，一个block归约一个输出列，输出
+FP32 `[1,N]`。真实K/N完整输出、零payload传输和少一次逻辑分配必须通过；`Auto`当前仍等于
+`ExplicitDequantize`，因为DeepSeek resident-FP32性能反例未过门。
 
 ## BF16 weight gradient
 

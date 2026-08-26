@@ -1090,6 +1090,54 @@ TEST(HipInt8WeightOpsTest, MatmulBaselineMatchesCpuWithoutPayloadTransfers) {
     expect_near(actual.to_vector(), reference.to_vector(), 1.0e-5F);
 }
 
+TEST(HipInt8WeightOpsTest, FusedDecodeMatchesExplicitPathAndRemovesWeightTemporary) {
+    require_gpu();
+    const auto gpu = Device::hip(0);
+    for (const auto& [inner, columns] :
+         {std::pair<std::int64_t, std::int64_t>{513, 257},
+          {896, 4864}, {1536, 8960}}) {
+        std::vector<float> input_values(static_cast<std::size_t>(inner));
+        std::vector<std::int8_t> weight_values(
+            static_cast<std::size_t>(inner * columns));
+        for (std::size_t index = 0; index < input_values.size(); ++index) {
+            input_values[index] =
+                static_cast<float>(static_cast<int>(index % 29) - 14) / 64.0F;
+        }
+        for (std::size_t index = 0; index < weight_values.size(); ++index) {
+            weight_values[index] = static_cast<std::int8_t>(
+                static_cast<int>(index % 31) - 15);
+        }
+        const auto input = Tensor::from_vector(
+            input_values, {1, inner}).to(gpu);
+        const Int8ScaledTensor weight{
+            Tensor::from_int8_vector(weight_values, {inner, columns}).to(gpu),
+            Tensor::from_vector({0.03125F}, {}).to(gpu), 0.03125F, true};
+
+        const auto explicit_before = runtime::allocation_stats(gpu);
+        const auto explicit_output = int8_weight_matmul_with_implementation(
+            input, weight,
+            Int8WeightMatmulImplementation::ExplicitDequantize);
+        runtime::synchronize(gpu);
+        const auto explicit_after = runtime::allocation_stats(gpu);
+        EXPECT_EQ(explicit_after.allocation_calls - explicit_before.allocation_calls,
+                  2U);
+
+        runtime::reset_transfer_stats();
+        const auto fused_before = runtime::allocation_stats(gpu);
+        const auto fused_output = int8_weight_matmul_with_implementation(
+            input, weight, Int8WeightMatmulImplementation::FusedDecode);
+        runtime::synchronize(gpu);
+        const auto fused_after = runtime::allocation_stats(gpu);
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(fused_after.allocation_calls - fused_before.allocation_calls,
+                  1U);
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        expect_near(fused_output.to_vector(), explicit_output.to_vector(),
+                    2.0e-3F);
+    }
+}
+
 TEST(HipFp8OpsTest, MixedE5ActivationAndE4WeightExecuteWithExplicitDispatch) {
     require_gpu();
     if (!hipblaslt_available()) GTEST_SKIP() << "hipBLASLt is unavailable";

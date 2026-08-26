@@ -1360,6 +1360,14 @@ Tensor dequantize_int8(
 Tensor int8_weight_matmul(
     const Tensor& input, const Int8ScaledTensor& weight,
     const OpContext& context) {
+    return int8_weight_matmul_with_implementation(
+        input, weight, Int8WeightMatmulImplementation::Auto, context);
+}
+
+Tensor int8_weight_matmul_with_implementation(
+    const Tensor& input, const Int8ScaledTensor& weight,
+    Int8WeightMatmulImplementation implementation,
+    const OpContext& context) {
     if (!input.defined() || input.ndim() != 2 || !input.is_contiguous() ||
         (input.dtype() != DType::Float32 &&
          input.dtype() != DType::Float16 &&
@@ -1375,6 +1383,34 @@ Tensor int8_weight_matmul(
     if (weight.values.device() != input.device()) {
         throw std::invalid_argument(
             "INT8 weight matmul input and weight devices must match");
+    }
+    if (implementation == Int8WeightMatmulImplementation::FusedDecode) {
+        if (!input.device().is_hip() || input.dtype() != DType::Float32 ||
+            input.shape()[0] != 1 || !weight.values.is_contiguous() ||
+            !weight.scale.defined() || weight.scale.dtype() != DType::Float32 ||
+            weight.scale.numel() != 1 || !weight.scale.is_contiguous() ||
+            weight.scale.device() != input.device()) {
+            throw std::invalid_argument(
+                "fused INT8 decode matmul requires HIP FP32 [1,K], contiguous I8 [K,N], and same-device FP32 scalar scale");
+        }
+        Tensor output({1, weight.values.shape()[1]}, DType::Float32,
+                      input.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_int8_weight_matmul_decode(
+            static_cast<const float*>(input.data()),
+            static_cast<const std::int8_t*>(weight.values.data()),
+            static_cast<const float*>(weight.scale.data()),
+            static_cast<float*>(output.data()), input.shape()[1],
+            weight.values.shape()[1], context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error(
+            "microLLM was built without HIP operator support");
+#endif
+    }
+    if (implementation != Int8WeightMatmulImplementation::Auto &&
+        implementation != Int8WeightMatmulImplementation::ExplicitDequantize) {
+        throw std::invalid_argument("unknown INT8 weight matmul implementation");
     }
     const auto restored = dequantize_int8(weight, input.dtype(), context);
     return matmul(input, restored, context);

@@ -746,6 +746,26 @@ __global__ void dequantize_int8_kernel(const std::int8_t* input,
     }
 }
 
+__global__ void int8_weight_matmul_decode_kernel(
+    const float* input, const std::int8_t* weight, const float* scale,
+    float* output, std::int64_t inner, std::int64_t columns) {
+    const auto column = static_cast<std::int64_t>(blockIdx.x);
+    __shared__ float partial[kBlockSize];
+    float sum = 0.0F;
+    for (auto index = static_cast<std::int64_t>(threadIdx.x); index < inner;
+         index += blockDim.x) {
+        sum += input[index] *
+               static_cast<float>(weight[index * columns + column]);
+    }
+    partial[threadIdx.x] = sum;
+    __syncthreads();
+    for (unsigned stride = kBlockSize / 2; stride != 0; stride /= 2) {
+        if (threadIdx.x < stride) partial[threadIdx.x] += partial[threadIdx.x + stride];
+        __syncthreads();
+    }
+    if (threadIdx.x == 0) output[column] = partial[0] * scale[0];
+}
+
 template <typename Input, typename Output>
 __global__ void cast_kernel(const Input* input, Output* output,
                             std::int64_t elements) {
@@ -3907,6 +3927,20 @@ void launch_dequantize_int8(const std::int8_t* input, void* output,
     }
 #undef MICROLLM_INT8_DEQUANT_CASE
     check_launch("dequantize_int8_kernel");
+}
+
+void launch_int8_weight_matmul_decode(
+    const float* input, const std::int8_t* weight, const float* scale,
+    float* output, std::int64_t inner, std::int64_t columns, void* stream) {
+    if (inner <= 0 || columns <= 0) {
+        throw std::invalid_argument(
+            "INT8 fused decode matmul requires positive inner and output dimensions");
+    }
+    hipLaunchKernelGGL(int8_weight_matmul_decode_kernel,
+                       dim3(static_cast<unsigned>(columns)),
+                       dim3(kBlockSize), 0, as_stream(stream), input, weight,
+                       scale, output, inner, columns);
+    check_launch("int8_weight_matmul_decode_kernel");
 }
 
 template <typename Input>

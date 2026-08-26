@@ -1,0 +1,38 @@
+{
+  "date": "2026-08-26",
+  "device": "MI300X gfx942",
+  "processes": 3,
+  "warmup_per_process": 2,
+  "measured_per_process": 5,
+  "decision": "keep_explicit_fused_decode_auto_unchanged",
+  "rows": [
+    {
+      "model": "qwen2.5-0.5b",
+      "shape": [1, 896, 4864],
+      "explicit_event_ms": 0.364232,
+      "fused_event_ms": 0.025859,
+      "explicit_over_fused_event": 14.0853,
+      "explicit_over_fused_wall": 10.4767,
+      "torch_dequant_event_ms": 0.054164,
+      "torch_resident_fp32_event_ms": 0.023694,
+      "torch_dequant_over_fused_event": 2.0946,
+      "torch_resident_over_fused_event": 0.9163,
+      "maximum_absolute_error": 0.0,
+      "avoided_float_weight_bytes": 17432576
+    },
+    {
+      "model": "deepseek-distill-1.5b",
+      "shape": [1, 1536, 8960],
+      "explicit_event_ms": 0.537786,
+      "fused_event_ms": 0.071563,
+      "explicit_over_fused_event": 7.5076,
+      "explicit_over_fused_wall": 6.7449,
+      "torch_dequant_event_ms": 0.090166,
+      "torch_resident_fp32_event_ms": 0.035361,
+      "torch_dequant_over_fused_event": 1.2599,
+      "torch_resident_over_fused_event": 0.4941,
+      "maximum_absolute_error": 0.0,
+      "avoided_float_weight_bytes": 55050240
+    }
+  ]
+}

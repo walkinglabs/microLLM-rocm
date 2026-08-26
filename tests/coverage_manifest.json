@@ -125,6 +125,7 @@
     "quantize_int8": "tests/ops/ops_test.cpp",
     "dequantize_int8": "tests/ops/ops_test.cpp",
     "int8_weight_matmul": "tests/ops/ops_test.cpp",
+    "int8_weight_matmul_with_implementation": "tests/ops/hip_ops_test.cpp",
     "fp8_matmul": "tests/ops/hip_ops_test.cpp",
     "fp8_dispatch_stats": "tests/ops/hip_ops_test.cpp",
     "clear_fp8_dispatch_registry": "tests/ops/hip_ops_test.cpp",
