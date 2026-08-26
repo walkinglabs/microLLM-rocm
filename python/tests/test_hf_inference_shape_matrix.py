@@ -30,9 +30,43 @@ PRECISION_SPEC = importlib.util.spec_from_file_location(
 PRECISION = importlib.util.module_from_spec(PRECISION_SPEC)
 assert PRECISION_SPEC.loader is not None
 PRECISION_SPEC.loader.exec_module(PRECISION)
+BLOCK_DRIFT_SPEC = importlib.util.spec_from_file_location(
+    "audit_cached_block_drift",
+    ROOT / "benchmarks/single_gpu/audit_cached_block_drift.py")
+BLOCK_DRIFT = importlib.util.module_from_spec(BLOCK_DRIFT_SPEC)
+assert BLOCK_DRIFT_SPEC.loader is not None
+BLOCK_DRIFT_SPEC.loader.exec_module(BLOCK_DRIFT)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_block_drift_summary_selects_first_tenfold_stage(self):
+        processes = []
+        for policy in BLOCK_DRIFT.POLICIES:
+            stages = []
+            for index, name in enumerate(BLOCK_DRIFT.ordered_names()):
+                maximum = 0.001
+                if policy == "bf16-ffn" and index >= 4:
+                    maximum = 0.02
+                stages.append({
+                    "name": name,
+                    "b1_vs_b2_row0": {
+                        "maximum": maximum, "rms": maximum / 10,
+                        "bitwise_equal": False},
+                    "b2_row0_vs_row1": {
+                        "maximum": 0.0, "rms": 0.0,
+                        "bitwise_equal": True},
+                })
+            for run in (1, 2):
+                processes.append({
+                    "precision_island": policy, "process_run": run,
+                    "stages": stages,
+                })
+        summary = BLOCK_DRIFT.summarize(processes)
+        self.assertEqual(summary["process_rows"], 4)
+        self.assertEqual(summary["selected_stage_count"], 31)
+        self.assertEqual(summary["first_tenfold_bf16_ffn_stage"],
+                         BLOCK_DRIFT.ordered_names()[4])
+
     def test_current_precision_isolation_selects_bf16_ffn(self):
         root = ROOT / "benchmarks/results/2026-08-25-deepseek-cross-batch-precision"
         summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))

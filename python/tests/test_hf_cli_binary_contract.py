@@ -53,6 +53,8 @@ def main() -> int:
         b"cached-attention-pv-splits",
         b"--cache-logits-step",
         b"decode_tokens",
+        b"hf-cached-decode",
+        b"inference.cached.blocks.",
         b"auto-enabled",
         b"auto-bypass",
         b"--bf16-grouped-gate-up-algorithm-index",
@@ -142,6 +144,17 @@ def main() -> int:
                 "requires --bf16-ffn" in independent_attention.stderr:
             raise RuntimeError(
                 "hf_infer still couples independent BF16 Attention and FFN islands")
+        rejected_decode_trace = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--workload", "decode", "--new-tokens", "1",
+            "--trace-output", str(Path(temporary) / "trace.jsonl"),
+            "--warmup", "0", "--steps", "1",
+        ], text=True, capture_output=True, check=False)
+        if rejected_decode_trace.returncode == 0 or \
+                "one selected cached decode step" not in rejected_decode_trace.stderr:
+            raise RuntimeError(
+                "hf_infer accepted an unselected cached decode trace")
     print("hf_infer binary contract: pass")
     return 0
 

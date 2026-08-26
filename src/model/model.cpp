@@ -1917,12 +1917,22 @@ public:
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
                           std::int64_t position, std::int64_t cache_capacity,
-                          DType cache_dtype) {
-        auto attention = attention_.forward_cached(attention_norm_.forward_tensor(input), cache,
-                                                   position, cache_capacity, cache_dtype);
+                          DType cache_dtype,
+                          const std::string& trace_prefix = {}) {
+        auto attention_input = attention_norm_.forward_tensor(input);
+        trace_detail(trace_prefix, "attention_norm", attention_input);
+        auto attention = attention_.forward_cached(
+            attention_input, cache, position, cache_capacity, cache_dtype);
+        trace_detail(trace_prefix, "attention_output", attention);
         auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
-        return ops::add(residual_and_norm.first,
-                        feed_forward_.forward_tensor(residual_and_norm.second));
+        trace_detail(trace_prefix, "attention_residual", residual_and_norm.first);
+        trace_detail(trace_prefix, "ffn_norm", residual_and_norm.second);
+        auto ffn = feed_forward_.forward_tensor(
+            residual_and_norm.second,
+            trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn");
+        auto output = ops::add(residual_and_norm.first, ffn);
+        trace_detail(trace_prefix, "output", output);
+        return output;
     }
 
     Tensor forward_cached_positions(
@@ -2478,14 +2488,36 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     }
     const auto model_device = device();
     const auto device_token = token_id.device() == model_device ? token_id : token_id.to(model_device);
-    auto hidden = ops::embedding(impl_->token_embedding.data(), device_token);
-    for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
-        hidden = impl_->blocks[layer]->forward_cached(hidden, cache.mutable_layer(layer),
-                                                      cache.position(),
-                                                      cache.max_sequence_length(),
-                                                      cache.layer_dtype(layer));
+    auto* trace = profiling::TraceSession::current();
+    if (trace != nullptr) {
+        trace->record(profiling::TraceKind::Input,
+                      "inference.cached.tokens", device_token);
     }
+    profiling::TraceTimer model_timer(
+        profiling::TraceKind::Model, "inference.cached.forward", device());
+    profiling::TraceTimer embedding_timer(
+        profiling::TraceKind::Layer, "inference.cached.embedding", device());
+    auto hidden = ops::embedding(impl_->token_embedding.data(), device_token);
+    embedding_timer.finish(hidden);
+    for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
+        profiling::TraceTimer block_timer(
+            profiling::TraceKind::Layer,
+            "inference.cached.blocks." + std::to_string(layer), device());
+        const auto detail_prefix =
+            trace != nullptr &&
+                    (layer == 0 || trace->options().record_all_layer_details)
+                ? "inference.cached.blocks." + std::to_string(layer)
+                : std::string{};
+        hidden = impl_->blocks[layer]->forward_cached(
+            hidden, cache.mutable_layer(layer), cache.position(),
+            cache.max_sequence_length(), cache.layer_dtype(layer),
+            detail_prefix);
+        block_timer.finish(hidden);
+    }
+    profiling::TraceTimer norm_timer(
+        profiling::TraceKind::Layer, "inference.cached.final_norm", device());
     hidden = impl_->final_norm.forward_tensor(hidden);
+    norm_timer.finish(hidden);
     const auto flat = hidden.reshape({batch, impl_->config.dimension});
     Tensor logits;
     if (impl_->config.tie_embeddings) {
@@ -2495,6 +2527,11 @@ Tensor TransformerModel::forward_cached(const Tensor& token_id, inference::KVCac
     } else {
         logits = impl_->output_head->forward_tensor(flat);
     }
+    if (trace != nullptr) {
+        trace->record(profiling::TraceKind::Output,
+                      "inference.cached.logits", logits);
+    }
+    model_timer.finish(logits);
     cache.advance();
     return logits.reshape({batch, 1, impl_->config.vocabulary_size});
 }

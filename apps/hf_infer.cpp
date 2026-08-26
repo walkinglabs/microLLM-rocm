@@ -608,10 +608,14 @@ Options options(int argc, char** argv) {
         throw std::invalid_argument("--trace-max-elements must be positive");
     }
     if (!result.trace_output.empty() &&
-        (result.workload != "prefill" || result.prefill_warmup != 0 ||
-         result.prefill_steps != 1)) {
+        !((result.workload == "prefill" && result.prefill_warmup == 0 &&
+           result.prefill_steps == 1) ||
+          (result.workload == "decode" && result.use_cache &&
+           result.warmup == 0 && result.steps == 1 &&
+           result.cache_logits_step >= 0 &&
+           !result.cache_logits_output.empty()))) {
         throw std::invalid_argument(
-            "--trace-output requires prefill workload, zero prefill warmup, and one prefill step");
+            "--trace-output requires one diagnostic prefill or one selected cached decode step");
     }
     if (result.trace_all_layer_details && result.trace_output.empty()) {
         throw std::invalid_argument(
@@ -702,6 +706,32 @@ Options options(int argc, char** argv) {
             "--inference-bthd-online-attention requires BTHD Attention and retained BF16 Q/K");
     }
     return result;
+}
+
+microllm::profiling::TraceOptions trace_options(const Options& command) {
+    microllm::profiling::TraceOptions options;
+    options.phase = "inference-values";
+    options.record_operators = false;
+    options.record_layers = true;
+    options.record_model = true;
+    options.capture_values = true;
+    options.synchronize_device = true;
+    options.record_all_layer_details = command.trace_all_layer_details;
+    auto filters = command.trace_value_filter;
+    while (!filters.empty()) {
+        const auto comma = filters.find(',');
+        const auto value = filters.substr(0, comma);
+        if (value.empty()) {
+            throw std::invalid_argument(
+                "--trace-value-filter contains an empty item");
+        }
+        options.value_name_filters.push_back(value);
+        if (comma == std::string::npos) break;
+        filters.erase(0, comma + 1);
+    }
+    options.max_captured_elements =
+        static_cast<std::size_t>(command.trace_max_elements);
+    return options;
 }
 
 std::string fp8_compute_policy(const Options& command) {
@@ -837,7 +867,8 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
                             CachedGenerationState& state,
                             std::int64_t new_tokens, bool steady = false,
                             std::int64_t capture_step = -1,
-                            microllm::Tensor* captured_logits = nullptr) {
+                            microllm::Tensor* captured_logits = nullptr,
+                            microllm::profiling::TraceSession* trace_session = nullptr) {
     GenerationRun run;
     run.kv_cache_capacity_tokens = state.cache.max_sequence_length();
     const auto batch = state.logits.shape()[0];
@@ -846,12 +877,19 @@ GenerationRun decode_cached(microllm::model::TransformerModel& model,
     microllm::Tensor next_tensor;
     if (steady) next_tensor = microllm::ops::argmax_last_dim(state.logits);
     for (std::int64_t generated = 0; generated < new_tokens; ++generated) {
+        std::unique_ptr<microllm::profiling::ScopedTraceSession> trace_scope;
+        if (trace_session != nullptr && generated == capture_step) {
+            trace_scope =
+                std::make_unique<microllm::profiling::ScopedTraceSession>(
+                    *trace_session);
+        }
         auto history_slot = history.slice(0, generated, generated + 1)
                                 .reshape({batch, 1});
         if (steady) state.logits = model.forward_cached(next_tensor, state.cache);
         if (captured_logits != nullptr && generated == capture_step) {
             *captured_logits = state.logits;
         }
+        trace_scope.reset();
         microllm::ops::argmax_last_dim_out_(state.logits, history_slot);
         next_tensor = history_slot;
         if (!steady && generated + 1 < new_tokens) {
@@ -1870,31 +1908,8 @@ int main(int argc, char** argv) {
             std::unique_ptr<microllm::profiling::TraceSession> trace_session;
             std::unique_ptr<microllm::profiling::ScopedTraceSession> trace_scope;
             if (!command.trace_output.empty()) {
-                microllm::profiling::TraceOptions trace_options;
-                trace_options.phase = "inference-values";
-                trace_options.record_operators = false;
-                trace_options.record_layers = true;
-                trace_options.record_model = true;
-                trace_options.capture_values = true;
-                trace_options.synchronize_device = true;
-                trace_options.record_all_layer_details =
-                    command.trace_all_layer_details;
-                auto filters = command.trace_value_filter;
-                while (!filters.empty()) {
-                    const auto comma = filters.find(',');
-                    const auto value = filters.substr(0, comma);
-                    if (value.empty()) {
-                        throw std::invalid_argument(
-                            "--trace-value-filter contains an empty item");
-                    }
-                    trace_options.value_name_filters.push_back(value);
-                    if (comma == std::string::npos) break;
-                    filters.erase(0, comma + 1);
-                }
-                trace_options.max_captured_elements =
-                    static_cast<std::size_t>(command.trace_max_elements);
                 trace_session = std::make_unique<microllm::profiling::TraceSession>(
-                    "microllm", "hf-prefill", trace_options);
+                    "microllm", "hf-prefill", trace_options(command));
                 trace_scope =
                     std::make_unique<microllm::profiling::ScopedTraceSession>(
                         *trace_session);
@@ -1976,6 +1991,12 @@ int main(int argc, char** argv) {
         std::string generated_text;
         GenerationRun generation_evidence;
         microllm::Tensor cache_logits_evidence;
+        std::unique_ptr<microllm::profiling::TraceSession> decode_trace_session;
+        if (run_decode && !command.trace_output.empty()) {
+            decode_trace_session =
+                std::make_unique<microllm::profiling::TraceSession>(
+                    "microllm", "hf-cached-decode", trace_options(command));
+        }
         if (run_decode && command.new_tokens > 0) {
             const auto minimum_cache_capacity =
                 static_cast<std::int64_t>(ids.size()) + command.new_tokens;
@@ -2038,7 +2059,8 @@ int main(int argc, char** argv) {
                         model, state, command.new_tokens,
                         command.decode_mode == "steady", capture_step,
                         iteration == 0 && !command.cache_logits_output.empty()
-                            ? &cache_logits_evidence : nullptr);
+                            ? &cache_logits_evidence : nullptr,
+                        iteration == 0 ? decode_trace_session.get() : nullptr);
                     microllm::runtime::synchronize(device);
                     const auto decode_finish = std::chrono::steady_clock::now();
                     generation_ms += std::chrono::duration<double, std::milli>(
@@ -2075,6 +2097,10 @@ int main(int argc, char** argv) {
                 }
                 generated_suffix = current.suffix;
                 generation_evidence = current;
+            }
+            if (decode_trace_session != nullptr) {
+                decode_trace_session->write_jsonl(command.trace_output);
+                trace_record_count = decode_trace_session->records().size();
             }
             if (tokenizer.has_value()) generated_text = tokenizer->decode(generated_suffix);
         }

@@ -28,6 +28,22 @@ Official-model value diagnosis can opt into every Transformer block's detail rec
 全层trace会同步并把诊断值带回CPU，所以只能回答数值范围问题，不能作为性能数据。默认仍只记录
 block 0细节，旧trace的数量和名字不会改变。
 
+Cached decode可以只追踪一个明确step：
+
+```bash
+./build/hip-release/apps/microllm_hf_infer \
+  --config model/config.json --weights model/model.safetensors \
+  --tokens 1,2,3,4 --device hip --batch 2 --use-cache true \
+  --workload decode --decode-mode steady --new-tokens 1 \
+  --warmup 0 --steps 1 --bf16-ffn true --bf16-attention false \
+  --cache-logits-output /tmp/step0.bin --cache-logits-step 0 \
+  --trace-output /tmp/cached-step0.jsonl --trace-max-elements 200000
+```
+
+Decode trace必须同时满足cached、显式logits step、warmup 0和steps 1。Scope只覆盖选定的
+`forward_cached`，不包含prompt prefill、其他decode步或argmax。默认记录embedding、每个block、
+final norm和logits，并保留block 0细节；`--trace-all-layer-details true`才展开所有block细节。
+
 ### Micro-benchmark
 
 ```bash
