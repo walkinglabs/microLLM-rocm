@@ -24,7 +24,7 @@ execute_process(
     COMMAND "${CMAKE_COMMAND}"
             -S "${MICROLLM_EXAMPLE_SOURCE_DIR}"
             -B "${MICROLLM_EXAMPLE_BINARY_DIR}"
-            "-DCMAKE_PREFIX_PATH=${MICROLLM_EXAMPLE_INSTALL_PREFIX}"
+            "-DmicroLLM_ROOT=${MICROLLM_EXAMPLE_INSTALL_PREFIX}"
     RESULT_VARIABLE configure_status
     OUTPUT_VARIABLE configure_output
     ERROR_VARIABLE configure_error)

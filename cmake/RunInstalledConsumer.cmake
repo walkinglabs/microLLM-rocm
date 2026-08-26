@@ -107,6 +107,43 @@ if(MICROLLM_PACKAGE_WITH_CAPI)
     endif()
 endif()
 
+set(core_consumer_build "${MICROLLM_CONSUMER_BINARY_DIR}-core-only")
+file(REMOVE_RECURSE "${core_consumer_build}")
+execute_process(
+    COMMAND "${CMAKE_COMMAND}"
+            -S "${MICROLLM_CONSUMER_SOURCE_DIR}/../core_consumer"
+            -B "${core_consumer_build}"
+            "-DCMAKE_PREFIX_PATH=${MICROLLM_RELOCATED_PREFIX}"
+    RESULT_VARIABLE core_configure_status
+    OUTPUT_VARIABLE core_configure_output
+    ERROR_VARIABLE core_configure_error)
+if(NOT core_configure_status EQUAL 0)
+    message(FATAL_ERROR
+        "installed core consumer configure failed:\n"
+        "${core_configure_output}\n${core_configure_error}")
+endif()
+execute_process(
+    COMMAND "${CMAKE_COMMAND}" --build "${core_consumer_build}"
+    RESULT_VARIABLE core_build_status
+    OUTPUT_VARIABLE core_build_output
+    ERROR_VARIABLE core_build_error)
+if(NOT core_build_status EQUAL 0)
+    message(FATAL_ERROR
+        "installed core consumer build failed:\n"
+        "${core_build_output}\n${core_build_error}")
+endif()
+execute_process(
+    COMMAND "${core_consumer_build}/microllm_core_package_consumer"
+    RESULT_VARIABLE core_run_status
+    OUTPUT_VARIABLE core_run_output
+    ERROR_VARIABLE core_run_error)
+if(NOT core_run_status EQUAL 0 OR
+   NOT core_run_output MATCHES "microLLM core package consumer: pass")
+    message(FATAL_ERROR
+        "installed core consumer run failed:\n"
+        "${core_run_output}\n${core_run_error}")
+endif()
+
 # Required components are an API contract. A typo or an unavailable optional backend
 # must fail at configure time rather than become a link error later.
 set(missing_component_build "${MICROLLM_CONSUMER_BINARY_DIR}-missing-component")

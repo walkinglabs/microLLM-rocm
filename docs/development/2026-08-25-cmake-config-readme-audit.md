@@ -51,5 +51,5 @@ Run the same focused contract with:
 ```bash
 cmake --preset cpu-debug
 cmake --build --preset cpu-debug --parallel
-ctest --test-dir build/cpu-debug -R '^PackageConfig\\.' --output-on-failure
+ctest --test-dir build/cpu-debug -R '^PackageConfig\.' --output-on-failure
 ```

@@ -29,6 +29,18 @@ if(NOT microLLM_DEFAULT_TARGET STREQUAL "microLLM::microLLM" OR
    NOT TARGET microLLM::microLLM)
     message(FATAL_ERROR "package Config is missing its default C++ SDK target")
 endif()
+foreach(microllm_exported_target IN LISTS microLLM_TARGETS)
+    if(NOT TARGET "${microllm_exported_target}")
+        message(FATAL_ERROR
+            "package target metadata names a missing target: ${microllm_exported_target}")
+    endif()
+endforeach()
+list(LENGTH microLLM_TARGETS microllm_target_count)
+list(LENGTH microLLM_AVAILABLE_COMPONENTS microllm_component_count)
+math(EXPR microllm_expected_target_count "${microllm_component_count} + 1")
+if(NOT microllm_target_count EQUAL microllm_expected_target_count)
+    message(FATAL_ERROR "package target metadata contains duplicates or omissions")
+endif()
 if(NOT DEFINED microLLM_WITH_ROCWMMA OR
    (microLLM_WITH_ROCWMMA AND NOT microLLM_WITH_HIP))
     message(FATAL_ERROR "package Config has invalid rocWMMA feature metadata")

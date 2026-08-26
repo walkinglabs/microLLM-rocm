@@ -96,6 +96,18 @@ set_tests_properties(PackageConfig.PublicExample PROPERTIES
     RUN_SERIAL TRUE
 )
 
+add_test(
+    NAME PackageConfig.RejectsNonRelocatableDestination
+    COMMAND ${CMAKE_COMMAND}
+        -DMICROLLM_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+        -DMICROLLM_BINARY_DIR=${PROJECT_BINARY_DIR}
+        -P ${PROJECT_SOURCE_DIR}/cmake/RunInvalidPackageDestination.cmake
+)
+set_tests_properties(PackageConfig.RejectsNonRelocatableDestination PROPERTIES
+    LABELS "cpu;package;configure"
+    RUN_SERIAL TRUE
+)
+
 if(Python3_Interpreter_FOUND)
     add_test(
         NAME HfCLI.BinaryContract

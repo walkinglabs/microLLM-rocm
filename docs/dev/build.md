@@ -229,13 +229,17 @@ The Config file also exposes `microLLM_VERSION`, `microLLM_BACKEND` (`CPU`, `HIP
 metadata `microLLM_WITH_HIP`, `microLLM_WITH_HIPBLASLT`,
 `microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, and `microLLM_WITH_CAPI`, plus
 `microLLM_WITH_SANITIZERS` and
-`microLLM_WITH_COVERAGE`. Prefer testing targets or requested components for linking;
+`microLLM_WITH_COVERAGE`. `microLLM_DEFAULT_TARGET` names the recommended umbrella
+target and `microLLM_TARGETS` lists every imported target in the selected SDK. Prefer
+testing targets or requested components for linking;
 these variables are intended for diagnostics and optional application features. A CPU
 package reports an empty `microLLM_HIP_ARCHITECTURES` value.
 
 Point `CMAKE_PREFIX_PATH` at the installation root. As a narrower alternative, set
-`microLLM_DIR` to either the installed Config directory or a configured microLLM build
-directory. Neither variable should point at the unbuilt source tree. Pre-1.0
+`microLLM_ROOT` to one installation root, or set `microLLM_DIR` to either the installed
+Config directory or a configured microLLM build directory. `microLLM_ROOT` is a prefix;
+`microLLM_DIR` directly contains `microLLMConfig.cmake`. Neither variable should point
+at the unbuilt source tree. Pre-1.0
 compatibility is limited to the installed `0.1.x` line.
 
 To use a nonstandard package directory inside the prefix:
@@ -246,7 +250,8 @@ cmake -S . -B build/install \
 ```
 
 `PackageConfig.BuildTreeConsumer` configures, compiles, links, and runs independent C++,
-mixed-language, and genuinely C-only projects against the generated build-tree Config.
+core-component-only, mixed-language, and genuinely C-only projects against the generated
+build-tree Config.
 `PackageConfig.InstalledConsumer`
 installs into a fresh temporary prefix, moves the prefix to prove relocatability, then
 does the same against the installed SDK. Both check every expected target, reject
@@ -255,7 +260,22 @@ An instrumented build may carry exactly its required runtime link option. Both g
 also ask for a nonexistent component and an incompatible pre-1.0 minor version; both
 requests must fail. CPU, HIP, and RCCL presets label and execute the same contracts.
 `PackageConfig.PublicExample` independently compiles and runs the short example linked
-above against a fresh installation.
+above against a fresh installation discovered through `microLLM_ROOT`.
+`PackageConfig.RejectsNonRelocatableDestination`
+also proves that an absolute package destination is rejected instead of silently
+producing an SDK that cannot be moved.
+
+To diagnose discovery without printing every CMake lookup, use:
+
+```bash
+cmake -S . -B build --fresh \
+  -DmicroLLM_ROOT=/absolute/path/to/install/microllm \
+  --debug-find-pkg=microLLM
+```
+
+The selected path should end in `microLLMConfig.cmake`. When switching SDK prefixes,
+use `--fresh` or remove the consumer build directory so an older `microLLM_DIR` cached in
+`CMakeCache.txt` cannot win the search.
 
 ## Build options
 
@@ -276,7 +296,7 @@ above against a fresh installation.
 | `MICROLLM_ENABLE_SANITIZERS` | `OFF` | host ASan and UBSan |
 | `MICROLLM_ENABLE_COVERAGE` | `OFF` | GCC/Clang line and branch instrumentation |
 | `MICROLLM_SAFETENSORS_PYTHON` | empty | interpreter with torch/safetensors used by the optional official interop CTest |
-| `MICROLLM_INSTALL_CMAKEDIR` | `lib/cmake/microLLM` | package-config destination relative to the install prefix |
+| `MICROLLM_INSTALL_CMAKEDIR` | `lib/cmake/microLLM` | non-empty package-config destination inside and relative to the install prefix |
 
 ## Common failures
 

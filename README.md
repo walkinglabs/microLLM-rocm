@@ -721,6 +721,19 @@ is the SDK's address card: another project asks for microLLM, and CMake supplies
 headers, libraries, C++20 requirement, and enabled backend dependencies. Do not copy
 source files or hand-write `-I`, `-L`, and `-l` flags.
 
+Choose the path by what you are doing:
+
+| Situation | Supported discovery input | Use |
+|---|---|---|
+| Developing both repositories together | `-DmicroLLM_DIR=/absolute/path/to/build/sdk-cpu` | configured build tree |
+| Installing or sharing an SDK | `-DmicroLLM_ROOT=/absolute/path/to/install/microllm` | movable install prefix |
+| Prefix already contains several SDKs | `-DCMAKE_PREFIX_PATH=/prefix/a;/prefix/b` | normal CMake prefix search |
+| Selecting one exact Config file | `-DmicroLLM_DIR=/prefix/lib/cmake/microLLM` | installed Config directory |
+
+`microLLM_ROOT` and `CMAKE_PREFIX_PATH` name installation prefixes. `microLLM_DIR`
+names the directory that directly contains `microLLMConfig.cmake`; this distinction is
+the most common source of package lookup mistakes.
+
 #### 1. Build and install an SDK
 
 Choose one SDK preset. All three omit repository tests, command-line applications,
@@ -810,9 +823,10 @@ implement the shared ABI.
 
 `CMAKE_PREFIX_PATH` points at the installation root. If a larger environment contains
 many packages, `-DmicroLLM_DIR=/prefix/lib/cmake/microLLM` can point directly at the
-installed Config directory. For local development, `microLLM_DIR` may instead point at
-the configured microLLM build directory. Do not point either variable at the unbuilt
-source directory.
+installed Config directory. `-DmicroLLM_ROOT=/prefix` is a convenient single-package
+alternative to `CMAKE_PREFIX_PATH`. For local development, `microLLM_DIR` may instead
+point at the configured microLLM build directory. Do not point either variable at the
+unbuilt source directory.
 
 After installation, the machine-readable package contract is:
 
@@ -864,27 +878,46 @@ Installed targets are:
 `microLLM_WITH_HIP`,
 `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`,
 `microLLM_WITH_SANITIZERS`, `microLLM_WITH_COVERAGE`, and
-`microLLM_AVAILABLE_COMPONENTS` and `microLLM_DEFAULT_TARGET`. It resolves the backend
+`microLLM_AVAILABLE_COMPONENTS`, `microLLM_DEFAULT_TARGET`, and `microLLM_TARGETS`.
+The last variable is the complete list of imported targets exposed by this exact SDK.
+The Config package resolves the backend
 dependencies recorded by the installed build; a CPU installation does not require ROCm. Mixing libraries from one
 build with a config file from another is unsupported, so install the complete prefix
 atomically. Before the project reaches 1.0, version compatibility is limited to the
 installed `0.1.x` minor line.
 
-CTest has three repository-external consumer gates. `PackageConfig.BuildTreeConsumer`
+CTest has four package gates. `PackageConfig.BuildTreeConsumer`
 uses `microLLM_DIR` directly, while `PackageConfig.InstalledConsumer` installs into a
 temporary prefix, moves that prefix, and consumes the moved SDK. Both configure,
-compile, link, and run a C++ project, a mixed C/C++ project, and a separate project whose
-only enabled language is C. They check that internal
+compile, link, and run the full C++ SDK, an independent project that requests and links
+only `microLLM::core`, a mixed C/C++ project, and a separate project whose only enabled
+language is C. They check that internal
 compile flags do not leak and that ordinary builds add no link flags; an instrumented
 build may carry only its required runtime link option. Both gates also prove that a
 missing component and an incompatible pre-1.0 minor version are rejected.
 `PackageConfig.PublicExample` separately installs the SDK and builds the short public
-example shown above, keeping the beginner path under continuous test.
+example shown above through `microLLM_ROOT`, keeping the beginner path under continuous
+test.
+`PackageConfig.RejectsNonRelocatableDestination` rejects an absolute Config destination
+that would escape the installation prefix and make the package impossible to move.
 
 The copy-paste-ready independent project in
 [`examples/package-consumer`](examples/package-consumer) is the smallest supported
-consumer. The three package tests execute that public path rather than merely checking
-that Config files were copied.
+consumer. The package gates compile, link, and run external projects rather than merely
+checking that Config files were copied.
+
+If CMake cannot find the SDK, ask it to print only the `microLLM` lookup trace:
+
+```bash
+cmake -S . -B build --fresh \
+  -DmicroLLM_ROOT=/absolute/path/to/install/microllm \
+  --debug-find-pkg=microLLM
+```
+
+The trace must end at `microLLMConfig.cmake` inside the intended prefix. If it points at
+an older installation, remove that stale prefix from `CMAKE_PREFIX_PATH` or select the
+exact Config directory with `microLLM_DIR`. Use a fresh consumer build directory after
+changing SDKs; cached package locations otherwise remain in `CMakeCache.txt`.
 
 The complete compiler, CMake, ROCm, library, Python, and troubleshooting matrix is in
 [Build from source](docs/dev/build.md).
@@ -895,12 +928,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 380/380 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
-| ASan/UBSan CPU | 377/377 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 381/381 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 378/378 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 197/197 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model and multi-shard streaming |
-| PyTorch-enabled CPU build | 383/383 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 384/384 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 53/53 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure and package gates |
-| Registered test files | 129 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 130 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 

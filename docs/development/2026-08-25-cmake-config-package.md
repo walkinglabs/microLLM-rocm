@@ -29,7 +29,7 @@ Run the focused gate with:
 ```bash
 cmake --preset cpu-debug
 cmake --build --preset cpu-debug --parallel
-ctest --test-dir build/cpu-debug -R '^PackageConfig\\.' --output-on-failure
+ctest --test-dir build/cpu-debug -R '^PackageConfig\.' --output-on-failure
 ```
 
 The copy-paste public example lives in `examples/package-consumer`; README and build

@@ -202,6 +202,20 @@ install(TARGETS microllm_project_options microllm_build_config microllm_sdk
 set(MICROLLM_INSTALL_CMAKEDIR
     "${CMAKE_INSTALL_LIBDIR}/cmake/microLLM"
     CACHE STRING "Install path for the microLLM CMake package")
+if(MICROLLM_INSTALL_CMAKEDIR STREQUAL "" OR
+   IS_ABSOLUTE "${MICROLLM_INSTALL_CMAKEDIR}")
+    message(FATAL_ERROR
+        "MICROLLM_INSTALL_CMAKEDIR must be a non-empty path relative to the "
+        "install prefix so the SDK remains relocatable")
+endif()
+cmake_path(NORMAL_PATH MICROLLM_INSTALL_CMAKEDIR
+           OUTPUT_VARIABLE MICROLLM_INSTALL_CMAKEDIR_NORMALIZED)
+if(MICROLLM_INSTALL_CMAKEDIR_NORMALIZED MATCHES "^\\.\\.(/|$)")
+    message(FATAL_ERROR
+        "MICROLLM_INSTALL_CMAKEDIR must stay inside the install prefix so the "
+        "SDK remains relocatable")
+endif()
+set(MICROLLM_INSTALL_CMAKEDIR "${MICROLLM_INSTALL_CMAKEDIR_NORMALIZED}")
 set(MICROLLM_PACKAGE_COMPONENTS
     "runtime;core;profiling;ops;autograd;io;model;training;inference")
 if(MICROLLM_BUILD_CAPI)

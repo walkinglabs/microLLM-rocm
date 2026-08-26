@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 380/380, ASan/UBSan 377/377, PyTorch-enabled CPU 383/383, single-GPU HIP label 197/197, RCCL label 53/53 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 381/381, ASan/UBSan 378/378, PyTorch-enabled CPU 384/384, single-GPU HIP label 197/197, RCCL label 53/53 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -95,7 +95,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Serving scheduler | smoke-tested | slot-ratio matrix 48/48 token-exact; matched 6:2 short and 2:6 long retain 85%–87% throughput while reducing KV 56%/19% | safe dynamic ratio transition and allocator cost; uniform remains default, overflow opt-in |
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
-| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 380/380; Tensor/graph/model/optimizer parity plus package, trajectory and schema gates | broader direct PyTorch ROCm operator matrix |
+| PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 384/384; Tensor/graph/model/optimizer parity plus package, trajectory and schema gates | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client plus build-tree and relocated-install C-only Config consumers | zero-copy external views |
 | Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error plus sync/async `@profile` and nested scope JSONL | packaging/broader ops |

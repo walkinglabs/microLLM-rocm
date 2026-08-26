@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: CMake Config component and relocation gates](2026-08-26-cmake-config-component-gates.md)
 - [2026-08-26: Unified ROCTX/GPU Perfetto](2026-08-26-unified-rocprof-perfetto.md)
 - [2026-08-26: rocprof to Perfetto correlation merge](2026-08-26-rocprof-perfetto-merge.md)
 - [2026-08-26: Optional ROCTX TraceTimer ranges](2026-08-26-roctx-trace-ranges.md)
