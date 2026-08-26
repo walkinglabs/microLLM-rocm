@@ -79,9 +79,70 @@ FP32_QKV_SPEC = importlib.util.spec_from_file_location(
 FP32_QKV = importlib.util.module_from_spec(FP32_QKV_SPEC)
 assert FP32_QKV_SPEC.loader is not None
 FP32_QKV_SPEC.loader.exec_module(FP32_QKV)
+FP32_QKV_MODEL_SPEC = importlib.util.spec_from_file_location(
+    "fp32_qkv_model_gate",
+    ROOT / "benchmarks/single_gpu/fp32_qkv_model_gate.py")
+FP32_QKV_MODEL = importlib.util.module_from_spec(FP32_QKV_MODEL_SPEC)
+assert FP32_QKV_MODEL_SPEC.loader is not None
+FP32_QKV_MODEL_SPEC.loader.exec_module(FP32_QKV_MODEL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_fp32_qkv_model_command_scopes_both_solutions(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 8,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        default = FP32_QKV_MODEL.command(
+            args, model, "default", 2, 0)
+        candidate = FP32_QKV_MODEL.command(
+            args, model, "invariant-qkv", 2, 0)
+        self.assertNotIn("--fp32-prefill-q-solution-index", default)
+        self.assertEqual(
+            candidate[candidate.index("--fp32-prefill-q-solution-index") + 1],
+            "296100")
+        self.assertEqual(
+            candidate[candidate.index("--fp32-prefill-kv-solution-index") + 1],
+            "292135")
+
+    def test_fp32_qkv_model_summary_keeps_precision_and_performance_separate(self):
+        metric = {"elements": 4, "maximum": 0.0, "rms": 0.0,
+                  "bitwise_equal": True}
+        precision = []
+        performance = []
+        for run in (1, 2):
+            for policy in FP32_QKV_MODEL.POLICIES:
+                for batch in FP32_QKV_MODEL.BATCHES:
+                    precision.append({
+                        "policy": policy, "batch": batch,
+                        "key_cross_batch": metric, "value_cross_batch": metric,
+                        "logits_cross_batch": metric, "key_vs_default": metric,
+                        "value_vs_default": metric, "logits_vs_default": metric,
+                        "key_within_batch_bitwise_equal": True,
+                        "value_within_batch_bitwise_equal": True,
+                        "logits_within_batch_bitwise_equal": True,
+                        "host_device_argmax_equal": True,
+                        "device_argmax_token": 3,
+                    })
+                    performance.append({
+                        "policy": policy, "batch": batch,
+                        "decode_prepare_ms": 10.0 if policy == "default" else 8.0,
+                        "decode_tokens_per_second":
+                            100.0 if policy == "default" else 110.0,
+                        "engine_peak_bytes": 1000,
+                        "generated_tokens": [3],
+                    })
+        summary = FP32_QKV_MODEL.summarize(precision, performance)
+        self.assertEqual(summary["precision_process_rows"], 16)
+        self.assertEqual(summary["performance_process_rows"], 16)
+        self.assertEqual(summary["performance_cases"][0]["prefill_speedup"],
+                         1.25)
+        self.assertEqual(
+            summary["performance_cases"][0]["decode_throughput_ratio"], 1.1)
+
     def test_current_fp32_qkv_row_invariance_selects_model_candidates(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-qkv-row-invariance")
