@@ -933,12 +933,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 381/381 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 378/378 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 199/199 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming and C/Python Event APIs |
-| PyTorch-enabled CPU build | 384/384 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| CPU Debug | 387/387 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 384/384 | host lifetime, external Storage and instrumented-package linking |
+| MI300X/gfx942 HIP label | 201/201 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
+| PyTorch-enabled CPU build | 390/390 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 130 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 132 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1307,6 +1307,11 @@ RoPE/Embedding/CrossEntropy add another 36/36 random outputs and 108/108 pointer
 their maximum error is `9.54e-7`, and loss reduction storage is caller-owned.
 Caller-owned backward adds 114/114 PyTorch autograd outputs and 285/285 pointers; the
 largest Max/RMS is `8.59e-6/1.42e-6` for RMSNorm weight reduction, with zero wrapper copy.
+The optional PyTorch dispatcher itself is now measured on ROCm: FP32/FP16/BF16
+add/multiply use PyTorch-owned outputs and the current HIP Stream, Autograd branches and
+`torch.compile(fullgraph=True)` pass, and a six-process matrix is 20/20 exact with equal
+allocator peaks. It is a compatibility seam, not an elementwise speed claim: Event ratios
+are `0.469×–0.973×` versus native Torch, so typed vectorization or larger fusion remains.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

@@ -173,6 +173,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [142](steps/142-grouped-gate-up-decode-model.md) | complete; rejected | Deep T2048/B2/N64 grouped decode模型门 | 1.00968×低于1.01；撤回route |
 | [143](steps/143-clean-deepseek-local-saturation.md) | complete | clean固定workload局部饱和 | 下一步必须改变架构/负载/硬件尺度 |
 | [144](steps/144-external-gradient-pool.md) | complete; default rejected | Autograd外部梯度池完整模型门 | 全梯度exact/地址稳定；Event仅0.792×–0.871× |
+| [145](steps/145-pytorch-rocm-custom-ops.md) | complete; integration keep | PyTorch ROCm dispatcher/Autograd/Meta | 20/20 exact；Event 0.469×–0.973×，不声称加速 |
 
 ## 为什么按这个顺序
 

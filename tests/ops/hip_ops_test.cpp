@@ -5008,6 +5008,32 @@ TEST(HipTensorViewTest, UsesCallerOwnedBuffersAndExplicitStream) {
     EXPECT_EQ(output.to_vector(), (std::vector<float>{6, 8, 10, 12}));
 }
 
+TEST(HipTensorViewTest, LowPrecisionCallerBuffersUseExplicitStreamWithoutTransfers) {
+    require_gpu();
+    const auto gpu = Device::hip();
+    runtime::Stream stream(gpu);
+    const auto context = OpContext::from_external_stream(gpu, stream.native_handle());
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto left_cpu = Tensor::from_vector(
+            {1, -2, 3, 4, 0.25F, -0.5F}, {2, 3}, dtype);
+        const auto right_cpu = Tensor::from_vector(
+            {5, 6, -7, 0.5F, -2, 3}, {2, 3}, dtype);
+        const auto left = left_cpu.to(gpu);
+        const auto right = right_cpu.to(gpu);
+        Tensor output({2, 3}, dtype, gpu);
+        const auto* address = output.storage().data();
+        runtime::reset_transfer_stats();
+        add_out(output.view(), left.view(), right.view(), context);
+        multiply_out(output.view(), left.view(), right.view(), context);
+        stream.synchronize();
+        const auto transfers = runtime::transfer_stats();
+        EXPECT_EQ(transfers.host_to_device_calls, 0U);
+        EXPECT_EQ(transfers.device_to_host_calls, 0U);
+        EXPECT_EQ(output.storage().data(), address);
+        EXPECT_EQ(output.to_vector(), multiply(left_cpu, right_cpu).to_vector());
+    }
+}
+
 #if MICROLLM_HAS_HIPBLASLT
 TEST(HipOptimizedOpsTest, HipblasLtMatmulMatchesReadableReference) {
     require_gpu();

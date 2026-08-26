@@ -20,6 +20,17 @@ microllm::Device microllm_device(const at::Tensor& tensor) {
     throw std::invalid_argument("microLLM Torch Op supports CPU or PyTorch ROCm tensors");
 }
 
+microllm::DType microllm_dtype(const at::Tensor& tensor) {
+    switch (tensor.scalar_type()) {
+        case at::kFloat: return microllm::DType::Float32;
+        case at::kHalf: return microllm::DType::Float16;
+        case at::kBFloat16: return microllm::DType::BFloat16;
+        default:
+            throw std::invalid_argument(
+                "microLLM Torch Op supports float32, float16, or bfloat16 tensors");
+    }
+}
+
 void* current_stream(const at::Tensor& tensor) {
     if (tensor.device().is_cpu()) return nullptr;
 #if defined(USE_ROCM) && MICROLLM_HAS_HIP
@@ -31,7 +42,7 @@ void* current_stream(const at::Tensor& tensor) {
 
 microllm::ConstTensorView const_view(const at::Tensor& tensor) {
     return {tensor.const_data_ptr(),
-            microllm::DType::Float32,
+            microllm_dtype(tensor),
             microllm_device(tensor),
             {tensor.sizes().data(), static_cast<std::size_t>(tensor.dim())},
             {tensor.strides().data(), static_cast<std::size_t>(tensor.dim())}};
@@ -39,7 +50,7 @@ microllm::ConstTensorView const_view(const at::Tensor& tensor) {
 
 microllm::TensorView mutable_view(at::Tensor& tensor) {
     return {tensor.mutable_data_ptr(),
-            microllm::DType::Float32,
+            microllm_dtype(tensor),
             microllm_device(tensor),
             {tensor.sizes().data(), static_cast<std::size_t>(tensor.dim())},
             {tensor.strides().data(), static_cast<std::size_t>(tensor.dim())}};
@@ -48,8 +59,12 @@ microllm::TensorView mutable_view(at::Tensor& tensor) {
 template <typename Operation>
 at::Tensor binary(const at::Tensor& left, const at::Tensor& right,
                   Operation&& operation) {
-    TORCH_CHECK(left.scalar_type() == at::kFloat, "left must be float32");
-    TORCH_CHECK(right.scalar_type() == at::kFloat, "right must be float32");
+    TORCH_CHECK(left.scalar_type() == at::kFloat ||
+                    left.scalar_type() == at::kHalf ||
+                    left.scalar_type() == at::kBFloat16,
+                "left must be float32, float16, or bfloat16");
+    TORCH_CHECK(left.scalar_type() == right.scalar_type(),
+                "input dtypes must match");
     TORCH_CHECK(left.sizes() == right.sizes(), "input shapes must match");
     TORCH_CHECK(left.device() == right.device(), "input devices must match");
     TORCH_CHECK(left.is_contiguous() && right.is_contiguous(), "inputs must be contiguous");
@@ -60,6 +75,20 @@ at::Tensor binary(const at::Tensor& left, const at::Tensor& right,
                                    microllm_device(left), current_stream(left));
     operation(mutable_view(output), const_view(left), const_view(right), context);
     return output;
+}
+
+at::Tensor meta_binary(const at::Tensor& left, const at::Tensor& right) {
+    TORCH_CHECK(left.scalar_type() == at::kFloat ||
+                    left.scalar_type() == at::kHalf ||
+                    left.scalar_type() == at::kBFloat16,
+                "left must be float32, float16, or bfloat16");
+    TORCH_CHECK(left.scalar_type() == right.scalar_type(),
+                "input dtypes must match");
+    TORCH_CHECK(left.sizes() == right.sizes(), "input shapes must match");
+    TORCH_CHECK(left.device() == right.device(), "input devices must match");
+    TORCH_CHECK(left.is_contiguous() && right.is_contiguous(),
+                "inputs must be contiguous");
+    return at::empty_like(left);
 }
 
 struct AddOperation {
@@ -101,4 +130,9 @@ TORCH_LIBRARY_IMPL(microllm, CPU, library) {
 TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
     library.impl("add", &add);
     library.impl("multiply", &multiply);
+}
+
+TORCH_LIBRARY_IMPL(microllm, Meta, library) {
+    library.impl("add", &meta_binary);
+    library.impl("multiply", &meta_binary);
 }

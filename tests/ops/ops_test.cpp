@@ -1913,4 +1913,24 @@ TEST(LowLevelOpsTest, OperatesOnCallerOwnedCpuBuffers) {
     EXPECT_EQ(std::vector<float>(output, output + 4), (std::vector<float>{5, 12, 21, 32}));
 }
 
+TEST(LowLevelOpsTest, CallerOwnedCpuBuffersCoverFloat16AndBfloat16) {
+    for (const auto dtype : {DType::Float16, DType::BFloat16}) {
+        const auto left = Tensor::from_vector({1, -2, 3, 4}, {2, 2}, dtype);
+        const auto right = Tensor::from_vector({5, 6, -7, 0.5F}, {2, 2}, dtype);
+        Tensor output({2, 2}, dtype);
+        const auto* address = output.storage().data();
+        add_out(output.view(), left.view(), right.view());
+        EXPECT_EQ(output.storage().data(), address);
+        EXPECT_EQ(output.to_vector(), add(left, right).to_vector());
+        multiply_out(output.view(), left.view(), right.view());
+        EXPECT_EQ(output.storage().data(), address);
+        EXPECT_EQ(output.to_vector(), multiply(left, right).to_vector());
+    }
+    auto integers = Tensor::from_int32_vector({1, 2}, {2});
+    const auto& integer_inputs = integers;
+    EXPECT_THROW(add_out(integers.view(), integer_inputs.view(),
+                         integer_inputs.view()),
+                 std::invalid_argument);
+}
+
 }  // namespace microllm::ops

@@ -1056,6 +1056,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [experiments/327-clean-deepseek-local-saturation.md](experiments/327-clean-deepseek-local-saturation.md) | 当前固定workload局部停止门 |
 | [experiments/328-external-gradient-pool-discard.md](experiments/328-external-gradient-pool-discard.md) | 全梯度exact、地址稳定但默认性能拒绝 |
 | [External gradient pool SVG](assets/external-gradient-pool-discard.svg) | 18进程Event/wall/峰值决策图 |
+| [experiments/329-pytorch-rocm-custom-ops.md](experiments/329-pytorch-rocm-custom-ops.md) | ROCm dispatcher正确、elementwise性能拒绝 |
+| [PyTorch ROCm Custom Ops SVG](assets/pytorch-rocm-custom-ops.svg) | 三dtype与前反向代表格 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

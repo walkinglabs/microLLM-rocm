@@ -23,7 +23,14 @@ The implementation follows the official PyTorch C++ Custom Operators pattern:
 ## Evidence state
 
 The base environment initially had neither the `torch` Python package nor
-`TorchConfig.cmake`; `AUTO` correctly left the target disabled. A later isolated
-official Torch 2.13 CPU environment compiled the dispatcher library and passed CPU
-add/multiply comparison. The PyTorch ROCm case remains unverified, so current-stream
-HIP integration must not yet be presented as measured.
+`TorchConfig.cmake`; `AUTO` correctly left the target disabled. Isolated CPU and ROCm
+environments now compile the adapter. The measured ROCm environment is Torch
+`2.11.0+rocm7.13.0rc2`, HIP `7.13.99004`, `gfx942`.
+
+The adapter maps FP32/FP16/BF16 PyTorch allocations without copying, launches on the
+current HIP Stream, registers explicit add/multiply Autograd formulas and supplies a
+Meta implementation for `torch.compile(fullgraph=True)`. Six fresh processes cover 20
+forward and forward/backward cases with complete Max/RMS/loss zero. This is an
+integration result, not a speed claim: every Event median is below native Torch
+(`0.469×–0.973×` as Torch/microLLM), with identical allocator peaks. See
+[Experiment 329](../optimization-log/experiments/329-pytorch-rocm-custom-ops.md).

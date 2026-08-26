@@ -12,6 +12,12 @@
 - 默认元素级阈值是 `atol=1e-6, rtol=1e-5`。
 - PyTorch 支持更多广播、dtype 和维度；microLLM 第一版故意更窄。测试比较共同支持域，并验证契约外输入会被拒绝。
 
+非拥有`TensorView`的add/multiply共同域是连续、同shape、同device、同dtype的FP32/FP16/BF16。
+它不会广播、转换dtype或接管pointer。PyTorch Custom Op用`at::empty_like`创建输出，只把当前
+HIP Stream的非拥有handle传给microLLM；Autograd公式明确注册，Meta dispatch只验证合同并返回
+同shape/dtype的meta输出。真实ROCm矩阵必须同时报告完整输出/梯度、Event/wall和allocator peak，
+不能把“成功注册”写成“比原生Torch快”。
+
 ## BF16 weight gradient
 
 `bf16_weight_gradient(input_fp32, output_gradient_fp32)` 接受两个连续二维 FP32 Tensor：
@@ -28,10 +34,10 @@ BF16 舍入语义。它不承诺与 FP32 gradient bit-exact，也不会自动改
 | microLLM | 输入和输出 shape | PyTorch oracle | FP32 阈值 | 必测非法输入 |
 |---|---|---|---|---|
 | `fill_` | 任意 Tensor，shape 不变 | `torch.full` | 精确 | 非 FP32 |
-| `add` | `S,S -> S` | `torch.add` | 默认 | shape/device 不同、HIP 非连续 |
+| `add` | `S,S -> S`；caller-owned/Custom Op共同域支持FP32/FP16/BF16 | `torch.add` | 默认/低精度逐项舍入 | dtype/shape/device 不同、HIP 非连续 |
 | `add_bias` | input `[...,D]`、bias `[D]`，输出不变 | `input+bias` | 默认 | rank/shape/device 错 |
 | `add_bias_bf16` | BF16 input `[...,D]`、FP32 bias `[D]`，输出BF16 | `(input.float()+bias).bfloat16()` | 逐项按BF16舍入一致 | dtype/rank/shape/device/连续性错 |
-| `multiply` | `S,S -> S` | `torch.mul` | 默认 | shape/device 不同、HIP 非连续 |
+| `multiply` | `S,S -> S`；caller-owned/Custom Op共同域支持FP32/FP16/BF16 | `torch.mul` | 默认/低精度逐项舍入 | dtype/shape/device 不同、HIP 非连续 |
 | `multiply_out_` | 同`multiply`，output预分配且不与输入共享Storage | `torch.mul` + caller地址检查 | 默认/BF16舍入 | output shape/dtype/device/stride或alias错 |
 | `scale` | `S,scalar -> S` | `x*scalar` | 默认 | 非 FP32、HIP 非连续 |
 | `scale_in_place_` | 连续浮点Tensor原地乘有限factor，Storage地址不变 | `x*factor` | FP32默认/低精度舍入 | 非浮点、非连续、Inf/NaN factor |

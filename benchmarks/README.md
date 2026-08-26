@@ -613,3 +613,17 @@ installed rocprofv3 interface:
   --mode train --model tiny --device hip --steps 5 --warmup 1 \
   --batch 1 --context 8 --new-tokens 8
 ```
+
+Measure the optional PyTorch ROCm dispatcher in fresh processes with rotated order:
+
+```bash
+/path/to/rocm-venv/bin/python \
+  benchmarks/single_gpu/pytorch_custom_op_rocm_matrix.py \
+  --library build/torch-rocm/bindings/torch/libmicrollm_torch_ops.so \
+  --output /tmp/microllm-pytorch-rocm-custom-ops \
+  --runs 3 --warmup 5 --repetitions 25
+```
+
+The matrix covers add/multiply across FP32/FP16/BF16 at 4K/1M/16M elements and two
+Autograd branches. Speed is `Torch / microLLM`; complete Max/RMS/loss and allocator peak
+are mandatory even when the result is a performance rejection.

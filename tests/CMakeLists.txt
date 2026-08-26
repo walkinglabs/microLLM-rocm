@@ -554,6 +554,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.ExternalGradientPoolMatrixContract PROPERTIES
         LABELS "cpu;benchmark;autograd;training;gradient;memory;model;schema")
     add_test(
+        NAME Benchmark.PyTorchRocmCustomOpMatrixContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_pytorch_rocm_custom_op_matrix.py
+    )
+    set_tests_properties(Benchmark.PyTorchRocmCustomOpMatrixContract PROPERTIES
+        LABELS "cpu;benchmark;torch;dtype;autograd;profile;memory;schema")
+    add_test(
         NAME Benchmark.DataParallelVerificationMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py

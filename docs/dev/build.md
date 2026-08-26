@@ -21,7 +21,7 @@ version is not silently claimed to work.
 | rocprofv3 | optional profiler | 1.3.0 |
 | GPU architecture | a ROCm-supported AMD GPU | 4 × gfx942 MI300X virtual functions |
 | GoogleTest | system package or fetched by CMake | v1.14.0 FetchContent fallback |
-| PyTorch | optional, required only for external oracle/alignment | 2.13.0+cpu in isolated environment |
+| PyTorch | optional, required only for external oracle/alignment/Custom Ops | 2.13.0+cpu and 2.11.0+rocm7.13.0rc2 in isolated environments |
 | safetensors Python package | optional, required for two-way weight format interop | 0.6.2 |
 
 The project does not currently claim support for GCC versions older than the validated
@@ -110,6 +110,38 @@ When both rocWMMA and its OpenMP C++ dependency are discoverable, CMake also bui
 research benchmarks, not engine or
 installed-SDK dependencies. If either optional package is absent, ordinary HIP operators,
 applications and the exported `microLLM::*` targets are unchanged.
+
+## Optional PyTorch ROCm Custom Ops
+
+Keep PyTorch optional and isolated. Point CMake at the interpreter and `TorchConfig.cmake`
+from the same virtual environment; mixing a CPU Torch CMake package with a ROCm Python
+interpreter can compile successfully and still produce the wrong dispatcher library.
+
+```bash
+MICROLLM_TORCH_PYTHON=/path/to/rocm-venv/bin/python
+MICROLLM_TORCH_PREFIX="$($MICROLLM_TORCH_PYTHON -c \
+  'import torch; print(torch.utils.cmake_prefix_path)')"
+
+cmake -S . -B build/torch-rocm -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DMICROLLM_HIP_ARCHITECTURES=gfx942 \
+  -DCMAKE_PREFIX_PATH="$MICROLLM_TORCH_PREFIX" \
+  -DPython3_EXECUTABLE="$MICROLLM_TORCH_PYTHON" \
+  -DMICROLLM_ENABLE_HIP=ON \
+  -DMICROLLM_ENABLE_HIPBLASLT=ON \
+  -DMICROLLM_BUILD_TORCH_OPS=ON
+cmake --build build/torch-rocm --target microllm_torch_ops --parallel
+
+MICROLLM_TORCH_OP_LIBRARY="$PWD/build/torch-rocm/bindings/torch/libmicrollm_torch_ops.so" \
+PYTHONPATH="$PWD/python" \
+  "$MICROLLM_TORCH_PYTHON" python/tests/test_torch_ops.py
+```
+
+Replace `gfx942` with the target architecture. PyTorch ROCm intentionally presents AMD
+GPU tensors through the `CUDA` dispatcher/device API, so the adapter registers the CUDA
+dispatch key and obtains the current HIP Stream from `c10::hip`. That naming does not mean
+the binary contains a CUDA backend. FP32/FP16/BF16, error contracts, Autograd, Meta/fullgraph
+compile and current-Stream execution are covered by the test above.
 
 ## RCCL build
 

@@ -5012,3 +5012,19 @@ Tiny的21个参数和Model-S的57个参数全部保持地址。Model-S的15,586,
 写最终pool并删掉首次加法，必须重新做图级实验。
 
 ![External gradient pool result](assets/external-gradient-pool-discard.svg)
+
+## 345. Experiment 329：注册进PyTorch不等于自动变快
+
+我们把`torch.ops.microllm.add/multiply`真正编进Torch 2.11 ROCm，而不是停在CPU示例。输入和
+输出仍归PyTorch所有，microLLM只借用pointer/shape/stride/dtype，并在PyTorch当前HIP Stream
+发射Kernel。FP32、FP16、BF16、Autograd和`torch.compile` Meta合同全部补齐。
+
+六个新进程的20格输出、梯度和loss全部bit-exact，allocator峰值也与Torch相同。但速度定义为
+`Torch / microLLM`时，所有中位数仍小于1。FP32 16M的add/multiply已经到0.933×/0.973×，而
+FP16/BF16 16M只有0.598×–0.638×；1M元素的前反向分支为0.665×。
+
+原因很朴素：注册层解决的是生态和所有权，不能把scalar typed Kernel变成Torch的向量化实现。
+所以我们保留集成，不宣传简单elementwise加速。下一次要么做严格尾部安全的向量化load/store，
+要么把多个Torch节点融合成一次真正减少launch和中间量的Custom Op。
+
+![PyTorch ROCm Custom Ops](assets/pytorch-rocm-custom-ops.svg)

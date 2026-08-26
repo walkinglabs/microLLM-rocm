@@ -239,6 +239,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] bind every Tiny/Model-S leaf to one external pool: all gradients are exact and all
   addresses stable, but Event is only 0.792×–0.871× and Model-S peak grows; keep the API
   explicit for interoperability and reject it as the default engine training policy;
+- [x] build the optional dispatcher against PyTorch ROCm and cover FP32/FP16/BF16,
+  current HIP Stream, error contracts, Autograd and Meta/fullgraph; 20/20 measured cases
+  are exact with equal peaks, but 0.469×–0.973× Event rejects an elementwise speed claim;
+- [ ] vectorize typed caller-owned add/multiply only behind a complete tail/alignment/
+  PyTorch performance gate, or move the adapter boundary to a genuinely fused operator;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
 
 ## P2.5 — production data parallel reducer
