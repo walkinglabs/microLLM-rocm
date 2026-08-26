@@ -39,13 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 307 adds an opt-in diagnostic
-> decomposition for full-prefill Attention: scaled Q, QK scores, causal-softmax
-> probabilities and P×V output. Ordinary inference remains on the production path;
-> the diagnostic path is entered only by an explicit value filter and is forbidden
-> for timing because it preserves another T×T tensor. CPU, HIP, sanitizer, PyTorch
-> and RCCL gates pass. See the
-> [Attention-core diagnostics](docs/optimization-log/experiments/307-prefill-attention-core-diagnostics.md).
+> **Current optimization checkpoint:** Experiment 308 compares every block-0 T2048
+> Attention value in two fresh runs. B2 scores/probabilities are bitwise exact and
+> P×V drifts first; B4/B8 causal-visible QK scores drift first, then softmax and
+> P×V. All identical rows inside each batch remain exact. The next gate screens QK
+> and P×V hipBLASLt solutions separately; defaults remain unchanged. See the
+> [Attention-core matrix](docs/optimization-log/experiments/308-prefill-attention-core-matrix.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

@@ -94,9 +94,13 @@ def load_binary_records(trace: Path, directory: Path, batch: int,
 
 
 def difference_binary(left: Path, right: Path, elements: int,
-                      left_offset: int = 0, right_offset: int = 0) -> dict:
+                      left_offset: int = 0, right_offset: int = 0,
+                      causal_sequence: int = 0) -> dict:
     if elements <= 0 or left_offset < 0 or right_offset < 0:
         raise ValueError("binary comparison range must be positive")
+    if causal_sequence < 0 or (causal_sequence > 0 and
+                               elements % (causal_sequence ** 2) != 0):
+        raise ValueError("causal binary comparison shape is invalid")
     byte_count = elements * 4
     if (left_offset + byte_count > left.stat().st_size or
             right_offset + byte_count > right.stat().st_size):
@@ -107,6 +111,7 @@ def difference_binary(left: Path, right: Path, elements: int,
     first_bitwise = None
     first_numeric = None
     compared = 0
+    selected = 0
     with left.open("rb") as left_file, right.open("rb") as right_file:
         left_file.seek(left_offset)
         right_file.seek(right_offset)
@@ -127,24 +132,33 @@ def difference_binary(left: Path, right: Path, elements: int,
             element_base = compared // 4
             for local, (left_bit, right_bit, left_value, right_value) in enumerate(
                     zip(left_bits, right_bits, left_values, right_values)):
+                flat_index = element_base + local
+                if causal_sequence > 0:
+                    query = (flat_index // causal_sequence) % causal_sequence
+                    source = flat_index % causal_sequence
+                    if source > query:
+                        continue
+                selected += 1
                 if left_bit != right_bit and first_bitwise is None:
-                    first_bitwise = element_base + local
+                    first_bitwise = flat_index
                 delta = abs(left_value - right_value)
                 if delta != 0.0 and first_numeric is None:
-                    first_numeric = element_base + local
+                    first_numeric = flat_index
                 if not (math.isfinite(left_value) and math.isfinite(right_value)):
                     raise ValueError("prefill Attention binary contains non-finite values")
                 maximum = max(maximum, delta)
                 squared += delta * delta
                 reference_squared += left_value * left_value
             compared += size
+    if selected == 0:
+        raise ValueError("binary comparison selected no elements")
     return {
-        "elements": elements,
+        "elements": selected,
         "bitwise_equal": first_bitwise is None,
         "first_bitwise_index": first_bitwise,
         "first_numeric_index": first_numeric,
         "maximum": maximum,
-        "rms": math.sqrt(squared / elements),
+        "rms": math.sqrt(squared / selected),
         "relative_l2": (math.sqrt(squared / reference_squared)
                         if reference_squared > 0.0 else 0.0),
     }
@@ -172,13 +186,32 @@ def compare(reference: dict[str, dict], actual: dict[str, dict],
                 "rms": 0.0,
                 "relative_l2": 0.0,
             })
-        output.append({
+        stage = {
             "name": name,
             "shape_b1": left["shape"],
             "shape_actual": right["shape"],
             "b1_vs_batch_row0": cross,
             "batch_row0_vs_row1": within,
-        })
+        }
+        if name in STAGES[:2]:
+            stage["b1_vs_batch_row0_causal_visible"] = difference_binary(
+                left["binary_path"], right["binary_path"], row_elements,
+                causal_sequence=left["shape"][-1])
+            stage["batch_row0_vs_row1_causal_visible"] = (
+                difference_binary(
+                    right["binary_path"], right["binary_path"], row_elements,
+                    0, row_elements * 4, left["shape"][-1])
+                if batch > 1 else {
+                    "elements": 12 * left["shape"][-1] *
+                                (left["shape"][-1] + 1) // 2,
+                    "bitwise_equal": True,
+                    "first_bitwise_index": None,
+                    "first_numeric_index": None,
+                    "maximum": 0.0,
+                    "rms": 0.0,
+                    "relative_l2": 0.0,
+                })
+        output.append(stage)
     return output
 
 
@@ -195,6 +228,11 @@ def summarize(processes: list[dict]) -> dict:
             "first_nonzero_stage": next((
                 stage["name"] for stage in stages
                 if not stage["b1_vs_batch_row0"]["bitwise_equal"]), None),
+            "first_causal_nonzero_stage": next((
+                stage["name"] for index, stage in enumerate(stages)
+                if not (stage["b1_vs_batch_row0_causal_visible"]
+                        if index < 2 else stage["b1_vs_batch_row0"])
+                       ["bitwise_equal"]), None),
             "all_within_batch_bitwise_equal": all(
                 stage["batch_row0_vs_row1"]["bitwise_equal"]
                 for stage in stages),
@@ -220,6 +258,9 @@ def summarize(processes: list[dict]) -> dict:
         "all_probabilities_bitwise_equal": all(
             case["stages"][1]["b1_vs_batch_row0"]["bitwise_equal"]
             for case in cases),
+        "all_causal_scores_bitwise_equal": all(
+            case["stages"][0]["b1_vs_batch_row0_causal_visible"]
+                ["bitwise_equal"] for case in cases),
         "first_nonzero_stage": next((
             stage for stage_index, stage in enumerate(STAGES)
             if any(not case["stages"][stage_index]
@@ -227,6 +268,17 @@ def summarize(processes: list[dict]) -> dict:
                    for case in cases)), None),
         "first_nonzero_stage_by_batch": {
             str(case["batch"]): case["first_nonzero_stage"]
+            for case in cases
+        },
+        "first_causal_nonzero_stage": next((
+            stage for stage_index, stage in enumerate(STAGES)
+            if any(not (case["stages"][stage_index]
+                        ["b1_vs_batch_row0_causal_visible"]
+                        if stage_index < 2 else case["stages"][stage_index]
+                        ["b1_vs_batch_row0"])["bitwise_equal"]
+                   for case in cases)), None),
+        "first_causal_nonzero_stage_by_batch": {
+            str(case["batch"]): case["first_causal_nonzero_stage"]
             for case in cases
         },
         "cases": cases,
@@ -258,7 +310,8 @@ def render(summary: dict) -> str:
         parts.append(f'<text x="56" y="{y + 6}" class="label">B1 vs B{case["batch"]}</text>')
         for stage_index, stage in enumerate(case["stages"]):
             x = 260 + stage_index * 340
-            metric = stage["b1_vs_batch_row0"]
+            metric = (stage["b1_vs_batch_row0_causal_visible"]
+                      if stage_index < 2 else stage["b1_vs_batch_row0"])
             exact = metric["bitwise_equal"]
             fill = "#64748b" if exact else colors[case["batch"]]
             radius = 11 if exact else 18
@@ -272,8 +325,8 @@ def render(summary: dict) -> str:
         '<text x="250" y="560" class="sub">complete bitwise equality</text>',
         '<circle cx="560" cy="555" r="12" fill="#f97316"/>',
         '<text x="580" y="560" class="sub">first numerical drift</text>',
-        '<text x="36" y="615" class="label">Decision: QK and causal softmax are exact; '
-        'screen the P×V hipBLASLt descriptor/solution next.</text>',
+        '<text x="36" y="615" class="label">Decision follows causal-visible values; '
+        'masked future scores never count as a root cause.</text>',
         '</svg>',
     ])
     return "\n".join(parts) + "\n"

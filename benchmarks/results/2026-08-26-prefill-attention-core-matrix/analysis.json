@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "experiment": 308,
+  "status": "pass",
+  "conclusion": "The first causal Attention drift is descriptor-dependent: P-by-V at B2, but QK at B4 and B8.",
+  "causal_visible_score_elements_per_row": 25178112,
+  "context_elements_per_row": 3145728,
+  "first_causal_nonzero_stage_by_batch": {
+    "1": null,
+    "2": "inference.cached_prefill.blocks.0.attention.pv_output",
+    "4": "inference.cached_prefill.blocks.0.attention.scores",
+    "8": "inference.cached_prefill.blocks.0.attention.scores"
+  },
+  "b2": {
+    "scores_bitwise_equal": true,
+    "probabilities_bitwise_equal": true,
+    "pv_first_numeric_index": 12288,
+    "pv_maximum": 0.000009775161743164062,
+    "pv_rms": 0.00000011762365727360699
+  },
+  "b4_b8": {
+    "causal_scores_first_numeric_index": 2048,
+    "causal_scores_maximum": 0.03125,
+    "causal_scores_rms": 0.0012317170183684903,
+    "probabilities_first_numeric_index": 4097,
+    "probabilities_maximum": 0.0052773356437683105,
+    "probabilities_rms": 0.00000890584910192882,
+    "pv_maximum": 0.00033217668533325195
+  },
+  "all_within_batch_first_two_rows_bitwise_equal": true,
+  "all_repeat_metrics_equal": true,
+  "masked_only_explanation_rejected": true,
+  "softmax_as_independent_first_source_rejected": true,
+  "single_pv_only_fix_sufficient_for_all_batches_rejected": true,
+  "next_experiment": "Screen common exact hipBLASLt solutions separately for QK at B1/B4/B8 and P-by-V at B1/B2 before any model route."
+}

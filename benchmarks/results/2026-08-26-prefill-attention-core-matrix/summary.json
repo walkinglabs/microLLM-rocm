@@ -1,0 +1,615 @@
+{
+  "all_causal_scores_bitwise_equal": false,
+  "all_probabilities_bitwise_equal": false,
+  "all_repeat_metrics_equal": true,
+  "all_scores_bitwise_equal": false,
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "binary_files_retained": 0,
+  "case_rows": 4,
+  "cases": [
+    {
+      "all_within_batch_bitwise_equal": true,
+      "batch": 1,
+      "first_causal_nonzero_stage": null,
+      "first_nonzero_stage": null,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "b1_vs_batch_row0_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.scores",
+          "shape_actual": [
+            1,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "b1_vs_batch_row0_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+          "shape_actual": [
+            1,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+          "shape_actual": [
+            1,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": true,
+      "batch": 2,
+      "first_causal_nonzero_stage": "inference.cached_prefill.blocks.0.attention.pv_output",
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.attention.pv_output",
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "b1_vs_batch_row0_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.scores",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "b1_vs_batch_row0_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "first_bitwise_index": 12288,
+            "first_numeric_index": 12288,
+            "maximum": 9.775161743164062e-06,
+            "relative_l2": 4.1711250969311483e-07,
+            "rms": 1.1762365727360699e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": true,
+      "batch": 4,
+      "first_causal_nonzero_stage": "inference.cached_prefill.blocks.0.attention.scores",
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.attention.scores",
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 50331648,
+            "first_bitwise_index": 2,
+            "first_numeric_index": 2,
+            "maximum": 0.03125,
+            "relative_l2": 1.9080884619860683e-07,
+            "rms": 0.0011938981099291045
+          },
+          "b1_vs_batch_row0_causal_visible": {
+            "bitwise_equal": false,
+            "elements": 25178112,
+            "first_bitwise_index": 2048,
+            "first_numeric_index": 2048,
+            "maximum": 0.03125,
+            "relative_l2": 1.964350736408688e-07,
+            "rms": 0.0012317170183684903
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.scores",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 50331648,
+            "first_bitwise_index": 4097,
+            "first_numeric_index": 4097,
+            "maximum": 0.0052773356437683105,
+            "relative_l2": 0.00039598333273451017,
+            "rms": 6.2989235523923065e-06
+          },
+          "b1_vs_batch_row0_causal_visible": {
+            "bitwise_equal": false,
+            "elements": 25178112,
+            "first_bitwise_index": 4097,
+            "first_numeric_index": 4097,
+            "maximum": 0.0052773356437683105,
+            "relative_l2": 0.00039598333273451017,
+            "rms": 8.90584910192882e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "first_bitwise_index": 261,
+            "first_numeric_index": 261,
+            "maximum": 0.00033217668533325195,
+            "relative_l2": 6.323975666412002e-06,
+            "rms": 1.7833297470266552e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": true,
+      "batch": 8,
+      "first_causal_nonzero_stage": "inference.cached_prefill.blocks.0.attention.scores",
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.attention.scores",
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 50331648,
+            "first_bitwise_index": 2,
+            "first_numeric_index": 2,
+            "maximum": 0.03125,
+            "relative_l2": 1.9080884619860683e-07,
+            "rms": 0.0011938981099291045
+          },
+          "b1_vs_batch_row0_causal_visible": {
+            "bitwise_equal": false,
+            "elements": 25178112,
+            "first_bitwise_index": 2048,
+            "first_numeric_index": 2048,
+            "maximum": 0.03125,
+            "relative_l2": 1.964350736408688e-07,
+            "rms": 0.0012317170183684903
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.scores",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 50331648,
+            "first_bitwise_index": 4097,
+            "first_numeric_index": 4097,
+            "maximum": 0.0052773356437683105,
+            "relative_l2": 0.00039598333273451017,
+            "rms": 6.2989235523923065e-06
+          },
+          "b1_vs_batch_row0_causal_visible": {
+            "bitwise_equal": false,
+            "elements": 25178112,
+            "first_bitwise_index": 4097,
+            "first_numeric_index": 4097,
+            "maximum": 0.0052773356437683105,
+            "relative_l2": 0.00039598333273451017,
+            "rms": 8.90584910192882e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 50331648,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1_causal_visible": {
+            "bitwise_equal": true,
+            "elements": 25178112,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.probabilities",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            2048
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            2048
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "first_bitwise_index": 1152,
+            "first_numeric_index": 1152,
+            "maximum": 0.00033217668533325195,
+            "relative_l2": 6.321765730408725e-06,
+            "rms": 1.782706556043394e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "first_bitwise_index": null,
+            "first_numeric_index": null,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "name": "inference.cached_prefill.blocks.0.attention.pv_output",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        }
+      ]
+    }
+  ],
+  "context": 2048,
+  "first_causal_nonzero_stage": "inference.cached_prefill.blocks.0.attention.scores",
+  "first_causal_nonzero_stage_by_batch": {
+    "1": null,
+    "2": "inference.cached_prefill.blocks.0.attention.pv_output",
+    "4": "inference.cached_prefill.blocks.0.attention.scores",
+    "8": "inference.cached_prefill.blocks.0.attention.scores"
+  },
+  "first_nonzero_stage": "inference.cached_prefill.blocks.0.attention.scores",
+  "first_nonzero_stage_by_batch": {
+    "1": null,
+    "2": "inference.cached_prefill.blocks.0.attention.pv_output",
+    "4": "inference.cached_prefill.blocks.0.attention.scores",
+    "8": "inference.cached_prefill.blocks.0.attention.scores"
+  },
+  "kv_solution_index": 292135,
+  "process_rows": 8,
+  "q_solution_index": 296100,
+  "record_type": "prefill_attention_core_audit",
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "stage_count": 3,
+  "status": "pass"
+}

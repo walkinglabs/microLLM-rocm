@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "experiment": 308,
+  "status": "pass",
+  "engine_commit": "34e78638b743c1aae9eefe7653ac75a9189e6f8c",
+  "runner": "benchmarks/single_gpu/audit_prefill_attention_core.py",
+  "model": "deepseek-r1-distill-qwen-1.5b",
+  "context": 2048,
+  "batches": [1, 2, 4, 8],
+  "runs_per_case": 2,
+  "process_rows": 8,
+  "q_solution_index": 296100,
+  "kv_solution_index": 292135,
+  "complete_binary_comparison": true,
+  "causal_visible_score_comparison": true,
+  "binary_files_retained": 0,
+  "trace_records_per_process": 54,
+  "binary_records_per_process": 3,
+  "full_gates": {
+    "cpu_debug": "376/376",
+    "asan_ubsan": "374/374",
+    "pytorch_enabled_cpu": "379/379",
+    "mi300x_gfx942_hip": "195/195",
+    "rccl": "53/53"
+  },
+  "claims_not_made": [
+    "Binary trace time is not production performance.",
+    "No QK or P-by-V solution has been selected yet.",
+    "No default dispatch changed in this experiment."
+  ]
+}

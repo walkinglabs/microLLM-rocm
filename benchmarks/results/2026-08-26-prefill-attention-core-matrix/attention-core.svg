@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="650" viewBox="0 0 1320 650">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:24px;font-weight:700}.sub{font-size:13px;fill:#94a3b8}.label{font-size:14px}.value{font-size:12px}</style>
+<text x="36" y="42" class="title">Complete T2048 prefill Attention core</text>
+<text x="36" y="68" class="sub">DeepSeek block 0 · Q296100 · KV292135 · two fresh processes · full first two rows</text>
+<text x="260" y="118" class="label" text-anchor="middle">scores</text>
+<line x1="260" y1="140" x2="260" y2="510" stroke="#334155"/>
+<text x="600" y="118" class="label" text-anchor="middle">probabilities</text>
+<line x1="600" y1="140" x2="600" y2="510" stroke="#334155"/>
+<text x="940" y="118" class="label" text-anchor="middle">pv_output</text>
+<line x1="940" y1="140" x2="940" y2="510" stroke="#334155"/>
+<text x="56" y="196" class="label">B1 vs B2</text>
+<circle cx="260" cy="190" r="11" fill="#64748b"/>
+<text x="260" y="228" class="value" text-anchor="middle">exact</text>
+<circle cx="600" cy="190" r="11" fill="#64748b"/>
+<text x="600" y="228" class="value" text-anchor="middle">exact</text>
+<circle cx="940" cy="190" r="18" fill="#38bdf8"/>
+<text x="940" y="228" class="value" text-anchor="middle">Max 9.775e-06</text>
+<text x="56" y="326" class="label">B1 vs B4</text>
+<circle cx="260" cy="320" r="18" fill="#f97316"/>
+<text x="260" y="358" class="value" text-anchor="middle">Max 3.125e-02</text>
+<circle cx="600" cy="320" r="18" fill="#f97316"/>
+<text x="600" y="358" class="value" text-anchor="middle">Max 5.277e-03</text>
+<circle cx="940" cy="320" r="18" fill="#f97316"/>
+<text x="940" y="358" class="value" text-anchor="middle">Max 3.322e-04</text>
+<text x="56" y="456" class="label">B1 vs B8</text>
+<circle cx="260" cy="450" r="18" fill="#22c55e"/>
+<text x="260" y="488" class="value" text-anchor="middle">Max 3.125e-02</text>
+<circle cx="600" cy="450" r="18" fill="#22c55e"/>
+<text x="600" y="488" class="value" text-anchor="middle">Max 5.277e-03</text>
+<circle cx="940" cy="450" r="18" fill="#22c55e"/>
+<text x="940" y="488" class="value" text-anchor="middle">Max 3.322e-04</text>
+<line x1="90" y1="555" x2="1230" y2="555" stroke="#334155" stroke-width="3"/>
+<circle cx="230" cy="555" r="9" fill="#64748b"/>
+<text x="250" y="560" class="sub">complete bitwise equality</text>
+<circle cx="560" cy="555" r="12" fill="#f97316"/>
+<text x="580" y="560" class="sub">first numerical drift</text>
+<text x="36" y="615" class="label">Decision follows causal-visible values; masked future scores never count as a root cause.</text>
+</svg>

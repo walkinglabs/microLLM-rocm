@@ -18,6 +18,7 @@ def main() -> int:
         "ASan/UBSan 374/374",
         "PyTorch-enabled CPU 379/379",
         "single-GPU HIP label 195/195",
+        "B2 first drifts at P×V",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -66,6 +67,10 @@ def main() -> int:
         "docs/optimization-log/assets/ranked-gather-scale-discard.svg",
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics/verification.json",
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics/diagnostics.svg",
+        "benchmarks/results/2026-08-26-prefill-attention-core-matrix/summary.json",
+        "benchmarks/results/2026-08-26-prefill-attention-core-matrix/analysis.json",
+        "benchmarks/results/2026-08-26-prefill-attention-core-matrix/verification.json",
+        "benchmarks/results/2026-08-26-prefill-attention-core-matrix/attention-core.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -83,6 +88,16 @@ def main() -> int:
         "rccl": "53/53",
     }
     ET.parse(diagnostic_root / "diagnostics.svg")
+    attention_root = ROOT / (
+        "benchmarks/results/2026-08-26-prefill-attention-core-matrix")
+    attention = json.loads(
+        (attention_root / "summary.json").read_text(encoding="utf-8"))
+    assert attention["process_rows"] == 8
+    assert attention["binary_files_retained"] == 0
+    assert attention["first_causal_nonzero_stage"].endswith(".scores")
+    assert attention["first_causal_nonzero_stage_by_batch"]["2"].endswith(
+        ".pv_output")
+    ET.parse(attention_root / "attention-core.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 

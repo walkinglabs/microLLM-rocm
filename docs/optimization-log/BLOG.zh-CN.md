@@ -4782,3 +4782,28 @@ O projection之后同batch行也开始不同，但它不是跨batch首因。B8 O
 PV solution，不能同时改三个。默认继续冻结。
 
 ![Post-cache trace](../../benchmarks/results/2026-08-26-post-cache-block0-trace/post-cache-trace.svg)
+
+## 324. Experiment 307：先造一台不会默认开启的显微镜
+
+T2048 score每个B1 row有50,331,648个FP32值，普通JSON不适合完整保存。我们先加入显式
+`causal_gqa_attention_diagnostics`，只有cached-prefill trace明确点名scaled Q、scores、probabilities
+或P×V时才分解；普通推理和metadata-only trace不变。HIP T256诊断输出与生产路径位级相同。
+
+随后TraceSession增加filtered binary export：JSON只留一个样例和dtype/endian/count/bytes，完整FP32
+写紧凑临时文件。CPU 376/376、Sanitizer 374/374、PyTorch 379/379、HIP 195/195和RCCL 53/53通过。
+这台显微镜只看数值，不计时。
+
+![Filtered binary trace](assets/filtered-binary-trace.svg)
+
+## 325. Experiment 308：不同batch，第一处差异不是同一个算子
+
+两个fresh process检查B1/2/4/8。B2的50,331,648个scores和probabilities全部位级相同，P×V才出现
+Max 9.775e-6。B4/B8则在QK raw scores先出现Max 0.03125。
+
+raw第一个差异索引2位于未来mask区，所以我们没有立刻下结论。只看25,178,112个causal可见score后，
+第一个差异仍在索引2048，Max仍是0.03125；probability随后在4097开始不同。遮罩外差异不是唯一解释。
+
+所有batch内部两条相同输入行在三阶段都exact。结论是双机制：B2需要P×V solution门，B4/B8需要QK
+solution门；softmax没有独立首差。下一步分别筛两个真实descriptor，不能用一个局部修复覆盖全部batch。
+
+![Prefill Attention core](../../benchmarks/results/2026-08-26-prefill-attention-core-matrix/attention-core.svg)

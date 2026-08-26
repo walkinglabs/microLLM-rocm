@@ -101,6 +101,52 @@ ATTENTION_CORE_SPEC.loader.exec_module(ATTENTION_CORE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_prefill_attention_core_has_two_batch_boundaries(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-prefill-attention-core-matrix")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+            encoding="utf-8").splitlines() if line]
+        self.assertEqual(summary["process_rows"], 8)
+        self.assertEqual(summary["stage_count"], 3)
+        self.assertEqual(summary["binary_files_retained"], 0)
+        self.assertTrue(summary["all_repeat_metrics_equal"])
+        self.assertEqual(summary["first_causal_nonzero_stage"],
+                         ATTENTION_CORE.STAGES[0])
+        self.assertEqual(summary["first_causal_nonzero_stage_by_batch"], {
+            "1": None,
+            "2": ATTENTION_CORE.STAGES[2],
+            "4": ATTENTION_CORE.STAGES[0],
+            "8": ATTENTION_CORE.STAGES[0],
+        })
+        b2 = next(case for case in summary["cases"] if case["batch"] == 2)
+        self.assertTrue(b2["stages"][0]
+                        ["b1_vs_batch_row0_causal_visible"]["bitwise_equal"])
+        self.assertTrue(b2["stages"][1]
+                        ["b1_vs_batch_row0_causal_visible"]["bitwise_equal"])
+        self.assertEqual(b2["stages"][2]["b1_vs_batch_row0"]["maximum"],
+                         9.775161743164062e-06)
+        b4 = next(case for case in summary["cases"] if case["batch"] == 4)
+        self.assertEqual(b4["stages"][0]
+                         ["b1_vs_batch_row0_causal_visible"]
+                         ["first_numeric_index"], 2048)
+        self.assertEqual(b4["stages"][0]
+                         ["b1_vs_batch_row0_causal_visible"]["maximum"],
+                         0.03125)
+        self.assertTrue(all(case["all_within_batch_bitwise_equal"]
+                            for case in summary["cases"]))
+        self.assertEqual(len(raw), 8)
+        self.assertTrue(analysis["masked_only_explanation_rejected"])
+        self.assertTrue(analysis[
+            "single_pv_only_fix_sufficient_for_all_batches_rejected"])
+        self.assertEqual(verification["engine_commit"],
+                         "34e78638b743c1aae9eefe7653ac75a9189e6f8c")
+        self.assertFalse(any(root.glob("*.bin")))
+        ET.parse(root / "attention-core.svg")
+
     def test_prefill_attention_core_binary_comparison_and_summary(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -110,6 +156,8 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
             left.write_bytes(struct.pack("<4f", 1.0, 2.0, 3.0, 4.0))
             exact.write_bytes(struct.pack("<4f", 1.0, 2.0, 3.0, 4.0))
             changed.write_bytes(struct.pack("<4f", 1.0, 2.0, 3.5, 4.0))
+            masked_only = root / "masked-only.bin"
+            masked_only.write_bytes(struct.pack("<4f", 1.0, 2.5, 3.0, 4.0))
             self.assertTrue(ATTENTION_CORE.difference_binary(
                 left, exact, 4)["bitwise_equal"])
             difference = ATTENTION_CORE.difference_binary(left, changed, 4)
@@ -117,6 +165,10 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
             self.assertEqual(difference["first_bitwise_index"], 2)
             self.assertEqual(difference["first_numeric_index"], 2)
             self.assertEqual(difference["maximum"], 0.5)
+            causal = ATTENTION_CORE.difference_binary(
+                left, masked_only, 4, causal_sequence=2)
+            self.assertTrue(causal["bitwise_equal"])
+            self.assertEqual(causal["elements"], 3)
 
         processes = []
         for run in (1, 2):
@@ -133,7 +185,7 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
                         "rms": 0.25 if differs else 0.0,
                         "relative_l2": 0.1 if differs else 0.0,
                     }
-                    stages.append({
+                    stage = {
                         "name": name,
                         "b1_vs_batch_row0": metric,
                         "batch_row0_vs_row1": {
@@ -143,13 +195,25 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
                             "maximum": 0.0, "rms": 0.0,
                             "relative_l2": 0.0,
                         },
-                    })
+                    }
+                    if index < 2:
+                        stage["b1_vs_batch_row0_causal_visible"] = metric
+                        stage["batch_row0_vs_row1_causal_visible"] = {
+                            **metric, "bitwise_equal": True,
+                            "first_bitwise_index": None,
+                            "first_numeric_index": None,
+                            "maximum": 0.0, "rms": 0.0,
+                            "relative_l2": 0.0,
+                        }
+                    stages.append(stage)
                 processes.append({"batch": batch, "process_run": run,
                                   "stages": stages})
         summary = ATTENTION_CORE.summarize(processes)
         self.assertTrue(summary["all_scores_bitwise_equal"])
         self.assertTrue(summary["all_probabilities_bitwise_equal"])
         self.assertEqual(summary["first_nonzero_stage"],
+                         ATTENTION_CORE.STAGES[2])
+        self.assertEqual(summary["first_causal_nonzero_stage"],
                          ATTENTION_CORE.STAGES[2])
         ET.fromstring(ATTENTION_CORE.render(summary))
 
