@@ -152,9 +152,55 @@ FFN_SOLUTIONS_SPEC = importlib.util.spec_from_file_location(
 FFN_SOLUTIONS = importlib.util.module_from_spec(FFN_SOLUTIONS_SPEC)
 assert FFN_SOLUTIONS_SPEC.loader is not None
 FFN_SOLUTIONS_SPEC.loader.exec_module(FFN_SOLUTIONS)
+FFN_MODEL_SPEC = importlib.util.spec_from_file_location(
+    "fp32_prefill_ffn_model_gate",
+    ROOT / "benchmarks/single_gpu/fp32_prefill_ffn_model_gate.py")
+FFN_MODEL = importlib.util.module_from_spec(FFN_MODEL_SPEC)
+assert FFN_MODEL_SPEC.loader is not None
+FFN_MODEL_SPEC.loader.exec_module(FFN_MODEL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_prefill_ffn_model_scope_is_batch_selective_and_counted(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        baseline = FFN_MODEL.command(
+            args, model, "upstream-exact", 2, 0)
+        self.assertNotIn(
+            "--fp32-prefill-ffn-gate-up-solution-index", baseline)
+        b2 = FFN_MODEL.command(
+            args, model, "batch-selective", 2, 0)
+        self.assertEqual(b2[
+            b2.index("--fp32-prefill-ffn-gate-up-solution-index") + 1],
+            "296100")
+        b4 = FFN_MODEL.command(
+            args, model, "batch-selective", 4, 0)
+        self.assertNotIn(
+            "--fp32-prefill-ffn-gate-up-solution-index", b4)
+        route = {
+            "status": "pass", "batch": 2, "token_count": 2048,
+            "decode_tokens": 1, "kv_cache_dtype": "bf16",
+            "fp32_prefill_q_solution_index": -1,
+            "fp32_prefill_kv_solution_index": -1,
+            "fp32_prefill_attention_qk_solution_index": -1,
+            "fp32_prefill_attention_pv_solution_index": -1,
+            "fp32_prefill_attention_o_solution_index": -1,
+            "fp32_prefill_ffn_gate_up_solution_index": 296100,
+            "fp32_solution_registered_entries": 1,
+            "fp32_solution_cached_algorithms": 1,
+            "fp32_solution_registry_hits": 56,
+            "fp32_solution_cache_misses": 1,
+            "fp32_solution_cache_hits": 55,
+            "fp32_solution_dispatches": 56,
+        }
+        FFN_MODEL.require_route(
+            route, "batch-selective", 2, 2048, 0)
+
     def test_current_ffn_solution_matrix_rejects_m8192(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-ffn-row-invariance")

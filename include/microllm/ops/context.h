@@ -16,6 +16,7 @@ enum class Fp32SolutionScope {
     PrefillAttentionQk,
     PrefillAttentionPv,
     PrefillAttentionOutputProjection,
+    PrefillFfnGateUpProjection,
 };
 
 struct OpContext {

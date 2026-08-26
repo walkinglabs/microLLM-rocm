@@ -118,6 +118,7 @@ struct Options {
     int fp32_prefill_attention_qk_solution_index = -1;
     int fp32_prefill_attention_pv_solution_index = -1;
     int fp32_prefill_attention_o_solution_index = -1;
+    int fp32_prefill_ffn_gate_up_solution_index = -1;
     bool allocation_source_diagnostics = false;
     bool strided_copy_diagnostics = false;
     bool inference_bthd_attention = false;
@@ -406,6 +407,10 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--fp32-prefill-attention-o-solution-index") {
             result.fp32_prefill_attention_o_solution_index =
+                std::stoi(argv[index + 1]);
+        }
+        else if (name == "--fp32-prefill-ffn-gate-up-solution-index") {
+            result.fp32_prefill_ffn_gate_up_solution_index =
                 std::stoi(argv[index + 1]);
         }
         else if (name == "--allocation-source-diagnostics") {
@@ -756,6 +761,16 @@ Options options(int argc, char** argv) {
           result.fp8_linear || result.bf16_attention))) {
         throw std::invalid_argument(
             "FP32 cached prefill Attention solutions require HIP full cached decode with FP32 Attention weights");
+    }
+    const auto fp32_prefill_ffn_requested =
+        result.fp32_prefill_ffn_gate_up_solution_index >= 0;
+    if (result.fp32_prefill_ffn_gate_up_solution_index < -1 ||
+        (fp32_prefill_ffn_requested &&
+         (result.device != "hip" || result.workload != "decode" ||
+          !result.use_cache || result.cache_prefill_mode != "full" ||
+          result.fp8_linear || result.bf16_ffn))) {
+        throw std::invalid_argument(
+            "FP32 cached prefill FFN solutions require HIP full cached decode with FP32 FFN weights");
     }
     if (!result.cache_logits_output.empty() &&
         (!result.use_cache || result.workload == "prefill" || result.new_tokens < 1)) {
@@ -1669,7 +1684,8 @@ int main(int argc, char** argv) {
             command.fp32_prefill_kv_solution_index >= 0 ||
             command.fp32_prefill_attention_qk_solution_index >= 0 ||
             command.fp32_prefill_attention_pv_solution_index >= 0 ||
-            command.fp32_prefill_attention_o_solution_index >= 0) {
+            command.fp32_prefill_attention_o_solution_index >= 0 ||
+            command.fp32_prefill_ffn_gate_up_solution_index >= 0) {
             microllm::ops::clear_fp32_matmul_solution_registry();
             const auto sequence = static_cast<std::int64_t>(ids.size());
             const auto heads = external.model.heads;
@@ -1728,6 +1744,18 @@ int main(int argc, char** argv) {
                     key, command.fp32_prefill_attention_o_solution_index);
             }
             const auto rows = command.batch * sequence;
+            if (command.fp32_prefill_ffn_gate_up_solution_index >= 0) {
+                microllm::ops::OpContext ffn_context;
+                ffn_context.mode = microllm::ops::OpMode::Inference;
+                ffn_context.fp32_solution_scope =
+                    microllm::ops::Fp32SolutionScope::PrefillFfnGateUpProjection;
+                const auto key = microllm::ops::make_fp32_matmul_solution_key(
+                    {rows, external.model.dimension},
+                    {external.model.dimension, external.model.ffn_dimension},
+                    device, false, false, ffn_context);
+                microllm::ops::register_fp32_matmul_solution(
+                    key, command.fp32_prefill_ffn_gate_up_solution_index);
+            }
             microllm::ops::OpContext query_context;
             query_context.mode = microllm::ops::OpMode::Inference;
             query_context.fp32_solution_scope =
@@ -2550,6 +2578,8 @@ int main(int argc, char** argv) {
                   << command.fp32_prefill_attention_pv_solution_index
                   << ",\"fp32_prefill_attention_o_solution_index\":"
                   << command.fp32_prefill_attention_o_solution_index
+                  << ",\"fp32_prefill_ffn_gate_up_solution_index\":"
+                  << command.fp32_prefill_ffn_gate_up_solution_index
                   << ",\"fp32_solution_registered_entries\":"
                   << fp32_solution_stats.registered_entries
                   << ",\"fp32_solution_cached_algorithms\":"
