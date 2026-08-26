@@ -158,9 +158,33 @@ FFN_MODEL_SPEC = importlib.util.spec_from_file_location(
 FFN_MODEL = importlib.util.module_from_spec(FFN_MODEL_SPEC)
 assert FFN_MODEL_SPEC.loader is not None
 FFN_MODEL_SPEC.loader.exec_module(FFN_MODEL)
+FFN_ALL_SPEC = importlib.util.spec_from_file_location(
+    "fp32_prefill_ffn_all_exact_gate",
+    ROOT / "benchmarks/single_gpu/fp32_prefill_ffn_all_exact_gate.py")
+FFN_ALL = importlib.util.module_from_spec(FFN_ALL_SPEC)
+assert FFN_ALL_SPEC.loader is not None
+FFN_ALL_SPEC.loader.exec_module(FFN_ALL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_all_exact_ffn_runner_includes_b4_without_changing_scope(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        b4 = FFN_ALL.BASE.command(
+            args, model, "batch-selective", 4, 0)
+        self.assertEqual(b4[
+            b4.index("--fp32-prefill-ffn-gate-up-solution-index") + 1],
+            "296100")
+        self.assertNotIn("--fp32-prefill-q-solution-index", b4)
+        self.assertNotIn("--fp32-prefill-attention-qk-solution-index", b4)
+        self.assertTrue(all(values["ffn"] == 296100
+                            for values in FFN_ALL.SELECTIVE.values()))
+
     def test_current_prefill_ffn_model_gate_rejects_rms(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-prefill-ffn-model-gate")
