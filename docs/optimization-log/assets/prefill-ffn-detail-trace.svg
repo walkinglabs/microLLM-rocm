@@ -2,7 +2,7 @@
   <rect width="1180" height="430" fill="#0b1020"/>
   <style>.title{font:700 25px ui-monospace,monospace;fill:#f8fafc}.head{font:700 17px ui-monospace,monospace;fill:#e5e7eb}.small{font:14px ui-monospace,monospace;fill:#94a3b8}.box{fill:#131b2e;stroke:#38bdf8;stroke-width:2}</style>
   <text x="42" y="52" class="title">Cached-prefill FFN detail trace</text>
-  <text x="42" y="82" class="small">explicit all-layer details · filtered values · first two batch rows only</text>
+  <text x="42" y="82" class="small">explicit value filter · block 0 only · first two batch rows only</text>
   <g>
     <rect x="45" y="145" width="175" height="90" rx="12" class="box"/><text x="132" y="182" text-anchor="middle" class="head">FFN norm</text><text x="132" y="208" text-anchor="middle" class="small">known exact input</text>
     <rect x="270" y="145" width="175" height="90" rx="12" class="box"/><text x="357" y="182" text-anchor="middle" class="head">gate + up</text><text x="357" y="208" text-anchor="middle" class="small">two projections</text>

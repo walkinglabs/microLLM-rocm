@@ -1864,14 +1864,16 @@ public:
             const auto activated = ops::swiglu(gate, up);
             auto* trace = profiling::TraceSession::current();
             if (trace != nullptr &&
-                trace->options().record_all_layer_details) {
+                (trace->options().record_all_layer_details ||
+                 prefill_trace_rows)) {
                 trace_stage("gate", gate);
                 trace_stage("up", up);
                 trace_stage("activated", activated);
             }
             output = down_.forward_tensor(activated);
             if (trace != nullptr &&
-                trace->options().record_all_layer_details) {
+                (trace->options().record_all_layer_details ||
+                 prefill_trace_rows)) {
                 trace_stage("down", output);
             }
         }
@@ -2038,12 +2040,21 @@ public:
         trace_prefill_rows(trace_prefix, "ffn_norm", ffn_input,
                            input.shape()[0], input.shape()[1]);
         const auto* trace = profiling::TraceSession::current();
+        const auto ffn_trace_prefix = trace_prefix + ".ffn";
+        const auto filtered_ffn_detail =
+            trace_requests_value(ffn_trace_prefix + ".input_bf16") ||
+            trace_requests_value(ffn_trace_prefix + ".gate") ||
+            trace_requests_value(ffn_trace_prefix + ".up") ||
+            trace_requests_value(ffn_trace_prefix + ".activated") ||
+            trace_requests_value(ffn_trace_prefix + ".down") ||
+            trace_requests_value(ffn_trace_prefix + ".output");
         const auto ffn_details = trace != nullptr &&
-                                 trace->options().record_all_layer_details;
+                                 (trace->options().record_all_layer_details ||
+                                  filtered_ffn_detail);
         auto ffn = feed_forward_.forward_tensor(
             ffn_input,
             ffn_details && !trace_prefix.empty()
-                ? trace_prefix + ".ffn"
+                ? ffn_trace_prefix
                 : std::string{},
             ffn_details);
         trace_prefill_rows(trace_prefix, "ffn_output", ffn,

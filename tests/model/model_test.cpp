@@ -329,10 +329,13 @@ TEST(TransformerModelTest,
 
     profiling::TraceOptions options;
     options.record_operators = false;
-    options.record_all_layer_details = true;
+    options.record_all_layer_details = false;
     options.capture_values = true;
     options.value_name_filters = {
-        "inference.cached_prefill.blocks.0.ffn."};
+        "inference.cached_prefill.blocks.0.ffn.gate",
+        "inference.cached_prefill.blocks.0.ffn.up",
+        "inference.cached_prefill.blocks.0.ffn.activated",
+        "inference.cached_prefill.blocks.0.ffn.down"};
     options.max_captured_elements = 4096;
     profiling::TraceSession trace(
         "microllm", "cached-prefill-ffn-detail", options);

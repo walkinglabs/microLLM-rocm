@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Complete-value prefill FFN runner](2026-08-26-prefill-ffn-stage-runner.md)
 - [2026-08-26: Cached-prefill FFN detail trace](2026-08-26-prefill-ffn-detail-trace.md)
 - [2026-08-26: Exact-stack model rejection](2026-08-26-prefill-exact-stack-reject.md)
 - [2026-08-26: Batch-selective exact-stack model gate](2026-08-26-prefill-exact-stack-gate-infrastructure.md)

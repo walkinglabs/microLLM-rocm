@@ -140,9 +140,52 @@ EXACT_STACK_SPEC = importlib.util.spec_from_file_location(
 EXACT_STACK = importlib.util.module_from_spec(EXACT_STACK_SPEC)
 assert EXACT_STACK_SPEC.loader is not None
 EXACT_STACK_SPEC.loader.exec_module(EXACT_STACK)
+FFN_STAGES_SPEC = importlib.util.spec_from_file_location(
+    "audit_prefill_ffn_stages",
+    ROOT / "benchmarks/single_gpu/audit_prefill_ffn_stages.py")
+FFN_STAGES = importlib.util.module_from_spec(FFN_STAGES_SPEC)
+assert FFN_STAGES_SPEC.loader is not None
+FFN_STAGES_SPEC.loader.exec_module(FFN_STAGES)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_prefill_ffn_stage_runner_is_block_zero_and_binary_filtered(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        command = FFN_STAGES.command(
+            args, model, 4, Path("trace.jsonl"), Path("cache.bin"),
+            Path("values"))
+        self.assertNotIn("--trace-all-layer-details", command)
+        self.assertEqual(command[
+            command.index("--trace-value-filter") + 1],
+            ",".join(FFN_STAGES.STAGES))
+        self.assertEqual(command[
+            command.index("--trace-max-elements") + 1], "1")
+        self.assertEqual(command[
+            command.index("--trace-binary-directory") + 1], "values")
+        route = {
+            "status": "pass", "batch": 4, "token_count": 2048,
+            "trace_record_count": 56,
+            "trace_binary_record_count": 8,
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_prefill_attention_qk_solution_index": 304681,
+            "fp32_prefill_attention_pv_solution_index": 295716,
+            "fp32_prefill_attention_o_solution_index": 296100,
+            "fp32_solution_registered_entries": 5,
+            "fp32_solution_cached_algorithms": 5,
+            "fp32_solution_registry_hits": 168,
+            "fp32_solution_cache_misses": 5,
+            "fp32_solution_cache_hits": 163,
+            "fp32_solution_dispatches": 168,
+        }
+        FFN_STAGES.require_route(route, 4)
+
     def test_current_exact_stack_gate_closes_composition_track(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-prefill-exact-stack-gate")

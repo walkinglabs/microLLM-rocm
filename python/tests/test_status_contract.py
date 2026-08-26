@@ -28,7 +28,7 @@ def main() -> int:
         "B1 prefill is 0.944×",
         "complete-logit Max worsens 6.9% and RMS improves only 2.5%",
         "Release prefill 0.987×–1.020× passes",
-        "explicit detail records gate/up/SwiGLU/down",
+        "explicit filter records gate/up/SwiGLU/down",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
