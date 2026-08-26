@@ -102,6 +102,12 @@ def run_one(args: argparse.Namespace, model: dict, vocabulary: int, policy: str,
         if record.get(name) != wanted:
             raise ValueError(
                 f"{policy} {name} expected {wanted!r}, got {record.get(name)!r}")
+    try:
+        decode_rate = float(record["decode_tokens_per_second"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError(f"{policy} decode throughput is missing") from error
+    if decode_rate <= 0.0:
+        raise ValueError(f"{policy} decode throughput must be positive")
     logits = COMMON.read_logits(output, batch, vocabulary)
     rows = [logits[index * vocabulary:(index + 1) * vocabulary]
             for index in range(batch)]
@@ -159,7 +165,7 @@ def summarize(measurements: list[tuple[dict, list[float]]],
                 "device_argmax_tokens": [row["device_argmax_token"]
                                          for row, _ in samples],
                 "median_throughput_tokens_per_second": statistics.median(
-                    float(row["throughput_tokens_per_second"])
+                    float(row["decode_tokens_per_second"])
                     for row, _ in samples),
                 "peak_bytes": max(int(row["engine_peak_bytes"])
                                   for row, _ in samples),

@@ -81,7 +81,7 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
                         "process_run": run, "within_batch_bitwise_equal": True,
                         "host_device_argmax_equal": True,
                         "device_argmax_token": 3,
-                        "throughput_tokens_per_second": 10.0 + batch,
+                        "decode_tokens_per_second": 10.0 + batch,
                         "engine_peak_bytes": 1000 + policy_index,
                     }, values * batch))
         summary = LAYER_COUNTERFACTUAL.summarize(measurements, 4)
