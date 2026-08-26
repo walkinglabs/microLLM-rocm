@@ -14,9 +14,9 @@ def main() -> int:
     text = STATUS.read_text(encoding="utf-8")
     for token in (
         "RCCL label 53/53",
-        "CPU 378/378",
+        "CPU 379/379",
         "ASan/UBSan 376/376",
-        "PyTorch-enabled CPU 381/381",
+        "PyTorch-enabled CPU 382/382",
         "single-GPU HIP label 197/197",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
@@ -77,6 +77,7 @@ def main() -> int:
         "CPU 374/374",
         "CPU 376/376",
         "CPU 377/377",
+        "CPU 378/378",
         "ASan/UBSan 374/374",
         "ASan/UBSan 375/375",
         "ASan/UBSan 372/372",
@@ -86,6 +87,7 @@ def main() -> int:
         "PyTorch-enabled CPU 377/377",
         "PyTorch-enabled CPU 379/379",
         "PyTorch-enabled CPU 380/380",
+        "PyTorch-enabled CPU 381/381",
         "PyTorch-enabled build 323/323",
         "experiments through 287",
         "current T2048/B2/N64 is 0.8158x",
@@ -199,6 +201,9 @@ def main() -> int:
         "benchmarks/results/2026-08-26-qwen-tool-chat/analysis.json",
         "benchmarks/results/2026-08-26-qwen-tool-chat/verification.json",
         "benchmarks/results/2026-08-26-qwen-tool-chat/tool-chat.svg",
+        "benchmarks/results/2026-08-26-python-profile-api/analysis.json",
+        "benchmarks/results/2026-08-26-python-profile-api/verification.json",
+        "benchmarks/results/2026-08-26-python-profile-api/python-profile.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (

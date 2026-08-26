@@ -207,7 +207,7 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] same-weight microLLM/PyTorch tiny-model forward, loss, every named gradient, and
   forward/backward timing runner;
 - [x] manifest, raw JSONL, comparison JSON, and Markdown report artifacts;
-- [ ] optional Python context manager/decorator after the C++ profiler is stable;
+- [x] optional standard-library Python context manager/decorator with schema JSONL;
 - [ ] rocprof marker correlation and Chrome/Perfetto export.
 
 ## P2.5 — production data parallel reducer

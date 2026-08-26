@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass","python_unittest":"2/2","ctest":"PythonAPI.Profiling pass","record_rows":4,"statuses":["pass","error"],"cpu_debug":"379/379","asan_ubsan":"376/376","pytorch_enabled_cpu":"382/382","mi300x_gfx942_hip":"197/197","rccl":"53/53"}

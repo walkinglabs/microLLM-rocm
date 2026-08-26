@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Python profile decorator](2026-08-26-python-profile-api.md)
 - [2026-08-26: Qwen tool chat template](2026-08-26-qwen-tool-chat.md)
 - [2026-08-26: Safetensors mmap visits](2026-08-26-safetensors-mmap.md)
 - [2026-08-26: Indexed HIP weight streaming](2026-08-26-indexed-streaming.md)

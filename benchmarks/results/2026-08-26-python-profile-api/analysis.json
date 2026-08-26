@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"python_profile_api_complete","decorator_sync":true,"decorator_async":true,"context_manager":true,"nested_contextvars_depth":true,"error_record_and_rethrow":true,"json_metadata_validation":true,"thread_safe_append":true,"c_library_required":false}

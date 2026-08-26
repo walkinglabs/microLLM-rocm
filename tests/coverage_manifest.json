@@ -331,6 +331,7 @@
     "tests/training/optimizer_test.cpp",
     "tests/training/trainer_test.cpp",
     "python/tests/test_capi.py",
+    "python/tests/test_profiling_api.py",
     "python/tests/test_alignment_tools.py",
     "python/tests/test_deferred_deallocation_matrix.py",
     "python/tests/test_scoped_deferred_model_matrix.py",

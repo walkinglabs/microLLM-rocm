@@ -537,9 +537,10 @@ per block and must not claim already-retained layout savings.
 
 ## What remains
 
-There is no Python `@profile` decorator yet. The current stable entry points are the
-C++ RAII trace API, operator micro-benchmarks and the alignment runner. Future work must correlate ranges with
-rocprof markers, support asynchronous HIP Event completion without per-range device
-synchronization, and export Perfetto ranges directly.
+Python now provides `@profile(output="trace.jsonl")` and
+`profile_scope("name", output="trace.jsonl")` for schema-versioned wall spans. Sync,
+async, nested and error paths are tested. These spans do not synchronize GPU work and
+must not be interpreted as Kernel time. Future work must correlate ranges with rocprof
+markers, support asynchronous HIP Event completion, and export Perfetto ranges directly.
 
 Ad-hoc wall-clock timing around asynchronous kernels is not accepted evidence.

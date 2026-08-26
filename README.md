@@ -895,10 +895,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 378/378 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
+| CPU Debug | 379/379 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
 | ASan/UBSan CPU | 376/376 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 197/197 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model and multi-shard streaming |
-| PyTorch-enabled CPU build | 381/381 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 382/382 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 53/53 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure and package gates |
 | Registered test files | 129 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
