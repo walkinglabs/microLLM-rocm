@@ -88,6 +88,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
                    micro/tune_fp32_attention_algorithms.cpp)
     target_link_libraries(microllm_tune_fp32_attention_algorithms PRIVATE
         microllm::core microllm::runtime hip::host roc::hipblaslt)
+    add_executable(microllm_bench_fp32_attention_batch_invariance
+                   micro/benchmark_fp32_attention_batch_invariance.cpp)
+    target_link_libraries(microllm_bench_fp32_attention_batch_invariance PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_bench_bf16_grouped_qkv
                    micro/benchmark_bf16_grouped_qkv.cpp)
     target_link_libraries(microllm_bench_bf16_grouped_qkv PRIVATE
@@ -499,6 +503,14 @@ if(BUILD_TESTING)
                              --warmup 0 --repetitions 1)
             set_tests_properties(Benchmark.HipFp32AttentionSolutionTune PROPERTIES
                                  LABELS "hip;benchmark;attention;matmul;solution;correctness;smoke")
+            add_test(NAME Benchmark.HipFp32AttentionBatchInvarianceSmoke
+                     COMMAND microllm_bench_fp32_attention_batch_invariance
+                             --operation qk --sequence 16 --heads 2 --kv-heads 1
+                             --width 8 --request-batches 1,2
+                             --maximum-algorithms 64 --workspace-bytes 33554432
+                             --warmup 0 --repetitions 1)
+            set_tests_properties(Benchmark.HipFp32AttentionBatchInvarianceSmoke PROPERTIES
+                                 LABELS "hip;benchmark;attention;matmul;fp32;solution;correctness;smoke")
             add_test(NAME Benchmark.HipBf16GroupedQkvProbe
                      COMMAND microllm_bench_bf16_grouped_qkv
                              --model qwen --rows 32 --workspace-bytes 33554432

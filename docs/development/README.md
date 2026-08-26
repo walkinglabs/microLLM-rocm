@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Real Attention batch-invariance harness](2026-08-26-attention-batch-invariance-infrastructure.md)
 - [2026-08-26: T2048 prefill Attention core matrix](2026-08-26-prefill-attention-core-matrix.md)
 - [2026-08-26: Filtered binary TraceSession export](2026-08-26-binary-trace-export.md)
 - [2026-08-26: Prefill Attention core diagnostics](2026-08-26-prefill-attention-core-diagnostics.md)

@@ -17,6 +17,31 @@ Result schema version 1 fields are emitted directly by `microllm_bench_ops`.
 Representative committed smoke results live under `benchmarks/results/`; full local
 run outputs are ignored unless curated with their environment and correctness data.
 
+### FP32 Attention request-batch invariance
+
+The ordinary FP32 row-invariance tool changes GEMM `M`. Full-prefill Attention keeps
+`M/N/K` fixed and changes the strided-batched descriptor instead. Use the dedicated
+correctness-first harness for that case:
+
+```bash
+./build/hip-release/benchmarks/microllm_bench_fp32_attention_batch_invariance \
+  --operation qk --sequence 2048 --heads 12 --kv-heads 2 --width 128 \
+  --request-batches 1,2,4,8 --maximum-algorithms 64 \
+  --workspace-bytes 33554432 --warmup 1 --repetitions 3
+```
+
+`qk` tests `M2048 N2048 K128`; `pv` tests `M2048 N128 K2048`. The backend batch
+counts are 12/24/48/96. A B1 12-head input block is copied exactly to every request
+row. Each common solution must pass a CPU sentinel, complete B1/default comparison,
+and every output element of every repeated request block before its Event/wall timing
+is recorded. `--inventory-only true` lists common indices without allocating the
+large T2048 operands.
+
+The reproducible two-operation driver is
+[`fp32_attention_batch_invariance_matrix.py`](single_gpu/fp32_attention_batch_invariance_matrix.py).
+An exact solution is not automatically admitted: the matrix separately requires its
+minimum speedup across all requested batch sizes to remain at least 0.95.
+
 When rocWMMA 2.2 and OpenMP are available, the benchmark-only QK capability target
 compares complete BF16×BF16→FP32 outputs against CPU, scalar HIP and hipBLASLt:
 

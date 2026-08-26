@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 376/376, ASan/UBSan 374/374, PyTorch-enabled CPU 379/379, single-GPU HIP label 195/195, RCCL label 53/53 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 376/376, ASan/UBSan 374/374, PyTorch-enabled CPU 379/379, single-GPU HIP label 196/196, RCCL label 53/53 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -84,7 +84,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
 | In-process profiling | smoke-tested | TraceSession/TraceTimer, values/operator/layer passes, filtered little-endian FP32/Int32 binary export, CPU/HIP tests | async Event completion/rocprof markers/Python decorator |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
-| Profiling/autotune | smoke-tested | rocprofv3, exact registries, complete output/state before timing, training phase delta, Autograd source and strided-layout diagnostics | automated model regression and broader trace correlation |
+| Profiling/autotune | smoke-tested | rocprofv3, exact registries, complete output/state before timing, real strided-batched Attention batch-invariance harness, training phase delta and Autograd/layout diagnostics | automated model regression and broader trace correlation |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |
 | Engine allocation tracker | smoke-tested | CPU/HIP current/peak/total accounting | external allocator integration |
 | End-to-end benchmark | smoke-tested | matched Python/PyTorch ROCm official training plus phase-separated prefill and one-forward-per-token steady-decode JSONL | serving concurrency, board-level memory and llama.cpp |

@@ -98,9 +98,52 @@ ATTENTION_CORE_SPEC = importlib.util.spec_from_file_location(
 ATTENTION_CORE = importlib.util.module_from_spec(ATTENTION_CORE_SPEC)
 assert ATTENTION_CORE_SPEC.loader is not None
 ATTENTION_CORE_SPEC.loader.exec_module(ATTENTION_CORE)
+ATTENTION_SOLUTIONS_SPEC = importlib.util.spec_from_file_location(
+    "fp32_attention_batch_invariance_matrix",
+    ROOT / "benchmarks/single_gpu/fp32_attention_batch_invariance_matrix.py")
+ATTENTION_SOLUTIONS = importlib.util.module_from_spec(ATTENTION_SOLUTIONS_SPEC)
+assert ATTENTION_SOLUTIONS_SPEC.loader is not None
+ATTENTION_SOLUTIONS_SPEC.loader.exec_module(ATTENTION_SOLUTIONS)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_attention_solution_summary_prefers_exact_non_regressing_candidate(self):
+        inventories = {}
+        results = {}
+        for operation in ("qk", "pv"):
+            inventories[operation] = {
+                "common_candidate_indices": [7, 9],
+            }
+            candidates = []
+            exact_speedups = ([1.1, 1.0, 1.2, 1.05] if operation == "qk"
+                              else [0.5, 1.0, 1.2, 1.05])
+            for index, exact, speedups in (
+                    (7, True, exact_speedups),
+                    (9, False, [])):
+                candidates.append({
+                    "index": index,
+                    "maximum_workspace_bytes": 0,
+                    "block_invariant": exact,
+                    "event_speedup_vs_default": speedups,
+                })
+            results[operation] = {
+                "candidates": candidates,
+                "shape_candidate_counts": [64, 64, 64, 64],
+                "correctness_passed_count": 2,
+                "block_invariant_count": 1,
+                "default_block_invariant": False,
+                "default_block_maximum_error": 0.1,
+                "default_block_rms_error": 0.01,
+            }
+        summary = ATTENTION_SOLUTIONS.summarize(results, inventories)
+        self.assertEqual([row["best_exact_index"]
+                          for row in summary["operations"]], [7, 7])
+        self.assertEqual([row["admitted_index"]
+                          for row in summary["operations"]], [7, -1])
+        self.assertEqual([row["non_regressing_invariant_count"]
+                          for row in summary["operations"]], [1, 0])
+        ET.fromstring(ATTENTION_SOLUTIONS.render(summary))
+
     def test_current_prefill_attention_core_has_two_batch_boundaries(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-prefill-attention-core-matrix")

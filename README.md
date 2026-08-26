@@ -887,7 +887,7 @@ Current `main` gates:
 |---|---:|---|
 | CPU Debug | 376/376 | host code, CLI, model/graph, benchmark, all three package paths and evidence schemas |
 | ASan/UBSan CPU | 374/374 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 195/195 | allocator/arena/Stream/Graph, complete cached-Attention stages, BF16/FP8 and model paths |
+| MI300X/gfx942 HIP label | 196/196 | allocator/arena/Stream/Graph, complete cached-Attention stages, BF16/FP8 and model paths |
 | PyTorch-enabled CPU build | 379/379 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 53/53 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure and package gates |
 | Registered test files | 129 | machine-audited native/Python test sources; package consumers run inside the integration gate |

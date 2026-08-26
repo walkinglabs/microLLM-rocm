@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1540" height="680" viewBox="0 0 1540 680">
+  <rect width="1540" height="680" fill="#0b1020"/>
+  <style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:25px;font-weight:700}.sub{font-size:13px;fill:#94a3b8}.head{font-size:15px;font-weight:700}.small{font-size:11px;fill:#94a3b8}</style>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#38bdf8"/></marker></defs>
+  <text x="38" y="44" class="title">FP32 Attention batch-invariance harness</text>
+  <text x="38" y="70" class="sub">same M/N/K · real strided batch count 12/24/48/96 · correctness before timing</text>
+  <rect x="55" y="125" width="220" height="100" rx="12" fill="#131b2e" stroke="#64748b"/><text x="165" y="163" class="head" text-anchor="middle">B1 head block</text><text x="165" y="190" class="small" text-anchor="middle">12 Q heads · 2 KV heads</text>
+  <line x1="275" y1="175" x2="345" y2="175" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
+  <rect x="360" y="110" width="250" height="130" rx="12" fill="#131b2e" stroke="#38bdf8"/><text x="485" y="150" class="head" text-anchor="middle">exact GPU replication</text><text x="485" y="180" class="small" text-anchor="middle">B1 · B2 · B4 · B8</text><text x="485" y="207" class="small" text-anchor="middle">no changed input values</text>
+  <line x1="610" y1="175" x2="680" y2="175" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
+  <rect x="695" y="110" width="250" height="130" rx="12" fill="#131b2e" stroke="#f97316"/><text x="820" y="150" class="head" text-anchor="middle">descriptor inventory</text><text x="820" y="180" class="small" text-anchor="middle">64 each → common indices</text><text x="820" y="207" class="small" text-anchor="middle">inventory-only avoids operands</text>
+  <line x1="945" y1="175" x2="1015" y2="175" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
+  <rect x="1030" y="110" width="250" height="130" rx="12" fill="#131b2e" stroke="#22c55e"/><text x="1155" y="150" class="head" text-anchor="middle">complete correctness</text><text x="1155" y="180" class="small" text-anchor="middle">CPU sentinel + all outputs</text><text x="1155" y="207" class="small" text-anchor="middle">every request block bitwise</text>
+  <line x1="1280" y1="175" x2="1350" y2="175" stroke="#38bdf8" stroke-width="3" marker-end="url(#a)"/>
+  <rect x="1365" y="125" width="130" height="100" rx="12" fill="#131b2e" stroke="#22c55e"/><text x="1430" y="163" class="head" text-anchor="middle">time</text><text x="1430" y="190" class="small" text-anchor="middle">only exact</text>
+  <text x="55" y="315" class="head">Two real descriptors</text>
+  <rect x="90" y="355" width="600" height="105" rx="12" fill="#111827" stroke="#334155"/><text x="120" y="390" class="head">QK</text><text x="220" y="390" class="sub">M2048 · N2048 · K128 · transpose K</text><text x="120" y="425" class="small">output per request: 50,331,648 FP32 values</text>
+  <rect x="820" y="355" width="600" height="105" rx="12" fill="#111827" stroke="#334155"/><text x="850" y="390" class="head">P×V</text><text x="950" y="390" class="sub">M2048 · N128 · K2048</text><text x="850" y="425" class="small">causal probabilities + repeated GQA value</text>
+  <line x1="110" y1="535" x2="1430" y2="535" stroke="#334155" stroke-width="4"/><circle cx="280" cy="535" r="12" fill="#22c55e"/><text x="280" y="570" class="small" text-anchor="middle">support</text><circle cx="560" cy="535" r="12" fill="#22c55e"/><text x="560" y="570" class="small" text-anchor="middle">finite/full</text><circle cx="840" cy="535" r="12" fill="#22c55e"/><text x="840" y="570" class="small" text-anchor="middle">bitwise blocks</text><circle cx="1120" cy="535" r="12" fill="#22c55e"/><text x="1120" y="570" class="small" text-anchor="middle">Event/wall</text><circle cx="1370" cy="535" r="12" fill="#f97316"/><text x="1370" y="570" class="small" text-anchor="middle">model rebuttal</text>
+  <text x="55" y="635" class="sub">Exact and fast are separate gates. No solution index becomes a default from this harness alone.</text>
+</svg>
