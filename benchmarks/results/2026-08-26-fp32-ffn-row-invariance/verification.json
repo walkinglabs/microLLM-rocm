@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "experiment": 317,
+  "status": "pass",
+  "build_type": "Release",
+  "runner_commit": "961bb5902aa5aad99d2d6d536085481ef539d429",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942",
+  "rows": [2048, 4096, 8192, 16384],
+  "inner": 1536,
+  "columns": 8960,
+  "workspace_limit_bytes": 33554432,
+  "requested_algorithms_per_shape": 64,
+  "correctness_before_timing": true,
+  "focused_gates": {
+    "small_shape_cpp_smoke": "pass",
+    "python_contract_tests": "67/67",
+    "real_candidate_rows": 33,
+    "real_exact_rows": 1
+  },
+  "claims_not_made": [
+    "296100 is not admitted as a common FFN default.",
+    "A geometric-mean slowdown does not hide the M8192 failure.",
+    "Solution indices are not portable across backend versions or architectures."
+  ]
+}

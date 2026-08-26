@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "experiment": 317,
+  "status": "operator_common_policy_rejected",
+  "common_candidate_count": 33,
+  "sentinel_pass_count": 33,
+  "block_invariant_count": 1,
+  "block_invariant_index": 296100,
+  "exact_candidate_speedup_by_rows": {
+    "2048": 1.039587677,
+    "4096": 0.950527234,
+    "8192": 0.941296214,
+    "16384": 0.995181022
+  },
+  "exact_candidate_minimum_speedup": 0.941296214,
+  "exact_candidate_geometric_mean_speedup": 0.980874673818065,
+  "performance_admitted_count": 0,
+  "recommended_index": -1,
+  "next_experiment": "Add one explicit cached-prefill FFN gate/up scope and compare upstream against B1/B2/B8 index 296100 with B4 left default."
+}

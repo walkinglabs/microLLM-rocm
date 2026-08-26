@@ -4902,3 +4902,13 @@ prefill比值为0.997/0.987/1.020/1.008×，性能与资源门都过了。
 trace时间不进入性能图。
 
 ![FFN stage trace](../../benchmarks/results/2026-08-26-prefill-ffn-stage-trace/ffn-stage-trace.svg)
+
+## 334. Experiment 317：唯一exact候选也要过最差shape
+
+真实gate/up descriptor在四个M上有33个共同候选，只有296100让完整重复block位级一致。它相对
+同进程default的四个speedup为1.040/0.951/0.941/0.995×。M8192回退5.9%，所以准入数是0。
+
+0.981×几何平均不能替代每个batch的0.95门。下一步预先固定选择性策略：B1/B2/B8给gate+up使用
+296100，B4保持default，再跑真实upstream完整模型。若数值双门不过，vendor FFN solution线关闭。
+
+![FFN row invariance](../../benchmarks/results/2026-08-26-fp32-ffn-row-invariance/ffn-row-invariance.svg)

@@ -1,6 +1,6 @@
 # Step 133 — FP32 FFN gate/up row-invariant solutions
 
-Status: planned
+Status: completed by Experiment 317; common policy rejected
 
 Experiment 316证明FFN norm exact，而gate和up两个独立投影都从同一输入开始漂移。它们共享真实
 descriptor family：
@@ -18,3 +18,8 @@ workspace合同 → 完整CPU/default reference → 相同row跨M bitwise → �
 
 只有在四个M都不低于0.95×的exact候选才进入gate/up独立scope的完整模型反驳。index保持version-local
 和显式；若没有候选同时通过，就关闭vendor-solution路线，转向一个可读保序FP32 projection Kernel。
+
+结果：四个M有33个共同候选，只有296100完整block exact。它的speedup为
+1.040/0.951/0.941/0.995×，M8192低于0.95，因此common policy拒绝。下一步预先固定B1/B2/B8启用、
+B4 default的完整模型反驳。详见
+[`Experiment 317`](../experiments/317-fp32-ffn-solution-reject.md)。

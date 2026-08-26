@@ -31,6 +31,8 @@ def main() -> int:
         "explicit filter records gate/up/SwiGLU/down",
         "gate first ordered drift Max 7.63e-6–9.54e-6",
         "common FP32 gate/up solution matrix",
+        "only 296100 block-exact",
+        "speedups 1.040×/0.951×/0.941×/0.995×",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -119,6 +121,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-prefill-ffn-stage-trace/analysis.json",
         "benchmarks/results/2026-08-26-prefill-ffn-stage-trace/verification.json",
         "benchmarks/results/2026-08-26-prefill-ffn-stage-trace/ffn-stage-trace.svg",
+        "benchmarks/results/2026-08-26-fp32-ffn-row-invariance/summary.json",
+        "benchmarks/results/2026-08-26-fp32-ffn-row-invariance/analysis.json",
+        "benchmarks/results/2026-08-26-fp32-ffn-row-invariance/verification.json",
+        "benchmarks/results/2026-08-26-fp32-ffn-row-invariance/ffn-row-invariance.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -212,6 +218,14 @@ def main() -> int:
     assert ffn["first_nonzero_stage"].endswith(".ffn.gate")
     assert ffn["binary_files_retained"] == 0
     ET.parse(ffn_root / "ffn-stage-trace.svg")
+    ffn_solution_root = ROOT / (
+        "benchmarks/results/2026-08-26-fp32-ffn-row-invariance")
+    ffn_solutions = json.loads(
+        (ffn_solution_root / "summary.json").read_text(encoding="utf-8"))
+    assert ffn_solutions["block_invariant_indices"] == [296100]
+    assert ffn_solutions["performance_admitted_count"] == 0
+    assert ffn_solutions["recommended_index"] == -1
+    ET.parse(ffn_solution_root / "ffn-row-invariance.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 

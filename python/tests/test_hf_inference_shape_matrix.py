@@ -155,6 +155,37 @@ FFN_SOLUTIONS_SPEC.loader.exec_module(FFN_SOLUTIONS)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_ffn_solution_matrix_rejects_m8192(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-ffn-row-invariance")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        inventory = json.loads((root / "inventory.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in
+               (root / "raw.jsonl").read_text(encoding="utf-8").splitlines()
+               if line]
+        self.assertEqual(summary["rows"], [2048, 4096, 8192, 16384])
+        self.assertEqual(summary["common_candidate_count"], 33)
+        self.assertEqual(len(raw), 33)
+        self.assertEqual(summary["block_invariant_indices"], [296100])
+        self.assertEqual(summary["performance_admitted_count"], 0)
+        self.assertEqual(summary["recommended_index"], -1)
+        exact = next(row for row in summary["candidates"]
+                     if row["index"] == 296100)
+        self.assertTrue(exact["block_invariant"])
+        self.assertEqual(exact["block_maximum_error"], 0.0)
+        self.assertEqual(exact["speedup_vs_default"], [
+            1.039587677, 0.950527234, 0.941296214, 0.995181022])
+        self.assertAlmostEqual(exact["minimum_speedup"], 0.941296214)
+        self.assertEqual(inventory["default_event_ms_p50"],
+                         summary["default_event_ms_p50"])
+        self.assertEqual(analysis["block_invariant_index"], 296100)
+        self.assertTrue(verification["correctness_before_timing"])
+        ET.parse(root / "ffn-row-invariance.svg")
+
     def test_ffn_solution_summary_requires_exact_and_every_m_performance(self):
         candidates = []
         for index, exact, speeds in (

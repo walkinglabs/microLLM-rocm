@@ -1,0 +1,794 @@
+{
+  "block_invariant_count": 1,
+  "block_rows": 2048,
+  "candidates": [
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 3.01e-07,
+      "event_ms_p50": [
+        1.026780009,
+        1.420276046,
+        2.515533924,
+        4.473038197
+      ],
+      "index": 292221,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.630588842,
+        0.799950126,
+        0.812144521,
+        0.882881351
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 9.09e-07,
+      "block_rms_error": 2.69e-07,
+      "event_ms_p50": [
+        0.589263022,
+        1.15467298,
+        2.132340908,
+        4.197408199
+      ],
+      "index": 292225,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        1.098789494,
+        0.983958248,
+        0.958091217,
+        0.940857267
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.341e-06,
+      "block_rms_error": 3.23e-07,
+      "event_ms_p50": [
+        1.00148201,
+        1.568215013,
+        2.471914053,
+        3.930680037
+      ],
+      "index": 292229,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.646517872,
+        0.724486115,
+        0.82647578,
+        1.004701978
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.252e-06,
+      "block_rms_error": 2.99e-07,
+      "event_ms_p50": [
+        0.836104989,
+        1.301084042,
+        2.122998953,
+        3.983840942
+      ],
+      "index": 295518,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.774395591,
+        0.87323337,
+        0.962307161,
+        0.9912951
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.252e-06,
+      "block_rms_error": 3.07e-07,
+      "event_ms_p50": [
+        0.766547024,
+        1.186704993,
+        2.186182976,
+        4.178443909
+      ],
+      "index": 295905,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.84466575,
+        0.957398856,
+        0.934495016,
+        0.945127443
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.252e-06,
+      "block_rms_error": 2.99e-07,
+      "event_ms_p50": [
+        0.977908969,
+        1.405603051,
+        2.374451876,
+        4.210277081
+      ],
+      "index": 295909,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.662102545,
+        0.808300751,
+        0.860399453,
+        0.937981499
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.49e-06,
+      "block_rms_error": 3.24e-07,
+      "event_ms_p50": [
+        0.740967989,
+        1.094334006,
+        2.087398052,
+        3.981875896
+      ],
+      "index": 296014,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.873824547,
+        1.038211365,
+        0.97871946,
+        0.991784302
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": true,
+      "block_maximum_error": 0.0,
+      "block_rms_error": 0.0,
+      "event_ms_p50": [
+        0.62282002,
+        1.195284009,
+        2.17038703,
+        3.968285084
+      ],
+      "index": 296100,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        1.039587677,
+        0.950527234,
+        0.941296214,
+        0.995181022
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.49e-06,
+      "block_rms_error": 3.24e-07,
+      "event_ms_p50": [
+        0.775407016,
+        1.222306013,
+        2.198530912,
+        3.95765996
+      ],
+      "index": 296102,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.835014391,
+        0.929513551,
+        0.929246472,
+        0.997852783
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.49e-06,
+      "block_rms_error": 3.13e-07,
+      "event_ms_p50": [
+        0.867977977,
+        1.318405032,
+        2.176681042,
+        4.277669907
+      ],
+      "index": 296105,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.745959039,
+        0.861760972,
+        0.938574396,
+        0.923204009
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.49e-06,
+      "block_rms_error": 3.08e-07,
+      "event_ms_p50": [
+        0.950525999,
+        1.402757049,
+        2.326020956,
+        4.166174889
+      ],
+      "index": 296106,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.681176547,
+        0.809940683,
+        0.87831414,
+        0.94791076
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.252e-06,
+      "block_rms_error": 3.07e-07,
+      "event_ms_p50": [
+        0.823036015,
+        1.232007027,
+        2.122838974,
+        3.985322952
+      ],
+      "index": 296171,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.786692205,
+        0.922194418,
+        0.962379681,
+        0.99092647
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.49e-06,
+      "block_rms_error": 3.09e-07,
+      "event_ms_p50": [
+        0.994867027,
+        1.438758969,
+        2.484622955,
+        3.950283051
+      ],
+      "index": 298163,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        0.650816642,
+        0.789673619,
+        0.822248338,
+        0.999716212
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.92e-07,
+      "event_ms_p50": [
+        0.680630982,
+        1.258908987,
+        2.142482996,
+        4.125401974
+      ],
+      "index": 300125,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.9512879,
+        0.9024878,
+        0.953555803,
+        0.957279322
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.98e-07,
+      "event_ms_p50": [
+        0.892754018,
+        1.331114054,
+        2.155632973,
+        4.277909756
+      ],
+      "index": 300470,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.725256906,
+        0.853533173,
+        0.947738841,
+        0.923152248
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 3.01e-07,
+      "event_ms_p50": [
+        0.755041003,
+        1.137873054,
+        2.099265099,
+        3.95421195
+      ],
+      "index": 300486,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.857537557,
+        0.998485726,
+        0.973186805,
+        0.998722895
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.98e-07,
+      "event_ms_p50": [
+        0.705848992,
+        1.304293036,
+        2.497009993,
+        4.434185982
+      ],
+      "index": 300532,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.917301044,
+        0.871084925,
+        0.818169371,
+        0.890617133
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 3.03e-07,
+      "event_ms_p50": [
+        0.646955013,
+        1.220862031,
+        2.209394932,
+        4.341174126
+      ],
+      "index": 300533,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        1.000805318,
+        0.930612939,
+        0.924677189,
+        0.909699057
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.98e-07,
+      "event_ms_p50": [
+        0.628832996,
+        1.188266993,
+        2.276227951,
+        4.543995857
+      ],
+      "index": 300587,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        1.029647016,
+        0.956140337,
+        0.897527461,
+        0.869094544
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.98e-07,
+      "event_ms_p50": [
+        0.736238003,
+        1.349395037,
+        2.141279936,
+        4.173953056
+      ],
+      "index": 300644,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.879438463,
+        0.841969899,
+        0.954091551,
+        0.946144327
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.89e-07,
+      "event_ms_p50": [
+        0.744414985,
+        1.436954975,
+        2.190872908,
+        4.507192135
+      ],
+      "index": 300651,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.869778323,
+        0.790664998,
+        0.932494572,
+        0.876191182
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.252e-06,
+      "block_rms_error": 2.99e-07,
+      "event_ms_p50": [
+        0.620333016,
+        1.139956951,
+        2.169343948,
+        4.235292912
+      ],
+      "index": 300660,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 3.73e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 1.12e-07,
+      "speedup_vs_default": [
+        1.043755533,
+        0.996660445,
+        0.941748816,
+        0.932441295
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.96e-07,
+      "event_ms_p50": [
+        0.737200022,
+        1.444692969,
+        2.250488997,
+        4.137549877
+      ],
+      "index": 300662,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.878290828,
+        0.786430077,
+        0.907792528,
+        0.954468737
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 9.83e-07,
+      "block_rms_error": 2.92e-07,
+      "event_ms_p50": [
+        0.691695988,
+        1.264482021,
+        2.388001919,
+        4.113854885
+      ],
+      "index": 300666,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.936070222,
+        0.898510207,
+        0.855517359,
+        0.959966289
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.95e-07,
+      "event_ms_p50": [
+        0.668963969,
+        1.26215601,
+        2.478247881,
+        4.777608871
+      ],
+      "index": 300668,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.967878761,
+        0.90016606,
+        0.824363499,
+        0.826598014
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 3.03e-07,
+      "event_ms_p50": [
+        0.704846025,
+        1.34570694,
+        2.531769037,
+        4.543635845
+      ],
+      "index": 300679,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.918606327,
+        0.844277434,
+        0.806936598,
+        0.869163406
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 9.83e-07,
+      "block_rms_error": 2.92e-07,
+      "event_ms_p50": [
+        0.730664968,
+        1.388484001,
+        2.149058104,
+        4.073763847
+      ],
+      "index": 300683,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.886146244,
+        0.818266542,
+        0.950638371,
+        0.969413583
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.89e-07,
+      "event_ms_p50": [
+        0.671890974,
+        1.276630044,
+        2.405361891,
+        4.091565132
+      ],
+      "index": 300690,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.963662324,
+        0.889960257,
+        0.849342921,
+        0.965195928
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 3.01e-07,
+      "event_ms_p50": [
+        0.707171023,
+        1.351439953,
+        2.606458902,
+        4.688445091
+      ],
+      "index": 300693,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.915586183,
+        0.840695882,
+        0.783813277,
+        0.842318067
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 3.03e-07,
+      "event_ms_p50": [
+        0.756003022,
+        1.448621035,
+        2.21023798,
+        4.313028812
+      ],
+      "index": 300696,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.856446335,
+        0.784297601,
+        0.924324491,
+        0.915635434
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 3.01e-07,
+      "event_ms_p50": [
+        0.699754,
+        1.353482962,
+        2.097100019,
+        3.925908089
+      ],
+      "index": 300702,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.925290913,
+        0.839426897,
+        0.974191539,
+        1.005923195
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 1.073e-06,
+      "block_rms_error": 2.89e-07,
+      "event_ms_p50": [
+        0.680710971,
+        1.23505497,
+        2.376336098,
+        4.165092945
+      ],
+      "index": 300704,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.951176115,
+        0.919918571,
+        0.859717233,
+        0.948156994
+      ],
+      "supported": true
+    },
+    {
+      "block_invariant": false,
+      "block_maximum_error": 9.09e-07,
+      "block_rms_error": 2.69e-07,
+      "event_ms_p50": [
+        0.654009998,
+        1.159561992,
+        2.187465906,
+        4.204823017
+      ],
+      "index": 300707,
+      "maximum_workspace_bytes": 0,
+      "sentinel_maximum_error": 2.09e-07,
+      "sentinel_passed": true,
+      "sentinel_rms_error": 8.2e-08,
+      "speedup_vs_default": [
+        0.990009357,
+        0.979809627,
+        0.933946942,
+        0.939198152
+      ],
+      "supported": true
+    }
+  ],
+  "columns": 8960,
+  "common_candidate_count": 33,
+  "default_event_ms_p50": [
+    0.647476017,
+    1.136150002,
+    2.042977095,
+    3.949162006
+  ],
+  "inner": 1536,
+  "multipliers": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "record_type": "fp32_forward_row_invariance",
+  "requested_algorithms": 64,
+  "schema_version": 1,
+  "sentinel_elements": 128,
+  "sentinel_pass_count": 33,
+  "shape_candidate_counts": [
+    64,
+    64,
+    64,
+    64
+  ],
+  "status": "pass",
+  "supported_count": 33,
+  "workspace_limit_bytes": 33554432
+}
