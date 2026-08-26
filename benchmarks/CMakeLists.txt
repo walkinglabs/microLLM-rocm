@@ -119,6 +119,10 @@ if(MICROLLM_HAS_HIP AND MICROLLM_HAS_HIPBLASLT)
                    micro/benchmark_bf16_row_invariance.cpp)
     target_link_libraries(microllm_bench_bf16_row_invariance PRIVATE
         microllm::ops microllm::runtime hip::host roc::hipblaslt)
+    add_executable(microllm_bench_fp32_forward_row_invariance
+                   micro/benchmark_fp32_forward_row_invariance.cpp)
+    target_link_libraries(microllm_bench_fp32_forward_row_invariance PRIVATE
+        microllm::ops microllm::runtime hip::host roc::hipblaslt)
     add_executable(microllm_tune_bf16_algorithms
                    micro/tune_bf16_algorithms.cpp)
     target_link_libraries(microllm_tune_bf16_algorithms PRIVATE
@@ -480,6 +484,14 @@ if(BUILD_TESTING)
                              --candidates 75892 --warmup 0 --repetitions 1)
             set_tests_properties(Benchmark.HipBf16RowInvarianceSmoke PROPERTIES
                                  LABELS "hip;benchmark;matmul;bf16;solution;correctness;smoke")
+            add_test(NAME Benchmark.HipFp32ForwardRowInvarianceSmoke
+                     COMMAND microllm_bench_fp32_forward_row_invariance
+                             --block-rows 16 --multipliers 1,2,4,8
+                             --inner 32 --columns 24 --maximum-algorithms 4
+                             --workspace-bytes 33554432
+                             --warmup 0 --repetitions 1)
+            set_tests_properties(Benchmark.HipFp32ForwardRowInvarianceSmoke PROPERTIES
+                                 LABELS "hip;benchmark;matmul;fp32;solution;correctness;smoke")
             add_test(NAME Benchmark.HipFp32AttentionSolutionTune
                      COMMAND microllm_tune_fp32_attention_algorithms
                              --model qwen --operation qk --sequence 512

@@ -73,9 +73,51 @@ PREFILL_TRACE_SPEC = importlib.util.spec_from_file_location(
 PREFILL_TRACE = importlib.util.module_from_spec(PREFILL_TRACE_SPEC)
 assert PREFILL_TRACE_SPEC.loader is not None
 PREFILL_TRACE_SPEC.loader.exec_module(PREFILL_TRACE)
+FP32_QKV_SPEC = importlib.util.spec_from_file_location(
+    "fp32_qkv_row_invariance_matrix",
+    ROOT / "benchmarks/single_gpu/fp32_qkv_row_invariance_matrix.py")
+FP32_QKV = importlib.util.module_from_spec(FP32_QKV_SPEC)
+assert FP32_QKV_SPEC.loader is not None
+FP32_QKV_SPEC.loader.exec_module(FP32_QKV)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_fp32_qkv_summary_selects_fastest_invariant_candidate(self):
+        def result(columns, rows):
+            return {
+                "common_candidate_count": len(rows),
+                "supported_count": len(rows),
+                "sentinel_pass_count": len(rows),
+                "block_invariant_count": sum(
+                    row["block_invariant"] for row in rows),
+                "candidates": rows,
+            }
+        q = [
+            {"index": 10, "block_invariant": False,
+             "event_ms_p50": [1, 1, 1, 1], "maximum_workspace_bytes": 0,
+             "block_maximum_error": 0.1, "sentinel_maximum_error": 0.0},
+            {"index": 20, "block_invariant": True,
+             "event_ms_p50": [2, 2, 2, 2], "maximum_workspace_bytes": 0,
+             "block_maximum_error": 0.0, "sentinel_maximum_error": 0.0},
+        ]
+        kv = [
+            {"index": 30, "block_invariant": True,
+             "event_ms_p50": [1, 1, 1, 1], "maximum_workspace_bytes": 0,
+             "block_maximum_error": 0.0, "sentinel_maximum_error": 0.0},
+            {"index": 40, "block_invariant": True,
+             "event_ms_p50": [0.5, 0.5, 0.5, 0.5],
+             "maximum_workspace_bytes": 1024,
+             "block_maximum_error": 0.0, "sentinel_maximum_error": 0.0},
+        ]
+        summary = FP32_QKV.summarize({
+            "q": result(1536, q), "kv": result(256, kv),
+        })
+        operations = {row["operation"]: row for row in summary["operations"]}
+        self.assertEqual(operations["q"]["fastest_invariant_index"], 20)
+        self.assertEqual(operations["kv"]["fastest_invariant_index"], 40)
+        self.assertEqual(operations["q"]["block_invariant_count"], 1)
+        self.assertEqual(len(summary["candidates"]), 4)
+
     def test_current_prefill_block0_trace_locates_q_projection(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-deepseek-prefill-block0-trace")
