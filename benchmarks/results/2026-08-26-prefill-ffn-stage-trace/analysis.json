@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "experiment": 316,
+  "status": "gate_and_up_selected",
+  "process_rows": 8,
+  "stage_count": 7,
+  "first_ordered_nonzero_stage": "inference.cached_prefill.blocks.0.ffn.gate",
+  "ffn_norm_cross_batch_bitwise_equal": true,
+  "ffn_norm_within_batch_bitwise_equal": true,
+  "gate_cross_batch_maximum_by_batch": {
+    "2": 0.0000095367431640625,
+    "4": 0.00000762939453125,
+    "8": 0.00000762939453125
+  },
+  "gate_within_batch_maximum_by_batch": {
+    "2": 0.000008344650268554688,
+    "4": 0.0000073909759521484375,
+    "8": 0.0000073909759521484375
+  },
+  "up_is_independent_nonzero_projection": true,
+  "all_repeat_metrics_equal": true,
+  "binary_files_retained": 0,
+  "next_experiment": "Enumerate common FP32 solutions for the real M2048/4096/8192/16384 by K1536 by N8960 gate/up descriptor, requiring cross-M and duplicate-row bitwise equality before timing."
+}

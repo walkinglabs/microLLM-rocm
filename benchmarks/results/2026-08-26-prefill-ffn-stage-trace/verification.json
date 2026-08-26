@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "experiment": 316,
+  "status": "pass",
+  "build_type": "Release",
+  "engine_commit": "8005c012af78288bc7fd2ff7f55c1e245b66b558",
+  "runner_commit": "a3383f31469a69381da7b5a9505e1605bcb09eb0",
+  "context": 2048,
+  "batches": [1, 2, 4, 8],
+  "runs_per_case": 2,
+  "process_rows": 8,
+  "captured_batch_rows": 2,
+  "temporary_binary_bytes_b1": 270532608,
+  "temporary_binary_bytes_batched": 541065216,
+  "full_gate_commit": "620b836670333081497a5bba0e749e1817853472",
+  "full_gates": {
+    "cpu_debug": "377/377",
+    "asan_ubsan": "375/375",
+    "pytorch_enabled_cpu": "380/380",
+    "mi300x_gfx942_hip": "196/196",
+    "rccl": "53/53"
+  },
+  "focused_current_revision": {
+    "filtered_cpu_trace": "2/2",
+    "release_mi300x_processes": "8/8",
+    "route_shape_binary_repeat_checks": "pass"
+  },
+  "claims_not_made": [
+    "Trace wall time is not model performance.",
+    "Gate is first by explicit evaluation order; up also independently drifts.",
+    "No temporary tensor payload is retained in the repository."
+  ]
+}

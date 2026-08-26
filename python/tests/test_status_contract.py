@@ -29,6 +29,8 @@ def main() -> int:
         "complete-logit Max worsens 6.9% and RMS improves only 2.5%",
         "Release prefill 0.987×–1.020× passes",
         "explicit filter records gate/up/SwiGLU/down",
+        "gate first ordered drift Max 7.63e-6–9.54e-6",
+        "common FP32 gate/up solution matrix",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -113,6 +115,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-fp32-prefill-exact-stack-gate/analysis.json",
         "benchmarks/results/2026-08-26-fp32-prefill-exact-stack-gate/verification.json",
         "benchmarks/results/2026-08-26-fp32-prefill-exact-stack-gate/exact-stack-gate.svg",
+        "benchmarks/results/2026-08-26-prefill-ffn-stage-trace/summary.json",
+        "benchmarks/results/2026-08-26-prefill-ffn-stage-trace/analysis.json",
+        "benchmarks/results/2026-08-26-prefill-ffn-stage-trace/verification.json",
+        "benchmarks/results/2026-08-26-prefill-ffn-stage-trace/ffn-stage-trace.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -198,6 +204,14 @@ def main() -> int:
     assert exact_stack["performance_gate_passed"] is True
     assert exact_stack["candidate_admitted"] is False
     ET.parse(exact_stack_root / "exact-stack-gate.svg")
+    ffn_root = ROOT / (
+        "benchmarks/results/2026-08-26-prefill-ffn-stage-trace")
+    ffn = json.loads((ffn_root / "summary.json").read_text(encoding="utf-8"))
+    assert ffn["process_rows"] == 8
+    assert ffn["stage_count"] == 7
+    assert ffn["first_nonzero_stage"].endswith(".ffn.gate")
+    assert ffn["binary_files_retained"] == 0
+    ET.parse(ffn_root / "ffn-stage-trace.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 

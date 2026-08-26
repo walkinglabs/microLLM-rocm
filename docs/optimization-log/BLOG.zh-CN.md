@@ -4890,3 +4890,15 @@ prefill比值为0.997/0.987/1.020/1.008×，性能与资源门都过了。
 正式关闭。下一步把FFN聚合输出拆成gate、up、SwiGLU和down完整值trace。
 
 ![Exact stack gate](../../benchmarks/results/2026-08-26-fp32-prefill-exact-stack-gate/exact-stack-gate.svg)
+
+## 333. Experiment 316：两条FFN支路在相乘之前就不同了
+
+8个Release进程完整比较七个Block-0 FFN边界。FFN norm跨/内batch位级一致；gate按执行顺序第一个
+漂移，B2/B4/B8 Max为9.54e-6/7.63e-6/7.63e-6。up从同一个exact输入出发也独立漂移，同batch的
+两条相同输入行也不再相同。
+
+因此SwiGLU不是首因。下一步筛真实`M2048/4096/8192/16384 × K1536 × N8960` FP32 descriptor的
+共同solution，并且先检查跨M和同M重复行，再计时。临时完整值每进程最多541MB，比较后全部删除；
+trace时间不进入性能图。
+
+![FFN stage trace](../../benchmarks/results/2026-08-26-prefill-ffn-stage-trace/ffn-stage-trace.svg)

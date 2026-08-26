@@ -149,6 +149,41 @@ FFN_STAGES_SPEC.loader.exec_module(FFN_STAGES)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_prefill_ffn_trace_selects_gate_and_up(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-prefill-ffn-stage-trace")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in
+               (root / "raw.jsonl").read_text(encoding="utf-8").splitlines()
+               if line]
+        self.assertEqual((len(raw), summary["process_rows"]), (8, 8))
+        self.assertEqual(summary["stage_count"], 7)
+        self.assertEqual(summary["binary_files_retained"], 0)
+        self.assertEqual(summary["first_nonzero_stage"],
+                         FFN_STAGES.PREFIX + ".ffn.gate")
+        self.assertTrue(summary["all_repeat_metrics_equal"])
+        for case in summary["cases"]:
+            norm = case["stages"][0]
+            self.assertTrue(norm["b1_vs_batch_row0"]["bitwise_equal"])
+            self.assertTrue(norm["batch_row0_vs_row1"]["bitwise_equal"])
+            if case["batch"] > 1:
+                self.assertEqual(case["first_nonzero_stage"],
+                                 FFN_STAGES.PREFIX + ".ffn.gate")
+                gate, up = case["stages"][1:3]
+                self.assertFalse(gate["b1_vs_batch_row0"]["bitwise_equal"])
+                self.assertFalse(up["b1_vs_batch_row0"]["bitwise_equal"])
+        b2 = next(case for case in summary["cases"] if case["batch"] == 2)
+        self.assertEqual(b2["stages"][1]["b1_vs_batch_row0"]["maximum"],
+                         9.5367431640625e-06)
+        self.assertTrue(analysis["up_is_independent_nonzero_projection"])
+        self.assertEqual(verification["focused_current_revision"][
+            "release_mi300x_processes"], "8/8")
+        self.assertFalse(list(root.glob("*.bin")))
+        ET.parse(root / "ffn-stage-trace.svg")
+
     def test_prefill_ffn_stage_runner_is_block_zero_and_binary_filtered(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,
