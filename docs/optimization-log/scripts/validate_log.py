@@ -19424,6 +19424,147 @@ def validate_fp32_qkv_row_invariance(
             operations.get("kv", {}).get("fastest_invariant_index", -1))
 
 
+def validate_fp32_qkv_model_gate(
+        errors: list[str]) -> tuple[int, int, float, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-fp32-qkv-model-gate")
+    precision = [json.loads(line) for line in
+                 (root / "precision-raw.jsonl").read_text(
+                     encoding="utf-8").splitlines() if line]
+    performance = [json.loads(line) for line in
+                   (root / "performance-raw.jsonl").read_text(
+                       encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    policies = {row.get("policy"): row
+                for row in summary.get("policy_summaries", [])}
+    cases = {(row.get("policy"), row.get("batch")): row
+             for row in summary.get("precision_cases", [])}
+    perf = {row.get("batch"): row
+            for row in summary.get("performance_cases", [])}
+    if (summary.get("record_type") != "fp32_qkv_complete_model_gate" or
+            summary.get("status") != "pass" or summary.get("context") != 2048 or
+            summary.get("batches") != [1, 2, 4, 8] or
+            summary.get("policies") != ["default", "invariant-qkv"] or
+            summary.get("q_solution_index") != 296100 or
+            summary.get("kv_solution_index") != 292135 or
+            summary.get("precision_process_rows") != 16 or len(precision) != 16 or
+            summary.get("performance_process_rows") != 16 or
+            len(performance) != 16 or
+            summary.get("all_precision_repeat_metrics_equal") is not True or
+            summary.get("all_host_device_argmax_equal") is not True or
+            set(policies) != {"default", "invariant-qkv"} or
+            len(cases) != 8 or len(perf) != 4):
+        errors.append("FP32 QKV model-gate summary/raw identity changed")
+    expected = {
+        "default": (0.03125, 0.0009765625, 0.0013535022735595703,
+                    0.00022941562718764653, 1, 1),
+        "invariant-qkv": (0.0, 0.0, 0.0012532472610473633,
+                          0.00029083847119404496, 4, 1),
+    }
+    for policy, (key, value, logit, rms, cache_exact, logit_exact) in expected.items():
+        row = policies.get(policy, {})
+        selected_precision = [item for item in precision
+                              if item.get("policy") == policy]
+        selected_performance = [item for item in performance
+                                if item.get("policy") == policy]
+        candidate = policy == "invariant-qkv"
+        if (row.get("maximum_key_cross_batch_error") != key or
+                row.get("maximum_value_cross_batch_error") != value or
+                row.get("maximum_logit_cross_batch_error") != logit or
+                row.get("maximum_logit_cross_batch_rms_error") != rms or
+                row.get("cache_bitwise_case_count") != cache_exact or
+                row.get("logit_bitwise_case_count") != logit_exact or
+                len(selected_precision) != 8 or len(selected_performance) != 8 or
+                any(item.get("host_device_argmax_equal") is not True or
+                    item.get("fp32_solution_registry_hits") !=
+                        (84 if candidate else 0)
+                    for item in selected_precision) or
+                any(item.get("fp32_solution_registry_hits") !=
+                        (168 if candidate else 0)
+                    for item in selected_performance)):
+            errors.append(f"FP32 QKV model-gate policy changed: {policy}")
+    if (cases.get(("invariant-qkv", 2), {}).get(
+            "logits_cross_batch", {}).get("maximum") !=
+                0.0007469654083251953 or
+            cases.get(("invariant-qkv", 4), {}).get(
+                "logits_cross_batch", {}).get("maximum") !=
+                0.0012532472610473633 or
+            cases.get(("invariant-qkv", 8), {}).get(
+                "logits_cross_batch", {}).get("maximum") !=
+                0.0012269020080566406 or
+            any(cases.get(("invariant-qkv", batch), {}).get(
+                    "key_cross_batch", {}).get("bitwise_equal") is not True or
+                cases.get(("invariant-qkv", batch), {}).get(
+                    "value_cross_batch", {}).get("bitwise_equal") is not True
+                for batch in (1, 2, 4, 8))):
+        errors.append("FP32 QKV model-gate precision cases changed")
+    expected_prefill = {
+        1: 0.9013963995867875, 2: 0.9505012304278363,
+        4: 0.9815653161339759, 8: 0.9906682494919908,
+    }
+    if (any(perf.get(batch, {}).get("prefill_speedup") != ratio or
+            perf.get(batch, {}).get("peak_delta_bytes") != 0
+            for batch, ratio in expected_prefill.items())):
+        errors.append("FP32 QKV model-gate performance cases changed")
+    if (analysis.get("decision") !=
+            "reject invariant QKV as default and trace the first post-cache drift" or
+            analysis.get("candidate_block0_cache_cross_batch_exact") is not True or
+            analysis.get("candidate_maximum_logit_error_improvement") !=
+                0.07407081204861721 or
+            analysis.get("candidate_maximum_logit_rms_ratio") !=
+                1.2677360943514047 or
+            analysis.get("minimum_prefill_speedup") != 0.9013963995867875 or
+            analysis.get("scoped_cache_fix_supported") is not True or
+            analysis.get("robust_complete_logit_improvement_supported") is not False or
+            analysis.get("algorithm_default_admitted") is not False):
+        errors.append("FP32 QKV model-gate analysis changed")
+    if (check.get("measurement_commit") !=
+            "c34df680a3b25e4a806e44ad2b490afc461866fb" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("precision_process_rows") != 16 or
+            check.get("performance_process_rows") != 16 or
+            check.get("candidate_registered_entries") != 2 or
+            check.get("candidate_precision_registry_hits") != 84 or
+            check.get("candidate_performance_registry_hits") != 168 or
+            check.get("algorithm_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 375, "total": 375} or
+            check.get("sanitizer_label") != {"passed": 373, "total": 373} or
+            check.get("hip_label") != {"passed": 195, "total": 195} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("FP32 QKV model-gate verification changed")
+    for name in ("README.md", "precision-raw.jsonl", "performance-raw.jsonl",
+                 "summary.json", "analysis.json", "verification.json",
+                 "model-gate.svg"):
+        if not (root / name).is_file():
+            errors.append(f"FP32 QKV model-gate evidence missing: {name}")
+    try:
+        ET.parse(root / "model-gate.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid FP32 QKV model-gate SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "fp32_qkv_model_gate.py").read_text(encoding="utf-8")
+    context = (REPOSITORY / "include/microllm/ops/context.h").read_text(
+        encoding="utf-8")
+    if ("fp32-prefill-q-solution-index" not in runner or
+            "performance_warmup" not in runner or
+            "PrefillQueryProjection" not in context or
+            "PrefillKeyValueProjection" not in context):
+        errors.append("FP32 QKV model-gate source contract changed")
+    return (len(precision), len(performance),
+            policies.get("invariant-qkv", {}).get(
+                "maximum_logit_cross_batch_error", 0.0),
+            policies.get("invariant-qkv", {}).get(
+                "maximum_logit_cross_batch_rms_error", 0.0),
+            min(row.get("prefill_speedup", 0.0) for row in perf.values()))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -20326,6 +20467,9 @@ def main() -> int:
         prefill_trace_cache = validate_prefill_block0_trace(errors)
     fp32_qkv_rows, fp32_qkv_q_exact, fp32_qkv_kv_exact, fp32_qkv_q, \
         fp32_qkv_kv = validate_fp32_qkv_row_invariance(errors)
+    fp32_qkv_model_precision, fp32_qkv_model_performance, \
+        fp32_qkv_model_max, fp32_qkv_model_rms, fp32_qkv_model_speed = \
+        validate_fp32_qkv_model_gate(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20974,6 +21118,9 @@ def main() -> int:
           f"{prefill_trace_cache:.5f}/{prefill_trace_first} "
           f"fp32_qkv={fp32_qkv_rows}/{fp32_qkv_q_exact}/"
           f"{fp32_qkv_kv_exact}/{fp32_qkv_q}/{fp32_qkv_kv} "
+          f"fp32_qkv_model={fp32_qkv_model_precision}/"
+          f"{fp32_qkv_model_performance}/{fp32_qkv_model_max:.5f}/"
+          f"{fp32_qkv_model_rms:.5e}/{fp32_qkv_model_speed:.4f} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

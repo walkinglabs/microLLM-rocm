@@ -88,6 +88,29 @@ FP32_QKV_MODEL_SPEC.loader.exec_module(FP32_QKV_MODEL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_fp32_qkv_model_gate_rejects_default(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-qkv-model-gate")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        policies = {row["policy"]: row for row in summary["policy_summaries"]}
+        self.assertEqual(summary["precision_process_rows"], 16)
+        self.assertEqual(summary["performance_process_rows"], 16)
+        self.assertEqual(policies["invariant-qkv"]["cache_bitwise_case_count"], 4)
+        self.assertEqual(
+            policies["invariant-qkv"]["maximum_logit_cross_batch_error"],
+            0.0012532472610473633)
+        self.assertEqual(
+            policies["invariant-qkv"]["maximum_logit_cross_batch_rms_error"],
+            0.00029083847119404496)
+        self.assertTrue(analysis["scoped_cache_fix_supported"])
+        self.assertFalse(analysis["robust_complete_logit_improvement_supported"])
+        self.assertEqual(verification["measurement_commit"],
+                         "c34df680a3b25e4a806e44ad2b490afc461866fb")
+        ET.parse(root / "model-gate.svg")
+
     def test_fp32_qkv_model_command_scopes_both_solutions(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 8,

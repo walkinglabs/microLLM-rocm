@@ -4756,3 +4756,16 @@ Q projection。B8 Q/K/V Max分别为9.16e-5、3.05e-5、5.01e-6，RoPE只继承�
 registry计数。version-local index仍不进入默认。
 
 ![FP32 QKV row invariance](../../benchmarks/results/2026-08-26-fp32-qkv-row-invariance/qkv-row-invariance.svg)
+
+## 322. Experiment 305：修好Cache，不等于修好模型
+
+Q=296100、K/V=292135让Block 0 BF16 Cache在B1/2/4/8全部位级相同，证明局部因果成立。scope key
+也确保同形Attention output没有误命中。
+
+然而完整logits全局Max只改善7.41%，RMS反而变成1.2677x；B4/B8 Max分别为默认的1.0957x和
+1.1443x。B1 prefill只有0.9014x，B8为0.9907x，peak不变。局部精确不构成全局策略，默认拒绝。
+
+这个失败留下一个更干净的新问题：Cache已经exact，后面哪里第一次重新漂移？下一步沿Block 0继续看
+Attention context、O projection和FFN。候选API保留为反事实工具，不推广。
+
+![FP32 QKV model gate](../../benchmarks/results/2026-08-26-fp32-qkv-model-gate/model-gate.svg)

@@ -1,0 +1,598 @@
+{
+  "all_host_device_argmax_equal": true,
+  "all_precision_repeat_metrics_equal": true,
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "context": 2048,
+  "kv_solution_index": 292135,
+  "performance_cases": [
+    {
+      "batch": 1,
+      "candidate": {
+        "decode_tokens_per_second": 83.727910827,
+        "peak_bytes": 7477495808,
+        "prefill_ms": 78.995655,
+        "tokens": [
+          [
+            151643
+          ],
+          [
+            151643
+          ]
+        ]
+      },
+      "decode_throughput_ratio": 1.0103228803513689,
+      "default": {
+        "decode_tokens_per_second": 82.8724286615,
+        "peak_bytes": 7477495808,
+        "prefill_ms": 71.206399,
+        "tokens": [
+          [
+            151643
+          ],
+          [
+            151643
+          ]
+        ]
+      },
+      "peak_delta_bytes": 0,
+      "prefill_speedup": 0.9013963995867875
+    },
+    {
+      "batch": 2,
+      "candidate": {
+        "decode_tokens_per_second": 160.7463719475,
+        "peak_bytes": 7846639616,
+        "prefill_ms": 139.359656,
+        "tokens": [
+          [
+            151643
+          ],
+          [
+            151643
+          ]
+        ]
+      },
+      "decode_throughput_ratio": 1.0064836230474736,
+      "default": {
+        "decode_tokens_per_second": 159.71086689,
+        "peak_bytes": 7846639616,
+        "prefill_ms": 132.4615245,
+        "tokens": [
+          [
+            151643
+          ],
+          [
+            151643
+          ]
+        ]
+      },
+      "peak_delta_bytes": 0,
+      "prefill_speedup": 0.9505012304278363
+    },
+    {
+      "batch": 4,
+      "candidate": {
+        "decode_tokens_per_second": 301.096387811,
+        "peak_bytes": 8584927232,
+        "prefill_ms": 283.5671085,
+        "tokens": [
+          [
+            151643
+          ],
+          [
+            151643
+          ]
+        ]
+      },
+      "decode_throughput_ratio": 0.9983639745644325,
+      "default": {
+        "decode_tokens_per_second": 301.589796389,
+        "peak_bytes": 8584927232,
+        "prefill_ms": 278.3396385,
+        "tokens": [
+          [
+            151643
+          ],
+          [
+            151643
+          ]
+        ]
+      },
+      "peak_delta_bytes": 0,
+      "prefill_speedup": 0.9815653161339759
+    },
+    {
+      "batch": 8,
+      "candidate": {
+        "decode_tokens_per_second": 529.2213803205,
+        "peak_bytes": 10061502464,
+        "prefill_ms": 521.5420725,
+        "tokens": [
+          [
+            151643
+          ],
+          [
+            151643
+          ]
+        ]
+      },
+      "decode_throughput_ratio": 1.0027640719444983,
+      "default": {
+        "decode_tokens_per_second": 527.7626065065,
+        "peak_bytes": 10061502464,
+        "prefill_ms": 516.675172,
+        "tokens": [
+          [
+            151643
+          ],
+          [
+            151643
+          ]
+        ]
+      },
+      "peak_delta_bytes": 0,
+      "prefill_speedup": 0.9906682494919908
+    }
+  ],
+  "performance_process_rows": 16,
+  "policies": [
+    "default",
+    "invariant-qkv"
+  ],
+  "policy_summaries": [
+    {
+      "cache_bitwise_case_count": 1,
+      "logit_bitwise_case_count": 1,
+      "maximum_key_cross_batch_error": 0.03125,
+      "maximum_logit_cross_batch_error": 0.0013535022735595703,
+      "maximum_logit_cross_batch_rms_error": 0.00022941562718764653,
+      "maximum_value_cross_batch_error": 0.0009765625,
+      "policy": "default"
+    },
+    {
+      "cache_bitwise_case_count": 4,
+      "logit_bitwise_case_count": 1,
+      "maximum_key_cross_batch_error": 0.0,
+      "maximum_logit_cross_batch_error": 0.0012532472610473633,
+      "maximum_logit_cross_batch_rms_error": 0.00029083847119404496,
+      "maximum_value_cross_batch_error": 0.0,
+      "policy": "invariant-qkv"
+    }
+  ],
+  "precision_cases": [
+    {
+      "batch": 1,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_default": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_vs_default": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": true,
+      "policy": "default",
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_default": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.015625,
+        "relative_l2": 4.993856613302921e-07,
+        "rms": 4.780631671157553e-05
+      },
+      "key_vs_default": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0013535022735595703,
+        "rms": 0.00021844923306147106
+      },
+      "logits_vs_default": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "default",
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.0009765625,
+        "relative_l2": 4.537524704672657e-05,
+        "rms": 1.5308221471746443e-05
+      },
+      "value_vs_default": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.015625,
+        "relative_l2": 5.222303943330223e-07,
+        "rms": 4.9993248827749306e-05
+      },
+      "key_vs_default": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": false,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.001143813133239746,
+        "rms": 0.00021677970863949865
+      },
+      "logits_vs_default": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "default",
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.0009765625,
+        "relative_l2": 4.496435636940831e-05,
+        "rms": 1.5169599515978653e-05
+      },
+      "value_vs_default": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 8,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.03125,
+        "relative_l2": 9.039283086629726e-07,
+        "rms": 8.653328750646607e-05
+      },
+      "key_vs_default": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_within_batch_bitwise_equal": false,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0010721683502197266,
+        "rms": 0.00022941562718764653
+      },
+      "logits_vs_default": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "default",
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.0009765625,
+        "relative_l2": 4.4358908066977296e-05,
+        "rms": 1.4965339764097575e-05
+      },
+      "value_vs_default": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_within_batch_bitwise_equal": false
+    },
+    {
+      "batch": 1,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_default": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.015625,
+        "relative_l2": 5.284059962994728e-07,
+        "rms": 5.058444077888844e-05
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 151936,
+        "maximum": 0.0,
+        "rms": 0.0
+      },
+      "logits_vs_default": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012992024421691895,
+        "rms": 0.0002680306144179761
+      },
+      "logits_within_batch_bitwise_equal": true,
+      "policy": "invariant-qkv",
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_default": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.0009765625,
+        "relative_l2": 4.090718973438052e-05,
+        "rms": 1.3800835499491249e-05
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 2,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_default": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.015625,
+        "relative_l2": 5.834326859056213e-07,
+        "rms": 5.585215980717743e-05
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0007469654083251953,
+        "rms": 0.00014329354397004355
+      },
+      "logits_vs_default": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012249946594238281,
+        "rms": 0.0002341140985365117
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "invariant-qkv",
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_default": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.0009765625,
+        "relative_l2": 4.563787316932986e-05,
+        "rms": 1.5396822405213896e-05
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 4,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_default": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.015625,
+        "relative_l2": 5.444507506930639e-07,
+        "rms": 5.212040920820714e-05
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012532472610473633,
+        "rms": 0.00029083847119404496
+      },
+      "logits_vs_default": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0011556148529052734,
+        "rms": 0.00025557765707393237
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "invariant-qkv",
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_default": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.0009765625,
+        "relative_l2": 3.400553501509064e-05,
+        "rms": 1.1472423868238302e-05
+      },
+      "value_within_batch_bitwise_equal": true
+    },
+    {
+      "batch": 8,
+      "device_argmax_tokens": [
+        151643,
+        151643
+      ],
+      "host_device_argmax_equal": true,
+      "key_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "key_vs_default": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.03125,
+        "relative_l2": 8.377642390269707e-07,
+        "rms": 8.019938424509864e-05
+      },
+      "key_within_batch_bitwise_equal": true,
+      "logits_cross_batch": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.0012269020080566406,
+        "rms": 0.00022805871308424733
+      },
+      "logits_vs_default": {
+        "bitwise_equal": false,
+        "elements": 151936,
+        "maximum": 0.001315191388130188,
+        "rms": 0.0002473886538346158
+      },
+      "logits_within_batch_bitwise_equal": false,
+      "policy": "invariant-qkv",
+      "runs": 2,
+      "value_cross_batch": {
+        "bitwise_equal": true,
+        "elements": 524288,
+        "maximum": 0.0,
+        "relative_l2": 0.0,
+        "rms": 0.0
+      },
+      "value_vs_default": {
+        "bitwise_equal": false,
+        "elements": 524288,
+        "maximum": 0.0009765625,
+        "relative_l2": 4.281038489197004e-05,
+        "rms": 1.4442914209498938e-05
+      },
+      "value_within_batch_bitwise_equal": true
+    }
+  ],
+  "precision_process_rows": 16,
+  "q_solution_index": 296100,
+  "record_type": "fp32_qkv_complete_model_gate",
+  "schema_version": 1,
+  "status": "pass"
+}

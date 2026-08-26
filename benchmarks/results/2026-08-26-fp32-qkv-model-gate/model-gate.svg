@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="610" viewBox="0 0 1500 610">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:12px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">FP32 invariant Q/KV complete-model gate</text>
+<text x="30" y="62" class="muted">DeepSeek T2048 · raw BF16 cache + 151,936 logits + no-export performance</text>
+<text x="30" y="123" class="label">default</text>
+<text x="190" y="123" class="label">B1</text>
+<rect x="230" y="105" width="2.00" height="22" rx="4" fill="#f97316"/>
+<text x="247.00" y="122" class="label">logit Max 0.000e+00 · K 0.000e+00 · V 0.000e+00</text>
+<text x="190" y="155" class="label">B2</text>
+<rect x="230" y="137" width="700.00" height="22" rx="4" fill="#f97316"/>
+<text x="945.00" y="154" class="label">logit Max 1.354e-03 · K 1.562e-02 · V 9.766e-04</text>
+<text x="190" y="187" class="label">B4</text>
+<rect x="230" y="169" width="591.55" height="22" rx="4" fill="#f97316"/>
+<text x="836.55" y="186" class="label">logit Max 1.144e-03 · K 1.562e-02 · V 9.766e-04</text>
+<text x="190" y="219" class="label">B8</text>
+<rect x="230" y="201" width="554.50" height="22" rx="4" fill="#f97316"/>
+<text x="799.50" y="218" class="label">logit Max 1.072e-03 · K 3.125e-02 · V 9.766e-04</text>
+<text x="30" y="293" class="label">invariant-qkv</text>
+<text x="190" y="293" class="label">B1</text>
+<rect x="230" y="275" width="2.00" height="22" rx="4" fill="#22c55e"/>
+<text x="247.00" y="292" class="label">logit Max 0.000e+00 · K 0.000e+00 · V 0.000e+00</text>
+<text x="190" y="325" class="label">B2</text>
+<rect x="230" y="307" width="386.31" height="22" rx="4" fill="#22c55e"/>
+<text x="631.31" y="324" class="label">logit Max 7.470e-04 · K 0.000e+00 · V 0.000e+00</text>
+<text x="190" y="357" class="label">B4</text>
+<rect x="230" y="339" width="648.15" height="22" rx="4" fill="#22c55e"/>
+<text x="893.15" y="356" class="label">logit Max 1.253e-03 · K 0.000e+00 · V 0.000e+00</text>
+<text x="190" y="389" class="label">B8</text>
+<rect x="230" y="371" width="634.53" height="22" rx="4" fill="#22c55e"/>
+<text x="879.53" y="388" class="label">logit Max 1.227e-03 · K 0.000e+00 · V 0.000e+00</text>
+<text x="230" y="480" class="label">B1 prefill 0.901x · decode 1.010x · peak 0</text>
+<text x="510" y="480" class="label">B2 prefill 0.951x · decode 1.006x · peak 0</text>
+<text x="790" y="480" class="label">B4 prefill 0.982x · decode 0.998x · peak 0</text>
+<text x="1070" y="480" class="label">B8 prefill 0.991x · decode 1.003x · peak 0</text>
+</svg>
