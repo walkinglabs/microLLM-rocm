@@ -5043,3 +5043,15 @@ scalar；尾部在同一Kernel逐元素收完，未对齐view不复制。
 缩到0.82×–0.84×。
 
 ![PyTorch Custom Op vector16](assets/pytorch-rocm-custom-op-vector16.svg)
+
+## 347. Experiment 331：减少中间Tensor终于赢了，但只赢forward
+
+`torch.ops.microllm.swiglu`把`F.silu(gate) * up`的两个PyTorch节点和一个中间Tensor合成一次
+Kernel。16M元素的FP32/FP16/BF16 forward达到1.570×/1.178×/1.142×，三种dtype的allocator
+测量峰值都减半。15格精度门全部通过。
+
+训练却不能顺势宣传。1M forward+backward只有0.761×/0.615×/0.646×；FP32 fused backward
+仍是scalar，FP16/BF16暂时用可读Torch公式，临时量反而更多。于是API和大forward证据保留，训练
+promotion拒绝。下一次只隔离backward，不改forward结论。
+
+![Fused SwiGLU Custom Op](assets/pytorch-rocm-custom-op-swiglu.svg)

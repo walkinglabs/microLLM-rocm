@@ -142,6 +142,9 @@ GPU tensors through the `CUDA` dispatcher/device API, so the adapter registers t
 dispatch key and obtains the current HIP Stream from `c10::hip`. That naming does not mean
 the binary contains a CUDA backend. FP32/FP16/BF16, error contracts, Autograd, Meta/fullgraph
 compile and current-Stream execution are covered by the test above.
+The same test covers the fused `torch.ops.microllm.swiglu` forward, Meta and Autograd
+contracts. Its internal backward schema is an implementation detail of the Python
+Autograd registration; call the public `microllm.torch_ops.swiglu` wrapper.
 
 ## RCCL build
 

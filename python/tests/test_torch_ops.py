@@ -2,6 +2,7 @@ import os
 import unittest
 
 import torch
+import torch.nn.functional as F
 
 from microllm import torch_ops
 
@@ -27,15 +28,23 @@ class TorchOpsTest(unittest.TestCase):
                     values = torch.arange(
                         max(1, torch.tensor(shape).prod().item()),
                         dtype=torch.float32, device=device)[:torch.tensor(shape).prod().item()]
-                    left = (values.reshape(shape) * 0.03125).to(dtype)
-                    right = (torch.flip(values, dims=(0,)).reshape(shape) * -0.015625).to(dtype)
+                    left = ((values % 251).reshape(shape) * 0.03125 - 2).to(dtype)
+                    right = ((torch.flip(values, dims=(0,)) % 127).reshape(shape) *
+                             -0.015625 + 1).to(dtype)
                     actual_add = torch_ops.add(left, right)
                     actual_multiply = torch_ops.multiply(left, right)
+                    actual_swiglu = torch_ops.swiglu(left, right)
                     if left.numel() != 0:
                         self.assertNotEqual(actual_add.data_ptr(), left.data_ptr())
                         self.assertNotEqual(actual_multiply.data_ptr(), right.data_ptr())
+                        self.assertNotEqual(actual_swiglu.data_ptr(), left.data_ptr())
                     torch.testing.assert_close(actual_add, left + right, rtol=0, atol=0)
                     torch.testing.assert_close(actual_multiply, left * right, rtol=0, atol=0)
+                    tolerance = (1.0e-6 if dtype == torch.float32 else
+                                 4.0e-3 if dtype == torch.float16 else 6.25e-2)
+                    torch.testing.assert_close(
+                        actual_swiglu, F.silu(left) * right,
+                        rtol=0, atol=tolerance)
 
         with self.assertRaisesRegex(RuntimeError, "float32, float16, or bfloat16"):
             torch_ops.add(torch.ones(3, dtype=torch.int32),
@@ -46,6 +55,8 @@ class TorchOpsTest(unittest.TestCase):
             torch_ops.add(torch.ones(3), torch.ones(4))
         with self.assertRaisesRegex(RuntimeError, "contiguous"):
             torch_ops.multiply(torch.ones(2, 3).transpose(0, 1), torch.ones(3, 2))
+        with self.assertRaisesRegex(RuntimeError, "shapes must match"):
+            torch_ops.swiglu(torch.ones(3), torch.ones(4))
 
     def test_autograd_branch_matches_pytorch(self):
         devices = [torch.device("cpu")]
@@ -61,12 +72,28 @@ class TorchOpsTest(unittest.TestCase):
                 torch.testing.assert_close(left.grad, 1 + right.detach(), rtol=0, atol=0)
                 torch.testing.assert_close(right.grad, 1 + left.detach(), rtol=0, atol=0)
 
+                native_left = left.detach().clone().requires_grad_()
+                native_right = right.detach().clone().requires_grad_()
+                native_loss = (F.silu(native_left) * native_right).sum()
+                native_loss.backward()
+                custom_left = left.detach().clone().requires_grad_()
+                custom_right = right.detach().clone().requires_grad_()
+                torch_ops.swiglu(custom_left, custom_right).sum().backward()
+                tolerance = (2.0e-6 if dtype == torch.float32 else
+                             4.0e-3 if dtype == torch.float16 else 6.25e-2)
+                torch.testing.assert_close(
+                    custom_left.grad, native_left.grad, rtol=0, atol=tolerance)
+                torch.testing.assert_close(
+                    custom_right.grad, native_right.grad, rtol=0, atol=tolerance)
+
     def test_compile_fullgraph_uses_meta_contract(self):
         if not hasattr(torch, "compile"):
             self.skipTest("torch.compile unavailable")
 
         def function(left, right):
-            return torch_ops.add(left, right) + torch_ops.multiply(left, right)
+            return (torch_ops.add(left, right) +
+                    torch_ops.multiply(left, right) +
+                    torch_ops.swiglu(left, right))
 
         compiled = torch.compile(function, backend="eager", fullgraph=True)
         devices = [torch.device("cpu")]

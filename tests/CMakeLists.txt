@@ -568,6 +568,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.PyTorchCustomOpVector16Contract PROPERTIES
         LABELS "cpu;benchmark;torch;dtype;performance;memory;schema")
     add_test(
+        NAME Benchmark.PyTorchCustomOpSwiGLUContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_pytorch_custom_op_swiglu.py
+    )
+    set_tests_properties(Benchmark.PyTorchCustomOpSwiGLUContract PROPERTIES
+        LABELS "cpu;benchmark;torch;dtype;autograd;performance;memory;schema")
+    add_test(
         NAME Benchmark.DataParallelVerificationMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py

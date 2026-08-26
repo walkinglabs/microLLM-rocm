@@ -641,3 +641,16 @@ python3 benchmarks/single_gpu/compare_pytorch_custom_op_vector16.py \
 
 The gate requires all values/gradients exact, equal peaks, every FP16/BF16 16M row at least
 1.05× scalar, and FP32 bandwidth non-regression. The broad result is intentionally retained.
+
+Measure the fused SwiGLU boundary against `torch.nn.functional.silu(gate) * up`:
+
+```bash
+/path/to/rocm-venv/bin/python \
+  benchmarks/single_gpu/pytorch_custom_op_swiglu_matrix.py \
+  --library build/torch-rocm/bindings/torch/libmicrollm_torch_ops.so \
+  --output /tmp/microllm-pytorch-swiglu \
+  --runs 3 --warmup 5 --repetitions 25
+```
+
+This matrix uses dtype-specific Max/RMS/loss gates and reports forward and
+forward+backward separately; a forward win never authorizes a training claim.

@@ -20,6 +20,9 @@ HIP Stream的非拥有handle传给microLLM；Autograd公式明确注册，Meta d
 HIP Auto只在FP16/BF16、`numel >= 4,194,304`且left/right/output均16-byte aligned时使用
 vector16；尾部在同一Kernel安全处理。FP32、小Tensor或任一未对齐pointer必须走scalar，不能为了
 满足对齐条件复制。broad vector策略因FP32回退到0.845×–0.879×已经被反例拒绝。
+PyTorch fused SwiGLU的forward共同域是连续同shape/device/dtype的FP32/FP16/BF16；输出由
+`at::empty_like`拥有。FP32 Autograd调用caller-owned fused backward；低精度暂用PyTorch公式并按
+FP16 `4e-3`、BF16 `6.25e-2`报告Max/RMS。16M forward性能可被引用，F+B性能失败必须同时保留。
 
 ## BF16 weight gradient
 

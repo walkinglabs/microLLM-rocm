@@ -41,3 +41,11 @@ tensors at or above 4,194,304 elements use 16-byte packets, while FP32, smaller 
 and misaligned views remain scalar. The four 16M low-precision rows improve
 `1.277×–1.411×` versus the scalar adapter with exact outputs and unchanged peaks. See
 [Experiment 330](../optimization-log/experiments/330-pytorch-custom-op-vector16.md).
+
+The adapter's first graph-reducing operation is SwiGLU. It replaces PyTorch SiLU plus
+multiply and their intermediate allocation with one caller-owned microLLM output. The
+schema includes Meta and Autograd; FP32 backward calls the fused caller-owned engine
+primitive, while FP16/BF16 retain explicit readable formulas. At 16M elements, forward
+is `1.142×–1.570×` native Torch and measured peak halves. Forward+backward remains only
+`0.615×–0.761×`, so the adapter does not make a training speed claim. See
+[Experiment 331](../optimization-log/experiments/331-pytorch-custom-op-swiglu.md).

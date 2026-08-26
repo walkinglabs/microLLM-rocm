@@ -175,6 +175,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [144](steps/144-external-gradient-pool.md) | complete; default rejected | Autograd外部梯度池完整模型门 | 全梯度exact/地址稳定；Event仅0.792×–0.871× |
 | [145](steps/145-pytorch-rocm-custom-ops.md) | complete; integration keep | PyTorch ROCm dispatcher/Autograd/Meta | 20/20 exact；Event 0.469×–0.973×，不声称加速 |
 | [146](steps/146-pytorch-custom-op-vector16.md) | complete; selective keep | FP16/BF16带宽级vector16 | broad FP32失败；selective低精度1.277×–1.411× |
+| [147](steps/147-pytorch-custom-op-swiglu.md) | complete; forward keep | 第一个PyTorch融合SwiGLU | 16M forward1.142×–1.570×/峰值减半；F+B拒绝 |
 
 ## 为什么按这个顺序
 

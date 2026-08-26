@@ -1060,6 +1060,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [PyTorch ROCm Custom Ops SVG](assets/pytorch-rocm-custom-ops.svg) | 三dtype与前反向代表格 |
 | [experiments/330-pytorch-custom-op-vector16.md](experiments/330-pytorch-custom-op-vector16.md) | broad反例与selective keep |
 | [Custom Op vector16 SVG](assets/pytorch-rocm-custom-op-vector16.svg) | scalar/broad/selective 16M对比 |
+| [experiments/331-pytorch-custom-op-swiglu.md](experiments/331-pytorch-custom-op-swiglu.md) | 融合forward成功、training反例 |
+| [Fused SwiGLU SVG](assets/pytorch-rocm-custom-op-swiglu.svg) | 三dtype forward/backward边界 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

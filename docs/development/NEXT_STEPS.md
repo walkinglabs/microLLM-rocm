@@ -245,8 +245,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] vectorize typed caller-owned add/multiply behind a complete tail/alignment/PyTorch
   gate: broad FP32 route is rejected; FP16/BF16 ≥4M aligned route improves 1.277×–1.411×
   versus scalar with all 20 cases exact and unchanged peaks;
-- [ ] move the adapter boundary to a genuinely fused operator rather than continuing
-  packet/block/threshold tuning without a new profile hotspot;
+- [x] move the adapter boundary to fused SwiGLU: 16M forward is 1.142×–1.570× native
+  Torch and peak halves across three dtypes, while F+B 0.615×–0.761× is retained as
+  a training counterexample;
+- [ ] vectorize/isolate FP32 fused SwiGLU backward with complete gradients and peak;
+- [ ] define a typed low-precision SwiGLU backward contract before replacing the readable
+  PyTorch fallback formulas;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
 
 ## P2.5 — production data parallel reducer
