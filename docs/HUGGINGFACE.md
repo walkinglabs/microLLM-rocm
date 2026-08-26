@@ -92,6 +92,11 @@ constant T2048只有全FP32 Cache通过。`fp32`默认值因此仍是必要fallb
 `bf16_ffn_fp32_layers`和实际转换数。空列表保持原来的全层BF16行为。这个接口用于可反驳的逐层
 精度实验，不会按模型名自动选择层，也不改变默认策略。
 
+`--bf16-decode-algorithm-index N`为当前cached decode的`M=batch,K=hidden,N=ffn` gate/up BF16
+GEMM注册一个version-local hipBLASLt solution。它要求HIP、cached decode和BF16 FFN；不会影响
+prefill或down projection。JSON报告index与registry count。solution编号不是跨ROCm稳定API，只有
+完成exact-shape support、CPU数值和完整模型门后才能用于实验，不能写成硬编码默认。
+
 `--cache-logits-output PATH`保存真正经过cached decode后的完整logits，只用于精度诊断。
 默认保存最后一步；`--cache-logits-step N`可选择`0 <= N < new_tokens`的具体decode步，包含
 batch的完整`[B,V]` FP32值。至少生成一个token；开启诊断输出的运行不作为正式性能排名。

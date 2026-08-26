@@ -100,6 +100,7 @@ struct Options {
     bool trace_all_layer_details = false;
     std::string trace_value_filter;
     int bf16_algorithm_index = -1;
+    int bf16_decode_algorithm_index = -1;
     int bf16_grouped_qkv_algorithm_index = -1;
     int bf16_grouped_gate_up_algorithm_index = -1;
     bool bf16_grouped_gate_up_swish = false;
@@ -330,6 +331,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--bf16-algorithm-index") {
             result.bf16_algorithm_index = std::stoi(argv[index + 1]);
+        }
+        else if (name == "--bf16-decode-algorithm-index") {
+            result.bf16_decode_algorithm_index = std::stoi(argv[index + 1]);
         }
         else if (name == "--bf16-grouped-qkv-algorithm-index") {
             result.bf16_grouped_qkv_algorithm_index =
@@ -637,6 +641,13 @@ Options options(int argc, char** argv) {
          (result.workload != "prefill" || !result.bf16_ffn))) {
         throw std::invalid_argument(
             "--bf16-algorithm-index requires BF16 FFN prefill workload");
+    }
+    if (result.bf16_decode_algorithm_index < -1 ||
+        (result.bf16_decode_algorithm_index >= 0 &&
+         (result.device != "hip" || result.workload != "decode" ||
+          !result.use_cache || !result.bf16_ffn))) {
+        throw std::invalid_argument(
+            "--bf16-decode-algorithm-index requires HIP cached decode with BF16 FFN");
     }
     if (result.bf16_grouped_qkv_algorithm_index < -1 ||
         (result.bf16_grouped_qkv_algorithm_index >= 0 &&
@@ -1463,6 +1474,13 @@ int main(int argc, char** argv) {
                 microllm::DType::BFloat16,
                 command.bf16_algorithm_index);
         }
+        if (command.bf16_decode_algorithm_index >= 0) {
+            microllm::ops::clear_bf16_algorithm_registry();
+            microllm::ops::register_bf16_algorithm(
+                command.batch, external.model.dimension,
+                external.model.ffn_dimension, microllm::DType::BFloat16,
+                command.bf16_decode_algorithm_index);
+        }
         if (command.bf16_grouped_gate_up_algorithm_index >= 0) {
             microllm::ops::clear_bf16_grouped_gate_up_registry();
             const auto key =
@@ -2184,6 +2202,10 @@ int main(int argc, char** argv) {
                   << online_attention_fallback_calls
                   << ",\"bf16_algorithm_index\":"
                   << command.bf16_algorithm_index
+                  << ",\"bf16_decode_algorithm_index\":"
+                  << command.bf16_decode_algorithm_index
+                  << ",\"bf16_registered_algorithm_count\":"
+                  << microllm::ops::bf16_registered_algorithm_count()
                   << ",\"bf16_grouped_qkv_algorithm_index\":"
                   << command.bf16_grouped_qkv_algorithm_index
                   << ",\"bf16_grouped_gate_up_algorithm_index\":"

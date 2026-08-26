@@ -35,6 +35,9 @@ def main() -> int:
         b"bf16_ffn_arena_capacity_bytes",
         b"--bf16-ffn-fp32-layers",
         b"bf16_ffn_fp32_layers",
+        b"--bf16-decode-algorithm-index",
+        b"bf16_decode_algorithm_index",
+        b"bf16_registered_algorithm_count",
         b"--bf16-ffn-arena-minimum-rows",
         b"bf16_ffn_arena_bypassed_calls",
         b"--bf16-qkv-arena",
@@ -146,6 +149,17 @@ def main() -> int:
                 "requires --bf16-ffn true" not in rejected_bf16_layers.stderr:
             raise RuntimeError(
                 "hf_infer accepted selective BF16 layers without BF16 FFN")
+        rejected_decode_algorithm = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--workload", "decode", "--new-tokens", "1",
+            "--bf16-ffn", "true",
+            "--bf16-decode-algorithm-index", "75892",
+        ], text=True, capture_output=True, check=False)
+        if rejected_decode_algorithm.returncode == 0 or \
+                "requires HIP cached decode" not in rejected_decode_algorithm.stderr:
+            raise RuntimeError(
+                "hf_infer accepted a decode BF16 solution outside HIP cached decode")
         independent_attention = subprocess.run([
             str(args.binary), "--config", str(missing),
             "--weights", str(missing), "--tokens", "1", "--device", "cpu",

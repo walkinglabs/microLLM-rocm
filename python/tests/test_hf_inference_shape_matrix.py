@@ -48,9 +48,60 @@ LAYER_COUNTERFACTUAL_SPEC = importlib.util.spec_from_file_location(
 LAYER_COUNTERFACTUAL = importlib.util.module_from_spec(LAYER_COUNTERFACTUAL_SPEC)
 assert LAYER_COUNTERFACTUAL_SPEC.loader is not None
 LAYER_COUNTERFACTUAL_SPEC.loader.exec_module(LAYER_COUNTERFACTUAL)
+DECODE_ALGORITHM_SPEC = importlib.util.spec_from_file_location(
+    "audit_bf16_decode_algorithm",
+    ROOT / "benchmarks/single_gpu/audit_bf16_decode_algorithm.py")
+DECODE_ALGORITHM = importlib.util.module_from_spec(DECODE_ALGORITHM_SPEC)
+assert DECODE_ALGORITHM_SPEC.loader is not None
+DECODE_ALGORITHM_SPEC.loader.exec_module(DECODE_ALGORITHM)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_bf16_decode_algorithm_command_is_decode_only_and_explicit(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 8, "warmup": 1,
+            "algorithm_index": 75892,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        default = DECODE_ALGORITHM.command(
+            args, model, "default", 2, Path("default.bin"))
+        common = DECODE_ALGORITHM.command(
+            args, model, "common-solution", 2, Path("common.bin"))
+        self.assertNotIn("--bf16-decode-algorithm-index", default)
+        self.assertEqual(
+            common[common.index("--bf16-decode-algorithm-index") + 1],
+            "75892")
+        self.assertEqual(common[common.index("--workload") + 1], "decode")
+
+    def test_bf16_decode_algorithm_summary_compares_complete_batches(self):
+        measurements = []
+        for run in (1, 2):
+            for policy_index, policy in enumerate(DECODE_ALGORITHM.POLICIES):
+                for batch in DECODE_ALGORITHM.BATCHES:
+                    values = [0.0, 1.0, 2.0, 3.0]
+                    if policy_index and batch > 1:
+                        values = [0.0, 1.25, 2.0, 3.0]
+                    measurements.append(({
+                        "algorithm_policy": policy, "batch": batch,
+                        "process_run": run, "within_batch_bitwise_equal": True,
+                        "host_device_argmax_equal": True,
+                        "device_argmax_token": 3,
+                        "decode_tokens_per_second": 10.0 + batch,
+                        "engine_peak_bytes": 1000 + policy_index,
+                    }, values * batch))
+        summary = DECODE_ALGORITHM.summarize(measurements, 4, 75892)
+        policies = {row["algorithm_policy"]: row
+                    for row in summary["policy_summaries"]}
+        self.assertEqual(summary["process_rows"], 16)
+        self.assertEqual(summary["case_rows"], 8)
+        self.assertTrue(summary["all_repeat_bitwise_equal"])
+        self.assertEqual(policies["common-solution"]["algorithm_index"], 75892)
+        self.assertAlmostEqual(
+            policies["common-solution"]["maximum_cross_batch_error"], 0.25)
+
     def test_current_bf16_ffn_layer_counterfactual_rejects_block_zero(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-deepseek-bf16-ffn-layer-counterfactual")
