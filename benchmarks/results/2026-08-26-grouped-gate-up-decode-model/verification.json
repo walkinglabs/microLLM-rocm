@@ -1,0 +1,1 @@
+{"schema_version":1,"experiment":326,"status":"pass","runner_commit":"001af7f2","precision_process_rows":6,"performance_process_rows":6,"warmup":2,"steps":5,"decode_tokens":64,"grouped_dispatches_per_candidate_process":12544,"claims_not_made":["1.00968x is not rounded up to the 1.01 gate","No decode default is admitted"]}

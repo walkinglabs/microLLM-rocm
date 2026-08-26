@@ -51,6 +51,7 @@ def main() -> int:
         "0/4 performance cases pass",
         "stable 65193",
         "Event/wall 1.814×/1.519×",
+        "1.00968× below 1.01",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",
@@ -176,6 +177,9 @@ def main() -> int:
         "benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/analysis.json",
         "benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/verification.json",
         "benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/grouped-row2.svg",
+        "benchmarks/results/2026-08-26-grouped-gate-up-decode-model/summary.json",
+        "benchmarks/results/2026-08-26-grouped-gate-up-decode-model/analysis.json",
+        "benchmarks/results/2026-08-26-grouped-gate-up-decode-model/model-gate.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -344,6 +348,13 @@ def main() -> int:
     assert grouped_rows["deepseek"]["solution_indices"] == [65193]
     assert len(grouped_rows["qwen"]["solution_indices"]) > 1
     ET.parse(grouped_root / "grouped-row2.svg")
+    grouped_model_root = ROOT / (
+        "benchmarks/results/2026-08-26-grouped-gate-up-decode-model")
+    grouped_model = json.loads(
+        (grouped_model_root / "summary.json").read_text(encoding="utf-8"))
+    assert grouped_model["tokens_equal"] is True
+    assert grouped_model["throughput_speedup"] < 1.01
+    assert grouped_model["candidate_admitted"] is False
     assert not (ROOT / "benchmarks/single_gpu/native128_finalize_matrix.py").exists()
     native_sources = "\n".join(
         (ROOT / relative).read_text(encoding="utf-8")

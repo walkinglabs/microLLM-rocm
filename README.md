@@ -48,7 +48,8 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > The candidate and runner have been removed, and cached-finalize local search is
 > closed. The GEMM audit finds an unmeasured decode rows2 grouped gate/up shape:
 > DeepSeek is exact at `1.814x` Event / `1.519x` wall with stable solution 65193.
-> It proceeds only to a fixed T2048/B2/N64 model gate.
+> The model gate reaches only `1.00968x` versus the declared `1.01x`; tokens are
+> equal, but the route is rejected and scheduled for removal.
 > See the [native128 rejection](docs/optimization-log/experiments/324-native128-finalize-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
