@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass_with_profiler_boundary","process_runs":3,"random_seeds":3,"shape_cases_per_run":21,"cpu_out_api_tests":"pass","hip_softmax_out_test":"pass","complete_pytorch_outputs":true,"bad_low_precision_hip_softmax_rejected":true,"capi_symbol_count":48,"svg_parsed":true}

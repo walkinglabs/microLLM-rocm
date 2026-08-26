@@ -187,6 +187,17 @@ for _name in ("ml_multiply_out_on_stream", "ml_matmul_out_on_stream"):
 _lib.ml_add_out_on_stream.argtypes = [
     _TensorPointer, _TensorPointer, _TensorPointer, _StreamPointer]
 _lib.ml_add_out_on_stream.restype = ctypes.c_int
+_lib.ml_softmax_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _StreamPointer]
+_lib.ml_softmax_out_on_stream.restype = ctypes.c_int
+for _name in ("ml_rms_norm_out_on_stream", "ml_rms_norm_bf16_out_on_stream"):
+    _function = getattr(_lib, _name)
+    _function.argtypes = [_TensorPointer, _TensorPointer, _TensorPointer,
+                          ctypes.c_float, _StreamPointer]
+    _function.restype = ctypes.c_int
+_lib.ml_swiglu_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _StreamPointer]
+_lib.ml_swiglu_out_on_stream.restype = ctypes.c_int
 
 
 def _check(status: int) -> None:
@@ -554,6 +565,31 @@ def add_out(output: Tensor, left: Tensor, right: Tensor,
             *, stream: Stream) -> None:
     _check(_lib.ml_add_out_on_stream(
         output._handle, left._handle, right._handle, stream._handle))
+
+
+def softmax_out(output: Tensor, input: Tensor, *, stream: Stream) -> None:
+    _check(_lib.ml_softmax_out_on_stream(
+        output._handle, input._handle, stream._handle))
+
+
+def rms_norm_out(output: Tensor, input: Tensor, weight: Tensor, *,
+                 epsilon: float = 1.0e-5, stream: Stream) -> None:
+    _check(_lib.ml_rms_norm_out_on_stream(
+        output._handle, input._handle, weight._handle,
+        float(epsilon), stream._handle))
+
+
+def rms_norm_bf16_out(output: Tensor, input: Tensor, weight: Tensor, *,
+                      epsilon: float = 1.0e-5, stream: Stream) -> None:
+    _check(_lib.ml_rms_norm_bf16_out_on_stream(
+        output._handle, input._handle, weight._handle,
+        float(epsilon), stream._handle))
+
+
+def swiglu_out(output: Tensor, gate: Tensor, up: Tensor, *,
+               stream: Stream) -> None:
+    _check(_lib.ml_swiglu_out_on_stream(
+        output._handle, gate._handle, up._handle, stream._handle))
 
 
 def hip_device_count() -> int:

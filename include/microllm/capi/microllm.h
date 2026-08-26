@@ -103,6 +103,17 @@ ml_status ml_matmul_out_on_stream(ml_tensor* output, const ml_tensor* left,
                                   const ml_tensor* right, ml_stream* stream);
 ml_status ml_add_out_on_stream(ml_tensor* output, const ml_tensor* left,
                                const ml_tensor* right, ml_stream* stream);
+ml_status ml_softmax_out_on_stream(ml_tensor* output, const ml_tensor* input,
+                                   ml_stream* stream);
+ml_status ml_rms_norm_out_on_stream(ml_tensor* output, const ml_tensor* input,
+                                    const ml_tensor* weight, float epsilon,
+                                    ml_stream* stream);
+ml_status ml_rms_norm_bf16_out_on_stream(ml_tensor* output,
+                                         const ml_tensor* input,
+                                         const ml_tensor* weight, float epsilon,
+                                         ml_stream* stream);
+ml_status ml_swiglu_out_on_stream(ml_tensor* output, const ml_tensor* gate,
+                                  const ml_tensor* up, ml_stream* stream);
 
 #ifdef __cplusplus
 }

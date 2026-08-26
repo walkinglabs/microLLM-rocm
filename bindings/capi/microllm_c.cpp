@@ -576,4 +576,44 @@ ML_EXPORT ml_status ml_add_out_on_stream(ml_tensor* output,
     });
 }
 
+ML_EXPORT ml_status ml_softmax_out_on_stream(ml_tensor* output,
+                                             const ml_tensor* input,
+                                             ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::softmax_out_(
+            require_tensor(output), require_tensor(input), -1,
+            stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_rms_norm_out_on_stream(
+    ml_tensor* output, const ml_tensor* input, const ml_tensor* weight,
+    float epsilon, ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::rms_norm_out_(
+            require_tensor(output), require_tensor(input),
+            require_tensor(weight), epsilon, stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_rms_norm_bf16_out_on_stream(
+    ml_tensor* output, const ml_tensor* input, const ml_tensor* weight,
+    float epsilon, ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::rms_norm_bf16_out_(
+            require_tensor(output), require_tensor(input),
+            require_tensor(weight), epsilon, stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_swiglu_out_on_stream(
+    ml_tensor* output, const ml_tensor* gate, const ml_tensor* up,
+    ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::swiglu_out_(
+            require_tensor(output), require_tensor(gate),
+            require_tensor(up), stream_context(stream));
+    });
+}
+
 }  // extern "C"

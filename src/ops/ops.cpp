@@ -1656,6 +1656,10 @@ Tensor softmax(const Tensor& input, std::int64_t dim,
     if (width == 0) throw std::invalid_argument("softmax dimension cannot be empty");
     const auto rows = input.numel() / width;
     if (input.device().is_hip()) {
+        if (input.dtype() != DType::Float32) {
+            throw std::invalid_argument(
+                "HIP softmax currently requires float32 input");
+        }
         require_contiguous(input, "input");
         Tensor output(input.shape(), input.dtype(), input.device());
 #if MICROLLM_HAS_HIP
@@ -1680,6 +1684,43 @@ Tensor softmax(const Tensor& input, std::int64_t dim,
         for (auto iterator = begin; iterator != end; ++iterator) *iterator /= denominator;
     }
     return from_values(std::move(output), input.shape(), input.dtype());
+}
+
+void softmax_out_(Tensor& output_fp32, const Tensor& input_fp32,
+                  std::int64_t dim,
+                  [[maybe_unused]] const OpContext& context) {
+    require_float(input_fp32, "input");
+    require_float(output_fp32, "output");
+    require_same_shape(input_fp32, output_fp32);
+    require_same_device(input_fp32, output_fp32);
+    require_contiguous(input_fp32, "input");
+    require_contiguous(output_fp32, "output");
+    const auto normalized = positive_dim(input_fp32, dim);
+    if (normalized != input_fp32.ndim() - 1) {
+        throw std::invalid_argument("softmax_out currently supports the last dimension");
+    }
+    const auto width = input_fp32.shape().back();
+    if (width == 0) throw std::invalid_argument("softmax dimension cannot be empty");
+    if (output_fp32.storage().data() == input_fp32.storage().data()) {
+        throw std::invalid_argument("softmax_out output must not alias input Storage");
+    }
+    [[maybe_unused]] const auto rows = input_fp32.numel() / width;
+    if (input_fp32.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_softmax(
+            static_cast<const float*>(input_fp32.data()),
+            static_cast<float*>(output_fp32.data()), rows, width,
+            context.native_stream(input_fp32.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = softmax(input_fp32, dim);
+    runtime::copy_bytes(
+        output_fp32.data(), output_fp32.device(), reference.data(),
+        reference.device(), static_cast<std::size_t>(output_fp32.numel()) *
+                                dtype_size(output_fp32.dtype()));
 }
 
 Tensor rms_norm(const Tensor& input, const Tensor& weight, float epsilon,

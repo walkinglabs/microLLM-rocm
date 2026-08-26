@@ -1795,7 +1795,20 @@ TEST(HipOpsTest, SoftmaxAndRmsNormMatchCpuReference) {
     require_gpu();
     const auto input_cpu = Tensor::from_vector({1000, 1000, 999, 1, 2, 3}, {2, 3});
     const auto weight_cpu = Tensor::from_vector({1, 0.5F, 2}, {3});
-    expect_near(softmax(input_cpu.to(Device::hip())).to_vector(), softmax(input_cpu).to_vector());
+    const auto input = input_cpu.to(Device::hip());
+    expect_near(softmax(input).to_vector(), softmax(input_cpu).to_vector());
+    Tensor softmax_output(input.shape(), DType::Float32, input.device());
+    runtime::Stream stream(input.device());
+    OpContext context;
+    context.stream = &stream;
+    softmax_out_(softmax_output, input, -1, context);
+    runtime::Event finished(input.device(), false);
+    finished.record(stream);
+    finished.synchronize();
+    expect_near(softmax_output.to_vector(), softmax(input_cpu).to_vector());
+    const auto low = Tensor::from_vector(
+        {1, 2, 3, 4}, {2, 2}, DType::BFloat16).to(input.device());
+    EXPECT_THROW((void)softmax(low), std::invalid_argument);
     expect_near(rms_norm(input_cpu.to(Device::hip()), weight_cpu.to(Device::hip())).to_vector(),
                 rms_norm(input_cpu, weight_cpu).to_vector(), 2.0e-4F);
 }

@@ -1527,10 +1527,19 @@ TEST(CpuOpsTest, EmbeddingGathersRowsAndRejectsBadIndex) {
 
 TEST(CpuOpsTest, SoftmaxIsStableAndRowsSumToOne) {
     const auto input = Tensor::from_vector({1000, 1000, 1, 2, 3, 4}, {2, 3});
-    const auto output = softmax(input).to_vector();
+    const auto reference = softmax(input);
+    const auto output = reference.to_vector();
     EXPECT_NEAR(output[0] + output[1] + output[2], 1.0F, 1.0e-6F);
     EXPECT_NEAR(output[3] + output[4] + output[5], 1.0F, 1.0e-6F);
     EXPECT_TRUE(std::isfinite(output[0]));
+    Tensor caller_output(input.shape());
+    softmax_out_(caller_output, input);
+    EXPECT_EQ(caller_output.to_vector(), reference.to_vector());
+    auto alias = input;
+    EXPECT_THROW(softmax_out_(alias, input), std::invalid_argument);
+    Tensor wrong_dtype(input.shape(), DType::BFloat16);
+    EXPECT_THROW(softmax_out_(wrong_dtype, input), std::invalid_argument);
+    EXPECT_THROW(softmax_out_(caller_output, input, 0), std::invalid_argument);
 }
 
 TEST(CpuOpsTest, RmsNormMatchesManualCalculation) {

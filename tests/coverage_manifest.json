@@ -69,6 +69,7 @@
   "operator_infrastructure": {
     "cast_out_": "tests/ops/ops_test.cpp",
     "multiply_out_": "tests/ops/hip_ops_test.cpp",
+    "softmax_out_": "tests/ops/hip_ops_test.cpp",
     "cast_transpose_2d_out_": "tests/ops/ops_test.cpp",
     "swiglu_out_": "tests/ops/hip_ops_test.cpp",
     "swiglu_out_with_implementation_": "tests/ops/hip_ops_test.cpp",

@@ -226,8 +226,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   contiguous zero-copy add runs: 144MiB exposed, 0 wrapper bytes copied, output Max 0;
 - [x] extend external Tensor dtype to FP16/BF16 and pass 6/6 PyTorch ROCm dtype-run
   multiply/matmul caller-output gates: 180MiB exposed, 0 copy, all Max 0;
-- [ ] extend caller-owned output to normalization/softmax/Attention/training families and
-  run randomized shape/error matrices before claiming zero-copy model integration.
+- [x] add caller-owned FP32 Softmax/RMSNorm, BF16 RMSNorm output and F32/F16/BF16
+  SwiGLU; 63/63 random PyTorch rows pass with explicit Max/RMS and 0 wrapper copy;
+- [ ] extend caller-owned output to Attention/RoPE/Embedding/loss/training families and
+  implement typed low-precision Softmax before claiming zero-copy model integration.
 
 ## P2.5 — production data parallel reducer
 

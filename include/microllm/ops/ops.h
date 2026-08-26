@@ -641,6 +641,8 @@ void matmul_weight_gradient_out_(
                                const OpContext& context = {});
 [[nodiscard]] Tensor softmax(const Tensor& input, std::int64_t dim = -1,
                              const OpContext& context = {});
+void softmax_out_(Tensor& output_fp32, const Tensor& input_fp32,
+                  std::int64_t dim = -1, const OpContext& context = {});
 [[nodiscard]] Tensor rms_norm(const Tensor& input, const Tensor& weight,
                               float epsilon = 1.0e-5F, const OpContext& context = {});
 void rms_norm_out_(Tensor& output_fp32, const Tensor& input_fp32,

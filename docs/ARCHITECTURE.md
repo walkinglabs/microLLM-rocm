@@ -98,6 +98,9 @@ shape, element strides, dtype and device; Python additionally retains an externa
 The first public zero-copy writes are FP32 contiguous add and F32/F16/BF16 contiguous
 multiply/matmul. Unsupported layouts are rejected, not materialized behind the caller's
 back.
+The caller-owned layer also covers FP32 Softmax/RMSNorm, BF16 RMSNorm output and
+F32/F16/BF16 SwiGLU. Low-precision HIP Softmax is intentionally not routed through an
+FP32 temporary; its missing typed reduction remains visible.
 
 An operator implementation must not infer ownership from a data pointer. Output,
 workspace, device, and execution stream are explicit. This allows the same HIP

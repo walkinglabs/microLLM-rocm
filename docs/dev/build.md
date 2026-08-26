@@ -218,7 +218,10 @@ descriptor. Destroying it never frees caller memory. The Python wrapper should r
 `owner=` to keep the external allocation alive. The first strict zero-copy output path is
 FP32 contiguous `ml_add_out_on_stream`; unsupported layouts fail instead of copying.
 External descriptors also map FP16/BF16, with caller-owned multiply/matmul paths tested
-against PyTorch ROCm. Other operator outputs remain outside the C ABI.
+against PyTorch ROCm. FP32 Softmax/RMSNorm, BF16 RMSNorm output and F32/F16/BF16
+SwiGLU have strict caller-owned Stream APIs. HIP low-precision Softmax is rejected until
+a typed reduction Kernel exists; no temporary FP32 copy is inserted. Attention/RoPE/loss/training outputs
+remain outside the C ABI.
 
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:

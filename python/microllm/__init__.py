@@ -18,6 +18,10 @@ _CAPI_NAMES = {
     "multiply",
     "multiply_out",
     "softmax",
+    "softmax_out",
+    "rms_norm_out",
+    "rms_norm_bf16_out",
+    "swiglu_out",
 }
 
 _PROFILING_NAMES = {"HipEventProfileScope", "ProfileScope",

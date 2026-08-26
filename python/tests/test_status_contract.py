@@ -25,6 +25,7 @@ def main() -> int:
         "3/3 bidirectional PyTorch ROCm native-Stream Event ordering",
         "144MiB exposed, 0 wrapper copy",
         "180MiB, 0 copy, all Max 0",
+        "63/63 random Softmax/RMSNorm/SwiGLU rows",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -254,6 +255,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-pytorch-zero-copy-low-precision/analysis.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-low-precision/verification.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-low-precision/zero-copy-low-precision.svg",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-operator-matrix/summary.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-operator-matrix/analysis.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-operator-matrix/verification.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-operator-matrix/operator-matrix.svg",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -405,6 +410,28 @@ def main() -> int:
         assert all(case["pointer_matches"] for case in report["cases"])
         assert all(case["wrappers_non_owning"] for case in report["cases"])
     ET.parse(low_root / "zero-copy-low-precision.svg")
+    operator_root = ROOT / (
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-operator-matrix")
+    operator_matrix = json.loads(
+        (operator_root / "summary.json").read_text(encoding="utf-8"))
+    assert operator_matrix["status"] == "pass_with_profiler_boundary"
+    assert operator_matrix["run_count"] == 3
+    assert operator_matrix["record_count"] == 63
+    assert operator_matrix["seeds"] == [20260826, 20260827, 20260828]
+    assert operator_matrix["all_pointer_gates_passed"] is True
+    assert operator_matrix["all_wrappers_non_owning"] is True
+    assert operator_matrix["total_wrapper_copy_bytes"] == 0
+    assert operator_matrix["maximum_error"] == 0.0625
+    assert operator_matrix["maximum_rms_error"] < 0.002
+    groups = {
+        (row["operation"], row["dtype"]): row
+        for row in operator_matrix["groups"]}
+    assert groups[("softmax", "fp32")]["rows"] == 12
+    assert groups[("rms_norm", "fp32")]["rows"] == 12
+    assert groups[("rms_norm_output", "bf16")]["maximum_error"] == 0.0
+    assert groups[("swiglu", "bf16")]["maximum_error"] == 0.0625
+    assert groups[("swiglu", "bf16")]["maximum_tolerance_fraction"] < 0.9
+    ET.parse(operator_root / "operator-matrix.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

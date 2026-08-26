@@ -1294,7 +1294,8 @@ Stream ordering passes in both directions across three processes; zero-copy Tens
 now passes FP32 add across 144MiB of real PyTorch ROCm buffers with pointer identity,
 owner lifetime and zero wrapper-copy evidence. FP16/BF16 multiply/matmul then pass 6/6
 dtype-runs across 180MiB with all Max 0. Broader operator outputs and a rocprof/PyTorch
-LLVM injection conflict remain open.
+LLVM injection conflict remain open. Random zero-copy Softmax/RMSNorm/SwiGLU adds 63/63
+complete PyTorch rows; BF16 SwiGLU's honest Max/RMS boundary is 0.0625/0.001901.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

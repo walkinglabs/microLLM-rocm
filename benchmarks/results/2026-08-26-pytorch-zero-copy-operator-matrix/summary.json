@@ -1,0 +1,74 @@
+{
+  "all_pointer_gates_passed": true,
+  "all_wrappers_non_owning": true,
+  "groups": [
+    {
+      "dtype": "fp32",
+      "maximum_error": 1.430511474609375e-06,
+      "maximum_rms_error": 1.0071870804040373e-07,
+      "maximum_tolerance_fraction": 0.0286102294921875,
+      "operation": "rms_norm",
+      "rows": 12,
+      "tolerance": 5e-05
+    },
+    {
+      "dtype": "bf16",
+      "maximum_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "maximum_tolerance_fraction": 0.0,
+      "operation": "rms_norm_output",
+      "rows": 12,
+      "tolerance": 0.0
+    },
+    {
+      "dtype": "fp32",
+      "maximum_error": 4.470348358154297e-08,
+      "maximum_rms_error": 2.050798642017071e-08,
+      "maximum_tolerance_fraction": 0.022351741790771484,
+      "operation": "softmax",
+      "rows": 12,
+      "tolerance": 2e-06
+    },
+    {
+      "dtype": "bf16",
+      "maximum_error": 0.0625,
+      "maximum_rms_error": 0.0019006285583600402,
+      "maximum_tolerance_fraction": 0.8928571428571428,
+      "operation": "swiglu",
+      "rows": 9,
+      "tolerance": 0.07
+    },
+    {
+      "dtype": "fp16",
+      "maximum_error": 0.00390625,
+      "maximum_rms_error": 0.00020968540047761053,
+      "maximum_tolerance_fraction": 0.78125,
+      "operation": "swiglu",
+      "rows": 9,
+      "tolerance": 0.005
+    },
+    {
+      "dtype": "fp32",
+      "maximum_error": 9.5367431640625e-07,
+      "maximum_rms_error": 2.701601609089721e-08,
+      "maximum_tolerance_fraction": 0.476837158203125,
+      "operation": "swiglu",
+      "rows": 9,
+      "tolerance": 2e-06
+    }
+  ],
+  "maximum_error": 0.0625,
+  "maximum_rms_error": 0.0019006285583600402,
+  "record_count": 63,
+  "rocprof_performance_claim": false,
+  "run_count": 3,
+  "schema_version": 1,
+  "seeds": [
+    20260826,
+    20260827,
+    20260828
+  ],
+  "status": "pass_with_profiler_boundary",
+  "total_wrapped_payload_bytes": 9054144,
+  "total_wrapper_copy_bytes": 0
+}

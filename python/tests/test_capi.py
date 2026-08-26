@@ -74,6 +74,38 @@ class TensorTest(unittest.TestCase):
         self.assertEqual(streamed_sum.tolist(), [6, 8, 10, 12])
         self.assertEqual(streamed_product.tolist(), [19, 22, 43, 50])
         self.assertAlmostEqual(sum(streamed_softmax.tolist()[:2]), 1.0, places=6)
+        softmax_output = microllm.Tensor.from_f32([0, 0, 0, 0], (2, 2))
+        microllm.softmax_out(softmax_output, left, stream=stream)
+        softmax_values = softmax_output.tolist()
+        self.assertAlmostEqual(sum(softmax_values[:2]), 1.0, places=6)
+        self.assertAlmostEqual(sum(softmax_values[2:]), 1.0, places=6)
+        norm_weight = microllm.Tensor.from_f32([1, 0.5], (2,))
+        norm_output = microllm.Tensor.from_f32([0, 0, 0, 0], (2, 2))
+        microllm.rms_norm_out(
+            norm_output, left, norm_weight, stream=stream)
+        norm_values = norm_output.tolist()
+        for row in range(2):
+            first, second = [1 + row * 2, 2 + row * 2]
+            denominator = math.sqrt((first * first + second * second) / 2 + 1.0e-5)
+            self.assertAlmostEqual(norm_values[row * 2], first / denominator, places=6)
+            self.assertAlmostEqual(norm_values[row * 2 + 1],
+                                   second * 0.5 / denominator, places=6)
+        bf16_owner = (ctypes.c_uint16 * 4)(0, 0, 0, 0)
+        bf16_output = microllm.Tensor.from_external(
+            ctypes.addressof(bf16_owner), ctypes.sizeof(bf16_owner),
+            (2, 2), (2, 1), dtype=microllm.DType.BFLOAT16,
+            owner=bf16_owner)
+        microllm.rms_norm_bf16_out(
+            bf16_output, left, norm_weight, stream=stream)
+        for actual, expected in zip(bf16_output.tolist(), norm_values):
+            self.assertAlmostEqual(actual, expected, delta=0.01)
+        swiglu_output = microllm.Tensor.from_f32([0, 0, 0, 0], (2, 2))
+        microllm.swiglu_out(swiglu_output, left, right, stream=stream)
+        for actual, gate, up in zip(
+                swiglu_output.tolist(), left.tolist(), right.tolist()):
+            self.assertAlmostEqual(actual,
+                                   gate / (1 + math.exp(-gate)) * up,
+                                   places=5)
 
     def test_external_tensor_is_zero_copy_non_owning_and_strict(self):
         left_owner = (ctypes.c_float * 4)(1, 2, 3, 4)
