@@ -1160,7 +1160,8 @@ public:
 
     Tensor forward_cached(const Tensor& input, inference::KVCache::LayerState& cache,
                           std::int64_t position, std::int64_t cache_capacity,
-                          DType cache_dtype) {
+                          DType cache_dtype,
+                          const std::string& trace_prefix = {}) {
         if (input.shape().size() != 3 || input.shape()[0] <= 0 ||
             input.shape()[1] != 1) {
             throw std::invalid_argument("cached attention expects a non-empty Bx1 token step");
@@ -1204,6 +1205,9 @@ public:
                                             : key_.forward_tensor(flat);
             value_projection = value_.forward_tensor(flat);
         }
+        trace_detail(trace_prefix, "q_projection", query_projection);
+        trace_detail(trace_prefix, "k_projection", key_projection);
+        trace_detail(trace_prefix, "v_projection", value_projection);
         auto query = query_projection
                          .reshape({batch, 1, config_.heads, config_.head_dimension()})
                          .transpose(1, 2);
@@ -1226,6 +1230,9 @@ public:
             query = ops::rope(query, 2, position, config_.rope_base);
             key = ops::rope(key, 2, position, config_.rope_base);
         }
+        trace_detail(trace_prefix, "q_rope", query);
+        trace_detail(trace_prefix, "k_rope", key);
+        trace_detail(trace_prefix, "value", value);
         const auto packed_key =
             prepare_cached_sequence(cache.key, key, position, cache_capacity,
                                     cache_dtype);
@@ -1265,8 +1272,11 @@ public:
                            .transpose(1, 2)
                            .contiguous()
                            .reshape({batch, config_.dimension});
-        return output_.forward_tensor(context).reshape(
+        trace_detail(trace_prefix, "context", context);
+        auto output = output_.forward_tensor(context).reshape(
             {batch, 1, config_.dimension});
+        trace_detail(trace_prefix, "output", output);
+        return output;
     }
 
     Tensor forward_cached_positions(
@@ -1922,7 +1932,9 @@ public:
         auto attention_input = attention_norm_.forward_tensor(input);
         trace_detail(trace_prefix, "attention_norm", attention_input);
         auto attention = attention_.forward_cached(
-            attention_input, cache, position, cache_capacity, cache_dtype);
+            attention_input, cache, position, cache_capacity, cache_dtype,
+            trace_prefix.empty() ? std::string{} :
+                                   trace_prefix + ".attention");
         trace_detail(trace_prefix, "attention_output", attention);
         auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
         trace_detail(trace_prefix, "attention_residual", residual_and_norm.first);

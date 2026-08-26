@@ -240,6 +240,40 @@ TEST(TransformerModelTest, TraceAllLayerDetailsExposesEveryLinearInputBoundary) 
         EXPECT_TRUE(has(prefix + ".ffn_norm"));
         EXPECT_TRUE(has(prefix + ".ffn.activated"));
     }
+
+    inference::KVCache cache(config.layers, config.max_sequence_length, 1,
+                             DType::BFloat16);
+    (void)model.forward_prefill_cached(
+        Tensor::from_int32_vector({1, 2}, {1, 2}), cache);
+    profiling::TraceSession cached_trace(
+        "microllm", "cached-all-layer-details", options);
+    {
+        profiling::ScopedTraceSession active(cached_trace);
+        (void)model.forward_cached(
+            Tensor::from_int32_vector({3}, {1, 1}), cache);
+    }
+    const auto cached_has = [&](const std::string& name) {
+        return std::any_of(cached_trace.records().begin(),
+                           cached_trace.records().end(),
+                           [&](const auto& record) {
+                               return record.name == name;
+                           });
+    };
+    for (const auto layer : {0, 1}) {
+        const auto prefix =
+            "inference.cached.blocks." + std::to_string(layer);
+        EXPECT_TRUE(cached_has(prefix + ".attention.q_projection"));
+        EXPECT_TRUE(cached_has(prefix + ".attention.k_projection"));
+        EXPECT_TRUE(cached_has(prefix + ".attention.v_projection"));
+        EXPECT_TRUE(cached_has(prefix + ".attention.q_rope"));
+        EXPECT_TRUE(cached_has(prefix + ".attention.k_rope"));
+        EXPECT_TRUE(cached_has(prefix + ".attention.value"));
+        EXPECT_TRUE(cached_has(prefix + ".attention.context"));
+        EXPECT_TRUE(cached_has(prefix + ".attention.output"));
+        EXPECT_TRUE(cached_has(prefix + ".attention_residual"));
+        EXPECT_TRUE(cached_has(prefix + ".ffn_norm"));
+        EXPECT_TRUE(cached_has(prefix + ".ffn.activated"));
+    }
 }
 
 TEST(TransformerModelTest, Bf16FfnPreparationIsSingleRepresentationAndInferenceOnly) {

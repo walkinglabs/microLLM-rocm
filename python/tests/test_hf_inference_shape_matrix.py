@@ -36,9 +36,70 @@ BLOCK_DRIFT_SPEC = importlib.util.spec_from_file_location(
 BLOCK_DRIFT = importlib.util.module_from_spec(BLOCK_DRIFT_SPEC)
 assert BLOCK_DRIFT_SPEC.loader is not None
 BLOCK_DRIFT_SPEC.loader.exec_module(BLOCK_DRIFT)
+BLOCK_DETAIL_SPEC = importlib.util.spec_from_file_location(
+    "audit_cached_block_detail",
+    ROOT / "benchmarks/single_gpu/audit_cached_block_detail.py")
+BLOCK_DETAIL = importlib.util.module_from_spec(BLOCK_DETAIL_SPEC)
+assert BLOCK_DETAIL_SPEC.loader is not None
+BLOCK_DETAIL_SPEC.loader.exec_module(BLOCK_DETAIL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_cached_block_detail_compares_rows_and_finds_material_stage(self):
+        names = [
+            BLOCK_DETAIL.PREFIX + ".attention_norm",
+            BLOCK_DETAIL.PREFIX + ".ffn.input_bf16",
+            BLOCK_DETAIL.PREFIX + ".ffn.gate",
+        ]
+        processes = []
+        for policy in BLOCK_DETAIL.POLICIES:
+            stages = []
+            for index, name in enumerate(names):
+                maximum = 1.0e-6
+                relative = 1.0e-6
+                if policy == "bf16-ffn" and index == 2:
+                    maximum = 0.01
+                    relative = 0.01
+                stages.append({
+                    "name": name,
+                    "b1_vs_b2_row0": {
+                        "maximum": maximum, "rms": maximum / 2,
+                        "relative_l2": relative, "bitwise_equal": False},
+                    "b2_row0_vs_row1": {
+                        "maximum": 0.0, "rms": 0.0,
+                        "relative_l2": 0.0, "bitwise_equal": True},
+                })
+            for run in (1, 2):
+                processes.append({
+                    "precision_island": policy,
+                    "process_run": run,
+                    "stages": stages,
+                })
+        summary = BLOCK_DETAIL.summarize(processes)
+        policies = {row["precision_island"]: row
+                    for row in summary["policy_summaries"]}
+        self.assertEqual(summary["process_rows"], 4)
+        self.assertEqual(summary["first_hundredfold_bf16_ffn_stage"], names[2])
+        self.assertEqual(policies["bf16-ffn"]
+                         ["first_stage_at_or_above_maximum_1e_3"], names[2])
+
+    def test_cached_block_detail_command_is_scoped_to_block_zero(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 8,
+            "trace_max_elements": 200000,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        command = BLOCK_DETAIL.command(
+            args, model, "fp32-linear", 1,
+            Path("trace.jsonl"), Path("logits.bin"))
+        self.assertEqual(command[command.index("--trace-all-layer-details") + 1],
+                         "true")
+        self.assertEqual(command[command.index("--trace-value-filter") + 1],
+                         BLOCK_DETAIL.PREFIX)
+
     def test_current_cached_block_drift_locates_block_zero(self):
         root = ROOT / "benchmarks/results/2026-08-25-deepseek-cached-block-drift"
         summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
