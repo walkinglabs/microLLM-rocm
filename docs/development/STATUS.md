@@ -97,10 +97,10 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 384/384; Tensor/graph/model/optimizer parity plus package, trajectory and schema gates | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
-| C ABI v1 | smoke-tested | pure C CPU/HIP Tensor/ops/error plus owned Stream/Event record/wait/elapsed and caller-owned matmul/multiply output; install consumer | zero-copy external views and non-owning native Stream |
-| Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/owned Stream/Event, async profiling and 3/3 two-Stream isolation | packaging, native Stream interop and broader out ops |
+| C ABI v1 | smoke-tested | pure C CPU/HIP Tensor/ops plus owned/non-owning native Stream, Event ordering and caller-owned matmul/multiply output; 39 symbols | zero-copy external views and broader out ops |
+| Python ctypes API | smoke-tested | owned two-Stream isolation plus 3/3 bidirectional PyTorch ROCm native-Stream Event ordering, Max 2.57e-8 | packaging and non-owning TensorView |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
-| In-process profiling | smoke-tested | calibrated timeline has 24/24 launch-correlated adds and residual ≤1.340us; target wait leaves 192/192-GEMM independent Stream pending with 0 device/Stream sync | native Stream interop and multi-process clock model |
+| In-process profiling | smoke-tested | 24/24 launch-correlated adds, residual ≤1.340us; target wait leaves 192/192-GEMM independent Stream pending with 0 device/Stream sync; PyTorch ordering passes but profiler injection aborts | resolve mixed-profiler conflict and multi-process clock model |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
 | Profiling/autotune | smoke-tested | rocprofv3, exact registries including isolated prefill Q/K/V/QK/P×V/O scopes, complete output/state before timing, real Attention batch-invariance harness and Autograd/layout diagnostics | automated model regression and broader trace correlation |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |

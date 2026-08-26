@@ -1442,6 +1442,19 @@ void Event::record(const Stream& stream) {
 #endif
 }
 
+void Event::record_external_stream(Device device, void* native_stream) {
+    if (device != impl_->device) throw std::invalid_argument("event/stream device mismatch");
+    if (!device.is_hip() || native_stream == nullptr) {
+        throw std::invalid_argument("external Event record requires a non-null HIP Stream");
+    }
+#if MICROLLM_HAS_HIP
+    set_device(device);
+    notify_non_default_stream(device);
+    check_hip(hipEventRecord(as_event(impl_->handle), as_stream(native_stream)),
+              "hipEventRecord(external stream)");
+#endif
+}
+
 void Event::record_default_stream() {
     if (impl_->device.is_cpu()) {
         throw std::runtime_error("CPU events do not record device work");
@@ -1462,6 +1475,19 @@ void Event::wait(const Stream& stream) const {
     notify_non_default_stream(impl_->device);
     check_hip(hipStreamWaitEvent(as_stream(stream.native_handle()), as_event(impl_->handle), 0),
               "hipStreamWaitEvent");
+#endif
+}
+
+void Event::wait_external_stream(Device device, void* native_stream) const {
+    if (device != impl_->device) throw std::invalid_argument("event/stream device mismatch");
+    if (!device.is_hip() || native_stream == nullptr) {
+        throw std::invalid_argument("external Event wait requires a non-null HIP Stream");
+    }
+#if MICROLLM_HAS_HIP
+    set_device(device);
+    notify_non_default_stream(device);
+    check_hip(hipStreamWaitEvent(as_stream(native_stream), as_event(impl_->handle), 0),
+              "hipStreamWaitEvent(external stream)");
 #endif
 }
 
@@ -1529,6 +1555,21 @@ void copy_bytes_async(void* destination, Device destination_device, const void* 
               "hipMemcpyAsync");
 #else
     throw std::runtime_error("HIP copy requested from a CPU-only build");
+#endif
+}
+
+void synchronize_external_stream(Device device, void* native_stream) {
+    if (!device.is_hip() || native_stream == nullptr) {
+        throw std::invalid_argument(
+            "external Stream synchronize requires a non-null HIP Stream");
+    }
+#if MICROLLM_HAS_HIP
+    set_device(device);
+    notify_non_default_stream(device);
+    check_hip(hipStreamSynchronize(as_stream(native_stream)),
+              "hipStreamSynchronize(external stream)");
+#else
+    throw std::runtime_error("microLLM was built without HIP support");
 #endif
 }
 

@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass_with_profiler_boundary","process_runs":3,"bidirectional_event_ordering":true,"wrapper_ownership":"non-owning","capi_symbol_count":39,"cpu_hip_capi_tests":"pass","cpu_hip_package_consumers":"pass","rocprof_failure_retained":true,"svg_parsed":true}

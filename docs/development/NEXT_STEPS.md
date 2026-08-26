@@ -218,8 +218,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   background observer; three softmax runs are pending at submit with zero device/Stream sync;
 - [x] expose explicit C/Python Stream bindings and prove target Event wait leaves an
   independent 64-GEMM Stream pending in 3/3 runs with zero wide synchronization;
-- [ ] add non-owning native Stream interop and extend caller-owned output across the
-  remaining C/Python operator surface before claiming framework scheduler integration.
+- [x] add non-owning native Stream interop and pass 3/3 bidirectional PyTorch ROCm Event
+  ordering runs; wrapper never owns the Torch handle and output Max is 2.57e-8;
+- [ ] resolve the rocprof/PyTorch duplicate-LLVM-option injection failure before claiming
+  a mixed-framework HIP API/Kernel timeline;
+- [ ] add non-owning TensorView descriptors and extend caller-owned output across the
+  remaining C/Python operator surface before claiming zero-copy scheduler integration.
 
 ## P2.5 — production data parallel reducer
 

@@ -1,0 +1,15 @@
+{
+  "iterations_per_direction": 64,
+  "maximum_output_error": 2.560102939624248e-08,
+  "microllm_pending_for_torch_event": true,
+  "microllm_to_torch_event_wait_ns": 7966494,
+  "native_stream_handle": 93839488617632,
+  "schema_version": 1,
+  "size": 2048,
+  "status": "pass",
+  "torch_hip_version": "7.13.99004",
+  "torch_pending_for_microllm_event": true,
+  "torch_to_microllm_event_wait_ns": 8380101,
+  "torch_version": "2.11.0+rocm7.13.0rc2",
+  "wrapper_owning": false
+}

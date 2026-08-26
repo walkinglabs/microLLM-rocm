@@ -598,5 +598,12 @@ completion.close()
 The isolation gate submits one target GEMM on Stream A and 64 preallocated GEMMs on
 Stream B. In 3/3 fresh processes, waiting A leaves B pending; B then requires another
 6.918–7.274ms. rocprof sees Stream IDs 1/2, 192/192 busy Kernels, exact launch
-correlations, and zero device-/Stream-wide synchronization. Native external Stream
-ownership remains outside this interface.
+correlations, and zero device-/Stream-wide synchronization. That gate uses microLLM-owned
+Streams; the external wrapper path follows.
+
+`Stream.from_external(torch_stream.cuda_stream, "hip:0")` now creates a non-owning
+wrapper. Three PyTorch ROCm processes pass both directions: a microLLM Event waits 64
+Torch GEMMs, then a Torch Event waits 64 microLLM GEMMs on the same native Stream; both
+are pending at record and output Max is `2.57e-8`. rocprof injection into that mixed
+process currently aborts because an LLVM option is registered twice, so no mixed-process
+Kernel timing is claimed. See the [bounded result](../../benchmarks/results/2026-08-26-pytorch-native-stream-interop/README.md).

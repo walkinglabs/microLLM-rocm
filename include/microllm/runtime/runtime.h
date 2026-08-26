@@ -256,10 +256,14 @@ public:
     [[nodiscard]] Device device() const noexcept;
     [[nodiscard]] void* native_handle() const noexcept;
     void record(const Stream& stream);
+    // Non-owning interop: the caller keeps the native Stream alive through
+    // Event completion. The handle must belong to the Event's HIP device.
+    void record_external_stream(Device device, void* native_stream);
     // Records on the legacy default Stream without creating a non-default
     // Stream or disabling the exact-size allocator contract.
     void record_default_stream();
     void wait(const Stream& stream) const;
+    void wait_external_stream(Device device, void* native_stream) const;
     void synchronize() const;
     [[nodiscard]] bool ready() const;
     [[nodiscard]] float elapsed_ms_since(const Event& start) const;
@@ -271,5 +275,6 @@ private:
 
 void copy_bytes_async(void* destination, Device destination_device, const void* source,
                       Device source_device, std::size_t num_bytes, const Stream& stream);
+void synchronize_external_stream(Device device, void* native_stream);
 
 }  // namespace microllm::runtime

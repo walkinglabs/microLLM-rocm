@@ -41,6 +41,7 @@ class _StreamHandle(ctypes.Structure):
 
 
 _StreamPointer = ctypes.POINTER(_StreamHandle)
+_CUintptr = ctypes.c_size_t
 
 
 def _library_path() -> str:
@@ -130,10 +131,18 @@ _lib.ml_event_elapsed_ms.restype = ctypes.c_int
 _lib.ml_stream_create.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
                                   ctypes.POINTER(_StreamPointer)]
 _lib.ml_stream_create.restype = ctypes.c_int
+_lib.ml_stream_from_external.argtypes = [ctypes.c_int, ctypes.c_int, _CUintptr,
+                                         ctypes.POINTER(_StreamPointer)]
+_lib.ml_stream_from_external.restype = ctypes.c_int
 _lib.ml_stream_destroy.argtypes = [_StreamPointer]
 _lib.ml_stream_destroy.restype = None
 _lib.ml_stream_synchronize.argtypes = [_StreamPointer]
 _lib.ml_stream_synchronize.restype = ctypes.c_int
+_lib.ml_stream_native_handle.argtypes = [_StreamPointer,
+                                         ctypes.POINTER(ctypes.c_size_t)]
+_lib.ml_stream_native_handle.restype = ctypes.c_int
+_lib.ml_stream_is_owning.argtypes = [_StreamPointer, ctypes.POINTER(ctypes.c_int)]
+_lib.ml_stream_is_owning.restype = ctypes.c_int
 _lib.ml_event_record.argtypes = [_EventPointer, _StreamPointer]
 _lib.ml_event_record.restype = ctypes.c_int
 _lib.ml_event_wait.argtypes = [_EventPointer, _StreamPointer]
@@ -373,6 +382,24 @@ class Stream:
         self._device = (kind, index)
         self._non_blocking = bool(non_blocking)
 
+    @classmethod
+    def from_external(
+        cls,
+        native_handle: int,
+        device: str | Device | tuple[Device, int] = "hip:0",
+    ) -> "Stream":
+        if int(native_handle) <= 0:
+            raise ValueError("external native Stream handle must be positive")
+        kind, index = _parse_device(device)
+        output = _StreamPointer()
+        _check(_lib.ml_stream_from_external(
+            int(kind), index, int(native_handle), ctypes.byref(output)))
+        result = cls.__new__(cls)
+        result._handle = output
+        result._device = (kind, index)
+        result._non_blocking = True
+        return result
+
     def close(self) -> None:
         if getattr(self, "_handle", None):
             _lib.ml_stream_destroy(self._handle)
@@ -388,6 +415,18 @@ class Stream:
     @property
     def non_blocking(self) -> bool:
         return self._non_blocking
+
+    @property
+    def owning(self) -> bool:
+        result = ctypes.c_int()
+        _check(_lib.ml_stream_is_owning(self._handle, ctypes.byref(result)))
+        return result.value != 0
+
+    @property
+    def native_handle(self) -> int:
+        result = ctypes.c_size_t()
+        _check(_lib.ml_stream_native_handle(self._handle, ctypes.byref(result)))
+        return int(result.value)
 
     def synchronize(self) -> None:
         _check(_lib.ml_stream_synchronize(self._handle))

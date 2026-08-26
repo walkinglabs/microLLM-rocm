@@ -66,8 +66,12 @@ ml_status ml_event_elapsed_ms(const ml_event* start, const ml_event* finish,
                               float* milliseconds);
 ml_status ml_stream_create(ml_device_type device_type, int device_index,
                            int non_blocking, ml_stream** output);
+ml_status ml_stream_from_external(ml_device_type device_type, int device_index,
+                                  uintptr_t native_handle, ml_stream** output);
 void ml_stream_destroy(ml_stream* stream);
 ml_status ml_stream_synchronize(const ml_stream* stream);
+ml_status ml_stream_native_handle(const ml_stream* stream, uintptr_t* native_handle);
+ml_status ml_stream_is_owning(const ml_stream* stream, int* owning);
 ml_status ml_event_record(ml_event* event, ml_stream* stream);
 ml_status ml_event_wait(const ml_event* event, ml_stream* stream);
 

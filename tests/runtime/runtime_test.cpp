@@ -26,6 +26,15 @@ TEST(RuntimeTest, CpuStreamAndEventHaveSynchronousSemantics) {
     event.wait(stream);
     stream.synchronize();
     EXPECT_THROW(event.record_default_stream(), std::runtime_error);
+    EXPECT_THROW(event.record_external_stream(
+                     Device::cpu(), reinterpret_cast<void*>(1)),
+                 std::invalid_argument);
+    EXPECT_THROW(event.wait_external_stream(
+                     Device::cpu(), reinterpret_cast<void*>(1)),
+                 std::invalid_argument);
+    EXPECT_THROW(synchronize_external_stream(
+                     Device::cpu(), reinterpret_cast<void*>(1)),
+                 std::invalid_argument);
 }
 
 TEST(RuntimeTest, CpuCopyRoundTripsBytes) {
@@ -680,6 +689,13 @@ TEST(HipRuntimeTest, AsyncCopyAndEventsRespectDependencies) {
     EXPECT_EQ(output, input);
     EXPECT_TRUE(finish.ready());
     EXPECT_GE(finish.elapsed_ms_since(start), 0.0F);
+
+    Event external(gpu, false);
+    external.record_external_stream(gpu, stream.native_handle());
+    external.wait_external_stream(gpu, stream.native_handle());
+    external.synchronize();
+    synchronize_external_stream(gpu, stream.native_handle());
+    EXPECT_TRUE(external.ready());
 }
 
 TEST(HipRuntimeTest, NativeDefaultStreamAsyncCopyTracksAndCompletes) {

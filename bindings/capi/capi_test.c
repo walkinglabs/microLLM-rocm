@@ -51,6 +51,12 @@ int main(void) {
           ML_STATUS_INVALID_ARGUMENT);
     ml_event_destroy(cpu_event);
     CHECK(ml_stream_create(ML_DEVICE_CPU, 0, 1, &cpu_stream) == ML_STATUS_OK);
+    uintptr_t native_stream = 1;
+    int stream_owning = 0;
+    CHECK(ml_stream_native_handle(cpu_stream, &native_stream) == ML_STATUS_OK);
+    CHECK(native_stream == 0);
+    CHECK(ml_stream_is_owning(cpu_stream, &stream_owning) == ML_STATUS_OK);
+    CHECK(stream_owning == 1);
     CHECK(ml_multiply_out_on_stream(sum, left, right, cpu_stream) == ML_STATUS_OK);
     CHECK(ml_stream_synchronize(cpu_stream) == ML_STATUS_OK);
     CHECK(ml_tensor_copy_f32(sum, output, 4) == ML_STATUS_OK);
@@ -65,14 +71,21 @@ int main(void) {
         ml_event* hip_start = NULL;
         ml_event* hip_finish = NULL;
         ml_stream* hip_stream = NULL;
+        ml_stream* hip_external = NULL;
         CHECK(ml_tensor_to(left, ML_DEVICE_HIP, 0, &hip_left) == ML_STATUS_OK);
         CHECK(ml_tensor_to(right, ML_DEVICE_HIP, 0, &hip_right) == ML_STATUS_OK);
         CHECK(ml_event_create(ML_DEVICE_HIP, 0, 1, &hip_start) == ML_STATUS_OK);
         CHECK(ml_event_create(ML_DEVICE_HIP, 0, 1, &hip_finish) == ML_STATUS_OK);
         CHECK(ml_stream_create(ML_DEVICE_HIP, 0, 1, &hip_stream) == ML_STATUS_OK);
-        CHECK(ml_event_record(hip_start, hip_stream) == ML_STATUS_OK);
-        CHECK(ml_add_on_stream(hip_left, hip_right, hip_stream, &hip_sum) == ML_STATUS_OK);
-        CHECK(ml_event_record(hip_finish, hip_stream) == ML_STATUS_OK);
+        CHECK(ml_stream_native_handle(hip_stream, &native_stream) == ML_STATUS_OK);
+        CHECK(native_stream != 0);
+        CHECK(ml_stream_from_external(ML_DEVICE_HIP, 0, native_stream,
+                                      &hip_external) == ML_STATUS_OK);
+        CHECK(ml_stream_is_owning(hip_external, &stream_owning) == ML_STATUS_OK);
+        CHECK(stream_owning == 0);
+        CHECK(ml_event_record(hip_start, hip_external) == ML_STATUS_OK);
+        CHECK(ml_add_on_stream(hip_left, hip_right, hip_external, &hip_sum) == ML_STATUS_OK);
+        CHECK(ml_event_record(hip_finish, hip_external) == ML_STATUS_OK);
         CHECK(ml_event_synchronize(hip_finish) == ML_STATUS_OK);
         CHECK(ml_event_elapsed_ms(hip_start, hip_finish, &elapsed_ms) == ML_STATUS_OK);
         CHECK(elapsed_ms >= 0.0F);
@@ -83,6 +96,8 @@ int main(void) {
         ml_tensor_destroy(hip_sum);
         ml_event_destroy(hip_start);
         ml_event_destroy(hip_finish);
+        ml_stream_destroy(hip_external);
+        CHECK(ml_stream_synchronize(hip_stream) == ML_STATUS_OK);
         ml_stream_destroy(hip_stream);
     }
     ml_tensor_destroy(left);

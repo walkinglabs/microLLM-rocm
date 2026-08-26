@@ -209,8 +209,10 @@ header, library location, and runtime link information required by the C applica
 The same stable header exposes opaque `ml_event*` and owned `ml_stream*` lifecycles,
 default/explicit-Stream Event record/query/wait, Event-only synchronization, elapsed
 device time, Stream versions of all four C ABI operators, and caller-owned
-multiply/matmul outputs. These additive functions retain the v1 ABI. The API does not
-accept a non-owning native Stream from another framework.
+multiply/matmul outputs. These additive functions retain the v1 ABI. The API accepts
+a non-owning native Stream from another framework through
+`ml_stream_from_external`; destroying the wrapper never destroys that handle. The caller
+must preserve native Stream lifetime. Non-owning Tensor memory is still unavailable.
 
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:

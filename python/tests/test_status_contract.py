@@ -22,6 +22,7 @@ def main() -> int:
         "residual ≤1.340us",
         "0 device/Stream sync",
         "192/192-GEMM independent Stream pending",
+        "3/3 bidirectional PyTorch ROCm native-Stream Event ordering",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -238,6 +239,11 @@ def main() -> int:
         "benchmarks/results/2026-08-26-python-stream-isolation/analysis.json",
         "benchmarks/results/2026-08-26-python-stream-isolation/verification.json",
         "benchmarks/results/2026-08-26-python-stream-isolation/stream-isolation.svg",
+        "benchmarks/results/2026-08-26-pytorch-native-stream-interop/summary.json",
+        "benchmarks/results/2026-08-26-pytorch-native-stream-interop/analysis.json",
+        "benchmarks/results/2026-08-26-pytorch-native-stream-interop/verification.json",
+        "benchmarks/results/2026-08-26-pytorch-native-stream-interop/native-stream-interop.svg",
+        "benchmarks/results/2026-08-26-pytorch-native-stream-interop/rocprof-injection-failure/failure.json",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -318,6 +324,32 @@ def main() -> int:
         assert report["busy_pending_after_target_wait"] is True
         assert report["synchronization_scope"] == "hip_event_explicit_stream"
     ET.parse(stream_root / "stream-isolation.svg")
+    native_root = ROOT / (
+        "benchmarks/results/2026-08-26-pytorch-native-stream-interop")
+    native_summary = json.loads(
+        (native_root / "summary.json").read_text(encoding="utf-8"))
+    assert native_summary["status"] == "pass_with_profiler_boundary"
+    assert native_summary["run_count"] == 3
+    assert native_summary["all_torch_work_pending_for_microllm"] is True
+    assert native_summary["all_microllm_work_pending_for_torch"] is True
+    assert native_summary["all_wrappers_non_owning"] is True
+    assert native_summary["minimum_torch_to_microllm_wait_ms"] > 8.2
+    assert native_summary["minimum_microllm_to_torch_wait_ms"] > 7.9
+    assert native_summary["maximum_output_error"] < 3.0e-8
+    assert native_summary["rocprof_performance_claim"] is False
+    assert native_summary["rocprof_injection"] == \
+        "failed_duplicate_llvm_command_line_option"
+    failure = json.loads(
+        (native_root / "rocprof-injection-failure/failure.json").read_text(
+            encoding="utf-8"))
+    assert failure["forced_termination"] is True
+    for run in range(1, 4):
+        report = json.loads(
+            (native_root / f"run-{run}/report.json").read_text(encoding="utf-8"))
+        assert report["wrapper_owning"] is False
+        assert report["torch_pending_for_microllm_event"] is True
+        assert report["microllm_pending_for_torch_event"] is True
+    ET.parse(native_root / "native-stream-interop.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

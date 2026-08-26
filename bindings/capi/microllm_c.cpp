@@ -31,9 +31,13 @@ struct ml_event {
 
 struct ml_stream {
     ml_stream(microllm::Device stream_device, bool non_blocking)
-        : device(stream_device), value(stream_device, non_blocking) {}
+        : device(stream_device), owned(std::make_unique<microllm::runtime::Stream>(
+                                     stream_device, non_blocking)) {}
+    ml_stream(microllm::Device stream_device, void* native_stream)
+        : device(stream_device), external(native_stream) {}
     microllm::Device device;
-    microllm::runtime::Stream value;
+    std::unique_ptr<microllm::runtime::Stream> owned;
+    void* external = nullptr;
 };
 
 namespace {
@@ -106,9 +110,14 @@ const ml_stream& require_stream(const ml_stream* stream) {
 }
 
 microllm::ops::OpContext stream_context(ml_stream* stream) {
-    microllm::ops::OpContext context;
-    context.stream = &require_stream(stream).value;
-    return context;
+    auto& required = require_stream(stream);
+    if (required.owned) {
+        microllm::ops::OpContext context;
+        context.stream = required.owned.get();
+        return context;
+    }
+    return microllm::ops::OpContext::from_external_stream(
+        required.device, required.external);
 }
 
 void require_output(ml_tensor** output) {
@@ -321,21 +330,80 @@ ML_EXPORT ml_status ml_stream_create(ml_device_type device_type, int device_inde
     });
 }
 
+ML_EXPORT ml_status ml_stream_from_external(ml_device_type device_type,
+                                            int device_index,
+                                            uintptr_t native_handle,
+                                            ml_stream** output) {
+    return guard([&] {
+        require_stream_output(output);
+        const auto device = device_from_c(device_type, device_index);
+        if (!device.is_hip() || native_handle == 0) {
+            throw std::invalid_argument(
+                "external Stream requires a nonzero HIP native handle");
+        }
+        auto stream = std::make_unique<ml_stream>(
+            device, reinterpret_cast<void*>(native_handle));
+        *output = stream.release();
+    });
+}
+
 ML_EXPORT void ml_stream_destroy(ml_stream* stream) { delete stream; }
 
 ML_EXPORT ml_status ml_stream_synchronize(const ml_stream* stream) {
-    return guard([&] { require_stream(stream).value.synchronize(); });
+    return guard([&] {
+        const auto& required = require_stream(stream);
+        if (required.owned) {
+            required.owned->synchronize();
+        } else {
+            microllm::runtime::synchronize_external_stream(
+                required.device, required.external);
+        }
+    });
+}
+
+ML_EXPORT ml_status ml_stream_native_handle(const ml_stream* stream,
+                                            uintptr_t* native_handle) {
+    return guard([&] {
+        if (native_handle == nullptr) {
+            throw std::invalid_argument("native Stream output is null");
+        }
+        const auto& required = require_stream(stream);
+        const auto handle = required.owned ? required.owned->native_handle()
+                                           : required.external;
+        *native_handle = reinterpret_cast<uintptr_t>(handle);
+    });
+}
+
+ML_EXPORT ml_status ml_stream_is_owning(const ml_stream* stream, int* owning) {
+    return guard([&] {
+        if (owning == nullptr) throw std::invalid_argument("Stream ownership output is null");
+        *owning = require_stream(stream).owned ? 1 : 0;
+    });
 }
 
 ML_EXPORT ml_status ml_event_record(ml_event* event, ml_stream* stream) {
     return guard([&] {
-        require_event(event).value.record(require_stream(stream).value);
+        auto& required_stream = require_stream(stream);
+        auto& required_event = require_event(event).value;
+        if (required_stream.owned) {
+            required_event.record(*required_stream.owned);
+        } else {
+            required_event.record_external_stream(
+                required_stream.device, required_stream.external);
+        }
     });
 }
 
 ML_EXPORT ml_status ml_event_wait(const ml_event* event, ml_stream* stream) {
     return guard([&] {
-        require_event(event).value.wait(require_stream(stream).value);
+        auto& required_stream = require_stream(stream);
+        const auto& required_event = require_event(event).value;
+        if (required_stream.owned) {
+            required_event.wait(*required_stream.owned);
+        } else {
+            required_event.wait_external_stream(
+                required_stream.device, required_stream.external);
+        }
     });
 }
 

@@ -1289,8 +1289,9 @@ implemented. Three MI300X processes correlate 24/24 profiled HIP adds through co
 launch APIs with at most 1.340us fit residual. Python HIP Event completion and owned
 C/Python Streams are also implemented: a three-process isolation gate waits a
 target Event while an independent 64-GEMM Stream remains pending, with 192/192 busy
-Kernels and zero device/Stream-wide synchronization. Non-owning native Stream interop
-remains future work.
+Kernels and zero device/Stream-wide synchronization. Non-owning PyTorch ROCm native
+Stream ordering passes in both directions across three processes; zero-copy TensorView
+and a rocprof/PyTorch LLVM injection conflict remain open.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and
