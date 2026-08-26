@@ -116,9 +116,47 @@ ATTENTION_SELECTIVE_SPEC = importlib.util.spec_from_file_location(
 ATTENTION_SELECTIVE = importlib.util.module_from_spec(ATTENTION_SELECTIVE_SPEC)
 assert ATTENTION_SELECTIVE_SPEC.loader is not None
 ATTENTION_SELECTIVE_SPEC.loader.exec_module(ATTENTION_SELECTIVE)
+POST_EXACT_CORE_SPEC = importlib.util.spec_from_file_location(
+    "audit_post_exact_core_block0_trace",
+    ROOT / "benchmarks/single_gpu/audit_post_exact_core_block0_trace.py")
+POST_EXACT_CORE = importlib.util.module_from_spec(POST_EXACT_CORE_SPEC)
+assert POST_EXACT_CORE_SPEC.loader is not None
+POST_EXACT_CORE_SPEC.loader.exec_module(POST_EXACT_CORE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_post_exact_core_trace_command_and_route_are_scoped(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        command = POST_EXACT_CORE.command(
+            args, model, 4, Path("trace.jsonl"), Path("cache.bin"))
+        self.assertEqual(command[
+            command.index("--fp32-prefill-attention-qk-solution-index") + 1],
+            "304681")
+        self.assertEqual(command[
+            command.index("--fp32-prefill-attention-pv-solution-index") + 1],
+            "295716")
+        route = {
+            "status": "pass", "batch": 4, "token_count": 2048,
+            "trace_record_count": 50,
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_prefill_attention_qk_solution_index": 304681,
+            "fp32_prefill_attention_pv_solution_index": 295716,
+            "fp32_solution_registered_entries": 4,
+            "fp32_solution_cached_algorithms": 4,
+            "fp32_solution_registry_hits": 140,
+            "fp32_solution_cache_misses": 4,
+            "fp32_solution_cache_hits": 136,
+            "fp32_solution_dispatches": 140,
+        }
+        POST_EXACT_CORE.require_route(route, 4)
+
     def test_current_selective_attention_gate_closes_solution_track(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-prefill-attention-selective-gate")
