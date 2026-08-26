@@ -66,6 +66,7 @@ BF16 舍入语义。它不承诺与 FP32 gradient bit-exact，也不会自动改
 | `embedding` | weight `[V,D]`，index `S`，输出 `S+[D]` | `F.embedding` | 默认 | weight 非二维、index 非 Int32/越界、设备不同 |
 | `softmax` | `[...,D] -> [...,D]`，仅最后一维；HIP支持FP32/FP16/BF16 | `torch.softmax(x,-1)` | FP32 `2e-6,2e-5`；低精度逐dtype门 | 空最后维、非最后维、非连续 |
 | `softmax_typed_out_` | FP16/BF16同shape/dtype/device caller输出；FP32 reduction后只舍入output；width≤32 serial，之后block；2048–8192用≤32KiB LDS cache，仅FP16用1024-thread wave | `torch.softmax(x,-1)` | FP16 Max≤`5e-4`、BF16≤`4e-3`；边界1/17/32/33/64/65/128/129/1024/2047/2048/4096/8192/8193 | FP32/FP8、dim、shape/device/alias/stride错 |
+| `torch.ops.microllm.softmax` | functional最后一维Softmax；FP32/FP16/BF16；CPU/ROCm/Meta/C++ Autograd；新output | `torch.softmax(x,-1)`及同seed梯度 | 同上；10格forward、三dtype梯度、current Stream/fullgraph | scalar、整数、非连续；wide性能不作普遍领先声明 |
 | `rms_norm` | input `[...,D]`，weight `[D]` | `F.rms_norm` | `2e-4,2e-4` | weight shape 错、epsilon<=0 |
 | `rms_norm_out_` / `rms_norm_bf16_out_` | caller输出与input同shape/device；前者FP32、后者BF16 | GPU `rms_norm` 后可选`bfloat16()` | FP32同路径；BF16逐位相同 | output dtype/shape/device/stride/alias错，weight/epsilon错 |
 | `add_rms_norm` | left/right `[...,D]`，weight `[D]`，返回 sum/norm 两个 Tensor | `s=x+y; (s,F.rms_norm(s))` | `2e-4,2e-4` | shape/dtype/device/weight/epsilon 错 |

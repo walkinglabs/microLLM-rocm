@@ -5211,3 +5211,16 @@ C++/raw只有1.011×，Python/C++是1.056×，raw/PyTorch是1.052×。所以约1
 Kernel与桥接，不应继续全部压给GPU数学。下一尺度是C++ PyTorch Custom Op。
 
 ![Typed Softmax attribution](assets/pytorch-rocm-softmax-attribution.svg)
+
+## 362. Experiment 346：注册成Custom Op也不会自动变快
+
+新增functional `torch.ops.microllm.softmax`：三dtype、CPU/ROCm current Stream、Meta/fullgraph和C++
+Autograd全部覆盖。初版对无梯度input也进入`Function::apply`，FP16 wide只有0.700×native。
+
+C++ no-grad门让它从6.640降到5.732μs，提升1.158×。正式十格中width1024 FP16/BF16达到
+1.026×/0.993×native，但width4096仍只有0.795×/0.529×。所有peak与native相同。
+
+adapter作为生态能力保留，不写成全面加速。caller-owned out若要继续，必须先定义mutation/alias/
+Autograd合同，不能偷偷拿ctypes的预分配优势替换functional口径。
+
+![PyTorch Custom Op Softmax](assets/pytorch-rocm-custom-op-softmax.svg)

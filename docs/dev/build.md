@@ -152,6 +152,9 @@ GCC's false-positive array-bounds warning inside Torch's custom-function header 
 only for the optional adapter target.
 FP16/BF16 SwiGLU Autograd calls a typed fused engine backward; it does not build an ATen
 formula graph. FP32 retains the general/scalar-seed producers.
+The same adapter registers last-dimension Softmax for FP32/FP16/BF16 with CPU, ROCm,
+Meta/fullgraph and C++ Autograd. Inputs without gradients bypass `Function::apply`; the
+functional output still follows PyTorch allocation semantics.
 
 ## RCCL build
 

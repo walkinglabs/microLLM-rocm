@@ -288,8 +288,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] attribute FP16 width4096 submission: PyTorch/raw/C++/Python Event is
   4.530/4.764/4.815/5.086μs; C++/raw is 1.011×, Python/C++ 1.056× and
   raw/PyTorch 1.052×;
-- [ ] register typed Softmax in the C++ PyTorch Custom Op adapter and compare that
-  dispatcher path against ctypes and native Torch before another Kernel change.
+- [x] register C++ PyTorch Softmax for CPU/ROCm/Meta/C++ Autograd; an inference gate
+  improves FP16 width4096 by 1.158× and width1024 reaches 1.026×/0.993× native for
+  FP16/BF16;
+- [ ] define a caller-owned PyTorch out schema with explicit mutation/alias and
+  Autograd rules before using the remaining width4096 0.795×/0.529× gap as a target.
 
 ## P2.5 — production data parallel reducer
 

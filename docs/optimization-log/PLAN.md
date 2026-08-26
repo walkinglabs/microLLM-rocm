@@ -190,6 +190,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [159](steps/159-pytorch-fast-exp-softmax-reject.md) | complete; removed | FP16 fast-exp | 精度过；Event/wall仅1.045×/1.034× |
 | [160](steps/160-pytorch-softmax-thread-matrix.md) | complete; 1024 keep | FP16 workgroup matrix | 5.086μs；相对512为1.076×/1.061×；0.880×Torch |
 | [161](steps/161-pytorch-softmax-attribution.md) | complete | raw/C++/Python/PyTorch归因 | 4.764/4.815/5.086/4.530μs；转Custom Op尺度 |
+| [162](steps/162-pytorch-custom-op-softmax.md) | complete; integration keep | C++ PyTorch Softmax | no-grad门1.158×；w1024 parity；wide partial |
 
 ## 为什么按这个顺序
 

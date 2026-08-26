@@ -33,13 +33,20 @@ class TorchOpsTest(unittest.TestCase):
                              -0.015625 + 1).to(dtype)
                     actual_add = torch_ops.add(left, right)
                     actual_multiply = torch_ops.multiply(left, right)
+                    actual_softmax = torch_ops.softmax(left)
                     actual_swiglu = torch_ops.swiglu(left, right)
                     if left.numel() != 0:
                         self.assertNotEqual(actual_add.data_ptr(), left.data_ptr())
                         self.assertNotEqual(actual_multiply.data_ptr(), right.data_ptr())
+                        self.assertNotEqual(actual_softmax.data_ptr(), left.data_ptr())
                         self.assertNotEqual(actual_swiglu.data_ptr(), left.data_ptr())
                     torch.testing.assert_close(actual_add, left + right, rtol=0, atol=0)
                     torch.testing.assert_close(actual_multiply, left * right, rtol=0, atol=0)
+                    softmax_tolerance = (2.0e-6 if dtype == torch.float32 else
+                                         5.0e-4 if dtype == torch.float16 else 4.0e-3)
+                    torch.testing.assert_close(
+                        actual_softmax, torch.softmax(left, dim=-1),
+                        rtol=0, atol=softmax_tolerance)
                     tolerance = (1.0e-6 if dtype == torch.float32 else
                                  4.0e-3 if dtype == torch.float16 else 6.25e-2)
                     torch.testing.assert_close(
@@ -55,6 +62,10 @@ class TorchOpsTest(unittest.TestCase):
             torch_ops.add(torch.ones(3), torch.ones(4))
         with self.assertRaisesRegex(RuntimeError, "contiguous"):
             torch_ops.multiply(torch.ones(2, 3).transpose(0, 1), torch.ones(3, 2))
+        with self.assertRaisesRegex(RuntimeError, "contiguous"):
+            torch_ops.softmax(torch.ones(2, 3).transpose(0, 1))
+        with self.assertRaisesRegex(RuntimeError, "at least one dimension"):
+            torch_ops.softmax(torch.tensor(1.0))
         with self.assertRaisesRegex(RuntimeError, "shapes must match"):
             torch_ops.swiglu(torch.ones(3), torch.ones(4))
 
@@ -86,6 +97,19 @@ class TorchOpsTest(unittest.TestCase):
                 torch.testing.assert_close(
                     custom_right.grad, native_right.grad, rtol=0, atol=tolerance)
 
+                native_softmax_input = torch.linspace(
+                    -2, 2, 32, device=device, dtype=dtype).reshape(2, 16).requires_grad_()
+                custom_softmax_input = native_softmax_input.detach().clone().requires_grad_()
+                seed = torch.linspace(
+                    -1, 1, 32, device=device, dtype=dtype).reshape(2, 16)
+                torch.softmax(native_softmax_input, dim=-1).backward(seed)
+                torch_ops.softmax(custom_softmax_input).backward(seed)
+                softmax_tolerance = (3.0e-6 if dtype == torch.float32 else
+                                     1.0e-3 if dtype == torch.float16 else 8.0e-3)
+                torch.testing.assert_close(
+                    custom_softmax_input.grad, native_softmax_input.grad,
+                    rtol=0, atol=softmax_tolerance)
+
     def test_compile_fullgraph_uses_meta_contract(self):
         if not hasattr(torch, "compile"):
             self.skipTest("torch.compile unavailable")
@@ -93,7 +117,8 @@ class TorchOpsTest(unittest.TestCase):
         def function(left, right):
             return (torch_ops.add(left, right) +
                     torch_ops.multiply(left, right) +
-                    torch_ops.swiglu(left, right))
+                    torch_ops.swiglu(left, right) +
+                    torch_ops.softmax(left))
 
         compiled = torch.compile(function, backend="eager", fullgraph=True)
         devices = [torch.device("cpu")]
@@ -145,8 +170,12 @@ class TorchOpsTest(unittest.TestCase):
         right = torch.ones_like(left)
         with torch.cuda.stream(stream):
             actual = torch_ops.add(left, right)
+            actual_softmax = torch_ops.softmax(left.reshape(8, 128))
         stream.synchronize()
         torch.testing.assert_close(actual, left + right)
+        torch.testing.assert_close(
+            actual_softmax, torch.softmax(left.reshape(8, 128), dim=-1),
+            rtol=0, atol=2.0e-6)
 
 
 if __name__ == "__main__":

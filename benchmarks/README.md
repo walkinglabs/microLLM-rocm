@@ -816,3 +816,16 @@ python3 benchmarks/single_gpu/pytorch_typed_softmax_attribution.py \
 The committed result measures PyTorch/raw/C++/Python Event at
 4.530/4.764/4.815/5.086μs with zero timed payload transfers. It bounds both the remaining
 Kernel gap and the Python/C API submission gap instead of assigning the whole delta to one layer.
+
+Measure the functional C++ PyTorch Custom Op with:
+
+```bash
+/path/to/rocm-venv/bin/python \
+  benchmarks/single_gpu/pytorch_custom_op_softmax.py \
+  --library build-torch-rocm/bindings/torch/libmicrollm_torch_ops.so \
+  --output /tmp/microllm-custom-op-softmax
+```
+
+The retained no-grad gate improves FP16 width4096 by 1.158× over the initial adapter.
+Width1024 reaches native parity; width4096 remains 0.795×/0.529× for FP16/BF16. Peak bytes
+equal native in all ten rows.

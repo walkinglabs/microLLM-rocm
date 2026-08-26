@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 403/403, ASan/UBSan 400/400, PyTorch-enabled CPU 406/406, single-GPU HIP label 203/203, RCCL label 55/55 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 404/404, ASan/UBSan 401/401, PyTorch-enabled CPU 407/407, single-GPU HIP label 203/203, RCCL label 55/55 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -103,6 +103,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | PyTorch C++ SwiGLU Autograd | smoke-tested, recommended adapter default | C++/Python 1.286×–1.475×; FP32/native 1.136×–1.144× with 1,536B peak; low peak equals native | typed fused FP16/BF16 backward; FP32 line closed |
 | PyTorch typed SwiGLU backward | smoke-tested, kept/line closed | FP16/BF16 typed/ATen 1.257×–1.319×, typed/native 1.048×–1.084×, equal peak; BF16 exact, FP16 Max2.38e-7 | new profile required before further adapter work |
 | Direct typed Softmax | FP16 1024-thread route kept; attribution complete | 10/10 PyTorch/pointer rows, zero peak extra; PyTorch/raw/C++/Python Event 4.530/4.764/4.815/5.086μs; C++/raw 1.011×, Python/C++ 1.056×, raw/PyTorch 1.052×; Max5.96e-8, zero timed transfers | implement C++ PyTorch Custom Op before more blind Kernel edits; BF16 keeps tree |
+| PyTorch Custom Op Softmax | functional adapter kept; wide partial | CPU/ROCm current Stream, FP32/FP16/BF16, Meta/fullgraph and C++ Autograd; no-grad gate improves FP16 wide 1.158×; native ratios at width1024 are 1.026×/0.993× | width4096 FP16/BF16 only 0.795×/0.529×; caller-owned schema requires separate contract |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled CPU build plus Tensor/graph/model/optimizer parity, package, trajectory and schema gates | broader official-model direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | external descriptors/native Stream, forward outputs and six caller-owned backward families with explicit scratch; 58 symbols | Autograd external leaf pool |

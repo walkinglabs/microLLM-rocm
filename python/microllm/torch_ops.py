@@ -54,6 +54,12 @@ def multiply(left, right):
     return torch.ops.microllm.multiply(left, right)
 
 
+def softmax(input):
+    import torch
+
+    return torch.ops.microllm.softmax(input)
+
+
 def swiglu(gate, up):
     import torch
 

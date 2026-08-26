@@ -134,6 +134,40 @@ at::Tensor multiply(const at::Tensor& left, const at::Tensor& right) {
     return binary(left, right, MultiplyOperation{});
 }
 
+void validate_softmax(const at::Tensor& input) {
+    TORCH_CHECK(input.scalar_type() == at::kFloat ||
+                    input.scalar_type() == at::kHalf ||
+                    input.scalar_type() == at::kBFloat16,
+                "input must be float32, float16, or bfloat16");
+    TORCH_CHECK(input.dim() >= 1, "Softmax input must have at least one dimension");
+    TORCH_CHECK(input.is_contiguous(), "Softmax input must be contiguous");
+}
+
+at::Tensor softmax(const at::Tensor& input) {
+    validate_softmax(input);
+    auto output = at::empty_like(input);
+    if (input.numel() == 0 || input.const_data_ptr() == nullptr) return output;
+    auto output_tensor = external_tensor(output);
+    const auto input_tensor = external_tensor(input);
+    const auto context = input.device().is_cpu()
+                             ? microllm::ops::OpContext{}
+                             : microllm::ops::OpContext::from_external_stream(
+                                   microllm_device(input), current_stream(input));
+    if (input.scalar_type() == at::kFloat) {
+        microllm::ops::softmax_out_(
+            output_tensor, input_tensor, -1, context);
+    } else {
+        microllm::ops::softmax_typed_out_(
+            output_tensor, input_tensor, -1, context);
+    }
+    return output;
+}
+
+at::Tensor meta_softmax(const at::Tensor& input) {
+    validate_softmax(input);
+    return at::empty_like(input);
+}
+
 at::Tensor swiglu(const at::Tensor& gate, const at::Tensor& up) {
     TORCH_CHECK(gate.scalar_type() == at::kFloat ||
                     gate.scalar_type() == at::kHalf ||
@@ -359,8 +393,37 @@ public:
     }
 };
 
+class SoftmaxAutogradFunction
+    : public torch::autograd::Function<SoftmaxAutogradFunction> {
+public:
+    static torch::autograd::Variable forward(
+        torch::autograd::AutogradContext* context,
+        const torch::autograd::Variable& input) {
+        auto output = softmax(input);
+        context->save_for_backward({output});
+        return output;
+    }
+
+    static torch::autograd::variable_list backward(
+        torch::autograd::AutogradContext* context,
+        torch::autograd::variable_list gradients) {
+        auto gradient = gradients.at(0);
+        if (!gradient.defined()) return {at::Tensor()};
+        const auto output = context->get_saved_variables().at(0);
+        const auto dot = (gradient * output).sum(-1, true);
+        return {output * (gradient - dot)};
+    }
+};
+
 at::Tensor swiglu_autograd(const at::Tensor& gate, const at::Tensor& up) {
     return SwiGLUAutogradFunction::apply(gate, up);
+}
+
+at::Tensor softmax_autograd(const at::Tensor& input) {
+    if (!at::GradMode::is_enabled() || !input.requires_grad()) {
+        return softmax(input);
+    }
+    return SoftmaxAutogradFunction::apply(input);
 }
 
 }  // namespace
@@ -368,6 +431,7 @@ at::Tensor swiglu_autograd(const at::Tensor& gate, const at::Tensor& up) {
 TORCH_LIBRARY(microllm, library) {
     library.def("add(Tensor left, Tensor right) -> Tensor");
     library.def("multiply(Tensor left, Tensor right) -> Tensor");
+    library.def("softmax(Tensor input) -> Tensor");
     library.def("swiglu(Tensor gate, Tensor up) -> Tensor");
     library.def(
         "swiglu_backward(Tensor gate, Tensor up, Tensor gradient) -> (Tensor, Tensor)");
@@ -380,6 +444,7 @@ TORCH_LIBRARY(microllm, library) {
 TORCH_LIBRARY_IMPL(microllm, CPU, library) {
     library.impl("add", &add);
     library.impl("multiply", &multiply);
+    library.impl("softmax", &softmax);
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
     library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
@@ -389,6 +454,7 @@ TORCH_LIBRARY_IMPL(microllm, CPU, library) {
 TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
     library.impl("add", &add);
     library.impl("multiply", &multiply);
+    library.impl("softmax", &softmax);
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
     library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
@@ -396,12 +462,14 @@ TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
 }
 
 TORCH_LIBRARY_IMPL(microllm, Autograd, library) {
+    library.impl("softmax", &softmax_autograd);
     library.impl("swiglu", &swiglu_autograd);
 }
 
 TORCH_LIBRARY_IMPL(microllm, Meta, library) {
     library.impl("add", &meta_binary);
     library.impl("multiply", &meta_binary);
+    library.impl("softmax", &meta_softmax);
     library.impl("swiglu", &meta_binary);
     library.impl("swiglu_backward", &meta_swiglu_backward);
     library.impl(
