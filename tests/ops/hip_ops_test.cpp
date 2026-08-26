@@ -1781,8 +1781,13 @@ TEST(HipOpsTest, EmbeddingAndActivationsMatchCpuReference) {
     require_gpu();
     const auto weight_cpu = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2});
     const auto indices_cpu = Tensor::from_int32_vector({2, 0, 1}, {3});
-    expect_near(embedding(weight_cpu.to(Device::hip()), indices_cpu.to(Device::hip())).to_vector(),
+    const auto device_weight = weight_cpu.to(Device::hip());
+    const auto device_indices = indices_cpu.to(Device::hip());
+    expect_near(embedding(device_weight, device_indices).to_vector(),
                 embedding(weight_cpu, indices_cpu).to_vector());
+    Tensor embedding_output({3, 2}, DType::Float32, device_weight.device());
+    embedding_out_(embedding_output, device_weight, device_indices);
+    expect_near(embedding_output.to_vector(), embedding(weight_cpu, indices_cpu).to_vector());
 
     const auto input_cpu = Tensor::from_vector({-2, -1, 0, 1, 2, 3}, {2, 3});
     const auto up_cpu = Tensor::from_vector({1, 2, 3, 4, 5, 6}, {2, 3});
@@ -2956,7 +2961,11 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
                   bf16_bias.to(Device::hip())).to_vector(),
               add_bias_bf16(bf16_bias_input, bf16_bias).to_vector());
     const auto rope_input = Tensor::from_vector({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});
-    expect_near(rope(rope_input.to(Device::hip())).to_vector(), rope(rope_input).to_vector());
+    const auto device_rope = rope_input.to(Device::hip());
+    expect_near(rope(device_rope).to_vector(), rope(rope_input).to_vector());
+    Tensor rope_output(device_rope.shape(), DType::Float32, device_rope.device());
+    rope_out_(rope_output, device_rope);
+    expect_near(rope_output.to_vector(), rope(rope_input).to_vector());
     expect_near(rope_split_half(rope_input.to(Device::hip())).to_vector(),
                 rope_split_half(rope_input).to_vector());
     const auto fused_input = Tensor::from_vector(
@@ -3006,8 +3015,14 @@ TEST(HipOpsTest, RopeAndCrossEntropyMatchCpuReference) {
 
     const auto logits_cpu = Tensor::from_vector({2, 1, 0, 0, 1, 2}, {2, 3});
     const auto targets_cpu = Tensor::from_int32_vector({0, 2}, {2});
-    expect_near(cross_entropy(logits_cpu.to(Device::hip()), targets_cpu.to(Device::hip())).to_vector(),
+    const auto device_logits = logits_cpu.to(Device::hip());
+    const auto device_targets = targets_cpu.to(Device::hip());
+    expect_near(cross_entropy(device_logits, device_targets).to_vector(),
                 cross_entropy(logits_cpu, targets_cpu).to_vector());
+    Tensor loss_output(Shape{}, DType::Float32, device_logits.device());
+    Tensor loss_workspace({2, 2}, DType::Float32, device_logits.device());
+    cross_entropy_out_(loss_output, loss_workspace, device_logits, device_targets);
+    expect_near(loss_output.to_vector(), cross_entropy(logits_cpu, targets_cpu).to_vector());
 }
 
 TEST(HipOpsTest, AttentionProbabilityValueInterleavedLayoutMatchesCpuWithoutTransfers) {

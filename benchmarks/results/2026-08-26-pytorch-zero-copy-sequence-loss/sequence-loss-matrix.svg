@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="500" viewBox="0 0 1120 500">
+<rect width="1120" height="500" fill="#0b1020"/>
+<text x="40" y="42" fill="#f4f7ff" font-family="sans-serif" font-size="25" font-weight="700">Zero-copy RoPE / Embedding / loss matrix</text>
+<text x="40" y="70" fill="#9eb0cf" font-family="sans-serif" font-size="14">36 complete PyTorch ROCm outputs · three seeds · bar = Max tolerance usage</text>
+<line x1="70" y1="360" x2="800" y2="360" stroke="#51617d"/>
+<rect x="110" y="356.3" width="120" height="3.7" fill="#4cc9f0" rx="3"/>
+<text x="170" y="346.3" text-anchor="middle" fill="#f4f7ff" font-family="sans-serif" font-size="12">4.77e-07</text>
+<text x="170" y="388" text-anchor="middle" fill="#cbd5e8" font-family="sans-serif" font-size="13">rope</text>
+<text x="170" y="412" text-anchor="middle" fill="#80ed99" font-family="sans-serif" font-size="12">1.59% gate</text>
+<rect x="330" y="360.0" width="120" height="0.0" fill="#4cc9f0" rx="3"/>
+<text x="390" y="350.0" text-anchor="middle" fill="#f4f7ff" font-family="sans-serif" font-size="12">0</text>
+<text x="390" y="388" text-anchor="middle" fill="#cbd5e8" font-family="sans-serif" font-size="13">embedding</text>
+<text x="390" y="412" text-anchor="middle" fill="#80ed99" font-family="sans-serif" font-size="12">0.00% gate</text>
+<rect x="550" y="352.7" width="120" height="7.3" fill="#4cc9f0" rx="3"/>
+<text x="610" y="342.7" text-anchor="middle" fill="#f4f7ff" font-family="sans-serif" font-size="12">9.54e-07</text>
+<text x="610" y="388" text-anchor="middle" fill="#cbd5e8" font-family="sans-serif" font-size="13">cross_entropy</text>
+<text x="610" y="412" text-anchor="middle" fill="#80ed99" font-family="sans-serif" font-size="12">3.18% gate</text>
+<text x="850" y="135" fill="#80ed99" font-family="sans-serif" font-size="14">RoPE 12/12</text>
+<text x="850" y="175" fill="#80ed99" font-family="sans-serif" font-size="14">Embedding 12/12 exact</text>
+<text x="850" y="215" fill="#80ed99" font-family="sans-serif" font-size="14">CrossEntropy 12/12</text>
+<text x="850" y="255" fill="#80ed99" font-family="sans-serif" font-size="14">pointers 108/108</text>
+<text x="850" y="295" fill="#80ed99" font-family="sans-serif" font-size="14">wrapper copy 0 B</text>
+<text x="70" y="462" fill="#9eb0cf" font-family="sans-serif" font-size="13">CrossEntropy keeps caller-owned [rows,2] reduction workspace; ignored rows included.</text>
+</svg>

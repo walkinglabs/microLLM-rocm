@@ -1,0 +1,44 @@
+{
+  "groups": [
+    {
+      "maximum_error": 4.76837158203125e-07,
+      "maximum_rms_error": 4.363979400068274e-08,
+      "maximum_tolerance_fraction": 0.015894571940104168,
+      "operation": "rope",
+      "rows": 12,
+      "tolerance": 3e-05
+    },
+    {
+      "maximum_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "maximum_tolerance_fraction": 0.0,
+      "operation": "embedding",
+      "rows": 12,
+      "tolerance": 0.0
+    },
+    {
+      "maximum_error": 9.5367431640625e-07,
+      "maximum_rms_error": 9.5367431640625e-07,
+      "maximum_tolerance_fraction": 0.031789143880208336,
+      "operation": "cross_entropy",
+      "rows": 12,
+      "tolerance": 3e-05
+    }
+  ],
+  "maximum_error": 9.5367431640625e-07,
+  "maximum_rms_error": 9.5367431640625e-07,
+  "non_owning_wrappers": 108,
+  "pointer_matches": 108,
+  "record_count": 36,
+  "rocprof_performance_claim": false,
+  "run_count": 3,
+  "schema_version": 1,
+  "seeds": [
+    20260826,
+    20260827,
+    20260828
+  ],
+  "status": "pass_with_profiler_boundary",
+  "total_wrapped_payload_bytes": 5392572,
+  "total_wrapper_copy_bytes": 0
+}

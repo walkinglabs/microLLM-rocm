@@ -13,6 +13,8 @@ _CAPI_NAMES = {
     "add",
     "add_out",
     "causal_gqa_attention_out",
+    "cross_entropy_out",
+    "embedding_out",
     "hip_device_count",
     "matmul",
     "matmul_out",
@@ -21,6 +23,7 @@ _CAPI_NAMES = {
     "softmax",
     "softmax_out",
     "rms_norm_out",
+    "rope_out",
     "rms_norm_bf16_out",
     "swiglu_out",
 }

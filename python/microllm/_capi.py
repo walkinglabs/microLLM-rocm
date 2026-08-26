@@ -203,6 +203,17 @@ _lib.ml_causal_gqa_attention_out_on_stream.argtypes = [
     _TensorPointer, _TensorPointer, _TensorPointer,
     ctypes.c_int64, ctypes.c_float, _StreamPointer]
 _lib.ml_causal_gqa_attention_out_on_stream.restype = ctypes.c_int
+_lib.ml_embedding_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _StreamPointer]
+_lib.ml_embedding_out_on_stream.restype = ctypes.c_int
+_lib.ml_rope_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, ctypes.c_int64, ctypes.c_int64,
+    ctypes.c_float, _StreamPointer]
+_lib.ml_rope_out_on_stream.restype = ctypes.c_int
+_lib.ml_cross_entropy_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _TensorPointer,
+    _StreamPointer]
+_lib.ml_cross_entropy_out_on_stream.restype = ctypes.c_int
 
 
 def _check(status: int) -> None:
@@ -607,6 +618,28 @@ def causal_gqa_attention_out(
         expanded_kv_workspace._handle, probabilities_workspace._handle,
         query._handle, key._handle, value._handle, int(repeats),
         float(scale), stream._handle))
+
+
+def embedding_out(output: Tensor, weight: Tensor, indices: Tensor, *,
+                  stream: Stream) -> None:
+    _check(_lib.ml_embedding_out_on_stream(
+        output._handle, weight._handle, indices._handle, stream._handle))
+
+
+def rope_out(output: Tensor, input: Tensor, *, sequence_dim: int = 1,
+             position_offset: int = 0, base: float = 10000.0,
+             stream: Stream) -> None:
+    _check(_lib.ml_rope_out_on_stream(
+        output._handle, input._handle, int(sequence_dim), int(position_offset),
+        float(base), stream._handle))
+
+
+def cross_entropy_out(output: Tensor, row_workspace: Tensor,
+                      logits: Tensor, targets: Tensor, *,
+                      stream: Stream) -> None:
+    _check(_lib.ml_cross_entropy_out_on_stream(
+        output._handle, row_workspace._handle, logits._handle,
+        targets._handle, stream._handle))
 
 
 def hip_device_count() -> int:

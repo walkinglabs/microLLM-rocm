@@ -1,0 +1,197 @@
+{
+  "maximum_error": 9.5367431640625e-07,
+  "maximum_rms_error": 9.5367431640625e-07,
+  "record_count": 12,
+  "records": [
+    {
+      "base": 10000.0,
+      "max_error": 0.0,
+      "operation": "rope",
+      "pointer_matches": true,
+      "position_offset": 0,
+      "rms_error": 0.0,
+      "shape": [
+        1,
+        1,
+        2,
+        4
+      ],
+      "tolerance": 3e-05,
+      "wrapped_payload_bytes": 64,
+      "wrappers_non_owning": true
+    },
+    {
+      "base": 10000.0,
+      "max_error": 2.384185791015625e-07,
+      "operation": "rope",
+      "pointer_matches": true,
+      "position_offset": 5,
+      "rms_error": 3.603190990020266e-08,
+      "shape": [
+        2,
+        7,
+        3,
+        8
+      ],
+      "tolerance": 3e-05,
+      "wrapped_payload_bytes": 2688,
+      "wrappers_non_owning": true
+    },
+    {
+      "base": 5000.0,
+      "max_error": 2.384185791015625e-07,
+      "operation": "rope",
+      "pointer_matches": true,
+      "position_offset": 11,
+      "rms_error": 4.1487776769599805e-08,
+      "shape": [
+        1,
+        17,
+        2,
+        16
+      ],
+      "tolerance": 3e-05,
+      "wrapped_payload_bytes": 4352,
+      "wrappers_non_owning": true
+    },
+    {
+      "base": 10000.0,
+      "max_error": 2.384185791015625e-07,
+      "operation": "rope",
+      "pointer_matches": true,
+      "position_offset": 17,
+      "rms_error": 4.0059315864482414e-08,
+      "shape": [
+        1,
+        64,
+        4,
+        32
+      ],
+      "tolerance": 3e-05,
+      "wrapped_payload_bytes": 65536,
+      "wrappers_non_owning": true
+    },
+    {
+      "max_error": 0.0,
+      "operation": "embedding",
+      "pointer_matches": true,
+      "rms_error": 0.0,
+      "shape": [
+        5,
+        3
+      ],
+      "tolerance": 0.0,
+      "vocabulary": 7,
+      "width": 3,
+      "wrapped_payload_bytes": 164,
+      "wrappers_non_owning": true
+    },
+    {
+      "max_error": 0.0,
+      "operation": "embedding",
+      "pointer_matches": true,
+      "rms_error": 0.0,
+      "shape": [
+        2,
+        7,
+        16
+      ],
+      "tolerance": 0.0,
+      "vocabulary": 33,
+      "width": 16,
+      "wrapped_payload_bytes": 3064,
+      "wrappers_non_owning": true
+    },
+    {
+      "max_error": 0.0,
+      "operation": "embedding",
+      "pointer_matches": true,
+      "rms_error": 0.0,
+      "shape": [
+        3,
+        17,
+        64
+      ],
+      "tolerance": 0.0,
+      "vocabulary": 257,
+      "width": 64,
+      "wrapped_payload_bytes": 79052,
+      "wrappers_non_owning": true
+    },
+    {
+      "max_error": 0.0,
+      "operation": "embedding",
+      "pointer_matches": true,
+      "rms_error": 0.0,
+      "shape": [
+        2,
+        32,
+        128
+      ],
+      "tolerance": 0.0,
+      "vocabulary": 1024,
+      "width": 128,
+      "wrapped_payload_bytes": 557312,
+      "wrappers_non_owning": true
+    },
+    {
+      "classes": 7,
+      "ignored_rows": 0,
+      "max_error": 0.0,
+      "operation": "cross_entropy",
+      "pointer_matches": true,
+      "rms_error": 0.0,
+      "rows": 1,
+      "shape": [],
+      "tolerance": 3e-05,
+      "wrapped_payload_bytes": 44,
+      "wrappers_non_owning": true
+    },
+    {
+      "classes": 64,
+      "ignored_rows": 1,
+      "max_error": 9.5367431640625e-07,
+      "operation": "cross_entropy",
+      "pointer_matches": true,
+      "rms_error": 9.5367431640625e-07,
+      "rows": 3,
+      "shape": [],
+      "tolerance": 3e-05,
+      "wrapped_payload_bytes": 808,
+      "wrappers_non_owning": true
+    },
+    {
+      "classes": 513,
+      "ignored_rows": 1,
+      "max_error": 0.0,
+      "operation": "cross_entropy",
+      "pointer_matches": true,
+      "rms_error": 0.0,
+      "rows": 17,
+      "shape": [],
+      "tolerance": 3e-05,
+      "wrapped_payload_bytes": 35092,
+      "wrappers_non_owning": true
+    },
+    {
+      "classes": 4096,
+      "ignored_rows": 1,
+      "max_error": 0.0,
+      "operation": "cross_entropy",
+      "pointer_matches": true,
+      "rms_error": 0.0,
+      "rows": 64,
+      "shape": [],
+      "tolerance": 3e-05,
+      "wrapped_payload_bytes": 1049348,
+      "wrappers_non_owning": true
+    }
+  ],
+  "schema_version": 1,
+  "seed": 20260826,
+  "status": "pass",
+  "torch_hip_version": "7.13.99004",
+  "torch_version": "2.11.0+rocm7.13.0rc2",
+  "total_wrapped_payload_bytes": 1797524,
+  "total_wrapper_copy_bytes": 0
+}

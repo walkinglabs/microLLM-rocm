@@ -1645,6 +1645,48 @@ Tensor embedding(const Tensor& weight, const Tensor& indices,
     return from_values(std::move(output), std::move(output_shape), weight.dtype());
 }
 
+void embedding_out_(Tensor& output, const Tensor& weight,
+                    const Tensor& indices,
+                    [[maybe_unused]] const OpContext& context) {
+    require_forward_float(weight, "weight");
+    if (weight.ndim() != 2 || indices.dtype() != DType::Int32) {
+        throw std::invalid_argument(
+            "embedding_out requires rank-two floating weight and int32 indices");
+    }
+    require_same_device(weight, indices);
+    auto output_shape = indices.shape();
+    output_shape.push_back(weight.shape()[1]);
+    if (!output.defined() || output.shape() != output_shape ||
+        output.dtype() != weight.dtype() || output.device() != weight.device() ||
+        !output.is_contiguous() || !weight.is_contiguous() ||
+        !indices.is_contiguous()) {
+        throw std::invalid_argument(
+            "embedding_out output/weight/indices contract is invalid");
+    }
+    if (output.storage().data() == weight.storage().data() ||
+        output.storage().data() == indices.storage().data()) {
+        throw std::invalid_argument("embedding_out output must not alias input Storage");
+    }
+    if (weight.device().is_hip()) {
+        require_readable_hip_dtype(weight);
+#if MICROLLM_HAS_HIP
+        hip::launch_embedding(
+            static_cast<const float*>(weight.data()),
+            static_cast<const std::int32_t*>(indices.data()),
+            static_cast<float*>(output.data()), indices.numel(),
+            weight.shape()[0], weight.shape()[1],
+            context.native_stream(weight.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = embedding(weight, indices, context);
+    runtime::copy_bytes(
+        output.data(), output.device(), reference.data(), reference.device(),
+        static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
+}
+
 Tensor softmax(const Tensor& input, std::int64_t dim,
                [[maybe_unused]] const OpContext& context) {
     require_forward_float(input, "input");
@@ -2065,6 +2107,50 @@ Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t positio
         }
     }
     return from_values(std::move(output), input.shape(), input.dtype());
+}
+
+void rope_out_(Tensor& output, const Tensor& input,
+               std::int64_t sequence_dim, std::int64_t position_offset,
+               float base, [[maybe_unused]] const OpContext& context) {
+    require_forward_float(input, "input");
+    if (!output.defined() || output.shape() != input.shape() ||
+        output.dtype() != input.dtype() || output.device() != input.device() ||
+        !output.is_contiguous() || !input.is_contiguous()) {
+        throw std::invalid_argument(
+            "rope_out output must match input shape, dtype, device, and contiguity");
+    }
+    if (output.storage().data() == input.storage().data()) {
+        throw std::invalid_argument("rope_out output must not alias input Storage");
+    }
+    if (input.ndim() < 2) throw std::invalid_argument("rope requires rank two or greater");
+    const auto sequence = positive_dim(input, sequence_dim);
+    if (sequence == input.ndim() - 1 || position_offset < 0 || base <= 0.0F) {
+        throw std::invalid_argument("rope_out sequence, offset, or base is invalid");
+    }
+    const auto head_width = input.shape().back();
+    if (head_width % 2 != 0) {
+        throw std::invalid_argument("rope_out head dimension must be even");
+    }
+    [[maybe_unused]] const auto sequence_stride = contiguous_strides(input.shape())[
+        static_cast<std::size_t>(sequence)];
+    if (input.device().is_hip()) {
+        require_readable_hip_dtype(input);
+#if MICROLLM_HAS_HIP
+        hip::launch_rope(
+            static_cast<const float*>(input.data()),
+            static_cast<float*>(output.data()), input.numel(), head_width,
+            input.shape()[static_cast<std::size_t>(sequence)], sequence_stride,
+            position_offset, base, context.native_stream(input.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = rope(
+        input, sequence_dim, position_offset, base, context);
+    runtime::copy_bytes(
+        output.data(), output.device(), reference.data(), reference.device(),
+        static_cast<std::size_t>(output.numel()) * dtype_size(output.dtype()));
 }
 
 Tensor rope_split_half(const Tensor& input, std::int64_t sequence_dim,
@@ -2519,6 +2605,59 @@ Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
     }
     if (valid_rows == 0) throw std::invalid_argument("cross_entropy has no non-ignored targets");
     return from_values({static_cast<float>(total / static_cast<double>(valid_rows))}, {});
+}
+
+void cross_entropy_out_(Tensor& output, Tensor& row_workspace,
+                        const Tensor& logits, const Tensor& targets,
+                        [[maybe_unused]] const OpContext& context) {
+    require_forward_float(logits, "logits");
+    if (targets.dtype() != DType::Int32 || logits.dtype() != DType::Float32) {
+        throw std::invalid_argument(
+            "cross_entropy_out requires FP32 logits and int32 targets");
+    }
+    require_same_device(logits, targets);
+    if (logits.ndim() < 1 || logits.shape().back() <= 0) {
+        throw std::invalid_argument("cross_entropy_out logits class dimension is invalid");
+    }
+    Shape target_shape(logits.shape().begin(), logits.shape().end() - 1);
+    if (targets.shape() != target_shape) {
+        throw std::invalid_argument("cross_entropy_out target shape mismatch");
+    }
+    const auto classes = logits.shape().back();
+    const auto rows = logits.numel() / classes;
+    if (rows <= 0 || output.shape() != Shape{} ||
+        output.dtype() != DType::Float32 || output.device() != logits.device() ||
+        row_workspace.shape() != Shape({rows, 2}) ||
+        row_workspace.dtype() != DType::Float32 ||
+        row_workspace.device() != logits.device() ||
+        !output.is_contiguous() || !row_workspace.is_contiguous() ||
+        !logits.is_contiguous() || !targets.is_contiguous()) {
+        throw std::invalid_argument(
+            "cross_entropy_out output/workspace contract is invalid");
+    }
+    const std::set<const void*> all_pointers{
+        output.data(), row_workspace.data(), logits.data(), targets.data()};
+    if (all_pointers.size() != 4) {
+        throw std::invalid_argument(
+            "cross_entropy_out output/workspace must not alias inputs");
+    }
+    if (logits.device().is_hip()) {
+#if MICROLLM_HAS_HIP
+        hip::launch_cross_entropy(
+            static_cast<const float*>(logits.data()),
+            static_cast<const std::int32_t*>(targets.data()),
+            static_cast<float*>(output.data()),
+            static_cast<float*>(row_workspace.data()), rows, classes,
+            context.native_stream(logits.device()));
+        return;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
+    }
+    const auto reference = cross_entropy(logits, targets, context);
+    runtime::copy_bytes(
+        output.data(), output.device(), reference.data(), reference.device(),
+        sizeof(float));
 }
 
 Tensor reduce_sum(const Tensor& input, [[maybe_unused]] const OpContext& context) {

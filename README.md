@@ -1298,6 +1298,8 @@ LLVM injection conflict remain open. Random zero-copy Softmax/RMSNorm/SwiGLU add
 complete PyTorch rows; BF16 SwiGLU's honest Max/RMS boundary is 0.0625/0.001901.
 FP32 MHA/GQA caller-owned Attention adds 15/15 contexts and 105/105 external pointers;
 context/workspace Max remain below `8.35e-7/2.99e-8` with zero wrapper copy.
+RoPE/Embedding/CrossEntropy add another 36/36 random outputs and 108/108 pointers;
+their maximum error is `9.54e-7`, and loss reduction storage is caller-owned.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

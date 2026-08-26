@@ -230,8 +230,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   SwiGLU; 63/63 random PyTorch rows pass with explicit Max/RMS and 0 wrapper copy;
 - [x] add caller-owned FP32 MHA/GQA Attention output/workspace; 15/15 random contexts,
   105/105 pointers and T256 workspace pass with output Max 8.35e-7 and 0 copy;
-- [ ] extend caller-owned output to RoPE/Embedding/loss/training families and implement
-  typed low-precision Softmax before claiming zero-copy model integration.
+- [x] add caller-owned RoPE/Embedding/CrossEntropy plus explicit loss workspace;
+  36/36 random outputs and 108/108 pointers pass with Max ≤9.54e-7 and 0 copy;
+- [ ] extend caller-owned output to backward/training families and implement typed
+  low-precision Softmax before claiming zero-copy model integration.
 
 ## P2.5 — production data parallel reducer
 

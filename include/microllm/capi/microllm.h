@@ -119,6 +119,16 @@ ml_status ml_causal_gqa_attention_out_on_stream(
     ml_tensor* expanded_kv_workspace, ml_tensor* probabilities_workspace,
     const ml_tensor* query, const ml_tensor* key, const ml_tensor* value,
     int64_t repeats, float scale, ml_stream* stream);
+ml_status ml_embedding_out_on_stream(ml_tensor* output,
+                                     const ml_tensor* weight,
+                                     const ml_tensor* indices,
+                                     ml_stream* stream);
+ml_status ml_rope_out_on_stream(ml_tensor* output, const ml_tensor* input,
+                                int64_t sequence_dim, int64_t position_offset,
+                                float base, ml_stream* stream);
+ml_status ml_cross_entropy_out_on_stream(
+    ml_tensor* output, ml_tensor* row_workspace, const ml_tensor* logits,
+    const ml_tensor* targets, ml_stream* stream);
 
 #ifdef __cplusplus
 }

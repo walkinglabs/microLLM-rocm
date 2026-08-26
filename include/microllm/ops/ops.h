@@ -639,6 +639,8 @@ void matmul_weight_gradient_out_(
     bool transpose_right = false, const OpContext& context = {});
 [[nodiscard]] Tensor embedding(const Tensor& weight, const Tensor& indices,
                                const OpContext& context = {});
+void embedding_out_(Tensor& output, const Tensor& weight,
+                    const Tensor& indices, const OpContext& context = {});
 [[nodiscard]] Tensor softmax(const Tensor& input, std::int64_t dim = -1,
                              const OpContext& context = {});
 void softmax_out_(Tensor& output_fp32, const Tensor& input_fp32,
@@ -673,6 +675,10 @@ void swiglu_out_with_implementation_(
 [[nodiscard]] Tensor rope(const Tensor& input, std::int64_t sequence_dim = 1,
                           std::int64_t position_offset = 0, float base = 10000.0F,
                           const OpContext& context = {});
+void rope_out_(Tensor& output, const Tensor& input,
+               std::int64_t sequence_dim = 1,
+               std::int64_t position_offset = 0, float base = 10000.0F,
+               const OpContext& context = {});
 [[nodiscard]] Tensor rope_split_half(const Tensor& input,
                                      std::int64_t sequence_dim = 1,
                                      std::int64_t position_offset = 0,
@@ -711,6 +717,9 @@ void swiglu_out_with_implementation_(
     float base = 10000.0F, const OpContext& context = {});
 [[nodiscard]] Tensor cross_entropy(const Tensor& logits, const Tensor& targets,
                                    const OpContext& context = {});
+void cross_entropy_out_(Tensor& output, Tensor& row_workspace,
+                        const Tensor& logits, const Tensor& targets,
+                        const OpContext& context = {});
 
 // Correctness-first backward primitives.  These are ordinary engine operators rather
 // than autograd nodes so the graph engine can use the same CPU reference and HIP

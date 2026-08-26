@@ -223,7 +223,8 @@ SwiGLU have strict caller-owned Stream APIs. HIP low-precision Softmax is reject
 a typed reduction Kernel exists; no temporary FP32 copy is inserted. FP32 causal MHA/GQA
 also exposes caller-owned output plus scaled-Q, expanded-K/V and
 probability workspaces. Writable tensors must not alias each other or any input.
-RoPE/Embedding/loss/training outputs remain outside the C ABI.
+RoPE, Embedding and CrossEntropy now have caller-owned outputs; loss additionally requires
+a caller-owned `[rows,2]` reduction workspace. Backward/training outputs remain outside.
 
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:

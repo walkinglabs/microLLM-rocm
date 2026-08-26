@@ -1522,6 +1522,11 @@ TEST(CpuOpsTest, EmbeddingGathersRowsAndRejectsBadIndex) {
     const auto weight = Tensor::from_vector({0, 1, 2, 3, 4, 5}, {3, 2});
     const auto indices = Tensor::from_int32_vector({2, 0, 1}, {3});
     EXPECT_EQ(embedding(weight, indices).to_vector(), (std::vector<float>{4, 5, 0, 1, 2, 3}));
+    Tensor caller_output({3, 2});
+    embedding_out_(caller_output, weight, indices);
+    EXPECT_EQ(caller_output.to_vector(), embedding(weight, indices).to_vector());
+    auto alias = weight;
+    EXPECT_THROW(embedding_out_(alias, weight, indices), std::invalid_argument);
     EXPECT_THROW((void)embedding(weight, Tensor::from_int32_vector({3}, {1})), std::out_of_range);
 }
 
@@ -1592,6 +1597,11 @@ TEST(CpuOpsTest, RopeLeavesPositionZeroAndRotatesPositionOne) {
     expect_near({output[0], output[1], output[2], output[3]}, {1, 0, 0, 1});
     EXPECT_NEAR(output[4], std::cos(1.0F), 1.0e-5F);
     EXPECT_NEAR(output[5], std::sin(1.0F), 1.0e-5F);
+    Tensor caller_output(input.shape());
+    rope_out_(caller_output, input);
+    EXPECT_EQ(caller_output.to_vector(), rope(input).to_vector());
+    auto alias = input;
+    EXPECT_THROW(rope_out_(alias, input), std::invalid_argument);
 }
 
 TEST(CpuOpsTest, SplitHalfRopeUsesQwenPairLayout) {
@@ -1611,6 +1621,14 @@ TEST(CpuOpsTest, CrossEntropyMatchesStableLogSoftmax) {
     const auto targets = Tensor::from_int32_vector({0, 2}, {2});
     const auto expected = std::log(std::exp(2.0F) + std::exp(1.0F) + 1.0F) - 2.0F;
     EXPECT_NEAR(cross_entropy(logits, targets).to_vector()[0], expected, 1.0e-6F);
+    Tensor caller_output(Shape{});
+    Tensor row_workspace({2, 2});
+    cross_entropy_out_(caller_output, row_workspace, logits, targets);
+    EXPECT_EQ(caller_output.to_vector(), cross_entropy(logits, targets).to_vector());
+    Tensor wrong_workspace({2, 1});
+    EXPECT_THROW(cross_entropy_out_(
+                     caller_output, wrong_workspace, logits, targets),
+                 std::invalid_argument);
 }
 
 TEST(CpuOpsTest, CrossEntropyIgnoresMaskedRows) {

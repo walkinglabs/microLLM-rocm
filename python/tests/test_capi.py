@@ -122,6 +122,27 @@ class TensorTest(unittest.TestCase):
             microllm.causal_gqa_attention_out(
                 query, scaled_query, expanded_kv, probabilities,
                 query, key, value, repeats=2, scale=0.5, stream=stream)
+        embedding_weight = microllm.Tensor.from_f32(
+            [0, 1, 2, 3, 4, 5], (3, 2))
+        embedding_indices = microllm.Tensor.from_i32([2, 0, 1], (3,))
+        embedding_output = microllm.Tensor.from_f32([0] * 6, (3, 2))
+        microllm.embedding_out(
+            embedding_output, embedding_weight, embedding_indices,
+            stream=stream)
+        self.assertEqual(embedding_output.tolist(), [4, 5, 0, 1, 2, 3])
+        rope_input = microllm.Tensor.from_f32(
+            [1, 0, 0, 1, 1, 0, 0, 1], (1, 2, 1, 4))
+        rope_output = microllm.Tensor.from_f32([0] * 8, (1, 2, 1, 4))
+        microllm.rope_out(rope_output, rope_input, stream=stream)
+        self.assertEqual(rope_output.tolist()[:4], [1, 0, 0, 1])
+        logits = microllm.Tensor.from_f32([2, 1, 0, 0, 1, 2], (2, 3))
+        targets = microllm.Tensor.from_i32([0, 2], (2,))
+        loss_output = microllm.Tensor.from_f32([0], ())
+        loss_workspace = microllm.Tensor.from_f32([0] * 4, (2, 2))
+        microllm.cross_entropy_out(
+            loss_output, loss_workspace, logits, targets, stream=stream)
+        expected_loss = math.log(math.exp(2) + math.exp(1) + 1) - 2
+        self.assertAlmostEqual(loss_output.tolist()[0], expected_loss, places=6)
 
     def test_external_tensor_is_zero_copy_non_owning_and_strict(self):
         left_owner = (ctypes.c_float * 4)(1, 2, 3, 4)

@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass_with_profiler_boundary","process_runs":3,"complete_pytorch_outputs":36,"cpu_out_api_tests":"pass","hip_rope_embedding_loss_tests":"pass","ignore_index_covered":true,"caller_reduction_workspace":true,"capi_symbol_count":52,"svg_parsed":true}

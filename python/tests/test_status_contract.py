@@ -27,6 +27,7 @@ def main() -> int:
         "180MiB, 0 copy, all Max 0",
         "63/63 random Softmax/RMSNorm/SwiGLU rows",
         "MHA/GQA 15/15, 105/105 Attention pointers",
+        "RoPE/Embedding/loss 36/36, 108/108 pointers",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -264,6 +265,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-pytorch-zero-copy-attention/analysis.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-attention/verification.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-attention/attention-matrix.svg",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-sequence-loss/summary.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-sequence-loss/analysis.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-sequence-loss/verification.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-sequence-loss/sequence-loss-matrix.svg",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -456,6 +461,24 @@ def main() -> int:
     assert attention["total_wrapper_copy_bytes"] == 0
     assert attention["rocprof_performance_claim"] is False
     ET.parse(attention_root / "attention-matrix.svg")
+    sequence_root = ROOT / (
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-sequence-loss")
+    sequence = json.loads(
+        (sequence_root / "summary.json").read_text(encoding="utf-8"))
+    assert sequence["status"] == "pass_with_profiler_boundary"
+    assert sequence["run_count"] == 3
+    assert sequence["record_count"] == 36
+    assert sequence["pointer_matches"] == 108
+    assert sequence["non_owning_wrappers"] == 108
+    assert sequence["maximum_error"] < 1.0e-6
+    assert sequence["maximum_rms_error"] < 1.0e-6
+    assert sequence["total_wrapper_copy_bytes"] == 0
+    groups = {row["operation"]: row for row in sequence["groups"]}
+    assert groups["rope"]["rows"] == 12
+    assert groups["embedding"]["maximum_error"] == 0.0
+    assert groups["cross_entropy"]["rows"] == 12
+    assert groups["cross_entropy"]["maximum_error"] < 1.0e-6
+    ET.parse(sequence_root / "sequence-loss-matrix.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(
