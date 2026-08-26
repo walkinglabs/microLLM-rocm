@@ -1,9 +1,13 @@
+#include <algorithm>
 #include <cstdint>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
 
 #include <ATen/ATen.h>
+#include <ATen/core/grad_mode.h>
+#include <torch/csrc/autograd/custom_function.h>
+#include <torch/csrc/autograd/variable.h>
 #include <torch/library.h>
 
 #include <microllm/ops/low_level.h>
@@ -144,6 +148,12 @@ at::Tensor swiglu(const at::Tensor& gate, const at::Tensor& up) {
                 "inputs must be contiguous");
     auto output = at::empty_like(gate);
     if (gate.numel() == 0) return output;
+    // FakeTensor executes the Autograd dispatch kernel before Meta. It has a
+    // logical CPU/ROCm device but no backing pointer; preserve shape inference
+    // without trying to wrap nonexistent storage.
+    if (gate.const_data_ptr() == nullptr || up.const_data_ptr() == nullptr) {
+        return output;
+    }
     auto output_tensor = external_tensor(output);
     const auto gate_tensor = external_tensor(gate);
     const auto up_tensor = external_tensor(up);
@@ -262,6 +272,58 @@ std::tuple<at::Tensor, at::Tensor> meta_swiglu_backward_scalar_seed(
     return {at::empty_like(gate), at::empty_like(up)};
 }
 
+class SwiGLUAutogradFunction
+    : public torch::autograd::Function<SwiGLUAutogradFunction> {
+public:
+    static torch::autograd::Variable forward(
+        torch::autograd::AutogradContext* context,
+        const torch::autograd::Variable& gate,
+        const torch::autograd::Variable& up) {
+        context->save_for_backward({gate, up});
+        return swiglu(gate, up);
+    }
+
+    static torch::autograd::variable_list backward(
+        torch::autograd::AutogradContext* context,
+        torch::autograd::variable_list gradients) {
+        const auto saved = context->get_saved_variables();
+        const auto& gate = saved.at(0);
+        const auto& up = saved.at(1);
+        auto gradient = gradients.at(0);
+        if (!gradient.defined()) return {at::Tensor(), at::Tensor()};
+        if (gate.scalar_type() == at::kFloat) {
+            const auto zero_stride = gradient.numel() != 0 &&
+                std::all_of(
+                    gradient.strides().begin(), gradient.strides().end(),
+                    [](std::int64_t stride) { return stride == 0; });
+            if (zero_stride) {
+                const auto scalar_gradient = gradient.as_strided({1}, {0});
+                auto result = swiglu_backward_scalar_seed(
+                    gate, up, scalar_gradient);
+                return {std::get<0>(result), std::get<1>(result)};
+            }
+            auto result = swiglu_backward(gate, up, gradient.contiguous());
+            return {std::get<0>(result), std::get<1>(result)};
+        }
+        at::NoGradGuard no_grad;
+        const auto probability = at::sigmoid(gate);
+        auto up_gradient = gate * probability;
+        up_gradient.mul_(gradient);
+        auto gate_gradient = at::ones_like(probability);
+        gate_gradient.sub_(probability);
+        gate_gradient.mul_(gate);
+        gate_gradient.add_(1);
+        gate_gradient.mul_(probability);
+        gate_gradient.mul_(up);
+        gate_gradient.mul_(gradient);
+        return {gate_gradient, up_gradient};
+    }
+};
+
+at::Tensor swiglu_autograd(const at::Tensor& gate, const at::Tensor& up) {
+    return SwiGLUAutogradFunction::apply(gate, up);
+}
+
 }  // namespace
 
 TORCH_LIBRARY(microllm, library) {
@@ -288,6 +350,10 @@ TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
     library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
+}
+
+TORCH_LIBRARY_IMPL(microllm, Autograd, library) {
+    library.impl("swiglu", &swiglu_autograd);
 }
 
 TORCH_LIBRARY_IMPL(microllm, Meta, library) {

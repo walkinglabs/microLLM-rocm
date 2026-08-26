@@ -37,8 +37,8 @@ def main() -> int:
                for row in comparison["groups"]) >= 0.994
     assert all(row["candidate_peak_extra_bytes"] == 1536
                for row in comparison["groups"])
-    bridge = (ROOT / "python/microllm/torch_ops.py").read_text(encoding="utf-8")
-    for token in ("all(", "stride == 0", "gradient.as_strided((1,), (0,))",
+    bridge = (ROOT / "bindings/torch/torch_ops.cpp").read_text(encoding="utf-8")
+    for token in ("std::all_of(", "stride == 0", "gradient.as_strided({1}, {0})",
                   "swiglu_backward_scalar_seed"):
         assert token in bridge
     ET.parse(ROOT / "docs/optimization-log/assets/pytorch-rocm-swiglu-scalar-seed.svg")
@@ -48,4 +48,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

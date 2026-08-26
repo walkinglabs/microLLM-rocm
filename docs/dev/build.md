@@ -147,6 +147,9 @@ contracts. Its internal backward schema is an implementation detail of the Pytho
 Autograd registration; call the public `microllm.torch_ops.swiglu` wrapper.
 Its FP32 sum-backward path recognizes PyTorch's zero-stride expanded scalar and avoids
 materializing it. This is a layout contract inside the wrapper, not a user-facing flag.
+SwiGLU Autograd is implemented in C++; Python registration remains only for add/multiply.
+GCC's false-positive array-bounds warning inside Torch's custom-function header is disabled
+only for the optional adapter target.
 
 ## RCCL build
 

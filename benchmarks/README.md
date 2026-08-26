@@ -692,3 +692,15 @@ Test whether AOTAutograd/Inductor removes the Python callback boundary:
 
 Cold compile is reported separately. The runner records the narrow AMDSMI-zero workaround
 needed by the validated pre-release Torch build rather than silently changing device discovery.
+
+Compare the accepted C++ Autograd implementation with the prior Python callback:
+
+```bash
+python3 benchmarks/single_gpu/compare_pytorch_swiglu_cpp_autograd.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-custom-op-swiglu-scalar-seed \
+  --candidate benchmarks/results/2026-08-26-pytorch-rocm-custom-op-swiglu-cpp-autograd \
+  --output /tmp/microllm-swiglu-cpp-autograd.json
+```
+
+Admission requires every dtype/shape to improve at least 1.1× over Python, no peak
+regression, all precision gates, and FP32 at least 1.05× native Torch.

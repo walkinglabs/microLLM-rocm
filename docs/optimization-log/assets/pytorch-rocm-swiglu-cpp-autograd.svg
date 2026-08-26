@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="720" viewBox="0 0 1320 720">
+<rect width="1320" height="720" fill="#f7f9fc"/>
+<text x="660" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">C++ Autograd Closes the Python Callback Gap</text>
+<text x="660" y="78" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">six fresh MI300X processes · complete loss/gradient/peak gates</text>
+<line x1="75" y1="500" x2="920" y2="500" stroke="#aab3c2" stroke-width="2"/>
+<line x1="75" y1="500.0" x2="920" y2="500.0" stroke="#dbe1ea"/>
+<line x1="75" y1="386.7" x2="920" y2="386.7" stroke="#dbe1ea"/>
+<line x1="75" y1="273.3" x2="920" y2="273.3" stroke="#dbe1ea"/>
+<line x1="75" y1="160.0" x2="920" y2="160.0" stroke="#dbe1ea"/>
+<rect x="93" y="172.2" width="36" height="327.8" rx="5" fill="#198754"/>
+<rect x="141" y="240.7" width="36" height="259.3" rx="5" fill="#3769d6"/>
+<text x="111" y="162.2" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">1.446</text>
+<text x="159" y="230.7" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">1.144</text>
+<text x="135" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">fp32 medium</text>
+<rect x="228" y="173.1" width="36" height="326.9" rx="5" fill="#198754"/>
+<rect x="276" y="242.4" width="36" height="257.6" rx="5" fill="#3769d6"/>
+<text x="246" y="163.1" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">1.442</text>
+<text x="294" y="232.4" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">1.136</text>
+<text x="270" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">fp32 large</text>
+<rect x="363" y="191.6" width="36" height="308.4" rx="5" fill="#198754"/>
+<rect x="411" y="315.9" width="36" height="184.1" rx="5" fill="#3769d6"/>
+<text x="381" y="181.6" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">1.361</text>
+<text x="429" y="305.9" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">0.812</text>
+<text x="405" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">fp16 medium</text>
+<rect x="498" y="165.8" width="36" height="334.2" rx="5" fill="#198754"/>
+<rect x="546" y="318.0" width="36" height="182.0" rx="5" fill="#3769d6"/>
+<text x="516" y="155.8" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">1.475</text>
+<text x="564" y="308.0" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">0.803</text>
+<text x="540" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">fp16 large</text>
+<rect x="633" y="206.9" width="36" height="293.1" rx="5" fill="#198754"/>
+<rect x="681" y="318.9" width="36" height="181.1" rx="5" fill="#3769d6"/>
+<text x="651" y="196.9" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">1.293</text>
+<text x="699" y="308.9" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">0.799</text>
+<text x="675" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">bf16 medium</text>
+<rect x="768" y="208.4" width="36" height="291.6" rx="5" fill="#198754"/>
+<rect x="816" y="316.4" width="36" height="183.6" rx="5" fill="#3769d6"/>
+<text x="786" y="198.4" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">1.287</text>
+<text x="834" y="306.4" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#172033">0.810</text>
+<text x="810" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#172033">bf16 large</text>
+<rect x="965" y="125" width="300" height="375" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="995" y="167" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Admission</text>
+<text x="995" y="211" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ C++/Python 1.286×–1.475×</text>
+<text x="995" y="244" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ FP32/native 1.136×–1.144×</text>
+<text x="995" y="277" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ FP32 peak only 1536 B</text>
+<text x="995" y="310" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ low-precision peak = native</text>
+<text x="995" y="358" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335">low F+B still 0.799×–0.812×</text>
+<text x="995" y="401" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">next: typed fused backward</text>
+<rect x="300" y="610" width="18" height="18" rx="3" fill="#198754"/><text x="328" y="625" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">C++ / Python Autograd</text>
+<rect x="550" y="610" width="18" height="18" rx="3" fill="#3769d6"/><text x="578" y="625" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">C++ / native Torch</text>
+<text x="660" y="678" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">Recommend C++ Autograd as the optional adapter default</text>
+</svg>

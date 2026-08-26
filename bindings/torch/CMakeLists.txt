@@ -8,6 +8,13 @@ if(Torch_FOUND)
         separate_arguments(MICROLLM_TORCH_CXX_FLAGS NATIVE_COMMAND "${TORCH_CXX_FLAGS}")
         target_compile_options(microllm_torch_ops PRIVATE ${MICROLLM_TORCH_CXX_FLAGS})
     endif()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # GCC 13 emits a false positive from Torch custom_function.h's
+        # vector<bool> reserve path when Function::apply is inlined.
+        target_compile_options(
+            microllm_torch_ops PRIVATE
+            -Wno-array-bounds -Wno-stringop-overflow)
+    endif()
     set_target_properties(microllm_torch_ops PROPERTIES OUTPUT_NAME microllm_torch_ops)
     add_dependencies(microllm_torch_ops microllm_alignment)
     install(TARGETS microllm_torch_ops LIBRARY DESTINATION lib)

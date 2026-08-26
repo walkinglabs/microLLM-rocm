@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 393/393, ASan/UBSan 390/390, PyTorch-enabled CPU 396/396, single-GPU HIP label 201/201, RCCL label 55/55 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 394/394, ASan/UBSan 391/391, PyTorch-enabled CPU 397/397, single-GPU HIP label 201/201, RCCL label 55/55 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -100,6 +100,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | PyTorch SwiGLU scalar-seed Autograd | smoke-tested, kept | exact sum-only zero-stride route; 64K/1M Event 1.164×/1.081× vs old bridge, peak -99.42%/-99.96%, general gradient fallback retained | remaining 0.773×–0.781× native Torch submission gap |
 | PyTorch SwiGLU Autograd attribution | measured | same loss/gradients: manual fused 4.855×–5.271× custom Autograd and 3.859×–4.105× native | C++ Autograd or compiled graph; math Kernel line closed |
 | PyTorch compiled SwiGLU | measured, rejected | eight processes; gradients Max 4.77e-7, compiled/eager 0.584×–0.610×, cold 55.8–1160.3ms; loss reduction delta 0.00390625 | C++ Autograd is final adjacent adapter candidate |
+| PyTorch C++ SwiGLU Autograd | smoke-tested, recommended adapter default | C++/Python 1.286×–1.475×; FP32/native 1.136×–1.144× with 1,536B peak; low peak equals native | typed fused FP16/BF16 backward; FP32 line closed |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled CPU build plus Tensor/graph/model/optimizer parity, package, trajectory and schema gates | broader official-model direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | external descriptors/native Stream, forward outputs and six caller-owned backward families with explicit scratch; 58 symbols | Autograd external leaf pool |

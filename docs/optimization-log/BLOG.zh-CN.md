@@ -5101,3 +5101,14 @@ Inductor不能穿过opaque Custom Op融合HIP Kernel，AOT路径反而增加开�
 最后相邻候选只剩C++ Autograd Function。
 
 ![SwiGLU compile result](assets/pytorch-rocm-swiglu-compile.svg)
+
+## 352. Experiment 336：最后答案是C++ Autograd
+
+不改GPU Kernel，只把SwiGLU callback移进`torch::autograd::Function`。六个F+B格相对Python
+Autograd全部提升1.286×–1.475×。FP32 64K/1M达到native Torch的1.144×/1.136×，peak仍只有
+1,536B；FP16/BF16速度到0.799×–0.812×，peak也从旧路径两倍降回native。
+
+因此C++ Autograd成为adapter默认。数学FP32线和callback线都关闭；下一独立问题只剩typed低精度
+fused backward。
+
+![C++ Autograd result](assets/pytorch-rocm-swiglu-cpp-autograd.svg)

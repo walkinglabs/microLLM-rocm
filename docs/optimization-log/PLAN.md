@@ -180,6 +180,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [149](steps/149-pytorch-swiglu-scalar-seed.md) | complete; keep | sum zero-stride scalar gradient | Event1.081×–1.164×；peak减少99.42%–99.96% |
 | [150](steps/150-pytorch-swiglu-autograd-attribution.md) | complete | native/custom/manual提交归因 | manual/custom4.855×–5.271×；数学Kernel线关闭 |
 | [151](steps/151-pytorch-swiglu-compile.md) | complete; rejected | torch.compile/AOTAutograd反例 | compiled/eager0.584×–0.610×；cold55.8–1160.3ms |
+| [152](steps/152-pytorch-swiglu-cpp-autograd.md) | complete; keep | C++ Autograd替代Python callback | C++/Python1.286×–1.475×；FP32/native1.136×–1.144× |
 
 ## 为什么按这个顺序
 

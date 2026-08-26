@@ -1,0 +1,90 @@
+{
+  "correctness_pass": true,
+  "decision": "recommend_cpp_autograd",
+  "fp32_native_gate_pass": true,
+  "groups": [
+    {
+      "cpp_peak_extra_bytes": 1536.0,
+      "cpp_vs_native_event": 1.1441461942723388,
+      "cpp_vs_python_event": 1.4462542021287472,
+      "dtype": "fp32",
+      "elements": 65536,
+      "maximum_error": 4.76837158203125e-07,
+      "maximum_rms_error": 8.380592220191829e-08,
+      "native_peak_extra_bytes": 263680.0,
+      "python_peak_extra_bytes": 1536.0,
+      "shape": "medium",
+      "tolerance": 3e-06
+    },
+    {
+      "cpp_peak_extra_bytes": 1536.0,
+      "cpp_vs_native_event": 1.1364883595554471,
+      "cpp_vs_python_event": 1.4420614252386608,
+      "dtype": "fp32",
+      "elements": 1048576,
+      "maximum_error": 4.76837158203125e-07,
+      "maximum_rms_error": 8.381711325000651e-08,
+      "native_peak_extra_bytes": 4195840.0,
+      "python_peak_extra_bytes": 1536.0,
+      "shape": "large",
+      "tolerance": 3e-06
+    },
+    {
+      "cpp_peak_extra_bytes": 132608.0,
+      "cpp_vs_native_event": 0.8122655457244841,
+      "cpp_vs_python_event": 1.3606771310514392,
+      "dtype": "fp16",
+      "elements": 65536,
+      "maximum_error": 0.00390625,
+      "maximum_rms_error": 0.000821378780528903,
+      "native_peak_extra_bytes": 132608.0,
+      "python_peak_extra_bytes": 263680.0,
+      "shape": "medium",
+      "tolerance": 0.004
+    },
+    {
+      "cpp_peak_extra_bytes": 2098688.0,
+      "cpp_vs_native_event": 0.8030350029959938,
+      "cpp_vs_python_event": 1.4745721992406833,
+      "dtype": "fp16",
+      "elements": 1048576,
+      "maximum_error": 0.00390625,
+      "maximum_rms_error": 0.0008214795379899442,
+      "native_peak_extra_bytes": 2098688.0,
+      "python_peak_extra_bytes": 4195840.0,
+      "shape": "large",
+      "tolerance": 0.004
+    },
+    {
+      "cpp_peak_extra_bytes": 132608.0,
+      "cpp_vs_native_event": 0.7991023655183288,
+      "cpp_vs_python_event": 1.2932364206707512,
+      "dtype": "bf16",
+      "elements": 65536,
+      "maximum_error": 0.03125,
+      "maximum_rms_error": 0.00422012060880661,
+      "native_peak_extra_bytes": 132608.0,
+      "python_peak_extra_bytes": 263680.0,
+      "shape": "medium",
+      "tolerance": 0.0625
+    },
+    {
+      "cpp_peak_extra_bytes": 2098688.0,
+      "cpp_vs_native_event": 0.8098362103195297,
+      "cpp_vs_python_event": 1.2865798248503413,
+      "dtype": "bf16",
+      "elements": 1048576,
+      "maximum_error": 0.03125,
+      "maximum_rms_error": 0.004220619332045317,
+      "native_peak_extra_bytes": 2098688.0,
+      "python_peak_extra_bytes": 4195840.0,
+      "shape": "large",
+      "tolerance": 0.0625
+    }
+  ],
+  "memory_gate_pass": true,
+  "record_type": "pytorch_rocm_swiglu_cpp_autograd_comparison",
+  "schema_version": 1,
+  "speed_gate_pass": true,
+  "status": "pass"
+}

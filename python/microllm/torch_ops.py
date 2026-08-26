@@ -24,36 +24,10 @@ def _register_formulas() -> None:
         left, right = context.saved_tensors
         return gradient * right, gradient * left
 
-    def swiglu_setup(ctx, inputs, output):
-        del output
-        ctx.save_for_backward(*inputs)
-
-    def swiglu_backward(ctx, gradient):
-        import torch
-        gate, up = ctx.saved_tensors
-        if gate.dtype == torch.float32:
-            with torch.no_grad():
-                if gradient.numel() != 0 and all(
-                        stride == 0 for stride in gradient.stride()):
-                    scalar_gradient = gradient.as_strided((1,), (0,))
-                    return torch.ops.microllm.swiglu_backward_scalar_seed(
-                        gate.detach(), up.detach(), scalar_gradient.detach())
-                return torch.ops.microllm.swiglu_backward(
-                    gate.detach(), up.detach(), gradient.contiguous().detach())
-        probability = torch.sigmoid(gate)
-        gate_gradient = gradient * up * probability * (
-            1 + gate * (1 - probability))
-        up_gradient = gradient * gate * probability
-        return gate_gradient, up_gradient
-
     torch.library.register_autograd("microllm::add", add_backward)
     torch.library.register_autograd(
         "microllm::multiply", multiply_backward,
         setup_context=multiply_setup,
-    )
-    torch.library.register_autograd(
-        "microllm::swiglu", swiglu_backward,
-        setup_context=swiglu_setup,
     )
     _FORMULAS_REGISTERED = True
 

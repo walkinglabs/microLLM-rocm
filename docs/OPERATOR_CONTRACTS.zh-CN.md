@@ -28,6 +28,9 @@ FP32 backward的float4候选已经因0.946×–1.039×被删除；当前只保�
 `swiglu_backward_scalar_seed_out_`只接受一个FP32元素、同device、连续且不alias，输出shape仍等于
 gate/up。PyTorch bridge只有在FP32 gradient `numel>0`且全部stride为0时使用；其他布局禁止偷读
 首元素。这个合同对应`sum()`广播，不代表mean或weighted backward。
+PyTorch SwiGLU Autograd由C++ Function实现，FP32调用上述fused producers；FP16/BF16在
+`NoGradGuard`内使用in-place ATen公式。它不承诺double backward。FakeTensor无backing pointer时只
+返回Meta shape，不能把null pointer包装成Storage。
 
 ## BF16 weight gradient
 

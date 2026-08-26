@@ -76,3 +76,10 @@ processes give compiled/eager `0.584×–0.610×`, with a `55.8–1160.3 ms` med
 compile range. Gradients remain aligned; the compiled 1M sum changes reduction order by
 `0.00390625`. C++ Autograd is the final adjacent adapter candidate. See
 [Experiment 335](../optimization-log/experiments/335-pytorch-swiglu-compile-reject.md).
+
+The accepted solution is C++ `torch::autograd::Function`. It reuses the exact fused
+producers, keeps the scalar-seed route, and removes the Python SwiGLU callback. Six
+F+B rows improve `1.286×–1.475×` versus Python Autograd; FP32 reaches
+`1.136×–1.144×` native Torch with 1,536-byte measured peak. Low-precision peak returns
+to native while speed reaches `0.799×–0.812×`. See
+[Experiment 336](../optimization-log/experiments/336-pytorch-swiglu-cpp-autograd.md).
