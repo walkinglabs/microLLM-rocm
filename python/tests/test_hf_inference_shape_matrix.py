@@ -128,9 +128,48 @@ POST_EXACT_O_SPEC = importlib.util.spec_from_file_location(
 POST_EXACT_O = importlib.util.module_from_spec(POST_EXACT_O_SPEC)
 assert POST_EXACT_O_SPEC.loader is not None
 POST_EXACT_O_SPEC.loader.exec_module(POST_EXACT_O)
+O_MODEL_SPEC = importlib.util.spec_from_file_location(
+    "fp32_prefill_o_model_gate",
+    ROOT / "benchmarks/single_gpu/fp32_prefill_o_model_gate.py")
+O_MODEL = importlib.util.module_from_spec(O_MODEL_SPEC)
+assert O_MODEL_SPEC.loader is not None
+O_MODEL_SPEC.loader.exec_module(O_MODEL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_o_model_gate_command_and_registry_counts(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        baseline = O_MODEL.command(
+            args, model, "upstream-exact", 2, 0)
+        self.assertNotIn("--fp32-prefill-attention-o-solution-index", baseline)
+        candidate = O_MODEL.command(
+            args, model, "attention-exact", 2, 0)
+        self.assertEqual(candidate[
+            candidate.index("--fp32-prefill-attention-o-solution-index") + 1],
+            "296100")
+        route = {
+            "status": "pass", "batch": 2, "token_count": 2048,
+            "decode_tokens": 1, "kv_cache_dtype": "bf16",
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_prefill_attention_qk_solution_index": 304681,
+            "fp32_prefill_attention_pv_solution_index": 295716,
+            "fp32_prefill_attention_o_solution_index": 296100,
+            "fp32_solution_registered_entries": 5,
+            "fp32_solution_cached_algorithms": 5,
+            "fp32_solution_registry_hits": 336,
+            "fp32_solution_cache_misses": 5,
+            "fp32_solution_cache_hits": 331,
+            "fp32_solution_dispatches": 336,
+        }
+        O_MODEL.require_route(route, "attention-exact", 2, 2048, 1)
+
     def test_current_post_exact_o_trace_locates_ffn_output(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-post-exact-o-block0-trace")
