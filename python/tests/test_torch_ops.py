@@ -104,6 +104,39 @@ class TorchOpsTest(unittest.TestCase):
             right = torch.full_like(left, 0.25)
             torch.testing.assert_close(compiled(left, right), function(left, right))
 
+    def test_swiglu_scalar_seed_matches_expanded_gradient(self):
+        devices = [torch.device("cpu")]
+        if torch.version.hip and torch.cuda.is_available():
+            devices.append(torch.device("cuda"))
+        for device in devices:
+            gate = torch.linspace(-2, 2, 1027, device=device)
+            up = torch.linspace(1, -1, 1027, device=device)
+            seed = torch.tensor(0.5, device=device)
+            actual = torch.ops.microllm.swiglu_backward_scalar_seed(
+                gate, up, seed)
+            expected_gate = gate.detach().clone().requires_grad_()
+            expected_up = up.detach().clone().requires_grad_()
+            (F.silu(expected_gate) * expected_up).backward(
+                torch.full_like(gate, 0.5))
+            torch.testing.assert_close(
+                actual[0], expected_gate.grad, rtol=0, atol=3.0e-6)
+            torch.testing.assert_close(
+                actual[1], expected_up.grad, rtol=0, atol=3.0e-6)
+
+            routed_gate = gate.detach().clone().requires_grad_()
+            routed_up = up.detach().clone().requires_grad_()
+            seen_layout = []
+            output = torch_ops.swiglu(routed_gate, routed_up)
+            output.register_hook(
+                lambda gradient: seen_layout.append(
+                    (gradient.stride(), gradient.untyped_storage().nbytes())))
+            output.sum().backward()
+            self.assertEqual(seen_layout, [((0,), 4)])
+            torch.testing.assert_close(
+                routed_gate.grad, expected_gate.grad * 2, rtol=0, atol=3.0e-6)
+            torch.testing.assert_close(
+                routed_up.grad, expected_up.grad * 2, rtol=0, atol=3.0e-6)
+
     @unittest.skipUnless(torch.version.hip and torch.cuda.is_available(), "PyTorch ROCm unavailable")
     def test_rocm_add_uses_current_stream(self):
         device = torch.device("cuda")

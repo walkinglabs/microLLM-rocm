@@ -56,3 +56,10 @@ already `2.07×–2.82×` the readable native formula with lower peak. Training 
 moves to the expanded scalar seed that the Python Autograd bridge currently materializes,
 not another packet-width search. See
 [Experiment 332](../optimization-log/experiments/332-pytorch-swiglu-backward-vector-reject.md).
+
+The next layout audit proves that `sum()` produces a four-byte, zero-stride expanded
+gradient. The bridge now sends a one-element device view to a scalar-seed fused backward
+only when every gradient stride is zero. Mean, weighted and general gradients retain the
+ordinary path. This removes 99.42%–99.96% of measured temporary peak and improves 64K/1M
+F+B by `1.164×/1.081×`, but remains below native Torch. See
+[Experiment 333](../optimization-log/experiments/333-pytorch-swiglu-scalar-seed.md).

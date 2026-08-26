@@ -1064,6 +1064,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Fused SwiGLU SVG](assets/pytorch-rocm-custom-op-swiglu.svg) | 三dtype forward/backward边界 |
 | [experiments/332-pytorch-swiglu-backward-vector-reject.md](experiments/332-pytorch-swiglu-backward-vector-reject.md) | float4解释被推翻并清理 |
 | [SwiGLU backward SVG](assets/pytorch-rocm-swiglu-backward.svg) | scalar/vector/native producer对比 |
+| [experiments/333-pytorch-swiglu-scalar-seed.md](experiments/333-pytorch-swiglu-scalar-seed.md) | 4-byte seed不再物化完整Tensor |
+| [Scalar-seed SVG](assets/pytorch-rocm-swiglu-scalar-seed.svg) | F+B时间与peak前后对比 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

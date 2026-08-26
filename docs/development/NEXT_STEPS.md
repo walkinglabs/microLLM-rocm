@@ -250,8 +250,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   a training counterexample;
 - [x] isolate FP32 fused SwiGLU backward and reject vector4: 0.946×–1.039× scalar,
   while the retained scalar producer is already 2.07×–2.82× the readable native formula;
-- [ ] remove `sum()` zero-stride output-gradient materialization with an explicit scalar-seed
-  contract, then rerun complete F+B and peak gates;
+- [x] remove `sum()` zero-stride output-gradient materialization with an exact FP32
+  scalar-seed contract: 64K/1M Event improves 1.164×/1.081× and peak falls
+  99.42%–99.96%; mean/weighted/general gradients keep the ordinary path;
+- [ ] attribute remaining 0.773×–0.781× FP32 F+B gap to dispatcher/Autograd/sum
+  submission before changing the fused mathematical Kernel again;
 - [ ] define a typed low-precision SwiGLU backward contract before replacing the readable
   PyTorch fallback formulas;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.

@@ -755,6 +755,12 @@ void swiglu_backward_out_(Tensor& gate_gradient, Tensor& up_gradient,
                           const Tensor& gate, const Tensor& up,
                           const Tensor& gradient,
                           const OpContext& context = {});
+// Broadcasts one FP32 device scalar over every output element without
+// materializing an expanded zero-stride gradient Tensor.
+void swiglu_backward_scalar_seed_out_(
+    Tensor& gate_gradient, Tensor& up_gradient,
+    const Tensor& gate, const Tensor& up, const Tensor& scalar_gradient,
+    const OpContext& context = {});
 [[nodiscard]] Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim = 1,
                                    std::int64_t position_offset = 0,
                                    float base = 10000.0F,

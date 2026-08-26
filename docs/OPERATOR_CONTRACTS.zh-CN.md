@@ -25,6 +25,9 @@ PyTorch fused SwiGLU的forward共同域是连续同shape/device/dtype的FP32/FP1
 FP16 `4e-3`、BF16 `6.25e-2`报告Max/RMS。16M forward性能可被引用，F+B性能失败必须同时保留。
 FP32 backward的float4候选已经因0.946×–1.039×被删除；当前只保留scalar fused producer。
 任何新优化先检查output gradient的stride/storage，而不是重新引入已拒绝的向量selector。
+`swiglu_backward_scalar_seed_out_`只接受一个FP32元素、同device、连续且不alias，输出shape仍等于
+gate/up。PyTorch bridge只有在FP32 gradient `numel>0`且全部stride为0时使用；其他布局禁止偷读
+首元素。这个合同对应`sum()`广播，不代表mean或weighted backward。
 
 ## BF16 weight gradient
 

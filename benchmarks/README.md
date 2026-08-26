@@ -654,3 +654,15 @@ Measure the fused SwiGLU boundary against `torch.nn.functional.silu(gate) * up`:
 
 This matrix uses dtype-specific Max/RMS/loss gates and reports forward and
 forward+backward separately; a forward win never authorizes a training claim.
+
+Compare the same F+B matrix before and after the exact zero-stride scalar-seed route:
+
+```bash
+python3 benchmarks/single_gpu/compare_pytorch_swiglu_scalar_seed.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-custom-op-swiglu \
+  --candidate benchmarks/results/2026-08-26-pytorch-rocm-custom-op-swiglu-scalar-seed \
+  --output /tmp/microllm-swiglu-scalar-seed.json
+```
+
+The memory gate requires at least 99% peak reduction, exact gradients and no Event
+regression. It does not generalize the scalar-seed contract beyond all-zero strides.

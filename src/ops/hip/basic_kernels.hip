@@ -2439,6 +2439,19 @@ __global__ void swiglu_backward_kernel(const float* gate, const float* up,
     up_gradient[index] = gradient[index] * silu_value;
 }
 
+__global__ void swiglu_backward_scalar_seed_kernel(
+    const float* gate, const float* up, const float* scalar_gradient,
+    float* gate_gradient, float* up_gradient, std::int64_t elements) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (index >= elements) return;
+    const auto probability = sigmoid_device(gate[index]);
+    const auto silu_value = gate[index] * probability;
+    const auto gradient = scalar_gradient[0];
+    gate_gradient[index] = gradient * up[index] * probability *
+                           (1.0F + gate[index] * (1.0F - probability));
+    up_gradient[index] = gradient * silu_value;
+}
+
 __global__ void rope_backward_kernel(const float* gradient, float* input_gradient,
                                      std::int64_t pairs, std::int64_t head_width,
                                      std::int64_t sequence_size,
@@ -4589,6 +4602,18 @@ void launch_swiglu_backward(const float* gate, const float* up, const float* gra
                        0, as_stream(stream), gate, up, gradient, gate_gradient, up_gradient,
                        elements);
     check_launch("swiglu_backward_kernel");
+}
+
+void launch_swiglu_backward_scalar_seed(
+    const float* gate, const float* up, const float* scalar_gradient,
+    float* gate_gradient, float* up_gradient,
+    std::int64_t elements, void* stream) {
+    if (elements == 0) return;
+    hipLaunchKernelGGL(
+        swiglu_backward_scalar_seed_kernel, dim3(grid_size(elements)),
+        dim3(kBlockSize), 0, as_stream(stream), gate, up, scalar_gradient,
+        gate_gradient, up_gradient, elements);
+    check_launch("swiglu_backward_scalar_seed_kernel");
 }
 
 void launch_rope_backward(const float* gradient, float* input_gradient,

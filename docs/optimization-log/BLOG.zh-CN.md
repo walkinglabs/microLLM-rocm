@@ -5066,3 +5066,17 @@ promotion拒绝。下一次只隔离backward，不改forward结论。
 被`.contiguous()`物化成完整Tensor。下一节改layout合同，不再调packet。
 
 ![SwiGLU backward](assets/pytorch-rocm-swiglu-backward.svg)
+
+## 349. Experiment 333：不要把4字节广播梯度复制成4MB
+
+hook显示，`out.sum()`的gradient虽然shape等于out，但stride全0、storage只有4字节。旧bridge的
+`.contiguous()`在1M元素时先制造4MiB Tensor。mean和weighted gradient则本来就是连续完整量。
+
+新路由只识别FP32且所有stride为0的精确合同，传一个设备scalar给fused backward。64K/1M Event
+改善1.164×/1.081×，peak从263,680/4,195,840B降到1,536B，Max仍为4.77e-7。一般gradient
+继续旧路径。
+
+但最终F+B仍只有0.773×–0.781×Torch，所以物化是真问题，不是全部解释。下一次转向dispatcher/
+Autograd提交成本。
+
+![SwiGLU scalar seed](assets/pytorch-rocm-swiglu-scalar-seed.svg)

@@ -3556,6 +3556,26 @@ TEST(HipBackwardOpsTest, DeviceNativePrimitivesMatchCpuReference) {
     swiglu_backward_out_(
         caller_gate_gradient, caller_up_gradient, device_input, device_up,
         device_gradient);
+    const auto device_scalar_seed = Tensor::from_vector({0.5F}, {}).to(gpu);
+    Tensor scalar_seed_gate_gradient(input.shape(), DType::Float32, gpu);
+    Tensor scalar_seed_up_gradient(input.shape(), DType::Float32, gpu);
+    runtime::reset_transfer_stats();
+    swiglu_backward_scalar_seed_out_(
+        scalar_seed_gate_gradient, scalar_seed_up_gradient,
+        device_input, device_up, device_scalar_seed);
+    runtime::synchronize(gpu);
+    const auto scalar_seed_transfers = runtime::transfer_stats();
+    EXPECT_EQ(scalar_seed_transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(scalar_seed_transfers.device_to_host_calls, 0U);
+    const auto expanded_scalar_seed = Tensor::from_vector(
+        std::vector<float>(static_cast<std::size_t>(input.numel()), 0.5F),
+        input.shape());
+    const auto scalar_seed_reference = swiglu_backward(
+        input, up, expanded_scalar_seed);
+    expect_near(scalar_seed_gate_gradient.to_vector(),
+                scalar_seed_reference.first.to_vector(), 1.0e-6F);
+    expect_near(scalar_seed_up_gradient.to_vector(),
+                scalar_seed_reference.second.to_vector(), 1.0e-6F);
     const auto device_rope_gradient = rope_gradient.to(gpu);
     Tensor caller_rope_gradient(rope_gradient.shape(), DType::Float32, gpu);
     rope_backward_out_(caller_rope_gradient, device_rope_gradient);

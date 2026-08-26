@@ -1864,6 +1864,24 @@ TEST(CallerOwnedBackwardTest, CpuOutputsMatchAllocatingReferences) {
     const auto swiglu_reference = swiglu_backward(input, up, gradient);
     EXPECT_EQ(gate_gradient.to_vector(), swiglu_reference.first.to_vector());
     EXPECT_EQ(up_gradient.to_vector(), swiglu_reference.second.to_vector());
+    const auto scalar_seed = Tensor::from_vector({0.5F}, {});
+    Tensor scalar_gate_gradient(input.shape());
+    Tensor scalar_up_gradient(input.shape());
+    swiglu_backward_scalar_seed_out_(
+        scalar_gate_gradient, scalar_up_gradient, input, up, scalar_seed);
+    const auto expanded_seed = Tensor::from_vector(
+        std::vector<float>(static_cast<std::size_t>(input.numel()), 0.5F),
+        input.shape());
+    const auto scalar_reference = swiglu_backward(input, up, expanded_seed);
+    EXPECT_EQ(scalar_gate_gradient.to_vector(),
+              scalar_reference.first.to_vector());
+    EXPECT_EQ(scalar_up_gradient.to_vector(),
+              scalar_reference.second.to_vector());
+    EXPECT_THROW(
+        swiglu_backward_scalar_seed_out_(
+            scalar_gate_gradient, scalar_up_gradient, input, up,
+            Tensor::from_vector({1, 2}, {2})),
+        std::invalid_argument);
 
     const auto rope_gradient = Tensor::from_vector(
         {1, 2, 3, 4, -1, -2, -3, -4}, {1, 2, 1, 4});

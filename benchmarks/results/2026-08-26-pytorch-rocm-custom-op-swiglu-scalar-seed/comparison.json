@@ -1,0 +1,33 @@
+{
+  "correctness_pass": true,
+  "decision": "keep_scalar_seed_route",
+  "groups": [
+    {
+      "baseline_peak_extra_bytes": 263680.0,
+      "candidate_peak_extra_bytes": 1536.0,
+      "candidate_vs_baseline_event": 1.1641442311878003,
+      "elements": 65536,
+      "maximum_error": 4.76837158203125e-07,
+      "maximum_rms_error": 8.380592220191829e-08,
+      "native_event_ratio": 0.7727444782784323,
+      "peak_reduction_fraction": 0.9941747572815534,
+      "shape": "medium"
+    },
+    {
+      "baseline_peak_extra_bytes": 4195840.0,
+      "candidate_peak_extra_bytes": 1536.0,
+      "candidate_vs_baseline_event": 1.081465243723541,
+      "elements": 1048576,
+      "maximum_error": 4.76837158203125e-07,
+      "maximum_rms_error": 8.381711325000651e-08,
+      "native_event_ratio": 0.7805434275810035,
+      "peak_reduction_fraction": 0.999633923123856,
+      "shape": "large"
+    }
+  ],
+  "memory_gate_pass": true,
+  "performance_non_regression_pass": true,
+  "record_type": "pytorch_rocm_swiglu_scalar_seed_comparison",
+  "schema_version": 1,
+  "status": "pass"
+}

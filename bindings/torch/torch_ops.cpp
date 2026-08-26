@@ -208,6 +208,60 @@ std::tuple<at::Tensor, at::Tensor> meta_swiglu_backward(
     return {at::empty_like(gate), at::empty_like(up)};
 }
 
+std::tuple<at::Tensor, at::Tensor> swiglu_backward_scalar_seed(
+    const at::Tensor& gate, const at::Tensor& up,
+    const at::Tensor& scalar_gradient) {
+    TORCH_CHECK(gate.scalar_type() == at::kFloat &&
+                    up.scalar_type() == at::kFloat &&
+                    scalar_gradient.scalar_type() == at::kFloat,
+                "SwiGLU scalar-seed backward requires float32 tensors");
+    TORCH_CHECK(gate.sizes() == up.sizes(),
+                "SwiGLU scalar-seed backward input shapes must match");
+    TORCH_CHECK(scalar_gradient.numel() == 1,
+                "SwiGLU scalar-seed backward requires one gradient element");
+    TORCH_CHECK(gate.device() == up.device() &&
+                    gate.device() == scalar_gradient.device(),
+                "SwiGLU scalar-seed backward devices must match");
+    TORCH_CHECK(gate.is_contiguous() && up.is_contiguous() &&
+                    scalar_gradient.is_contiguous(),
+                "SwiGLU scalar-seed backward tensors must be contiguous");
+    auto gate_gradient = at::empty_like(gate);
+    auto up_gradient = at::empty_like(up);
+    if (gate.numel() == 0) {
+        return {std::move(gate_gradient), std::move(up_gradient)};
+    }
+    auto gate_gradient_tensor = external_tensor(gate_gradient);
+    auto up_gradient_tensor = external_tensor(up_gradient);
+    const auto gate_tensor = external_tensor(gate);
+    const auto up_tensor = external_tensor(up);
+    const auto scalar_gradient_tensor = external_tensor(scalar_gradient);
+    const auto context = gate.device().is_cpu()
+                             ? microllm::ops::OpContext{}
+                             : microllm::ops::OpContext::from_external_stream(
+                                   microllm_device(gate), current_stream(gate));
+    microllm::ops::swiglu_backward_scalar_seed_out_(
+        gate_gradient_tensor, up_gradient_tensor, gate_tensor, up_tensor,
+        scalar_gradient_tensor, context);
+    return {std::move(gate_gradient), std::move(up_gradient)};
+}
+
+std::tuple<at::Tensor, at::Tensor> meta_swiglu_backward_scalar_seed(
+    const at::Tensor& gate, const at::Tensor& up,
+    const at::Tensor& scalar_gradient) {
+    TORCH_CHECK(gate.scalar_type() == at::kFloat &&
+                    up.scalar_type() == at::kFloat &&
+                    scalar_gradient.scalar_type() == at::kFloat,
+                "SwiGLU scalar-seed backward requires float32 tensors");
+    TORCH_CHECK(gate.sizes() == up.sizes(),
+                "SwiGLU scalar-seed backward input shapes must match");
+    TORCH_CHECK(scalar_gradient.numel() == 1,
+                "SwiGLU scalar-seed backward requires one gradient element");
+    TORCH_CHECK(gate.device() == up.device() &&
+                    gate.device() == scalar_gradient.device(),
+                "SwiGLU scalar-seed backward devices must match");
+    return {at::empty_like(gate), at::empty_like(up)};
+}
+
 }  // namespace
 
 TORCH_LIBRARY(microllm, library) {
@@ -216,6 +270,8 @@ TORCH_LIBRARY(microllm, library) {
     library.def("swiglu(Tensor gate, Tensor up) -> Tensor");
     library.def(
         "swiglu_backward(Tensor gate, Tensor up, Tensor gradient) -> (Tensor, Tensor)");
+    library.def(
+        "swiglu_backward_scalar_seed(Tensor gate, Tensor up, Tensor scalar_gradient) -> (Tensor, Tensor)");
 }
 
 TORCH_LIBRARY_IMPL(microllm, CPU, library) {
@@ -223,6 +279,7 @@ TORCH_LIBRARY_IMPL(microllm, CPU, library) {
     library.impl("multiply", &multiply);
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
+    library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
 }
 
 TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
@@ -230,6 +287,7 @@ TORCH_LIBRARY_IMPL(microllm, CUDA, library) {
     library.impl("multiply", &multiply);
     library.impl("swiglu", &swiglu);
     library.impl("swiglu_backward", &swiglu_backward);
+    library.impl("swiglu_backward_scalar_seed", &swiglu_backward_scalar_seed);
 }
 
 TORCH_LIBRARY_IMPL(microllm, Meta, library) {
@@ -237,4 +295,6 @@ TORCH_LIBRARY_IMPL(microllm, Meta, library) {
     library.impl("multiply", &meta_binary);
     library.impl("swiglu", &meta_binary);
     library.impl("swiglu_backward", &meta_swiglu_backward);
+    library.impl(
+        "swiglu_backward_scalar_seed", &meta_swiglu_backward_scalar_seed);
 }

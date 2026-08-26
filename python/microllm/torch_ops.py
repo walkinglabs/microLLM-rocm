@@ -33,6 +33,11 @@ def _register_formulas() -> None:
         gate, up = ctx.saved_tensors
         if gate.dtype == torch.float32:
             with torch.no_grad():
+                if gradient.numel() != 0 and all(
+                        stride == 0 for stride in gradient.stride()):
+                    scalar_gradient = gradient.as_strided((1,), (0,))
+                    return torch.ops.microllm.swiglu_backward_scalar_seed(
+                        gate.detach(), up.detach(), scalar_gradient.detach())
                 return torch.ops.microllm.swiglu_backward(
                     gate.detach(), up.detach(), gradient.contiguous().detach())
         probability = torch.sigmoid(gate)

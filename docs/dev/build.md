@@ -145,6 +145,8 @@ compile and current-Stream execution are covered by the test above.
 The same test covers the fused `torch.ops.microllm.swiglu` forward, Meta and Autograd
 contracts. Its internal backward schema is an implementation detail of the Python
 Autograd registration; call the public `microllm.torch_ops.swiglu` wrapper.
+Its FP32 sum-backward path recognizes PyTorch's zero-stride expanded scalar and avoids
+materializing it. This is a layout contract inside the wrapper, not a user-facing flag.
 
 ## RCCL build
 
