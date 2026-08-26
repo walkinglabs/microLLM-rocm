@@ -1050,6 +1050,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Finalize gap SVG](../../benchmarks/results/2026-08-26-finalize-architecture-gap-audit/finalize-gap.svg) | 当前/旧mapping/native128架构对照 |
 | [experiments/324-native128-finalize-reject.md](experiments/324-native128-finalize-reject.md) | accuracy通过但T2048约1.003×的反例 |
 | [Native128 SVG](../../benchmarks/results/2026-08-26-native128-finalize/native128.svg) | 16进程Event/wall/精度矩阵 |
+| [experiments/325-grouped-gate-up-row2.md](experiments/325-grouped-gate-up-row2.md) | 当前decode rows2 grouped GEMM空白 |
+| [Grouped rows2 SVG](../../benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/grouped-row2.svg) | 三轮Event/wall与稳定性 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

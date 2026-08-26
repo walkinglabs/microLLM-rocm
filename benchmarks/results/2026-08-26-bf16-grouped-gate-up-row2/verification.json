@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "experiment": 325,
+  "status": "pass",
+  "measurement_commit": "b59e997b5870aeb1b2ac961e64c29ee1941a3f07",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942",
+  "rows": 2,
+  "runs_per_model": 3,
+  "warmup": 2,
+  "repetitions": 10,
+  "passing_candidates_per_process": 64,
+  "correctness_before_timing": true
+}

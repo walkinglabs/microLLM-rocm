@@ -4983,4 +4983,9 @@ native128完整输出16/16通过，但T2048 Event/wall只有约1.003×，0/4过�
 
 清理提交随后删除API、Kernel、benchmark flag和runner，current256路径保持不变。
 
+## 342. Experiment 325：旧grouped矩阵漏了decode rows2
+
+DeepSeek B2 decode每步只有2行。三轮rows2 probe中solution65193稳定、64/64 exact，Event/wall为
+1.814/1.519×。下一步只做固定T2048/B2/N64模型门。
+
 ![Native128 result](../../benchmarks/results/2026-08-26-native128-finalize/native128.svg)

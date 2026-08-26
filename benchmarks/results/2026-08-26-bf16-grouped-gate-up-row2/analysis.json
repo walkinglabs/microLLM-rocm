@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "experiment": 325,
+  "status": "deepseek_rows2_operator_admitted_for_model_gate",
+  "rows": 2,
+  "groups": 2,
+  "qwen_event_speedup": 1.652163355239,
+  "qwen_wall_speedup": 1.361286269962,
+  "qwen_solution_indices": [64699, 64700, 65194],
+  "deepseek_event_speedup": 1.814294708339,
+  "deepseek_wall_speedup": 1.519113737075,
+  "deepseek_solution_indices": [65193],
+  "deepseek_maximum_error": 0.0,
+  "next_experiment": "Extend the existing pointer-stable Arena grouped route to cached decode rows2 and run a DeepSeek T2048/B2/N64 model gate."
+}

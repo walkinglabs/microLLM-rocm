@@ -49,6 +49,8 @@ def main() -> int:
         "old 128 mapping emulated 256 logical lanes",
         "T2048 Event/wall ≈1.003×",
         "0/4 performance cases pass",
+        "stable 65193",
+        "Event/wall 1.814×/1.519×",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",
@@ -170,6 +172,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-native128-finalize/analysis.json",
         "benchmarks/results/2026-08-26-native128-finalize/verification.json",
         "benchmarks/results/2026-08-26-native128-finalize/native128.svg",
+        "benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/summary.json",
+        "benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/analysis.json",
+        "benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/verification.json",
+        "benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2/grouped-row2.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -330,6 +336,14 @@ def main() -> int:
     assert native["t2048_performance_pass_count"] == 0
     assert native["candidate_admitted"] is False
     ET.parse(native_root / "native128.svg")
+    grouped_root = ROOT / (
+        "benchmarks/results/2026-08-26-bf16-grouped-gate-up-row2")
+    grouped = json.loads(
+        (grouped_root / "summary.json").read_text(encoding="utf-8"))
+    grouped_rows = {row["model"]: row for row in grouped["comparisons"]}
+    assert grouped_rows["deepseek"]["solution_indices"] == [65193]
+    assert len(grouped_rows["qwen"]["solution_indices"]) > 1
+    ET.parse(grouped_root / "grouped-row2.svg")
     assert not (ROOT / "benchmarks/single_gpu/native128_finalize_matrix.py").exists()
     native_sources = "\n".join(
         (ROOT / relative).read_text(encoding="utf-8")

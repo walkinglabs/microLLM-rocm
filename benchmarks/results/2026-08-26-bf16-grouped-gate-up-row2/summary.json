@@ -1,0 +1,54 @@
+{
+  "capability_gate": true,
+  "comparisons": [
+    {
+      "algorithm_count": 10227,
+      "event_speedup_median": 1.652163355239,
+      "groups": 2,
+      "maximum_absolute_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "model": "qwen",
+      "passing_candidates": 64,
+      "reinitialized_event_speedup_median": 0.822564650161,
+      "reinitialized_wall_speedup_median": 0.879109372835,
+      "rows": 2,
+      "solution_indices": [
+        64699,
+        64700,
+        65194
+      ],
+      "user_arguments_event_speedup_median": 1.646845886567,
+      "user_arguments_setup_ms_median": 0.045842,
+      "user_arguments_wall_speedup_median": 1.335506044086,
+      "wall_speedup_median": 1.361286269962,
+      "workspace_bytes": 480
+    },
+    {
+      "algorithm_count": 10227,
+      "event_speedup_median": 1.814294708339,
+      "groups": 2,
+      "maximum_absolute_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "model": "deepseek",
+      "passing_candidates": 64,
+      "reinitialized_event_speedup_median": 1.03179476005,
+      "reinitialized_wall_speedup_median": 1.048687067582,
+      "rows": 2,
+      "solution_indices": [
+        65193
+      ],
+      "user_arguments_event_speedup_median": 1.814568795919,
+      "user_arguments_setup_ms_median": 0.045803,
+      "user_arguments_wall_speedup_median": 1.485716493153,
+      "wall_speedup_median": 1.519113737075,
+      "workspace_bytes": 480
+    }
+  ],
+  "decision": "continue to pointer-stable FFN Arena model gate",
+  "gate_swish": false,
+  "raw_processes": 6,
+  "record_type": "bf16_grouped_gate_up_matrix_summary",
+  "reinitialization_counterexample_gate": false,
+  "schema_version": 1,
+  "status": "pass"
+}

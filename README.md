@@ -46,7 +46,9 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > tested native128 in 16 complete-output processes. Accuracy passes, but T2048
 > Event/wall improve only about `1.003x`; 0/4 cases pass the performance gate.
 > The candidate and runner have been removed, and cached-finalize local search is
-> closed. The next gap audit targets current GEMM `33.25%`.
+> closed. The GEMM audit finds an unmeasured decode rows2 grouped gate/up shape:
+> DeepSeek is exact at `1.814x` Event / `1.519x` wall with stable solution 65193.
+> It proceeds only to a fixed T2048/B2/N64 model gate.
 > See the [native128 rejection](docs/optimization-log/experiments/324-native128-finalize-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures

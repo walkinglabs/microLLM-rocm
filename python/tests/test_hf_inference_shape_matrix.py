@@ -161,6 +161,25 @@ FFN_DOWN_SPEC.loader.exec_module(FFN_DOWN)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_grouped_gate_up_rows2_selects_deepseek_only(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-bf16-grouped-gate-up-row2")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        raw = [json.loads(line) for line in
+               (root / "raw.jsonl").read_text(encoding="utf-8").splitlines()
+               if line]
+        self.assertEqual(len(raw), 6)
+        self.assertTrue(summary["capability_gate"])
+        rows = {row["model"]: row for row in summary["comparisons"]}
+        self.assertEqual(rows["deepseek"]["solution_indices"], [65193])
+        self.assertGreater(rows["deepseek"]["event_speedup_median"], 1.8)
+        self.assertGreater(rows["deepseek"]["wall_speedup_median"], 1.5)
+        self.assertEqual(rows["deepseek"]["maximum_absolute_error"], 0.0)
+        self.assertGreater(len(rows["qwen"]["solution_indices"]), 1)
+        self.assertEqual(analysis["deepseek_solution_indices"], [65193])
+        ET.parse(root / "grouped-row2.svg")
+
     def test_current_native128_finalize_is_rejected(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-native128-finalize")
