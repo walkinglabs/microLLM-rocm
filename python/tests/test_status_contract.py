@@ -39,6 +39,8 @@ def main() -> int:
         "RMS worsens 5.8%",
         "down first drifts at Max 1.05e-5–1.72e-5",
         "K8960/N1536 down solution matrix",
+        "only 296100 block-exact",
+        "speedups 0.506×/0.758×/0.686×/0.863×",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -143,6 +145,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-post-exact-gate-up-ffn-trace/analysis.json",
         "benchmarks/results/2026-08-26-post-exact-gate-up-ffn-trace/verification.json",
         "benchmarks/results/2026-08-26-post-exact-gate-up-ffn-trace/post-exact-gate-up-trace.svg",
+        "benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/summary.json",
+        "benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/analysis.json",
+        "benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/verification.json",
+        "benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/ffn-down-row-invariance.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -270,6 +276,13 @@ def main() -> int:
     assert post_gate_up["process_rows"] == 8
     assert post_gate_up["binary_files_retained"] == 0
     ET.parse(post_gate_up_root / "post-exact-gate-up-trace.svg")
+    down_root = ROOT / (
+        "benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance")
+    down = json.loads((down_root / "summary.json").read_text(encoding="utf-8"))
+    assert down["block_invariant_indices"] == [296100]
+    assert down["performance_admitted_count"] == 0
+    assert down["recommended_index"] == -1
+    ET.parse(down_root / "ffn-down-row-invariance.svg")
     for removed in (
         "benchmarks/single_gpu/fp32_prefill_ffn_model_gate.py",
         "benchmarks/single_gpu/fp32_prefill_ffn_all_exact_gate.py",

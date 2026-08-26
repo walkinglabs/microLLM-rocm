@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: FP32 FFN down rejection](2026-08-26-fp32-ffn-down-reject.md)
 - [2026-08-26: FP32 FFN down runner](2026-08-26-fp32-ffn-down-runner.md)
 - [2026-08-26: Rejected FFN route cleanup](2026-08-26-prefill-ffn-route-cleanup.md)
 - [2026-08-26: Down after exact gate/up](2026-08-26-post-exact-gate-up-down.md)

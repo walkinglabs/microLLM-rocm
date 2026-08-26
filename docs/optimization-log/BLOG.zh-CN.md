@@ -4945,3 +4945,13 @@ runner，再筛down的K8960/N1536 operator descriptor。
 
 失败route随后按合同删除：CLI、model scope和三个candidate runner不再存在；通用operator矩阵、filtered
 trace和raw证据保留。下一步从clean upstream筛down descriptor。
+
+## 338. Experiment 321：down exact最差只有0.506×
+
+K8960/N1536有15个共同候选，唯一block exact仍是296100，但四个M只有
+0.506/0.758/0.686/0.863×。候选不进入模型门，down vendor线关闭。
+
+数值row-order链到此停止。下一步从clean upstream重跑DeepSeek T2048/B2/N64和rocprof，只有当前最大
+热点才能成为新目标。
+
+![FFN down row invariance](../../benchmarks/results/2026-08-26-fp32-ffn-down-row-invariance/ffn-down-row-invariance.svg)

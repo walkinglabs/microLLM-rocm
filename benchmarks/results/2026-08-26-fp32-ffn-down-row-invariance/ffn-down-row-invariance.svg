@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1510" height="560" viewBox="0 0 1510 560">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:11px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">FP32 FFN down row invariance</text>
+<text x="30" y="62" class="muted">M2048/4096/8192/16384 · K8960 · N1536 · exact before timing</text>
+<rect x="95" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="131" y="129" class="label" text-anchor="middle">292090</text>
+<text x="131" y="150" class="label" text-anchor="middle">drift</text>
+<text x="131" y="170" class="label" text-anchor="middle">0.492x</text>
+<rect x="182" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="218" y="129" class="label" text-anchor="middle">292221</text>
+<text x="218" y="150" class="label" text-anchor="middle">drift</text>
+<text x="218" y="170" class="label" text-anchor="middle">0.287x</text>
+<rect x="269" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="305" y="129" class="label" text-anchor="middle">295518</text>
+<text x="305" y="150" class="label" text-anchor="middle">drift</text>
+<text x="305" y="170" class="label" text-anchor="middle">0.355x</text>
+<rect x="356" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="392" y="129" class="label" text-anchor="middle">295621</text>
+<text x="392" y="150" class="label" text-anchor="middle">drift</text>
+<text x="392" y="170" class="label" text-anchor="middle">0.317x</text>
+<rect x="443" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="479" y="129" class="label" text-anchor="middle">296014</text>
+<text x="479" y="150" class="label" text-anchor="middle">drift</text>
+<text x="479" y="170" class="label" text-anchor="middle">0.419x</text>
+<rect x="530" y="105" width="72" height="78" rx="6" fill="#92400e"/>
+<text x="566" y="129" class="label" text-anchor="middle">296100</text>
+<text x="566" y="150" class="label" text-anchor="middle">exact</text>
+<text x="566" y="170" class="label" text-anchor="middle">0.506x</text>
+<rect x="617" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="653" y="129" class="label" text-anchor="middle">296105</text>
+<text x="653" y="150" class="label" text-anchor="middle">drift</text>
+<text x="653" y="170" class="label" text-anchor="middle">0.329x</text>
+<rect x="704" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="740" y="129" class="label" text-anchor="middle">296171</text>
+<text x="740" y="150" class="label" text-anchor="middle">drift</text>
+<text x="740" y="170" class="label" text-anchor="middle">0.355x</text>
+<rect x="791" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="827" y="129" class="label" text-anchor="middle">300532</text>
+<text x="827" y="150" class="label" text-anchor="middle">drift</text>
+<text x="827" y="170" class="label" text-anchor="middle">0.225x</text>
+<rect x="878" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="914" y="129" class="label" text-anchor="middle">300533</text>
+<text x="914" y="150" class="label" text-anchor="middle">drift</text>
+<text x="914" y="170" class="label" text-anchor="middle">0.263x</text>
+<rect x="965" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="1001" y="129" class="label" text-anchor="middle">300587</text>
+<text x="1001" y="150" class="label" text-anchor="middle">drift</text>
+<text x="1001" y="170" class="label" text-anchor="middle">0.255x</text>
+<rect x="1052" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="1088" y="129" class="label" text-anchor="middle">300660</text>
+<text x="1088" y="150" class="label" text-anchor="middle">drift</text>
+<text x="1088" y="170" class="label" text-anchor="middle">0.271x</text>
+<rect x="1139" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="1175" y="129" class="label" text-anchor="middle">300662</text>
+<text x="1175" y="150" class="label" text-anchor="middle">drift</text>
+<text x="1175" y="170" class="label" text-anchor="middle">0.211x</text>
+<rect x="1226" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="1262" y="129" class="label" text-anchor="middle">300663</text>
+<text x="1262" y="150" class="label" text-anchor="middle">drift</text>
+<text x="1262" y="170" class="label" text-anchor="middle">0.198x</text>
+<rect x="1313" y="105" width="72" height="78" rx="6" fill="#7f1d1d"/>
+<text x="1349" y="129" class="label" text-anchor="middle">300666</text>
+<text x="1349" y="150" class="label" text-anchor="middle">drift</text>
+<text x="1349" y="170" class="label" text-anchor="middle">0.244x</text>
+<text x="40" y="520" class="muted">exact 1 · performance-admitted 0 · recommended -1</text>
+</svg>

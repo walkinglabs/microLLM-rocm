@@ -161,6 +161,33 @@ FFN_DOWN_SPEC.loader.exec_module(FFN_DOWN)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_ffn_down_solution_matrix_rejects_exact_candidate(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-ffn-down-row-invariance")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in
+               (root / "raw.jsonl").read_text(encoding="utf-8").splitlines()
+               if line]
+        self.assertEqual(summary["record_type"],
+                         "fp32_ffn_down_row_invariance_matrix")
+        self.assertEqual((summary["inner"], summary["columns"]), (8960, 1536))
+        self.assertEqual((len(raw), summary["common_candidate_count"]), (15, 15))
+        self.assertEqual(summary["block_invariant_indices"], [296100])
+        self.assertEqual(summary["performance_admitted_count"], 0)
+        self.assertEqual(summary["recommended_index"], -1)
+        exact = next(row for row in summary["candidates"]
+                     if row["index"] == 296100)
+        self.assertEqual(exact["speedup_vs_default"], [
+            0.506474504, 0.758019906, 0.6860566, 0.862578057])
+        self.assertAlmostEqual(exact["minimum_speedup"], 0.506474504)
+        self.assertFalse(analysis["model_gate_required"])
+        self.assertTrue(verification["focused_gates"][
+            "rejected_gate_up_route_absent"])
+        ET.parse(root / "ffn-down-row-invariance.svg")
+
     def test_ffn_down_runner_uses_clean_real_descriptor(self):
         self.assertEqual(FFN_DOWN.BASE.ROWS, [2048, 4096, 8192, 16384])
         self.assertEqual(FFN_DOWN.BASE.INNER, 8960)

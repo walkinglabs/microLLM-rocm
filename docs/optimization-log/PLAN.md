@@ -165,7 +165,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [134](steps/134-prefill-ffn-gate-up-model.md) | complete; rejected | B1/B2/B8 exact gate+up整模门 | 性能/Max过，RMS仅改善3.3% |
 | [135](steps/135-prefill-ffn-all-exact-model.md) | complete; rejected, track closed | all-batch exact gate+up最终反驳 | 性能过；Max+35.5%，RMS恶化5.8% |
 | [136](steps/136-post-exact-gate-up-trace-cleanup.md) | complete | exact gate/up后的首差与route清理 | down首差；候选CLI/scope/runner已删 |
-| [137](steps/137-fp32-ffn-down-solutions.md) | planned; cleanup complete | M2048–16384 down共同FP32 solution | K8960/N1536；先exact再计时 |
+| [137](steps/137-fp32-ffn-down-solutions.md) | complete; rejected, track closed | M2048–16384 down共同FP32 solution | exact仅296100；最差0.506× |
+| [138](steps/138-clean-upstream-long-context-profile.md) | planned | clean T2048/B2/N64基线与profile | 只从当前最大热点选下一目标 |
 
 ## 为什么按这个顺序
 

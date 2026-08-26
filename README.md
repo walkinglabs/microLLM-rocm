@@ -39,13 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 320 uses exact Attention plus
-> exact gate/up as a diagnostic control. FFN norm, gate, up, and SwiGLU become
-> bitwise equal across and within batches; down projection is the first drift
-> (Max `1.05e-5–1.72e-5`). The rejected gate/up CLI/model route and candidate
-> runners have been removed. The next operator screen targets `K8960/N1536`
-> down projection without inheriting the failed route.
-> See the [post-exact gate/up trace](docs/optimization-log/experiments/320-post-exact-gate-up-down.md).
+> **Current optimization checkpoint:** Experiment 321 screens the clean
+> `K8960/N1536` down descriptor. Only `296100` is repeated-block exact, but its
+> M2048/4096/8192/16384 speedups are `0.506/0.758/0.686/0.863x`; it is rejected
+> without a model route. The row-order solution track is closed. The next node
+> refreshes the clean-upstream T2048/B2/N64 baseline and profile.
+> See the [down solution rejection](docs/optimization-log/experiments/321-fp32-ffn-down-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

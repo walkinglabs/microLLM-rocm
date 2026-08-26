@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "experiment": 321,
+  "status": "pass",
+  "build_type": "Release",
+  "runner_commit": "48865bb042255cde9d4f3364f7152b169a7b8eb7",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942",
+  "rows": [2048, 4096, 8192, 16384],
+  "inner": 8960,
+  "columns": 1536,
+  "workspace_limit_bytes": 33554432,
+  "correctness_before_timing": true,
+  "focused_gates": {
+    "python_contracts": "72/72",
+    "real_candidate_rows": 15,
+    "real_exact_rows": 1,
+    "rejected_gate_up_route_absent": true
+  },
+  "claims_not_made": [
+    "296100 is not admitted for down projection.",
+    "No down model scope or model runner is added.",
+    "The numerical ordering track is not treated as a performance optimization."
+  ]
+}
