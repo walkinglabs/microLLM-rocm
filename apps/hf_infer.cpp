@@ -75,6 +75,7 @@ struct Options {
     bool fp8_linear = false;
     bool int8_linear = false;
     std::string int8_weight_scale_mode = "tensor-amax";
+    std::string int8_weight_scope = "all-linear";
     float fp8_activation_scale = 0.025F;
     float fp8_activation_minimum_scale = 1.0e-4F;
     float fp8_weight_scale = 0.005F;
@@ -256,6 +257,9 @@ Options options(int argc, char** argv) {
         }
         else if (name == "--int8-weight-scale-mode") {
             result.int8_weight_scale_mode = argv[index + 1];
+        }
+        else if (name == "--int8-weight-scope") {
+            result.int8_weight_scope = argv[index + 1];
         }
         else if (name == "--fp8-activation-scale") {
             result.fp8_activation_scale = std::stof(argv[index + 1]);
@@ -600,6 +604,13 @@ Options options(int argc, char** argv) {
         result.int8_weight_scale_mode != "output-column-amax") {
         throw std::invalid_argument(
             "--int8-weight-scale-mode must be tensor-amax or output-column-amax");
+    }
+    if (result.int8_weight_scope != "all-linear" &&
+        result.int8_weight_scope != "ffn-only" &&
+        result.int8_weight_scope != "attention-only" &&
+        result.int8_weight_scope != "output-head-only") {
+        throw std::invalid_argument(
+            "--int8-weight-scope must be all-linear, ffn-only, attention-only, or output-head-only");
     }
     if (result.fp8_weight_scale_mode != "fixed" &&
         result.fp8_weight_scale_mode != "tensor-amax" &&
@@ -1610,7 +1621,14 @@ int main(int argc, char** argv) {
             int8_report = model.prepare_int8_inference_weights(
                 command.int8_weight_scale_mode == "output-column-amax"
                     ? microllm::model::Int8WeightScaleMode::OutputColumnAmax
-                    : microllm::model::Int8WeightScaleMode::TensorAmax);
+                    : microllm::model::Int8WeightScaleMode::TensorAmax,
+                command.int8_weight_scope == "ffn-only"
+                    ? microllm::model::Int8WeightScope::FfnOnly
+                    : command.int8_weight_scope == "attention-only"
+                          ? microllm::model::Int8WeightScope::AttentionOnly
+                          : command.int8_weight_scope == "output-head-only"
+                                ? microllm::model::Int8WeightScope::OutputHeadOnly
+                                : microllm::model::Int8WeightScope::AllLinear);
         }
         microllm::runtime::synchronize(device);
         const auto preparation_finish = std::chrono::steady_clock::now();
@@ -1945,6 +1963,8 @@ int main(int argc, char** argv) {
                       << (command.int8_linear ? "true" : "false")
                       << ",\"int8_weight_scale_mode\":\""
                       << command.int8_weight_scale_mode << "\""
+                      << ",\"int8_weight_scope\":\""
+                      << command.int8_weight_scope << "\""
                       << ",\"int8_device_weight_bytes_scanned\":"
                       << int8_report.device_weight_bytes_scanned
                       << ",\"int8_device_amax_tensors\":"
@@ -2782,6 +2802,8 @@ int main(int argc, char** argv) {
                   << (command.int8_linear ? "true" : "false")
                   << ",\"int8_weight_scale_mode\":\""
                   << command.int8_weight_scale_mode << "\""
+                  << ",\"int8_weight_scope\":\""
+                  << command.int8_weight_scope << "\""
                   << ",\"int8_weight_bytes_retained\":"
                   << int8_report.int8_bytes_retained
                   << ",\"int8_scale_bytes_retained\":"

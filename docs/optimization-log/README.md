@@ -1114,6 +1114,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Official INT8 reject SVG](assets/official-int8-device-amax-reject.svg) | 准备/显存收益和完整logits反例 |
 | [experiments/357-official-int8-column-reject.md](experiments/357-official-int8-column-reject.md) | 逐输出通道改善与最终官方精度拒绝 |
 | [INT8 column reject SVG](assets/official-int8-column-reject.svg) | 完整logits和token停止门 |
+| [experiments/358-official-int8-scope-matrix.md](experiments/358-official-int8-scope-matrix.md) | FFN/Attention混合精度隔离 |
+| [INT8 scope SVG](assets/official-int8-scope-matrix.svg) | 固定Max/RMS/token门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -1016,10 +1016,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 420/420 | host code, CLI, model/graph, scalar/column INT8 preparation, benchmark and package gates |
-| ASan/UBSan CPU | 417/417 | host lifetime, scalar/column scale state, one-way model state and package linking |
+| CPU Debug | 421/421 | host code, CLI, model/graph, scoped INT8 preparation, benchmark and package gates |
+| ASan/UBSan CPU | 418/418 | host lifetime, scoped scale state, one-way model state and package linking |
 | MI300X/gfx942 HIP label | 211/211 | allocator/arena/Stream/Graph, device scalar/column INT8 preparation and rejected model route |
-| PyTorch-enabled CPU build | 421/421 | dispatcher parity, INT8 column/model oracle, optimizer state, full graph/model oracle and package paths |
+| PyTorch-enabled CPU build | 422/422 | dispatcher parity, INT8 scope/model oracle, optimizer state, full graph/model oracle and package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
 | Registered test files | 156 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
@@ -1255,6 +1255,9 @@ route at complete-logit Max/RMS 15.203/3.467 and changed tokens.
 [Experiment 357](docs/optimization-log/experiments/357-official-int8-column-reject.md) improves
 Max/RMS to 5.061/1.286 with output-column scales but still changes Qwen argmax/token; the current
 official weight-only INT8 precision line is closed.
+[Experiment 358](docs/optimization-log/experiments/358-official-int8-scope-matrix.md) rejects
+FFN-only at Max/RMS 5.153/1.294 and withholds token-exact Attention-only at 0.161/0.0346 pending
+one final QKV/O split against the fixed 0.1/0.02 gate.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

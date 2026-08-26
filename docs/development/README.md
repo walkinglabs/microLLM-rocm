@@ -713,3 +713,5 @@ the next gate. Records are append-only except for factual corrections.
   keeps zero-D2H preparation while rejecting official Qwen on complete logits and tokens.
 - [2026-08-26-official-int8-column-scale.md](2026-08-26-official-int8-column-scale.md):
   retains column primitives but closes the current official weight-only INT8 precision line.
+- [2026-08-26-official-int8-scope-matrix.md](2026-08-26-official-int8-scope-matrix.md):
+  rejects FFN and withholds Attention pending one final QKV/O decomposition.

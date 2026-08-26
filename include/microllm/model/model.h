@@ -74,6 +74,7 @@ struct Int8WeightPreparationReport {
     std::size_t device_amax_tensors = 0;
 };
 enum class Int8WeightScaleMode { TensorAmax, OutputColumnAmax };
+enum class Int8WeightScope { AllLinear, FfnOnly, AttentionOnly, OutputHeadOnly };
 
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 
@@ -221,7 +222,8 @@ public:
     [[nodiscard]] Fp8WeightPreparationReport prepare_fp8_inference_weights();
     [[nodiscard]] bool fp8_inference_weights_prepared() const noexcept;
     [[nodiscard]] Int8WeightPreparationReport prepare_int8_inference_weights(
-        Int8WeightScaleMode scale_mode = Int8WeightScaleMode::TensorAmax);
+        Int8WeightScaleMode scale_mode = Int8WeightScaleMode::TensorAmax,
+        Int8WeightScope scope = Int8WeightScope::AllLinear);
     [[nodiscard]] bool int8_inference_weights_prepared() const noexcept;
     // Creates persistent BF16 forward mirrors for every Linear FP32 master.
     // Mirrors are derived runtime state and must be prepared after loading/restoring.

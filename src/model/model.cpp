@@ -2243,9 +2243,16 @@ public:
         attention_.move_fp8_inference_scales(device);
         feed_forward_.move_fp8_inference_scales(device);
     }
-    void append_int8_inference_linears(std::vector<Linear*>& linears) {
-        attention_.append_int8_inference_linears(linears);
-        feed_forward_.append_int8_inference_linears(linears);
+    void append_int8_inference_linears(std::vector<Linear*>& linears,
+                                       Int8WeightScope scope) {
+        if (scope == Int8WeightScope::AllLinear ||
+            scope == Int8WeightScope::AttentionOnly) {
+            attention_.append_int8_inference_linears(linears);
+        }
+        if (scope == Int8WeightScope::AllLinear ||
+            scope == Int8WeightScope::FfnOnly) {
+            feed_forward_.append_int8_inference_linears(linears);
+        }
     }
     void move_int8_inference_scales(Device device) {
         attention_.move_int8_inference_scales(device);
@@ -3467,7 +3474,7 @@ bool TransformerModel::fp8_inference_weights_prepared() const noexcept {
 }
 
 Int8WeightPreparationReport TransformerModel::prepare_int8_inference_weights(
-    Int8WeightScaleMode scale_mode) {
+    Int8WeightScaleMode scale_mode, Int8WeightScope scope) {
     if (!impl_->parameters_initialized || impl_->int8_inference_prepared ||
         impl_->fp8_inference_prepared || impl_->bf16_ffn_prepared ||
         impl_->bf16_attention_prepared ||
@@ -3480,9 +3487,17 @@ Int8WeightPreparationReport TransformerModel::prepare_int8_inference_weights(
     linears.reserve(impl_->blocks.size() * 7U +
                     (impl_->output_head ? 1U : 0U));
     for (auto& block : impl_->blocks) {
-        block->append_int8_inference_linears(linears);
+        block->append_int8_inference_linears(linears, scope);
     }
-    if (impl_->output_head) linears.push_back(impl_->output_head.get());
+    if (impl_->output_head &&
+        (scope == Int8WeightScope::AllLinear ||
+         scope == Int8WeightScope::OutputHeadOnly)) {
+        linears.push_back(impl_->output_head.get());
+    }
+    if (linears.empty()) {
+        throw std::invalid_argument(
+            "selected INT8 scope contains no Linear weights");
+    }
 
     std::vector<ops::Int8ScaledTensor> candidates;
     candidates.reserve(linears.size());

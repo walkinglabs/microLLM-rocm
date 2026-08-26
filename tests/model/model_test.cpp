@@ -798,6 +798,34 @@ TEST(TransformerModelTest, Int8OutputColumnPreparationRetainsOneScalePerOutput) 
     EXPECT_EQ(logits.shape(), (Shape{1, 1, 16}));
 }
 
+TEST(TransformerModelTest, Int8MixedPrecisionScopesCoverOnlyRequestedLinears) {
+    for (const auto& [scope, expected] :
+         {std::pair{Int8WeightScope::FfnOnly, 3U},
+          std::pair{Int8WeightScope::AttentionOnly, 4U},
+          std::pair{Int8WeightScope::OutputHeadOnly, 1U}}) {
+        TransformerModel model(tiny_config(), 29);
+        const auto report = model.prepare_int8_inference_weights(
+            Int8WeightScaleMode::OutputColumnAmax, scope);
+        EXPECT_EQ(report.linears_covered, expected);
+        std::size_t actual = 0;
+        for (const auto& [name, parameter] : model.named_parameters()) {
+            (void)name;
+            if (parameter->data().dtype() == DType::Int8) ++actual;
+        }
+        EXPECT_EQ(actual, expected);
+        EXPECT_EQ(model.forward_inference(
+                      Tensor::from_int32_vector({1}, {1, 1})).shape(),
+                  (Shape{1, 1, 16}));
+    }
+    auto tied = tiny_config();
+    tied.tie_embeddings = true;
+    TransformerModel tied_model(tied, 29);
+    EXPECT_THROW((void)tied_model.prepare_int8_inference_weights(
+                     Int8WeightScaleMode::OutputColumnAmax,
+                     Int8WeightScope::OutputHeadOnly),
+                 std::invalid_argument);
+}
+
 TEST(TransformerModelTest, Fp8TensorAmaxPreparationReportsIndependentWeightScales) {
     auto config = tiny_config();
     config.linear_precision = LinearPrecision::Float8E4M3FNUZ;

@@ -178,3 +178,5 @@ HIP整模准备使用`quantize_int8_dynamic`：amax、scale和I8 payload都在GP
 `--int8-weight-scale-mode output-column-amax`进一步为每个输出列保存scale，显著降低误差并恢复
 一个token，但首个argmax仍错误。scalar与column两种合理粒度连续失败后，当前官方weight-only
 精度路线已关闭。
+显式`--int8-weight-scope`可隔离FFN、Attention或untied output head。官方Qwen FFN失败；
+Attention token一致但完整Max/RMS仍超过0.1/0.02门，因此尚未准入。

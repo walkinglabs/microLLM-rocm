@@ -14,9 +14,9 @@ def main() -> int:
     text = STATUS.read_text(encoding="utf-8")
     for token in (
         "RCCL label 55/55",
-        "CPU 420/420",
-        "ASan/UBSan 417/417",
-        "PyTorch-enabled CPU 421/421",
+        "CPU 421/421",
+        "ASan/UBSan 418/418",
+        "PyTorch-enabled CPU 422/422",
         "single-GPU HIP label 211/211",
         "24/24 launch-correlated adds",
         "residual ≤1.340us",
@@ -149,6 +149,9 @@ def main() -> int:
         "ASan/UBSan 415/415",
         "PyTorch-enabled CPU 419/419",
         "single-GPU HIP label 210/210",
+        "CPU 420/420",
+        "ASan/UBSan 417/417",
+        "PyTorch-enabled CPU 421/421",
         "CPU 385/385",
         "CPU 387/387",
         "CPU 388/388",
