@@ -236,3 +236,5 @@ N64、B2/B4、显式KV waste字段、T2048/B2长上下文以及一次未稳定�
 [Experiment 095](../optimization-log/experiments/095-serving-inference-efficiency.md)。
 Qwen3双计数fixture、64/64执行成功却有8个token分叉，以及修正后的诚实状态门见
 [Experiment 364](../optimization-log/experiments/364-qwen3-fixture-shape-matrix.md)。
+第一个T32/B1分叉的六policy完整logit与共同FP32 oracle见
+[Experiment 365](../optimization-log/experiments/365-qwen3-bf16-first-divergence.md)。

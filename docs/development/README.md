@@ -729,3 +729,5 @@ the next gate. Records are append-only except for factual corrections.
   gives tied checkpoints separate stored/runtime parameter contracts for generic runners.
 - [2026-08-26-qwen3-fixture-shape-matrix.md](2026-08-26-qwen3-fixture-shape-matrix.md):
   keeps successful execution separate from eight cross-framework token divergences.
+- [2026-08-26-qwen3-bf16-first-divergence.md](2026-08-26-qwen3-bf16-first-divergence.md):
+  attributes the first low-margin split to full-model BF16 top-logit rounding.

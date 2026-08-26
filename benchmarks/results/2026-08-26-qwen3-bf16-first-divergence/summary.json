@@ -1,0 +1,240 @@
+{
+  "attribution": {
+    "bf16_cache_effect_with_bf16_weights": {
+      "bitwise_equal": false,
+      "left": "micro-bf16-bf16",
+      "maximum_error": 0.20016050338745117,
+      "right": "micro-bf16-fp32",
+      "rms_error": 0.04826861091143329
+    },
+    "bf16_cache_effect_with_fp32_weights": {
+      "bitwise_equal": false,
+      "left": "micro-fp32-bf16",
+      "maximum_error": 0.06766200065612793,
+      "right": "micro-fp32-fp32",
+      "rms_error": 0.015376246401270012
+    },
+    "bf16_weight_effect_with_bf16_cache": {
+      "bitwise_equal": false,
+      "left": "micro-bf16-bf16",
+      "maximum_error": 0.13045454025268555,
+      "right": "micro-fp32-bf16",
+      "rms_error": 0.02860700112526465
+    },
+    "bf16_weight_effect_with_fp32_cache": {
+      "bitwise_equal": false,
+      "left": "micro-bf16-fp32",
+      "maximum_error": 0.11488151550292969,
+      "right": "micro-fp32-fp32",
+      "rms_error": 0.023968850325694756
+    },
+    "micro_fp32_vs_torch_fp32": {
+      "bitwise_equal": false,
+      "left": "micro-fp32-fp32",
+      "maximum_error": 5.7816505432128906e-05,
+      "right": "torch-fp32",
+      "rms_error": 1.1961706360946278e-05
+    }
+  },
+  "boundary": "one fixed T32/B1 decode trajectory; no performance claim",
+  "capture_step": 1,
+  "conclusion": "the full-model PyTorch BF16 path rounds FP32 tokens 374 and 323 to an exact top-logit tie; microLLM mixed BF16 preserves the FP32 argmax",
+  "context": 32,
+  "decode_tokens": 4,
+  "gates": {
+    "fp32_implementations_aligned": true,
+    "fp32_oracle_argmax_agrees_with_micro_fp32": true,
+    "micro_mixed_matches_fp32_argmax": true,
+    "shared_prefix_before_capture": true,
+    "torch_bf16_diverges": true,
+    "torch_bf16_top_two_tied": true
+  },
+  "model": "Qwen/Qwen3-0.6B",
+  "oracle": "torch-fp32",
+  "policy_rows": [
+    {
+      "argmax_token": 374,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        4185
+      ],
+      "policy": "torch-fp32",
+      "resident_weight_bytes": 2384199680,
+      "top1_top2_margin": 0.03260040283203125,
+      "top3": [
+        {
+          "logit": 14.142191886901855,
+          "token": 374
+        },
+        {
+          "logit": 14.109591484069824,
+          "token": 323
+        },
+        {
+          "logit": 12.678934097290039,
+          "token": 488
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": true,
+      "versus_torch_fp32_maximum_error": 0.0,
+      "versus_torch_fp32_rms_error": 0.0
+    },
+    {
+      "argmax_token": 374,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        4185
+      ],
+      "policy": "micro-fp32-fp32",
+      "resident_weight_bytes": 2384199680,
+      "top1_top2_margin": 0.03260040283203125,
+      "top3": [
+        {
+          "logit": 14.142180442810059,
+          "token": 374
+        },
+        {
+          "logit": 14.109580039978027,
+          "token": 323
+        },
+        {
+          "logit": 12.678922653198242,
+          "token": 488
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 5.7816505432128906e-05,
+      "versus_torch_fp32_rms_error": 1.1961706360946278e-05
+    },
+    {
+      "argmax_token": 374,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        4185
+      ],
+      "policy": "micro-fp32-bf16",
+      "resident_weight_bytes": 2384199680,
+      "top1_top2_margin": 0.029565811157226562,
+      "top3": [
+        {
+          "logit": 14.149266242980957,
+          "token": 374
+        },
+        {
+          "logit": 14.11970043182373,
+          "token": 323
+        },
+        {
+          "logit": 12.68799114227295,
+          "token": 488
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 0.06769061088562012,
+      "versus_torch_fp32_rms_error": 0.015374333145880055
+    },
+    {
+      "argmax_token": 374,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        4185
+      ],
+      "policy": "micro-bf16-fp32",
+      "resident_weight_bytes": 1503395840,
+      "top1_top2_margin": 0.07097434997558594,
+      "top3": [
+        {
+          "logit": 14.16588020324707,
+          "token": 374
+        },
+        {
+          "logit": 14.094905853271484,
+          "token": 323
+        },
+        {
+          "logit": 12.640057563781738,
+          "token": 488
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 0.11490392684936523,
+      "versus_torch_fp32_rms_error": 0.023974254108264075
+    },
+    {
+      "argmax_token": 374,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        4185
+      ],
+      "policy": "micro-bf16-bf16",
+      "resident_weight_bytes": 1503395840,
+      "top1_top2_margin": 0.031258583068847656,
+      "top3": [
+        {
+          "logit": 14.152908325195312,
+          "token": 374
+        },
+        {
+          "logit": 14.121649742126465,
+          "token": 323
+        },
+        {
+          "logit": 12.606792449951172,
+          "token": 488
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 0.15636682510375977,
+      "versus_torch_fp32_rms_error": 0.036528183025481054
+    },
+    {
+      "argmax_token": 323,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        323,
+        330,
+        14582
+      ],
+      "policy": "torch-bf16",
+      "resident_weight_bytes": 1192099840,
+      "top1_top2_margin": 0.0,
+      "top3": [
+        {
+          "logit": 14.1875,
+          "token": 323
+        },
+        {
+          "logit": 14.1875,
+          "token": 374
+        },
+        {
+          "logit": 12.6875,
+          "token": 488
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 0.30522751808166504,
+      "versus_torch_fp32_rms_error": 0.065858614490601
+    }
+  ],
+  "record_type": "qwen3_bf16_divergence_audit",
+  "schema_version": 1,
+  "status": "pass_diagnosed_precision_policy",
+  "vocabulary_size": 151936
+}

@@ -43,8 +43,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] route the Qwen3 tied fixture through T1/32/128/512, B1/B2 prefill/cached matrix;
   all 64 framework processes run and all KV bytes agree, while the corrected answer gate
   records 24 pass plus 8 cross-framework token mismatches instead of a false green;
-- [ ] capture complete logits at the first Qwen3 BF16 T32/T128/T512 token divergence and
-  compare microLLM/Transformers against one FP32 oracle before changing either policy;
+- [x] capture all 151,936 logits at the first Qwen3 BF16 T32/B1 divergence: both FP32
+  implementations and mixed BF16 choose 374, while full BF16 rounds 374/323 to an exact
+  14.1875 tie and chooses 323; no microLLM code change is admitted from this case;
+- [ ] apply the same common-FP32 full-logit gate to the remaining seven T32/T128/T512
+  mismatches before reclassifying any matrix row or changing a precision policy;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

@@ -313,6 +313,8 @@ If “Config package” is unfamiliar, read the beginner-facing
 > The generic Qwen3 BF16 shape matrix then separates execution from answers: all 64
 > framework processes run and all 24 KV byte counts agree, but only 16/24 decode rows
 > are token-exact. Eight rows are now `precision_mismatch`, not a false 32/32 pass.
+> The first T32/B1 split is now attributed against complete FP32 logits: full-model BF16
+> rounds tokens 374/323 to an exact 14.1875 tie; mixed BF16 preserves the FP32 token 374.
 
 </details>
 
@@ -1304,6 +1306,9 @@ reaches 3.66× matched end-to-end throughput and reduces resident weights to 1.5
 [Experiment 364](docs/optimization-log/experiments/364-qwen3-fixture-shape-matrix.md) sends the
 dual-count fixture through T1/32/128/512 and B1/B2. All 64 processes and 24 KV-byte checks pass,
 while an honest answer gate records 24 accepted rows plus 8 BF16 token mismatches for diagnosis.
+[Experiment 365](docs/optimization-log/experiments/365-qwen3-bf16-first-divergence.md) exports all
+151,936 logits at the first T32 split. Both FP32 implementations and microLLM mixed BF16 choose
+374; Transformers full BF16 ties 374/323 exactly and selects 323, so no microLLM fix is admitted.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

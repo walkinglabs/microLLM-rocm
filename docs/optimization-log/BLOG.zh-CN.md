@@ -5384,3 +5384,14 @@ microLLM/PyTorch 64/64进程执行成功，8/8 prefill top token与24/24 active 
 不能仅凭最终token选择“谁对”。visible-device双重过滤也改为双方环境失败后立即停止。
 
 ![Qwen3 fixture shape matrix](assets/qwen3-fixture-shape-matrix.svg)
+
+## 381. Experiment 365：跨框架分叉不等于microLLM错
+
+固定T32/B1第一次分叉，在两边都只生成token1后导出下一步151,936 logits。Transformers FP32的
+374/323只差0.03260；microLLM FP32 Max/RMS为5.78e-5/1.20e-5并同样选374。
+
+Transformers整网BF16把两项都变成14.1875，tie后选较小索引323；microLLM mixed BF16保留
+0.03126 margin并选FP32 token374。这个case不需要microLLM代码修复，也不能用来清除其他7个
+precision limit；下一步对剩余分叉重复共同oracle门。
+
+![Qwen3 first BF16 divergence](assets/qwen3-bf16-first-divergence.svg)

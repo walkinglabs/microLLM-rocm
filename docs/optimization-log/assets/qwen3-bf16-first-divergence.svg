@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+  <rect width="1500" height="760" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 T32/B1 · the first BF16 token split</text>
+  <text x="60" y="104" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Complete 151,936 logits before decode token 2 · shared prefix token = 1</text>
+
+  <rect x="55" y="145" width="430" height="405" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="270" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#1d4ed8">Transformers FP32 oracle</text>
+  <text x="95" y="245" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">token 374</text>
+  <rect x="95" y="265" width="330" height="42" rx="8" fill="#2563eb"/>
+  <text x="415" y="293" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#ffffff">14.14219</text>
+  <text x="95" y="350" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">token 323</text>
+  <rect x="95" y="370" width="329" height="42" rx="8" fill="#93c5fd"/>
+  <text x="414" y="398" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">14.10959</text>
+  <text x="270" y="470" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#166534">margin 0.03260</text>
+  <text x="270" y="515" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534">argmax = 374</text>
+
+  <rect x="535" y="145" width="430" height="405" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="750" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">microLLM mixed BF16</text>
+  <text x="575" y="245" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">token 374</text>
+  <rect x="575" y="265" width="330" height="42" rx="8" fill="#16a34a"/>
+  <text x="895" y="293" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#ffffff">14.15291</text>
+  <text x="575" y="350" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">token 323</text>
+  <rect x="575" y="370" width="329" height="42" rx="8" fill="#86efac"/>
+  <text x="894" y="398" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">14.12165</text>
+  <text x="750" y="470" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#166534">margin 0.03126</text>
+  <text x="750" y="515" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534">argmax = 374 · oracle token</text>
+
+  <rect x="1015" y="145" width="430" height="405" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="1230" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#b42335">Transformers full BF16</text>
+  <text x="1055" y="245" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">token 323</text>
+  <rect x="1055" y="265" width="330" height="42" rx="8" fill="#ef4444"/>
+  <text x="1375" y="293" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#ffffff">14.18750</text>
+  <text x="1055" y="350" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">token 374</text>
+  <rect x="1055" y="370" width="330" height="42" rx="8" fill="#fca5a5"/>
+  <text x="1375" y="398" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">14.18750</text>
+  <text x="1230" y="470" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#b42335">exact tie</text>
+  <text x="1230" y="515" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335">argmax = lower index 323</text>
+
+  <rect x="55" y="600" width="1390" height="110" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="90" y="642" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">Decision</text>
+  <text x="230" y="642" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033">No microLLM code change: mixed BF16 matches both FP32 argmax implementations</text>
+  <text x="230" y="680" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">Keep all 8 public limits; apply the same oracle gate to the remaining 7 before generalizing</text>
+</svg>

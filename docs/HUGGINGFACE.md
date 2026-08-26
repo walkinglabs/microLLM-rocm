@@ -33,7 +33,8 @@ payload 各保存了一份。Qwen3 strict loader 会先逐字节验证两份来�
 扩展Qwen3 BF16矩阵进一步说明“固定短prompt通过”不是全shape结论：T1/32/128/512、B1/B2
 的64个framework进程全部运行，但24个decode row中只有16个完整token-exact，另外8个必须标记
 `precision_mismatch`。两边policy不同，当前只记录边界；第一处分叉的共同FP32 full-logit
-实验尚未完成。
+实验现已完成：T32/B1的FP32 margin只有0.03260，Transformers整网BF16把前两名舍入成
+14.1875平局，microLLM mixed BF16保留FP32 argmax。其余7个分叉尚未逐项归因。
 
 ### 一条命令准备固定 fixture
 
