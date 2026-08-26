@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Post-exact gate/up FFN runner](2026-08-26-post-exact-gate-up-runner.md)
 - [2026-08-26: All-exact FFN rejection](2026-08-26-prefill-ffn-all-exact-reject.md)
 - [2026-08-26: All-batch exact FFN runner](2026-08-26-prefill-ffn-all-exact-runner.md)
 - [2026-08-26: Selective prefill FFN model rejection](2026-08-26-prefill-ffn-selective-reject.md)

@@ -164,9 +164,47 @@ FFN_ALL_SPEC = importlib.util.spec_from_file_location(
 FFN_ALL = importlib.util.module_from_spec(FFN_ALL_SPEC)
 assert FFN_ALL_SPEC.loader is not None
 FFN_ALL_SPEC.loader.exec_module(FFN_ALL)
+POST_GATE_UP_SPEC = importlib.util.spec_from_file_location(
+    "audit_post_exact_gate_up_ffn",
+    ROOT / "benchmarks/single_gpu/audit_post_exact_gate_up_ffn.py")
+POST_GATE_UP = importlib.util.module_from_spec(POST_GATE_UP_SPEC)
+assert POST_GATE_UP_SPEC.loader is not None
+POST_GATE_UP_SPEC.loader.exec_module(POST_GATE_UP)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_post_exact_gate_up_trace_combines_six_scoped_keys(self):
+        args = type("Args", (), {
+            "binary": Path("micro"), "context": 2048,
+        })()
+        model = {
+            "config": "config.json", "weights": "model.bin",
+            "inference": {"token_ids": [1, 2]},
+        }
+        command = POST_GATE_UP.command(
+            args, model, 4, Path("trace.jsonl"), Path("cache.bin"),
+            Path("values"))
+        self.assertEqual(command[
+            command.index("--fp32-prefill-ffn-gate-up-solution-index") + 1],
+            "296100")
+        route = {
+            "status": "pass", "batch": 4, "token_count": 2048,
+            "trace_record_count": 55, "trace_binary_record_count": 7,
+            "fp32_prefill_q_solution_index": 296100,
+            "fp32_prefill_kv_solution_index": 292135,
+            "fp32_prefill_attention_qk_solution_index": 304681,
+            "fp32_prefill_attention_pv_solution_index": 295716,
+            "fp32_prefill_attention_o_solution_index": 296100,
+            "fp32_prefill_ffn_gate_up_solution_index": 296100,
+            "fp32_solution_registered_entries": 6,
+            "fp32_solution_cached_algorithms": 6,
+            "fp32_solution_registry_hits": 224,
+            "fp32_solution_cache_misses": 6,
+            "fp32_solution_cache_hits": 218,
+            "fp32_solution_dispatches": 224,
+        }
+        POST_GATE_UP.require_route(route, 4)
+
     def test_current_all_exact_ffn_gate_rejects_rms_worsening(self):
         root = (ROOT / "benchmarks/results" /
                 "2026-08-26-fp32-prefill-ffn-all-exact-gate")
