@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Symmetric CPU, HIP, and RCCL SDK presets](2026-08-26-cmake-sdk-presets.md)
 - [2026-08-25: Cross-batch precision-island isolation](2026-08-25-cross-batch-precision-isolation.md)
 - [2026-08-25: Cross-batch complete-logit audit](2026-08-25-cross-batch-logit-audit.md)
 - [2026-08-25: Serving batch scale, explained simply](2026-08-25-serving-batch-scale.md)

@@ -124,8 +124,11 @@ release claim because the recorded container exposes only 64 MB of shared memory
 
 ## Installable CMake package
 
-For a small CPU SDK build, use the package-focused preset and install it into one
-explicit prefix:
+Use a package-focused preset and install it into one explicit prefix. These presets
+build the public libraries and CMake package without repository tests, applications,
+examples, benchmarks, Python tests, or PyTorch adapters.
+
+CPU-only:
 
 ```bash
 cmake --preset sdk-cpu
@@ -133,10 +136,26 @@ cmake --build --preset sdk-cpu --parallel
 cmake --install build/sdk-cpu --prefix "$PWD/install/microllm"
 ```
 
-The preset disables repository tests, applications, examples, benchmarks, Python tests,
-and PyTorch adapters. It retains all C++ component libraries and the versioned C ABI.
-Install `build/hip-release` or `build/rccl-release` instead when that already-tested
-backend build is the SDK being published.
+HIP:
+
+```bash
+cmake --preset sdk-hip -DMICROLLM_HIP_ARCHITECTURES=gfx942
+cmake --build --preset sdk-hip --parallel
+cmake --install build/sdk-hip --prefix "$PWD/install/microllm"
+```
+
+HIP with RCCL:
+
+```bash
+cmake --preset sdk-rccl -DMICROLLM_HIP_ARCHITECTURES=gfx942
+cmake --build --preset sdk-rccl --parallel
+cmake --install build/sdk-rccl --prefix "$PWD/install/microllm"
+```
+
+The SDK presets retain all C++ component libraries and the versioned C ABI. Replace
+`gfx942` with the architecture of the destination GPU. Do not overlay SDKs produced by
+different presets in one prefix: installation does not remove stale files from a prior
+backend build.
 
 The prefix contains headers, static C++ libraries, the optional versioned C ABI shared
 library, command-line programs when `MICROLLM_BUILD_APPS=ON`, and:
@@ -204,7 +223,8 @@ flags. An instrumented static build carries only the runtime link option require
 its object files; ordinary builds do not. Public requirements such as C++20 and backend
 dependencies are propagated normally.
 
-The Config file also exposes `microLLM_VERSION`, `microLLM_CXX_STANDARD`,
+The Config file also exposes `microLLM_VERSION`, `microLLM_BACKEND` (`CPU`, `HIP`, or
+`HIP_RCCL`), `microLLM_CXX_STANDARD`,
 `microLLM_HIP_ARCHITECTURES`, `microLLM_AVAILABLE_COMPONENTS`, and the boolean feature
 metadata `microLLM_WITH_HIP`, `microLLM_WITH_HIPBLASLT`,
 `microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, and `microLLM_WITH_CAPI`, plus

@@ -19,6 +19,12 @@ endif()
 if(NOT DEFINED microLLM_HIP_ARCHITECTURES)
     message(FATAL_ERROR "package Config is missing HIP architecture metadata")
 endif()
+if((microLLM_WITH_RCCL AND NOT microLLM_BACKEND STREQUAL "HIP_RCCL") OR
+   (microLLM_WITH_HIP AND NOT microLLM_WITH_RCCL AND
+    NOT microLLM_BACKEND STREQUAL "HIP") OR
+   (NOT microLLM_WITH_HIP AND NOT microLLM_BACKEND STREQUAL "CPU"))
+    message(FATAL_ERROR "package Config reports inconsistent backend metadata")
+endif()
 if(NOT microLLM_DEFAULT_TARGET STREQUAL "microLLM::microLLM" OR
    NOT TARGET microLLM::microLLM)
     message(FATAL_ERROR "package Config is missing its default C++ SDK target")

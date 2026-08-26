@@ -711,10 +711,13 @@ is the SDK's address card: another project asks for microLLM, and CMake supplies
 headers, libraries, C++20 requirement, and enabled backend dependencies. Do not copy
 source files or hand-write `-I`, `-L`, and `-l` flags.
 
-#### 1. Install microLLM
+#### 1. Build and install an SDK
 
-The small SDK preset omits tests, command-line applications, examples, benchmarks,
-Python tests, and PyTorch adapters while retaining the C++ libraries and stable C ABI:
+Choose one SDK preset. All three omit repository tests, command-line applications,
+examples, benchmarks, Python tests, and PyTorch adapters. They retain the installable
+C++ libraries, stable C ABI, public headers, and CMake package files.
+
+CPU-only:
 
 ```bash
 cmake --preset sdk-cpu
@@ -722,8 +725,24 @@ cmake --build --preset sdk-cpu --parallel
 cmake --install build/sdk-cpu --prefix "$PWD/install/microllm"
 ```
 
-For HIP or RCCL, install the already verified `hip-release` or `rccl-release` build
-directory instead. Installation never changes which backends were compiled into it.
+AMD GPU with HIP and optional hipBLASLt:
+
+```bash
+cmake --preset sdk-hip -DMICROLLM_HIP_ARCHITECTURES=gfx942
+cmake --build --preset sdk-hip --parallel
+cmake --install build/sdk-hip --prefix "$PWD/install/microllm"
+```
+
+Single-node multi-GPU with RCCL:
+
+```bash
+cmake --preset sdk-rccl -DMICROLLM_HIP_ARCHITECTURES=gfx942
+cmake --build --preset sdk-rccl --parallel
+cmake --install build/sdk-rccl --prefix "$PWD/install/microllm"
+```
+
+Replace `gfx942` with the architecture reported for the target machine. Each prefix is
+one complete SDK; do not install CPU, HIP, and RCCL builds on top of each other.
 
 #### 2. Create a separate C++ consumer
 
@@ -785,6 +804,22 @@ installed Config directory. For local development, `microLLM_DIR` may instead po
 the configured microLLM build directory. Do not point either variable at the unbuilt
 source directory.
 
+After installation, the machine-readable package contract is:
+
+```text
+<prefix>/include/microllm/...                 public headers
+<prefix>/lib/libmicrollm_*.a                 C++ component libraries
+<prefix>/lib/libmicrollm.so                  optional stable C ABI
+<prefix>/lib/cmake/microLLM/
+  microLLMConfig.cmake                       dependency and component metadata
+  microLLMConfigVersion.cmake                version compatibility rules
+  microLLMTargets.cmake                      imported microLLM::* targets
+```
+
+The exact library directory can be `lib64` or another GNUInstallDirs value on some
+systems. Consumers should always use `find_package`; they should not depend on these
+library filenames directly.
+
 For active development, installation is optional. Point `microLLM_DIR` at an already
 configured and built microLLM directory:
 
@@ -814,7 +849,8 @@ Installed targets are:
 | `microLLM::multi_gpu` | RCCL data-parallel components when built with RCCL |
 
 `microLLMConfig.cmake` exposes `microLLM_VERSION` and its `MAJOR`, `MINOR`, and
-`PATCH` fields, plus `microLLM_CXX_STANDARD`, `microLLM_HIP_ARCHITECTURES`,
+`PATCH` fields, plus `microLLM_BACKEND` (`CPU`, `HIP`, or `HIP_RCCL`),
+`microLLM_CXX_STANDARD`, `microLLM_HIP_ARCHITECTURES`,
 `microLLM_WITH_HIP`,
 `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`,
 `microLLM_WITH_SANITIZERS`, `microLLM_WITH_COVERAGE`, and

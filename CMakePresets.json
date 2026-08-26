@@ -51,19 +51,45 @@
       }
     },
     {
-      "name": "sdk-cpu",
-      "displayName": "CPU SDK",
-      "description": "Small release build intended for installation and find_package consumers",
+      "name": "sdk-base",
+      "hidden": true,
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "MICROLLM_ENABLE_HIP": "OFF",
         "MICROLLM_BUILD_TESTS": "OFF",
         "MICROLLM_BUILD_APPS": "OFF",
         "MICROLLM_BUILD_EXAMPLES": "OFF",
         "MICROLLM_BUILD_BENCHMARKS": "OFF",
         "MICROLLM_BUILD_PYTHON": "OFF",
         "MICROLLM_BUILD_TORCH_OPS": "OFF"
+      }
+    },
+    {
+      "name": "sdk-cpu",
+      "displayName": "CPU SDK",
+      "description": "Small CPU release build for installation and find_package consumers",
+      "inherits": "sdk-base",
+      "cacheVariables": {
+        "MICROLLM_ENABLE_HIP": "OFF"
+      }
+    },
+    {
+      "name": "sdk-hip",
+      "displayName": "HIP SDK",
+      "description": "Small AMD GPU release build for installation and find_package consumers",
+      "inherits": "sdk-base",
+      "cacheVariables": {
+        "MICROLLM_ENABLE_HIP": "ON",
+        "MICROLLM_ENABLE_HIPBLASLT": "ON"
+      }
+    },
+    {
+      "name": "sdk-rccl",
+      "displayName": "HIP + RCCL SDK",
+      "description": "Small multi-GPU release build for installation and find_package consumers",
+      "inherits": "sdk-hip",
+      "cacheVariables": {
+        "MICROLLM_ENABLE_RCCL": "ON"
       }
     },
     {
@@ -93,6 +119,8 @@
     {"name": "cpu-sanitize", "configurePreset": "cpu-sanitize"},
     {"name": "cpu-coverage", "configurePreset": "cpu-coverage"},
     {"name": "sdk-cpu", "configurePreset": "sdk-cpu"},
+    {"name": "sdk-hip", "configurePreset": "sdk-hip"},
+    {"name": "sdk-rccl", "configurePreset": "sdk-rccl"},
     {"name": "hip-release", "configurePreset": "hip-release"},
     {"name": "rccl-release", "configurePreset": "rccl-release"}
   ],
