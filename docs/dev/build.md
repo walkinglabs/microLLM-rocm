@@ -212,7 +212,11 @@ device time, Stream versions of all four C ABI operators, and caller-owned
 multiply/matmul outputs. These additive functions retain the v1 ABI. The API accepts
 a non-owning native Stream from another framework through
 `ml_stream_from_external`; destroying the wrapper never destroys that handle. The caller
-must preserve native Stream lifetime. Non-owning Tensor memory is still unavailable.
+must preserve native Stream lifetime. `ml_tensor_from_external` accepts a non-owning
+pointer/byte/shape/stride/dtype/device
+descriptor. Destroying it never frees caller memory. The Python wrapper should receive
+`owner=` to keep the external allocation alive. The first strict zero-copy output path is
+FP32 contiguous `ml_add_out_on_stream`; unsupported layouts fail instead of copying.
 
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:

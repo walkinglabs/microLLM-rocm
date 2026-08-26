@@ -11,6 +11,7 @@ _CAPI_NAMES = {
     "MicroLLMError",
     "Tensor",
     "add",
+    "add_out",
     "hip_device_count",
     "matmul",
     "matmul_out",

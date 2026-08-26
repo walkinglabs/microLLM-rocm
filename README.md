@@ -1291,7 +1291,9 @@ C/Python Streams are also implemented: a three-process isolation gate waits a
 target Event while an independent 64-GEMM Stream remains pending, with 192/192 busy
 Kernels and zero device/Stream-wide synchronization. Non-owning PyTorch ROCm native
 Stream ordering passes in both directions across three processes; zero-copy TensorView
-and a rocprof/PyTorch LLVM injection conflict remain open.
+now passes FP32 add across 144MiB of real PyTorch ROCm buffers with pointer identity,
+owner lifetime and zero wrapper-copy evidence. Broader dtype/operator coverage and a
+rocprof/PyTorch LLVM injection conflict remain open.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

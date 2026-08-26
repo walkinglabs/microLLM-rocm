@@ -43,6 +43,11 @@ ml_status ml_tensor_from_f32(const float* values, const int64_t* shape, size_t r
 ml_status ml_tensor_from_i32(const int32_t* values, const int64_t* shape, size_t rank,
                              ml_device_type device_type, int device_index,
                              ml_tensor** output);
+ml_status ml_tensor_from_external(uintptr_t data, size_t storage_bytes,
+                                  const int64_t* shape, const int64_t* strides,
+                                  size_t rank, ml_dtype dtype,
+                                  ml_device_type device_type, int device_index,
+                                  ml_tensor** output);
 void ml_tensor_destroy(ml_tensor* tensor);
 
 ml_status ml_tensor_rank(const ml_tensor* tensor, size_t* rank);
@@ -51,6 +56,9 @@ ml_status ml_tensor_numel(const ml_tensor* tensor, int64_t* elements);
 ml_status ml_tensor_dtype(const ml_tensor* tensor, ml_dtype* dtype);
 ml_status ml_tensor_device(const ml_tensor* tensor, ml_device_type* device_type,
                            int* device_index);
+ml_status ml_tensor_is_owning(const ml_tensor* tensor, int* owning);
+ml_status ml_tensor_data_ptr(const ml_tensor* tensor, uintptr_t* data);
+ml_status ml_tensor_storage_bytes(const ml_tensor* tensor, size_t* storage_bytes);
 ml_status ml_tensor_copy_f32(const ml_tensor* tensor, float* values, size_t capacity);
 ml_status ml_tensor_copy_i32(const ml_tensor* tensor, int32_t* values, size_t capacity);
 ml_status ml_tensor_to(const ml_tensor* tensor, ml_device_type device_type, int device_index,
@@ -91,6 +99,8 @@ ml_status ml_multiply_out_on_stream(ml_tensor* output, const ml_tensor* left,
                                     const ml_tensor* right, ml_stream* stream);
 ml_status ml_matmul_out_on_stream(ml_tensor* output, const ml_tensor* left,
                                   const ml_tensor* right, ml_stream* stream);
+ml_status ml_add_out_on_stream(ml_tensor* output, const ml_tensor* left,
+                               const ml_tensor* right, ml_stream* stream);
 
 #ifdef __cplusplus
 }

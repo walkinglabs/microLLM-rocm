@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <microllm/ops/ops.h>
+#include <microllm/ops/low_level.h>
 #include <microllm/runtime/runtime.h>
 
 #if defined(_WIN32)
@@ -20,6 +21,7 @@
 
 struct ml_tensor {
     microllm::Tensor value;
+    bool owning = true;
 };
 
 struct ml_event {
@@ -56,6 +58,14 @@ microllm::Shape shape_from_c(const int64_t* shape, size_t rank) {
     if (rank != 0 && shape == nullptr) throw std::invalid_argument("shape pointer is null");
     if (rank == 0) return {};
     return microllm::Shape(shape, shape + rank);
+}
+
+microllm::DType dtype_from_c(ml_dtype dtype) {
+    switch (dtype) {
+        case ML_DTYPE_FLOAT32: return microllm::DType::Float32;
+        case ML_DTYPE_INT32: return microllm::DType::Int32;
+    }
+    throw std::invalid_argument("unknown C API dtype");
 }
 
 template <typename Function>
@@ -196,6 +206,30 @@ ML_EXPORT ml_status ml_tensor_from_i32(const int32_t* values, const int64_t* sha
     });
 }
 
+ML_EXPORT ml_status ml_tensor_from_external(
+    uintptr_t data, size_t storage_bytes, const int64_t* shape,
+    const int64_t* strides, size_t rank, ml_dtype dtype,
+    ml_device_type device_type, int device_index, ml_tensor** output) {
+    return guard([&] {
+        require_output(output);
+        auto tensor_shape = shape_from_c(shape, rank);
+        if (rank != 0 && strides == nullptr) {
+            throw std::invalid_argument("external Tensor strides pointer is null");
+        }
+        microllm::Strides tensor_strides;
+        if (rank != 0) tensor_strides.assign(strides, strides + rank);
+        const auto device = device_from_c(device_type, device_index);
+        auto storage = microllm::Storage::from_external(
+            reinterpret_cast<void*>(data), storage_bytes, device);
+        auto result = std::make_unique<ml_tensor>();
+        result->value = microllm::Tensor::from_storage(
+            std::move(storage), std::move(tensor_shape),
+            std::move(tensor_strides), 0, dtype_from_c(dtype));
+        result->owning = false;
+        *output = result.release();
+    });
+}
+
 ML_EXPORT void ml_tensor_destroy(ml_tensor* tensor) { delete tensor; }
 
 ML_EXPORT ml_status ml_tensor_rank(const ml_tensor* tensor, size_t* rank) {
@@ -239,6 +273,31 @@ ML_EXPORT ml_status ml_tensor_device(const ml_tensor* tensor, ml_device_type* de
         const auto device = require_tensor(tensor).device();
         *device_type = device.is_cpu() ? ML_DEVICE_CPU : ML_DEVICE_HIP;
         *device_index = device.index();
+    });
+}
+
+ML_EXPORT ml_status ml_tensor_is_owning(const ml_tensor* tensor, int* owning) {
+    return guard([&] {
+        if (owning == nullptr) throw std::invalid_argument("Tensor ownership output is null");
+        (void)require_tensor(tensor);
+        *owning = tensor->owning ? 1 : 0;
+    });
+}
+
+ML_EXPORT ml_status ml_tensor_data_ptr(const ml_tensor* tensor, uintptr_t* data) {
+    return guard([&] {
+        if (data == nullptr) throw std::invalid_argument("Tensor data output is null");
+        *data = reinterpret_cast<uintptr_t>(require_tensor(tensor).data());
+    });
+}
+
+ML_EXPORT ml_status ml_tensor_storage_bytes(const ml_tensor* tensor,
+                                            size_t* storage_bytes) {
+    return guard([&] {
+        if (storage_bytes == nullptr) {
+            throw std::invalid_argument("Tensor storage bytes output is null");
+        }
+        *storage_bytes = require_tensor(tensor).storage().num_bytes();
     });
 }
 
@@ -499,6 +558,17 @@ ML_EXPORT ml_status ml_matmul_out_on_stream(ml_tensor* output,
             require_tensor(left), require_tensor(right),
             microllm::ops::MatmulImplementation::Auto, false, false,
             stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_add_out_on_stream(ml_tensor* output,
+                                         const ml_tensor* left,
+                                         const ml_tensor* right,
+                                         ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::add_out(
+            require_tensor(output).view(), require_tensor(left).view(),
+            require_tensor(right).view(), stream_context(stream));
     });
 }
 

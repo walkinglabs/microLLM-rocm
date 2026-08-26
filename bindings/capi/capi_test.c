@@ -61,6 +61,39 @@ int main(void) {
     CHECK(ml_stream_synchronize(cpu_stream) == ML_STATUS_OK);
     CHECK(ml_tensor_copy_f32(sum, output, 4) == ML_STATUS_OK);
     CHECK(output[0] == 5 && output[1] == 12 && output[2] == 21 && output[3] == 32);
+    ml_tensor* external_left = NULL;
+    ml_tensor* external_right = NULL;
+    ml_tensor* external_output = NULL;
+    const int64_t strides[2] = {2, 1};
+    CHECK(ml_tensor_from_external((uintptr_t)left_values, sizeof(left_values),
+                                  shape, strides, 2, ML_DTYPE_FLOAT32,
+                                  ML_DEVICE_CPU, 0, &external_left) == ML_STATUS_OK);
+    CHECK(ml_tensor_from_external((uintptr_t)right_values, sizeof(right_values),
+                                  shape, strides, 2, ML_DTYPE_FLOAT32,
+                                  ML_DEVICE_CPU, 0, &external_right) == ML_STATUS_OK);
+    CHECK(ml_tensor_from_external((uintptr_t)output, sizeof(output), shape,
+                                  strides, 2, ML_DTYPE_FLOAT32,
+                                  ML_DEVICE_CPU, 0, &external_output) == ML_STATUS_OK);
+    CHECK(ml_tensor_is_owning(external_left, &stream_owning) == ML_STATUS_OK);
+    CHECK(stream_owning == 0);
+    CHECK(ml_tensor_data_ptr(external_left, &native_stream) == ML_STATUS_OK);
+    CHECK(native_stream == (uintptr_t)left_values);
+    size_t external_bytes = 0;
+    CHECK(ml_tensor_storage_bytes(external_left, &external_bytes) == ML_STATUS_OK);
+    CHECK(external_bytes == sizeof(left_values));
+    CHECK(ml_add_out_on_stream(external_output, external_left, external_right,
+                               cpu_stream) == ML_STATUS_OK);
+    CHECK(output[0] == 6 && output[1] == 8 && output[2] == 10 && output[3] == 12);
+    ml_tensor* too_small = NULL;
+    CHECK(ml_tensor_from_external((uintptr_t)left_values, sizeof(float), shape,
+                                  strides, 2, ML_DTYPE_FLOAT32,
+                                  ML_DEVICE_CPU, 0, &too_small) ==
+          ML_STATUS_OUT_OF_RANGE);
+    CHECK(too_small == NULL);
+    ml_tensor_destroy(external_left);
+    ml_tensor_destroy(external_right);
+    ml_tensor_destroy(external_output);
+    CHECK(left_values[0] == 1 && output[0] == 6);
     ml_stream_destroy(cpu_stream);
     int hip_devices = 0;
     CHECK(ml_hip_device_count(&hip_devices) == ML_STATUS_OK);

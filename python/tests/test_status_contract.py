@@ -23,6 +23,7 @@ def main() -> int:
         "0 device/Stream sync",
         "192/192-GEMM independent Stream pending",
         "3/3 bidirectional PyTorch ROCm native-Stream Event ordering",
+        "144MiB exposed, 0 wrapper copy",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -244,6 +245,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-pytorch-native-stream-interop/verification.json",
         "benchmarks/results/2026-08-26-pytorch-native-stream-interop/native-stream-interop.svg",
         "benchmarks/results/2026-08-26-pytorch-native-stream-interop/rocprof-injection-failure/failure.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-tensor/summary.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-tensor/analysis.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-tensor/verification.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-tensor/zero-copy-tensor.svg",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -350,6 +355,29 @@ def main() -> int:
         assert report["torch_pending_for_microllm_event"] is True
         assert report["microllm_pending_for_torch_event"] is True
     ET.parse(native_root / "native-stream-interop.svg")
+    zero_copy_root = ROOT / (
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-tensor")
+    zero_copy = json.loads(
+        (zero_copy_root / "summary.json").read_text(encoding="utf-8"))
+    assert zero_copy["status"] == "pass_with_profiler_boundary"
+    assert zero_copy["run_count"] == 3
+    assert zero_copy["all_gates_passed"] is True
+    assert zero_copy["total_wrapped_payload_bytes"] == 150994944
+    assert zero_copy["total_wrapper_copy_bytes"] == 0
+    assert zero_copy["submitted_zero_copy_adds"] == 384
+    assert zero_copy["maximum_output_error"] == 0.0
+    assert zero_copy["rocprof_performance_claim"] is False
+    for run in range(1, 4):
+        report = json.loads(
+            (zero_copy_root / f"run-{run}/report.json").read_text(
+                encoding="utf-8"))
+        assert report["pointers_match"] is True
+        assert report["wrappers_non_owning"] is True
+        assert report["owner_retained_by_wrapper"] is True
+        assert report["owner_released_after_close"] is True
+        assert report["noncontiguous_rejected"] is True
+        assert report["short_storage_rejected"] is True
+    ET.parse(zero_copy_root / "zero-copy-tensor.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

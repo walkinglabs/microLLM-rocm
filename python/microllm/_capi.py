@@ -87,6 +87,14 @@ _lib.ml_tensor_from_i32.argtypes = [
     ctypes.POINTER(_TensorPointer),
 ]
 _lib.ml_tensor_from_i32.restype = ctypes.c_int
+_lib.ml_tensor_from_external.argtypes = [
+    _CUintptr,
+    ctypes.c_size_t,
+    ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.c_int64),
+    ctypes.c_size_t, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+    ctypes.POINTER(_TensorPointer),
+]
+_lib.ml_tensor_from_external.restype = ctypes.c_int
 _lib.ml_tensor_destroy.argtypes = [_TensorPointer]
 _lib.ml_tensor_destroy.restype = None
 _lib.ml_tensor_rank.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_size_t)]
@@ -103,6 +111,13 @@ _lib.ml_tensor_device.argtypes = [
     ctypes.POINTER(ctypes.c_int),
 ]
 _lib.ml_tensor_device.restype = ctypes.c_int
+_lib.ml_tensor_is_owning.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_int)]
+_lib.ml_tensor_is_owning.restype = ctypes.c_int
+_lib.ml_tensor_data_ptr.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_size_t)]
+_lib.ml_tensor_data_ptr.restype = ctypes.c_int
+_lib.ml_tensor_storage_bytes.argtypes = [
+    _TensorPointer, ctypes.POINTER(ctypes.c_size_t)]
+_lib.ml_tensor_storage_bytes.restype = ctypes.c_int
 _lib.ml_tensor_copy_f32.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_float), ctypes.c_size_t]
 _lib.ml_tensor_copy_f32.restype = ctypes.c_int
 _lib.ml_tensor_copy_i32.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_int32), ctypes.c_size_t]
@@ -167,6 +182,9 @@ for _name in ("ml_multiply_out_on_stream", "ml_matmul_out_on_stream"):
     _function.argtypes = [_TensorPointer, _TensorPointer, _TensorPointer,
                           _StreamPointer]
     _function.restype = ctypes.c_int
+_lib.ml_add_out_on_stream.argtypes = [
+    _TensorPointer, _TensorPointer, _TensorPointer, _StreamPointer]
+_lib.ml_add_out_on_stream.restype = ctypes.c_int
 
 
 def _check(status: int) -> None:
@@ -190,10 +208,11 @@ def _parse_device(device: str | Device | tuple[Device, int]) -> tuple[Device, in
 
 
 class Tensor:
-    def __init__(self, handle: _TensorPointer):
+    def __init__(self, handle: _TensorPointer, owner=None):
         if not handle:
             raise MicroLLMError("cannot construct Tensor from a null handle")
         self._handle = handle
+        self._owner = owner
 
     @classmethod
     def from_f32(
@@ -249,10 +268,40 @@ class Tensor:
         )
         return cls(output)
 
+    @classmethod
+    def from_external(
+        cls,
+        data_ptr: int,
+        storage_bytes: int,
+        shape: Sequence[int],
+        strides: Sequence[int],
+        *,
+        dtype: DType = DType.FLOAT32,
+        device: str | Device | tuple[Device, int] = "cpu",
+        owner=None,
+    ) -> "Tensor":
+        pointer = int(data_ptr)
+        bytes_value = int(storage_bytes)
+        dimensions = [int(value) for value in shape]
+        stride_values = [int(value) for value in strides]
+        if pointer <= 0 or bytes_value <= 0:
+            raise ValueError("external Tensor pointer and storage bytes must be positive")
+        if len(dimensions) != len(stride_values):
+            raise ValueError("external Tensor shape/stride rank mismatch")
+        shape_array = (ctypes.c_int64 * len(dimensions))(*dimensions)
+        stride_array = (ctypes.c_int64 * len(stride_values))(*stride_values)
+        kind, index = _parse_device(device)
+        output = _TensorPointer()
+        _check(_lib.ml_tensor_from_external(
+            pointer, bytes_value, shape_array, stride_array, len(dimensions),
+            int(DType(dtype)), int(kind), index, ctypes.byref(output)))
+        return cls(output, owner=owner)
+
     def close(self) -> None:
         if getattr(self, "_handle", None):
             _lib.ml_tensor_destroy(self._handle)
             self._handle = _TensorPointer()
+            self._owner = None
 
     def __del__(self) -> None:
         self.close()
@@ -286,6 +335,24 @@ class Tensor:
         index = ctypes.c_int()
         _check(_lib.ml_tensor_device(self._handle, ctypes.byref(kind), ctypes.byref(index)))
         return Device(kind.value), index.value
+
+    @property
+    def owning(self) -> bool:
+        value = ctypes.c_int()
+        _check(_lib.ml_tensor_is_owning(self._handle, ctypes.byref(value)))
+        return value.value != 0
+
+    @property
+    def data_ptr(self) -> int:
+        value = ctypes.c_size_t()
+        _check(_lib.ml_tensor_data_ptr(self._handle, ctypes.byref(value)))
+        return int(value.value)
+
+    @property
+    def storage_bytes(self) -> int:
+        value = ctypes.c_size_t()
+        _check(_lib.ml_tensor_storage_bytes(self._handle, ctypes.byref(value)))
+        return int(value.value)
 
     def tolist(self) -> list[float] | list[int]:
         if self.dtype is DType.FLOAT32:
@@ -478,6 +545,12 @@ def multiply_out(output: Tensor, left: Tensor, right: Tensor,
 def matmul_out(output: Tensor, left: Tensor, right: Tensor,
                *, stream: Stream) -> None:
     _check(_lib.ml_matmul_out_on_stream(
+        output._handle, left._handle, right._handle, stream._handle))
+
+
+def add_out(output: Tensor, left: Tensor, right: Tensor,
+            *, stream: Stream) -> None:
+    _check(_lib.ml_add_out_on_stream(
         output._handle, left._handle, right._handle, stream._handle))
 
 

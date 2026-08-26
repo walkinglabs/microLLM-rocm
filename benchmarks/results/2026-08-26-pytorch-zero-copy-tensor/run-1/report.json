@@ -1,0 +1,23 @@
+{
+  "first_event_pending": true,
+  "first_output_max_error": 0.0,
+  "iterations": 64,
+  "mutated_input_output_max_error": 0.0,
+  "noncontiguous_rejected": true,
+  "owner_released_after_close": true,
+  "owner_retained_by_wrapper": true,
+  "pointers_match": true,
+  "rows": 4096,
+  "schema_version": 1,
+  "second_event_pending": true,
+  "short_storage_rejected": true,
+  "status": "pass",
+  "tensor_bytes": 16777216,
+  "torch_hip_version": "7.13.99004",
+  "torch_version": "2.11.0+rocm7.13.0rc2",
+  "width": 1024,
+  "wrapped_payload_bytes": 50331648,
+  "wrapper_copy_bytes": 0,
+  "wrapper_destroy_preserved_torch": true,
+  "wrappers_non_owning": true
+}

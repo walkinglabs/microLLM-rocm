@@ -222,8 +222,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   ordering runs; wrapper never owns the Torch handle and output Max is 2.57e-8;
 - [ ] resolve the rocprof/PyTorch duplicate-LLVM-option injection failure before claiming
   a mixed-framework HIP API/Kernel timeline;
-- [ ] add non-owning TensorView descriptors and extend caller-owned output across the
-  remaining C/Python operator surface before claiming zero-copy scheduler integration.
+- [x] add non-owning C/Python Tensor descriptors and pass 3/3 PyTorch ROCm FP32
+  contiguous zero-copy add runs: 144MiB exposed, 0 wrapper bytes copied, output Max 0;
+- [ ] extend external Tensor dtype/operator coverage and caller-owned output before
+  claiming zero-copy scheduler or model integration.
 
 ## P2.5 — production data parallel reducer
 

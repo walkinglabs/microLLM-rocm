@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass_with_profiler_boundary","process_runs":3,"torch_version":"2.11.0+rocm7.13.0rc2","torch_hip_version":"7.13.99004","mi300x_gfx":"gfx942","capi_symbol_count":44,"cpu_hip_external_tensor_tests":"pass","pointer_identity":true,"owner_retention_and_release":true,"raw_reports_valid":true,"svg_parsed":true}

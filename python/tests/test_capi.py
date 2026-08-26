@@ -1,5 +1,8 @@
+import ctypes
+import gc
 import math
 import unittest
+import weakref
 
 import microllm
 
@@ -72,6 +75,61 @@ class TensorTest(unittest.TestCase):
         self.assertEqual(streamed_product.tolist(), [19, 22, 43, 50])
         self.assertAlmostEqual(sum(streamed_softmax.tolist()[:2]), 1.0, places=6)
 
+    def test_external_tensor_is_zero_copy_non_owning_and_strict(self):
+        left_owner = (ctypes.c_float * 4)(1, 2, 3, 4)
+        right_owner = (ctypes.c_float * 4)(5, 6, 7, 8)
+        output_owner = (ctypes.c_float * 4)(0, 0, 0, 0)
+        left_ref = weakref.ref(left_owner)
+        left = microllm.Tensor.from_external(
+            ctypes.addressof(left_owner), ctypes.sizeof(left_owner),
+            (2, 2), (2, 1), owner=left_owner)
+        right = microllm.Tensor.from_external(
+            ctypes.addressof(right_owner), ctypes.sizeof(right_owner),
+            (2, 2), (2, 1), owner=right_owner)
+        output = microllm.Tensor.from_external(
+            ctypes.addressof(output_owner), ctypes.sizeof(output_owner),
+            (2, 2), (2, 1), owner=output_owner)
+        self.assertFalse(left.owning)
+        self.assertEqual(left.data_ptr, ctypes.addressof(left_owner))
+        self.assertEqual(left.storage_bytes, ctypes.sizeof(left_owner))
+        stream = microllm.Stream("cpu")
+        microllm.add_out(output, left, right, stream=stream)
+        self.assertEqual(list(output_owner), [6, 8, 10, 12])
+        left_owner[0] = 10
+        microllm.add_out(output, left, right, stream=stream)
+        self.assertEqual(list(output_owner), [15, 8, 10, 12])
+        with self.assertRaises(microllm.MicroLLMError):
+            microllm.Tensor.from_external(
+                ctypes.addressof(left_owner), 4, (2, 2), (2, 1),
+                owner=left_owner)
+        noncontiguous = microllm.Tensor.from_external(
+            ctypes.addressof(left_owner), ctypes.sizeof(left_owner),
+            (2, 2), (1, 2), owner=left_owner)
+        with self.assertRaises(microllm.MicroLLMError):
+            microllm.add_out(output, noncontiguous, right, stream=stream)
+        noncontiguous.close()
+        with self.assertRaises(ValueError):
+            microllm.Tensor.from_external(
+                ctypes.addressof(left_owner), ctypes.sizeof(left_owner),
+                (2, 2), (2,), owner=left_owner)
+        with self.assertRaises(microllm.MicroLLMError):
+            microllm.Tensor.from_external(
+                ctypes.addressof(left_owner), ctypes.sizeof(left_owner),
+                (2, 2), (2, -1), owner=left_owner)
+        int_owner = (ctypes.c_int32 * 2)(7, 11)
+        int_tensor = microllm.Tensor.from_external(
+            ctypes.addressof(int_owner), ctypes.sizeof(int_owner),
+            (2,), (1,), dtype=microllm.DType.INT32, owner=int_owner)
+        self.assertEqual(int_tensor.tolist(), [7, 11])
+        with self.assertRaises(microllm.MicroLLMError):
+            microllm.add_out(int_tensor, int_tensor, int_tensor, stream=stream)
+        del left_owner
+        gc.collect()
+        self.assertIsNotNone(left_ref())
+        left.close()
+        gc.collect()
+        self.assertIsNone(left_ref())
+
     def test_optional_hip_roundtrip(self):
         if microllm.hip_device_count() == 0:
             self.skipTest("no visible HIP device")
@@ -85,17 +143,28 @@ class TensorTest(unittest.TestCase):
         self.assertTrue(stream.owning)
         self.assertFalse(external.owning)
         self.assertEqual(external.native_handle, stream.native_handle)
+        tensor_alias = microllm.Tensor.from_external(
+            tensor.data_ptr, tensor.storage_bytes, tensor.shape, (2, 1),
+            device="hip:0", owner=tensor)
+        output_owner = tensor + tensor
+        output_alias = microllm.Tensor.from_external(
+            output_owner.data_ptr, output_owner.storage_bytes,
+            output_owner.shape, (2, 1), device="hip:0", owner=output_owner)
         with self.assertRaises(microllm.MicroLLMError):
             microllm.add(tensor, tensor, stream=microllm.Stream("cpu"))
         start.record(external)
-        result = microllm.add(tensor, tensor, stream=external)
+        microllm.add_out(output_alias, tensor_alias, tensor_alias,
+                         stream=external)
         finish.record(external)
         finish.synchronize()
         external.close()
         stream.synchronize()
         self.assertTrue(finish.ready())
         self.assertGreaterEqual(finish.elapsed_ms_since(start), 0.0)
-        self.assertEqual(result.tolist(), [2, 4, 6, 8])
+        self.assertEqual(output_owner.tolist(), [2, 4, 6, 8])
+        tensor_alias.close()
+        output_alias.close()
+        self.assertEqual(tensor.tolist(), [1, 2, 3, 4])
 
 
 if __name__ == "__main__":
