@@ -15,6 +15,8 @@ class MicroLLMError(RuntimeError):
 class DType(enum.IntEnum):
     FLOAT32 = 0
     INT32 = 1
+    FLOAT16 = 2
+    BFLOAT16 = 3
 
 
 class Device(enum.IntEnum):
@@ -355,7 +357,7 @@ class Tensor:
         return int(value.value)
 
     def tolist(self) -> list[float] | list[int]:
-        if self.dtype is DType.FLOAT32:
+        if self.dtype in (DType.FLOAT32, DType.FLOAT16, DType.BFLOAT16):
             output = (ctypes.c_float * self.numel)()
             _check(_lib.ml_tensor_copy_f32(self._handle, output, self.numel))
             return list(output)

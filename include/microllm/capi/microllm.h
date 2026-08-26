@@ -20,7 +20,9 @@ typedef enum ml_status {
 
 typedef enum ml_dtype {
     ML_DTYPE_FLOAT32 = 0,
-    ML_DTYPE_INT32 = 1
+    ML_DTYPE_INT32 = 1,
+    ML_DTYPE_FLOAT16 = 2,
+    ML_DTYPE_BFLOAT16 = 3
 } ml_dtype;
 
 typedef enum ml_device_type {

@@ -123,6 +123,29 @@ class TensorTest(unittest.TestCase):
         self.assertEqual(int_tensor.tolist(), [7, 11])
         with self.assertRaises(microllm.MicroLLMError):
             microllm.add_out(int_tensor, int_tensor, int_tensor, stream=stream)
+        low_cases = (
+            (microllm.DType.FLOAT16, (0x3C00, 0x4000),
+             (0x4200, 0x4400)),
+            (microllm.DType.BFLOAT16, (0x3F80, 0x4000),
+             (0x4040, 0x4080)),
+        )
+        for dtype, left_bits, right_bits in low_cases:
+            low_left_owner = (ctypes.c_uint16 * 2)(*left_bits)
+            low_right_owner = (ctypes.c_uint16 * 2)(*right_bits)
+            low_output_owner = (ctypes.c_uint16 * 2)(0, 0)
+            low_left = microllm.Tensor.from_external(
+                ctypes.addressof(low_left_owner), ctypes.sizeof(low_left_owner),
+                (2,), (1,), dtype=dtype, owner=low_left_owner)
+            low_right = microllm.Tensor.from_external(
+                ctypes.addressof(low_right_owner), ctypes.sizeof(low_right_owner),
+                (2,), (1,), dtype=dtype, owner=low_right_owner)
+            low_output = microllm.Tensor.from_external(
+                ctypes.addressof(low_output_owner), ctypes.sizeof(low_output_owner),
+                (2,), (1,), dtype=dtype, owner=low_output_owner)
+            microllm.multiply_out(
+                low_output, low_left, low_right, stream=stream)
+            self.assertEqual(low_output.dtype, dtype)
+            self.assertEqual(low_output.tolist(), [3.0, 8.0])
         del left_owner
         gc.collect()
         self.assertIsNotNone(left_ref())

@@ -24,6 +24,7 @@ def main() -> int:
         "192/192-GEMM independent Stream pending",
         "3/3 bidirectional PyTorch ROCm native-Stream Event ordering",
         "144MiB exposed, 0 wrapper copy",
+        "180MiB, 0 copy, all Max 0",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -249,6 +250,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-pytorch-zero-copy-tensor/analysis.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-tensor/verification.json",
         "benchmarks/results/2026-08-26-pytorch-zero-copy-tensor/zero-copy-tensor.svg",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-low-precision/summary.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-low-precision/analysis.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-low-precision/verification.json",
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-low-precision/zero-copy-low-precision.svg",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -378,6 +383,28 @@ def main() -> int:
         assert report["noncontiguous_rejected"] is True
         assert report["short_storage_rejected"] is True
     ET.parse(zero_copy_root / "zero-copy-tensor.svg")
+    low_root = ROOT / (
+        "benchmarks/results/2026-08-26-pytorch-zero-copy-low-precision")
+    low = json.loads((low_root / "summary.json").read_text(encoding="utf-8"))
+    assert low["status"] == "pass_with_profiler_boundary"
+    assert low["run_count"] == 3
+    assert low["dtype_cases"] == 6
+    assert low["all_pointer_gates_passed"] is True
+    assert low["all_wrappers_non_owning"] is True
+    assert low["pending_event_gates"] == 12
+    assert low["maximum_multiply_error"] == 0.0
+    assert low["maximum_matmul_error"] == 0.0
+    assert low["total_wrapped_payload_bytes"] == 188743680
+    assert low["total_wrapper_copy_bytes"] == 0
+    assert low["submitted_zero_copy_ops"] == 768
+    assert low["rocprof_performance_claim"] is False
+    for run in range(1, 4):
+        report = json.loads(
+            (low_root / f"run-{run}/report.json").read_text(encoding="utf-8"))
+        assert {case["dtype"] for case in report["cases"]} == {"fp16", "bf16"}
+        assert all(case["pointer_matches"] for case in report["cases"])
+        assert all(case["wrappers_non_owning"] for case in report["cases"])
+    ET.parse(low_root / "zero-copy-low-precision.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

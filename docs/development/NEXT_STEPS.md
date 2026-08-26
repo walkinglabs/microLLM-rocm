@@ -224,8 +224,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   a mixed-framework HIP API/Kernel timeline;
 - [x] add non-owning C/Python Tensor descriptors and pass 3/3 PyTorch ROCm FP32
   contiguous zero-copy add runs: 144MiB exposed, 0 wrapper bytes copied, output Max 0;
-- [ ] extend external Tensor dtype/operator coverage and caller-owned output before
-  claiming zero-copy scheduler or model integration.
+- [x] extend external Tensor dtype to FP16/BF16 and pass 6/6 PyTorch ROCm dtype-run
+  multiply/matmul caller-output gates: 180MiB exposed, 0 copy, all Max 0;
+- [ ] extend caller-owned output to normalization/softmax/Attention/training families and
+  run randomized shape/error matrices before claiming zero-copy model integration.
 
 ## P2.5 — production data parallel reducer
 

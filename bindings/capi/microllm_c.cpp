@@ -64,6 +64,8 @@ microllm::DType dtype_from_c(ml_dtype dtype) {
     switch (dtype) {
         case ML_DTYPE_FLOAT32: return microllm::DType::Float32;
         case ML_DTYPE_INT32: return microllm::DType::Int32;
+        case ML_DTYPE_FLOAT16: return microllm::DType::Float16;
+        case ML_DTYPE_BFLOAT16: return microllm::DType::BFloat16;
     }
     throw std::invalid_argument("unknown C API dtype");
 }
@@ -259,6 +261,8 @@ ML_EXPORT ml_status ml_tensor_dtype(const ml_tensor* tensor, ml_dtype* dtype) {
         switch (require_tensor(tensor).dtype()) {
             case microllm::DType::Float32: *dtype = ML_DTYPE_FLOAT32; return;
             case microllm::DType::Int32: *dtype = ML_DTYPE_INT32; return;
+            case microllm::DType::Float16: *dtype = ML_DTYPE_FLOAT16; return;
+            case microllm::DType::BFloat16: *dtype = ML_DTYPE_BFLOAT16; return;
             default: throw std::runtime_error("dtype is not exposed by C API version 1");
         }
     });

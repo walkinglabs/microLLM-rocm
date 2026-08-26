@@ -217,6 +217,8 @@ pointer/byte/shape/stride/dtype/device
 descriptor. Destroying it never frees caller memory. The Python wrapper should receive
 `owner=` to keep the external allocation alive. The first strict zero-copy output path is
 FP32 contiguous `ml_add_out_on_stream`; unsupported layouts fail instead of copying.
+External descriptors also map FP16/BF16, with caller-owned multiply/matmul paths tested
+against PyTorch ROCm. Other operator outputs remain outside the C ABI.
 
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:

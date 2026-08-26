@@ -1292,8 +1292,9 @@ target Event while an independent 64-GEMM Stream remains pending, with 192/192 b
 Kernels and zero device/Stream-wide synchronization. Non-owning PyTorch ROCm native
 Stream ordering passes in both directions across three processes; zero-copy TensorView
 now passes FP32 add across 144MiB of real PyTorch ROCm buffers with pointer identity,
-owner lifetime and zero wrapper-copy evidence. Broader dtype/operator coverage and a
-rocprof/PyTorch LLVM injection conflict remain open.
+owner lifetime and zero wrapper-copy evidence. FP16/BF16 multiply/matmul then pass 6/6
+dtype-runs across 180MiB with all Max 0. Broader operator outputs and a rocprof/PyTorch
+LLVM injection conflict remain open.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

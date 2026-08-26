@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass_with_profiler_boundary","process_runs":3,"torch_version":"2.11.0+rocm7.13.0rc2","torch_hip_version":"7.13.99004","mi300x_gfx":"gfx942","cpu_raw_fp16_bf16_external_test":"pass","hip_fp16_bf16_multiply_matmul":"pass","all_reports_valid":true,"svg_parsed":true}

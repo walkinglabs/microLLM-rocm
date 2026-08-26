@@ -95,8 +95,9 @@ See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 and shares Storage. `TensorView` is non-owning and is the low-level operator seam. The C
 ABI can now construct the same non-owning boundary from pointer, accessible bytes,
 shape, element strides, dtype and device; Python additionally retains an external owner.
-The first public zero-copy write is FP32 contiguous add. Unsupported layouts are rejected,
-not materialized behind the caller's back.
+The first public zero-copy writes are FP32 contiguous add and F32/F16/BF16 contiguous
+multiply/matmul. Unsupported layouts are rejected, not materialized behind the caller's
+back.
 
 An operator implementation must not infer ownership from a data pointer. Output,
 workspace, device, and execution stream are explicit. This allows the same HIP
