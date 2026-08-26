@@ -137,6 +137,52 @@ O_MODEL_SPEC.loader.exec_module(O_MODEL)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_o_model_gate_rejects_b1_performance(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-fp32-prefill-o-model-gate")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        precision = [json.loads(line) for line in
+                     (root / "precision-raw.jsonl").read_text(
+                         encoding="utf-8").splitlines() if line]
+        performance = [json.loads(line) for line in
+                       (root / "performance-raw.jsonl").read_text(
+                           encoding="utf-8").splitlines() if line]
+        policies = {row["policy"]: row for row in summary["policy_summaries"]}
+        self.assertEqual((len(precision), len(performance)), (16, 16))
+        self.assertTrue(summary["robust_logit_max_improvement"])
+        self.assertTrue(summary["robust_logit_rms_improvement"])
+        self.assertFalse(summary["performance_gate_passed"])
+        self.assertFalse(summary["candidate_admitted"])
+        self.assertAlmostEqual(summary["candidate_minimum_prefill_speedup"],
+                               0.9439958736379434)
+        self.assertEqual(
+            policies["exact-core"]["maximum_logit_cross_batch_error"],
+            0.0015616416931152344)
+        self.assertEqual(
+            policies["exact-core-o"]["maximum_logit_cross_batch_error"],
+            0.0011752843856811523)
+        self.assertAlmostEqual(analysis["maximum_improvement_fraction"],
+                               0.24739944153562727)
+        self.assertAlmostEqual(analysis["rms_improvement_fraction"],
+                               0.3256643517300204)
+        for batch in summary["batches"]:
+            baseline = next(row for row in summary["cases"]
+                            if row["policy"] == "exact-core" and
+                            row["batch"] == batch)
+            candidate = next(row for row in summary["cases"]
+                             if row["policy"] == "exact-core-o" and
+                             row["batch"] == batch)
+            self.assertEqual(baseline["engine_peak_bytes_maximum"],
+                             candidate["engine_peak_bytes_maximum"])
+            self.assertEqual(
+                baseline["engine_backend_allocation_calls_maximum"],
+                candidate["engine_backend_allocation_calls_maximum"])
+        self.assertFalse(verification["admission"]["passed"])
+        ET.parse(root / "o-model-gate.svg")
+
     def test_o_model_gate_command_and_registry_counts(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,

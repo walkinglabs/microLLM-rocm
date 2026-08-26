@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "experiment": 314,
+  "status": "model_rejected",
+  "exact_core_logit_maximum": 0.0015616416931152344,
+  "exact_core_o_logit_maximum": 0.0011752843856811523,
+  "maximum_improvement_fraction": 0.24739944153562727,
+  "exact_core_logit_rms": 0.00031047795979430954,
+  "exact_core_o_logit_rms": 0.0002093668543343141,
+  "rms_improvement_fraction": 0.3256643517300204,
+  "candidate_prefill_speedup_by_batch": {
+    "1": 0.9439958736379434,
+    "2": 0.996140783684747,
+    "4": 0.9907769697282794,
+    "8": 1.0013444039017267
+  },
+  "candidate_minimum_prefill_speedup": 0.9439958736379434,
+  "robust_logit_improvement_passed": true,
+  "performance_gate_passed": false,
+  "peak_memory_changed": false,
+  "candidate_admitted": false,
+  "next_experiment": "Compare the real upstream baseline with a selective stack: B1 upstream, B2/B4 exact-core plus O, B8 exact-core without O."
+}

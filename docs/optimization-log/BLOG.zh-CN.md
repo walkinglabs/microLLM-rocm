@@ -4867,3 +4867,15 @@ batch和同batch全部exact。紧接着的O projection统一首差：B2/B4 Max 3
 这个结果只证明因果，不证明O值得默认。下一步先跑O完整模型门，再展开FFN的gate/up/SwiGLU/down。
 
 ![Post exact O trace](../../benchmarks/results/2026-08-26-post-exact-o-block0-trace/post-exact-o-trace.svg)
+
+## 331. Experiment 314：误差改善，也不能跳过最慢的那个Batch
+
+O=296100让完整logits的全局Max/RMS改善24.7%/32.6%，说明Experiment 313找到的因果位置有效。
+但四个prefill speedup是0.944/0.996/0.991/1.001×，B1低于预先写下的0.95门；B8 Max也从
+0.000823升到0.001134。候选因此拒绝，O scope只保留作显微镜。
+
+这个对照的baseline本身是已拒绝的exact-core，所以还不能说它相对真实upstream改善。最后一次反驳
+会重新跑一遍选择性组合：B1保持upstream，B2/B4使用core+O，B8使用core但关闭O。无论旧表格看起来
+多么容易拼接，都必须用fresh process得到完整模型结果。
+
+![O model gate](../../benchmarks/results/2026-08-26-fp32-prefill-o-model-gate/o-model-gate.svg)

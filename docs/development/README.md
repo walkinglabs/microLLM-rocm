@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Why the scoped O model candidate was rejected](2026-08-26-prefill-o-model-reject.md)
 - [2026-08-26: Scoped O complete model-gate runner](2026-08-26-prefill-o-model-gate-infrastructure.md)
 - [2026-08-26: FFN output after exact O](2026-08-26-post-exact-o-ffn-output.md)
 - [2026-08-26: Post-exact-O block trace runner](2026-08-26-post-exact-o-trace-infrastructure.md)

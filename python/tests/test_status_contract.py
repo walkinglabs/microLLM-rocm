@@ -24,6 +24,8 @@ def main() -> int:
         "all prefill speeds ≥0.994× and RMS improves 21.6%",
         "O projection is first drift at Max 2.77e-5–3.34e-5",
         "aggregate FFN output first drifts at Max 1.43e-5–2.19e-5",
+        "complete-logit Max/RMS improve 24.7%/32.6%",
+        "B1 prefill is 0.944×",
         "current T2048/B2/N64 is 0.8158x",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
@@ -97,6 +99,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-post-exact-o-block0-trace/analysis.json",
         "benchmarks/results/2026-08-26-post-exact-o-block0-trace/verification.json",
         "benchmarks/results/2026-08-26-post-exact-o-block0-trace/post-exact-o-trace.svg",
+        "benchmarks/results/2026-08-26-fp32-prefill-o-model-gate/summary.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-o-model-gate/analysis.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-o-model-gate/verification.json",
+        "benchmarks/results/2026-08-26-fp32-prefill-o-model-gate/o-model-gate.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -164,6 +170,15 @@ def main() -> int:
         (post_o_root / "summary.json").read_text(encoding="utf-8"))
     assert post_o["first_nonzero_after_cache"].endswith(".ffn_output")
     ET.parse(post_o_root / "post-exact-o-trace.svg")
+    o_gate_root = ROOT / (
+        "benchmarks/results/2026-08-26-fp32-prefill-o-model-gate")
+    o_gate = json.loads(
+        (o_gate_root / "summary.json").read_text(encoding="utf-8"))
+    assert o_gate["robust_logit_max_improvement"] is True
+    assert o_gate["robust_logit_rms_improvement"] is True
+    assert o_gate["performance_gate_passed"] is False
+    assert o_gate["candidate_admitted"] is False
+    ET.parse(o_gate_root / "o-model-gate.svg")
     print(f"status contract: pass components={len(names)}")
     return 0
 

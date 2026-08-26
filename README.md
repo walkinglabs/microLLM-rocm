@@ -39,11 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 313 scopes O=296100 on top of
-> an exact diagnostic core. Context, O output, residual and FFN norm become bitwise
-> equal; the first renewed drift moves to aggregate FFN output (Max `1.43e-5`–
-> `2.19e-5`). O still needs a complete model/performance gate before any admission.
-> See the [post-O trace](docs/optimization-log/experiments/313-post-exact-o-ffn-output.md).
+> **Current optimization checkpoint:** Experiment 314 measures O=296100 on top of
+> the exact diagnostic Attention core. Complete-logit Max/RMS improve by
+> `24.7%/32.6%`, but B1 prefill falls to `0.944x`; the candidate is rejected by the
+> every-batch performance gate. The next experiment compares the real upstream
+> baseline with a batch-selective exact stack before expanding the FFN trace.
+> See the [complete O model gate](docs/optimization-log/experiments/314-prefill-o-model-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

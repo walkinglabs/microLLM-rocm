@@ -152,7 +152,14 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [121](steps/121-fp32-qkv-row-invariance.md) | complete | M2048–16384 FP32 Q/K/V solution审计 | Q=296100唯一exact；KV=292135最快exact；workspace 0 |
 | [122](steps/122-fp32-qkv-model-gate.md) | complete; default rejected | DeepSeek full-prefill QKV registry模型门 | Cache全exact；logits RMS恶化1.268x；B1 prefill0.901x |
 | [123](steps/123-post-cache-drift-trace.md) | complete | exact cache后的Block0首差trace | 第一处新差异为Attention context；O后within-row再漂移 |
-| [124](steps/124-prefill-attention-core-trace.md) | planned | Block0 QK/softmax/PV阶段trace | 只选择一个首差阶段进入solution/kernel门 |
+| [124](steps/124-prefill-attention-core-trace.md) | complete | Block0 QK/softmax/PV阶段trace | B2首差P×V；B4/B8首差causal-visible QK |
+| [125](steps/125-prefill-attention-gemm-solutions.md) | complete; performance rejected | QK/P×V共同solution矩阵 | 34/34与2/2 exact；0个候选全batch≥0.95 |
+| [126](steps/126-prefill-attention-model-counterfactual.md) | complete; rejected | same-index exact core整模门 | logits Max/RMS恶化1.246×/1.068×；B1 0.94954× |
+| [127](steps/127-batch-selective-attention-solutions.md) | complete; rejected | batch-selective近default反驳 | 性能过门；Max仅改善6.1%，B2恶化 |
+| [128](steps/128-post-exact-core-block-trace.md) | complete | exact core后的第一处差异 | O projection统一首差2.77e-5–3.34e-5 |
+| [129](steps/129-prefill-o-projection-scope.md) | complete; diagnostic only | cached-prefill O独立scope | O/FFN norm exact；FFN output接过首差 |
+| [130](steps/130-prefill-o-model-gate.md) | complete; rejected | scoped O完整模型门 | logits改善24.7%/32.6%，但B1仅0.944× |
+| [131](steps/131-prefill-exact-stack-gate.md) | planned | 真实upstream对batch-selective exact stack | B1 upstream；B2/B4 core+O；B8 core-only |
 
 ## 为什么按这个顺序
 
