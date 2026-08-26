@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 305 makes block-0 BF16 K/V
-> bitwise equal across B1/B2/B4/B8 with scoped Q=296100 and K/V=292135, but
-> complete-logit RMS regresses 1.2677x, B4/B8 Max regress, and B1 prefill is
-> 0.9014x. The default is rejected; the exact-cache research path now traces
-> the first post-cache drift. See the
-> [complete-model gate](docs/optimization-log/experiments/305-fp32-qkv-model-reject.md).
+> **Current optimization checkpoint:** Experiment 306 keeps Q/K/V and block-0
+> BF16 cache bitwise equal, then locates the first renewed drift at full-prefill
+> Attention context. B4/B8 context Max is `0.00033218`; same-batch context rows
+> remain exact until output projection. Defaults remain unchanged while QK,
+> causal softmax and P×V are decomposed. See the
+> [post-cache trace](docs/optimization-log/experiments/306-post-cache-block0-trace.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

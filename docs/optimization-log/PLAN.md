@@ -151,7 +151,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [120](steps/120-block-zero-prefill-trace.md) | complete | full-prefill Block0 QKV/rope/store trace | Embedding/Norm exact；FP32 Q projection首次非零，BF16 store再放大 |
 | [121](steps/121-fp32-qkv-row-invariance.md) | complete | M2048–16384 FP32 Q/K/V solution审计 | Q=296100唯一exact；KV=292135最快exact；workspace 0 |
 | [122](steps/122-fp32-qkv-model-gate.md) | complete; default rejected | DeepSeek full-prefill QKV registry模型门 | Cache全exact；logits RMS恶化1.268x；B1 prefill0.901x |
-| [123](steps/123-post-cache-drift-trace.md) | planned | exact cache后的Block0首差trace | context/O projection/FFN三分支定位 |
+| [123](steps/123-post-cache-drift-trace.md) | complete | exact cache后的Block0首差trace | 第一处新差异为Attention context；O后within-row再漂移 |
+| [124](steps/124-prefill-attention-core-trace.md) | planned | Block0 QK/softmax/PV阶段trace | 只选择一个首差阶段进入solution/kernel门 |
 
 ## 为什么按这个顺序
 

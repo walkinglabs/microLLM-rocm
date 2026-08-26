@@ -4769,3 +4769,16 @@ Q=296100、K/V=292135让Block 0 BF16 Cache在B1/2/4/8全部位级相同，证明
 Attention context、O projection和FFN。候选API保留为反事实工具，不推广。
 
 ![FP32 QKV model gate](../../benchmarks/results/2026-08-26-fp32-qkv-model-gate/model-gate.svg)
+
+## 323. Experiment 306：Cache exact以后，Context又开始漂移
+
+沿candidate路径继续追踪，Q/K/V、RoPE和BF16 Cache在四个batch全部exact。第一处新差异是Attention
+context：B2 Max 9.78e-6，B4/B8都是0.00033218；同batch context行仍exact。
+
+O projection之后同batch行也开始不同，但它不是跨batch首因。B8 O/FFN/Block Max分别为
+0.00016308/0.00014853/0.00026321。
+
+下一步只拆Attention core：QK scores、causal softmax、P×V。由首差决定QK solution、softmax归约或
+PV solution，不能同时改三个。默认继续冻结。
+
+![Post-cache trace](../../benchmarks/results/2026-08-26-post-cache-block0-trace/post-cache-trace.svg)

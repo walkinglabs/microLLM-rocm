@@ -19565,6 +19565,117 @@ def validate_fp32_qkv_model_gate(
             min(row.get("prefill_speedup", 0.0) for row in perf.values()))
 
 
+def validate_post_cache_block0_trace(
+        errors: list[str]) -> tuple[int, str, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-post-cache-block0-trace")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    cases = {row.get("batch"): row for row in summary.get("cases", [])}
+    context_name = "inference.cached_prefill.blocks.0.attention.context"
+    if (summary.get("record_type") != "post_cache_block0_trace_audit" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 8 or len(raw) != 8 or
+            summary.get("case_rows") != 4 or len(cases) != 4 or
+            summary.get("batches") != [1, 2, 4, 8] or
+            summary.get("runs_per_case") != 2 or summary.get("context") != 2048 or
+            summary.get("q_solution_index") != 296100 or
+            summary.get("kv_solution_index") != 292135 or
+            summary.get("captured_batch_rows") != 2 or
+            summary.get("stage_count") != 17 or
+            summary.get("cache_stage_count") != 10 or
+            summary.get("first_nonzero_after_cache") != context_name or
+            summary.get("all_repeat_metrics_equal") is not True or
+            summary.get("all_cache_cross_batch_bitwise_equal") is not True or
+            any(row.get("status") != "pass" or
+                row.get("trace_record_count") != 50 or
+                len(row.get("stages", [])) != 17 for row in raw)):
+        errors.append("post-cache block0 trace summary/raw identity changed")
+    expected = {
+        2: (0.000009775161743164062, 0.00000011762365727360707,
+            0.000030517578125, 0.00002574920654296875,
+            0.0000324249267578125),
+        4: (0.00033217668533325195, 0.000001783329747026642,
+            0.0001609325408935547, 0.0001500844955444336,
+            0.00026607513427734375),
+        8: (0.00033217668533325195, 0.0000017827065560433841,
+            0.00016307830810546875, 0.00014853477478027344,
+            0.000263214111328125),
+    }
+    for batch, (context_max, context_rms, output_max, ffn_max,
+                block_max) in expected.items():
+        case = cases.get(batch, {})
+        stages = {row.get("name"): row for row in case.get("stages", [])}
+        metric = lambda name, field: stages.get(name, {}).get(
+            "b1_vs_batch_row0", {}).get(field)
+        within = lambda name: stages.get(name, {}).get(
+            "batch_row0_vs_row1", {}).get("bitwise_equal")
+        if (case.get("first_nonzero_after_cache") != context_name or
+                metric(context_name, "maximum") != context_max or
+                metric(context_name, "rms") != context_rms or
+                within(context_name) is not True or
+                metric("inference.cached_prefill.blocks.0.attention.output",
+                       "maximum") != output_max or
+                metric("inference.cached_prefill.blocks.0.ffn_output",
+                       "maximum") != ffn_max or
+                metric("inference.cached_prefill.blocks.0.output",
+                       "maximum") != block_max or
+                any(metric(name, "maximum") != 0 for name in (
+                    "inference.cached_prefill.blocks.0.attention.q_projection",
+                    "inference.cached_prefill.blocks.0.attention.k_projection",
+                    "inference.cached_prefill.blocks.0.attention.v_projection",
+                    "inference.cached_prefill.blocks.0.attention.cache_key",
+                    "inference.cached_prefill.blocks.0.attention.cache_value"))):
+            errors.append(f"post-cache block0 trace case changed: B{batch}")
+    if (analysis.get("decision") !=
+            "decompose full-prefill attention qk softmax and pv before changing output projection" or
+            analysis.get("all_cache_cross_batch_bitwise_equal") is not True or
+            analysis.get("first_nonzero_after_cache") != context_name or
+            analysis.get("all_context_within_batch_rows_bitwise_equal") is not True or
+            analysis.get("output_projection_introduces_within_batch_drift") is not True or
+            analysis.get("attention_context_is_first_post_cache_source_supported") is not True or
+            analysis.get("algorithm_default_admitted") is not False):
+        errors.append("post-cache block0 trace analysis changed")
+    if (check.get("measurement_commit") !=
+            "bbcaf95e00e995ad7f6313683b4e820f6012fc6e" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 8 or check.get("stage_count") != 17 or
+            check.get("trace_records_per_process") != 50 or
+            check.get("all_cache_cross_batch_bitwise_equal") is not True or
+            check.get("first_nonzero_after_cache") != context_name or
+            check.get("algorithm_default_admitted") is not False or
+            check.get("cpu_label") != {"passed": 375, "total": 375} or
+            check.get("sanitizer_label") != {"passed": 373, "total": 373} or
+            check.get("hip_label") != {"passed": 195, "total": 195} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("post-cache block0 trace verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "post-cache-trace.svg"):
+        if not (root / name).is_file():
+            errors.append(f"post-cache block0 trace evidence missing: {name}")
+    try:
+        ET.parse(root / "post-cache-trace.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid post-cache block0 trace SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_post_cache_block0_trace.py").read_text(encoding="utf-8")
+    if ("first_nonzero_after_cache" not in runner or
+            "fp32-prefill-q-solution-index" not in runner or
+            "attention.context" not in runner):
+        errors.append("post-cache block0 trace runner contract changed")
+    return (len(raw), summary.get("first_nonzero_after_cache", ""),
+            cases.get(4, {}).get("maximum_error", 0.0),
+            cases.get(8, {}).get("maximum_error", 0.0))
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -20470,6 +20581,8 @@ def main() -> int:
     fp32_qkv_model_precision, fp32_qkv_model_performance, \
         fp32_qkv_model_max, fp32_qkv_model_rms, fp32_qkv_model_speed = \
         validate_fp32_qkv_model_gate(errors)
+    post_cache_rows, post_cache_first, post_cache_b4, post_cache_b8 = \
+        validate_post_cache_block0_trace(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -21121,6 +21234,8 @@ def main() -> int:
           f"fp32_qkv_model={fp32_qkv_model_precision}/"
           f"{fp32_qkv_model_performance}/{fp32_qkv_model_max:.5f}/"
           f"{fp32_qkv_model_rms:.5e}/{fp32_qkv_model_speed:.4f} "
+          f"post_cache={post_cache_rows}/{post_cache_b4:.6f}/"
+          f"{post_cache_b8:.6f}/{post_cache_first} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

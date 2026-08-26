@@ -1011,6 +1011,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [FP32 QKV row-invariance SVG](../../benchmarks/results/2026-08-26-fp32-qkv-row-invariance/qkv-row-invariance.svg) | Q 12选1、KV 22选5的双门图 |
 | [experiments/305-fp32-qkv-model-reject.md](experiments/305-fp32-qkv-model-reject.md) | Cache exact但logits/性能拒绝与post-cache trace交接 |
 | [FP32 QKV model-gate SVG](../../benchmarks/results/2026-08-26-fp32-qkv-model-gate/model-gate.svg) | raw cache、完整logits和无导出性能 |
+| [experiments/306-post-cache-block0-trace.md](experiments/306-post-cache-block0-trace.md) | exact cache后的Attention context首差与core拆解 |
+| [post-cache trace SVG](../../benchmarks/results/2026-08-26-post-cache-block0-trace/post-cache-trace.svg) | 17个Block0边界的跨/内batch误差 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

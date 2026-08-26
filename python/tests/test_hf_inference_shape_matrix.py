@@ -94,6 +94,25 @@ POST_CACHE_SPEC.loader.exec_module(POST_CACHE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_post_cache_trace_locates_attention_context(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-post-cache-block0-trace")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(summary["process_rows"], 8)
+        self.assertEqual(summary["stage_count"], 17)
+        self.assertTrue(summary["all_cache_cross_batch_bitwise_equal"])
+        self.assertEqual(summary["first_nonzero_after_cache"],
+                         POST_CACHE.PREFIX + ".attention.context")
+        self.assertTrue(analysis[
+            "attention_context_is_first_post_cache_source_supported"])
+        self.assertTrue(analysis["all_context_within_batch_rows_bitwise_equal"])
+        self.assertEqual(verification["measurement_commit"],
+                         "bbcaf95e00e995ad7f6313683b4e820f6012fc6e")
+        ET.parse(root / "post-cache-trace.svg")
+
     def test_post_cache_trace_summary_skips_exact_cache_boundary(self):
         processes = []
         for run in (1, 2):
