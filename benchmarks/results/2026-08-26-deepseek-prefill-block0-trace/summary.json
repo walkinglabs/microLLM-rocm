@@ -1,0 +1,1222 @@
+{
+  "all_repeat_metrics_equal": true,
+  "all_within_batch_bitwise_equal": false,
+  "batches": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "captured_batch_rows": 2,
+  "case_rows": 4,
+  "cases": [
+    {
+      "all_within_batch_bitwise_equal": true,
+      "batch": 1,
+      "first_nonzero_stage": null,
+      "maximum_error": 0.0,
+      "maximum_rms_error": 0.0,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.embedding_rows",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_norm",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_projection",
+          "shape_actual": [
+            1,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_projection",
+          "shape_actual": [
+            1,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.v_projection",
+          "shape_actual": [
+            1,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_rope",
+          "shape_actual": [
+            1,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_rope",
+          "shape_actual": [
+            1,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.value",
+          "shape_actual": [
+            1,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_key",
+          "shape_actual": [
+            1,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_value",
+          "shape_actual": [
+            1,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": false,
+      "batch": 2,
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.attention.q_projection",
+      "maximum_error": 0.015625,
+      "maximum_rms_error": 4.780631671157553e-05,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.embedding_rows",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 8.7738037109375e-05,
+            "relative_l2": 3.3042342103958803e-07,
+            "rms": 2.892749157943423e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 8.392333984375e-05,
+            "relative_l2": 3.2478849107578226e-07,
+            "rms": 2.8434171873995e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_projection",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.54761243636269e-08,
+            "rms": 1.481533761281845e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 4.5299530029296875e-06,
+            "relative_l2": 7.797552473265467e-07,
+            "rms": 2.6301779082590536e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.v_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 9.274482727050781e-05,
+            "relative_l2": 3.3178260896090674e-07,
+            "rms": 2.9046483869683404e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 8.58306884765625e-05,
+            "relative_l2": 3.2636240521054116e-07,
+            "rms": 2.8571962751780617e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_rope",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.71693597308438e-08,
+            "rms": 1.6436276532397928e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_rope",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 4.5299530029296875e-06,
+            "relative_l2": 7.7975524732652e-07,
+            "rms": 2.6301779082590536e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.015625,
+            "relative_l2": 4.993856613302921e-07,
+            "rms": 4.780631671157553e-05
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_key",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.0009765625,
+            "relative_l2": 4.537524704672657e-05,
+            "rms": 1.5308221471746443e-05
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 524288,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": false,
+      "batch": 4,
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.attention.q_projection",
+      "maximum_error": 0.015625,
+      "maximum_rms_error": 4.9993248827749306e-05,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.embedding_rows",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 8.7738037109375e-05,
+            "relative_l2": 3.3042342103958803e-07,
+            "rms": 2.892749157943423e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 8.392333984375e-05,
+            "relative_l2": 3.2478849107578226e-07,
+            "rms": 2.8434171873995e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_projection",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.2657326571684882e-08,
+            "rms": 1.2116894516300118e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.131211243177068e-08,
+            "rms": 1.0829117221457964e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 2.6226043701171875e-06,
+            "relative_l2": 6.228872766249345e-07,
+            "rms": 2.1010494766551506e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 2.86102294921875e-06,
+            "relative_l2": 5.488590862295499e-07,
+            "rms": 1.8513463255765326e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.v_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 9.274482727050781e-05,
+            "relative_l2": 3.3178260896090674e-07,
+            "rms": 2.9046483869683404e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 8.58306884765625e-05,
+            "relative_l2": 3.2636240521054116e-07,
+            "rms": 2.8571962751780617e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_rope",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.4106779593394545e-08,
+            "rms": 1.350445992241003e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.2676814871384208e-08,
+            "rms": 1.2135550663015685e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_rope",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 2.6226043701171875e-06,
+            "relative_l2": 6.228872766249132e-07,
+            "rms": 2.1010494766551506e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 2.86102294921875e-06,
+            "relative_l2": 5.488590862295394e-07,
+            "rms": 1.8513463255765326e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.015625,
+            "relative_l2": 5.222303943330223e-07,
+            "rms": 4.9993248827749306e-05
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.015625,
+            "relative_l2": 5.349846531062536e-07,
+            "rms": 5.121421727220314e-05
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_key",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.0009765625,
+            "relative_l2": 4.496435636940831e-05,
+            "rms": 1.5169599515978653e-05
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.0009765625,
+            "relative_l2": 3.293631565697696e-05,
+            "rms": 1.1111702071655416e-05
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "all_within_batch_bitwise_equal": false,
+      "batch": 8,
+      "first_nonzero_stage": "inference.cached_prefill.blocks.0.attention.q_projection",
+      "maximum_error": 0.03125,
+      "maximum_rms_error": 8.653328750646607e-05,
+      "runs": 2,
+      "stages": [
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.embedding_rows",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": true,
+            "elements": 3145728,
+            "maximum": 0.0,
+            "relative_l2": 0.0,
+            "rms": 0.0
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention_norm",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 9.1552734375e-05,
+            "relative_l2": 3.3287355580534333e-07,
+            "rms": 2.914199287774375e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 4.9591064453125e-05,
+            "relative_l2": 2.4042313567987446e-07,
+            "rms": 2.104826041866095e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_projection",
+          "shape_actual": [
+            2,
+            2048,
+            1536
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            1536
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.5473541428218135e-08,
+            "rms": 1.4812864961448262e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.5747100458053194e-08,
+            "rms": 1.507474379724219e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 5.0067901611328125e-06,
+            "relative_l2": 7.80164510814097e-07,
+            "rms": 2.631558387309759e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 4.76837158203125e-06,
+            "relative_l2": 7.268118469223584e-07,
+            "rms": 2.451595408117453e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.v_projection",
+          "shape_actual": [
+            2,
+            2048,
+            256
+          ],
+          "shape_b1": [
+            1,
+            2048,
+            256
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 9.202957153320312e-05,
+            "relative_l2": 3.343648653571649e-07,
+            "rms": 2.927255198397126e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 3145728,
+            "maximum": 5.14984130859375e-05,
+            "relative_l2": 2.4238597524223453e-07,
+            "rms": 2.122010048761628e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.q_rope",
+          "shape_actual": [
+            2,
+            12,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            12,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 3.0517578125e-05,
+            "relative_l2": 1.7239529892158048e-08,
+            "rms": 1.6503450625885645e-06
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 6.103515625e-05,
+            "relative_l2": 1.7464457746992033e-08,
+            "rms": 1.6718774698935274e-06
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.k_rope",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 5.0067901611328125e-06,
+            "relative_l2": 7.801645108140703e-07,
+            "rms": 2.631558387309759e-07
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 4.76837158203125e-06,
+            "relative_l2": 7.268118469223323e-07,
+            "rms": 2.451595408117453e-07
+          },
+          "dtype": "float32",
+          "name": "inference.cached_prefill.blocks.0.attention.value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.03125,
+            "relative_l2": 9.039283086629726e-07,
+            "rms": 8.653328750646607e-05
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.015625,
+            "relative_l2": 6.201765627596573e-07,
+            "rms": 5.93696605077518e-05
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_key",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        },
+        {
+          "b1_vs_batch_row0": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.0009765625,
+            "relative_l2": 4.4358908066977296e-05,
+            "rms": 1.4965339764097575e-05
+          },
+          "batch_row0_vs_row1": {
+            "bitwise_equal": false,
+            "elements": 524288,
+            "maximum": 0.0009765625,
+            "relative_l2": 3.868226700775286e-05,
+            "rms": 1.3050213522530102e-05
+          },
+          "dtype": "bfloat16",
+          "name": "inference.cached_prefill.blocks.0.attention.cache_value",
+          "shape_actual": [
+            2,
+            2,
+            2048,
+            128
+          ],
+          "shape_b1": [
+            1,
+            2,
+            2048,
+            128
+          ]
+        }
+      ]
+    }
+  ],
+  "context": 2048,
+  "first_nonzero_stage": "inference.cached_prefill.blocks.0.attention.q_projection",
+  "process_rows": 8,
+  "record_type": "prefill_block0_trace_audit",
+  "runs_per_case": 2,
+  "schema_version": 1,
+  "stage_count": 10,
+  "status": "pass"
+}

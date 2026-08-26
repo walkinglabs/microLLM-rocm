@@ -4730,3 +4730,16 @@ B4/B8内部已经出现行差异。
 BF16 packed store。如果projection先变，就查大M GEMM；如果store才变，就查cast/store。默认不动。
 
 ![Prefill cache prefix](../../benchmarks/results/2026-08-26-deepseek-prefill-cache-prefix/cache-prefix.svg)
+
+## 320. Experiment 303：Embedding和Norm都没错，第一处是FP32 Q GEMM
+
+full-prefill Block 0的十个边界显示：Embedding exact，Attention Norm exact，第一处非零是FP32
+Q projection。B8 Q/K/V Max分别为9.16e-5、3.05e-5、5.01e-6，RoPE只继承差异。
+
+随后BF16 store把Key Max放大1024倍到0.03125，把Value Max放大195倍到0.0009765625。cast面对的
+输入已经不同，所以这不是cast对相同输入不确定。B2内部K/V仍exact但Q已经不同；B4/B8三路都不同。
+
+下一步直接审计M2048/4096/8192/16384、K1536、N1536/256的FP32 solution row invariance。只有
+相同2048-row块跨M位级一致的候选才进完整模型；默认不动。
+
+![Prefill block-0 trace](../../benchmarks/results/2026-08-26-deepseek-prefill-block0-trace/prefill-trace.svg)

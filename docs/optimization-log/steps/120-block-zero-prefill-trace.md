@@ -1,6 +1,6 @@
 # Step 120 — Block-0 full-prefill trace
 
-Status: planned
+Status: complete; FP32 QKV projection selected
 
 Experiment 302证明Block 0 BF16 K/V前缀在decode前已经随batch漂移。这个节点只增加full-prefill
 可观测性，不改变数学或默认策略。
@@ -16,3 +16,7 @@ Experiment 302证明Block 0 BF16 K/V前缀在decode前已经随batch漂移。这
 
 每个边界比较第0行完整值和batch内部重复行。若Q/K/V projection已经不同，进入大M FP32 GEMM
 row-invariance/solution审计；若projection exact而BF16 packed cache不同，检查cast/store。trace不做性能声明。
+
+结果：Embedding/Norm exact，第一处非零是Q projection。B8 Q/K/V Max为`9.16e-5/3.05e-5/
+5.01e-6`；BF16 Key/Value Max放大到`0.03125/0.0009765625`。Step 121审计M2048–16384的
+FP32 Q/K/V solution row invariance。

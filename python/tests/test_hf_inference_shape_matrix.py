@@ -76,6 +76,30 @@ PREFILL_TRACE_SPEC.loader.exec_module(PREFILL_TRACE)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_prefill_block0_trace_locates_q_projection(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-deepseek-prefill-block0-trace")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        b8 = next(row for row in summary["cases"] if row["batch"] == 8)
+        stages = {row["name"]: row for row in b8["stages"]}
+        prefix = PREFILL_TRACE.PREFIX + ".attention."
+        self.assertEqual(summary["process_rows"], 8)
+        self.assertEqual(summary["stage_count"], 10)
+        self.assertEqual(summary["first_nonzero_stage"],
+                         prefix + "q_projection")
+        self.assertEqual(stages[prefix + "q_projection"]
+                         ["b1_vs_batch_row0"]["maximum"],
+                         0.000091552734375)
+        self.assertEqual(stages[prefix + "cache_key"]
+                         ["b1_vs_batch_row0"]["maximum"], 0.03125)
+        self.assertTrue(analysis["fp32_qkv_projection_is_first_source_supported"])
+        self.assertEqual(verification["measurement_commit"],
+                         "d861308481bf56e3590f66517a4ad68c1447e1ae")
+        ET.parse(root / "prefill-trace.svg")
+
     def test_prefill_block0_trace_summary_finds_first_projection(self):
         processes = []
         for run in (1, 2):

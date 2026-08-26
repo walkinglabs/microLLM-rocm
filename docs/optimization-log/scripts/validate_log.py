@@ -19213,6 +19213,98 @@ def validate_prefill_cache_prefix(
             summary.get("all_within_batch_bitwise_equal", True))
 
 
+def validate_prefill_block0_trace(
+        errors: list[str]) -> tuple[int, str, float, float]:
+    root = (REPOSITORY / "benchmarks/results" /
+            "2026-08-26-deepseek-prefill-block0-trace")
+    raw = [json.loads(line) for line in (root / "raw.jsonl").read_text(
+        encoding="utf-8").splitlines() if line]
+    summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+    analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+    check = json.loads((root / "verification.json").read_text(encoding="utf-8"))
+    cases = {row.get("batch"): row for row in summary.get("cases", [])}
+    prefix = "inference.cached_prefill.blocks.0.attention."
+    expected_first = prefix + "q_projection"
+    if (summary.get("record_type") != "prefill_block0_trace_audit" or
+            summary.get("status") != "pass" or
+            summary.get("process_rows") != 8 or len(raw) != 8 or
+            summary.get("case_rows") != 4 or len(cases) != 4 or
+            summary.get("batches") != [1, 2, 4, 8] or
+            summary.get("runs_per_case") != 2 or summary.get("context") != 2048 or
+            summary.get("captured_batch_rows") != 2 or
+            summary.get("stage_count") != 10 or
+            summary.get("first_nonzero_stage") != expected_first or
+            summary.get("all_repeat_metrics_equal") is not True or
+            summary.get("all_within_batch_bitwise_equal") is not False or
+            any(row.get("status") != "pass" or
+                row.get("trace_record_count") != 50 or
+                len(row.get("stages", [])) != 10 for row in raw)):
+        errors.append("prefill block0 trace summary/raw identity changed")
+    for batch in (2, 4, 8):
+        if cases.get(batch, {}).get("first_nonzero_stage") != expected_first:
+            errors.append(f"prefill block0 first stage changed: B{batch}")
+    b8 = {row.get("name"): row for row in cases.get(8, {}).get("stages", [])}
+    metric = lambda name, field: b8.get(name, {}).get(
+        "b1_vs_batch_row0", {}).get(field)
+    if (metric("inference.cached_prefill.embedding_rows", "maximum") != 0 or
+            metric("inference.cached_prefill.blocks.0.attention_norm",
+                   "maximum") != 0 or
+            metric(prefix + "q_projection", "maximum") != 0.000091552734375 or
+            metric(prefix + "k_projection", "maximum") != 0.000030517578125 or
+            metric(prefix + "v_projection", "maximum") !=
+                0.0000050067901611328125 or
+            metric(prefix + "cache_key", "maximum") != 0.03125 or
+            metric(prefix + "cache_value", "maximum") != 0.0009765625):
+        errors.append("prefill block0 trace key stages changed")
+    if (analysis.get("decision") !=
+            "audit large-M FP32 qkv GEMM row invariance before changing cache precision" or
+            analysis.get("first_nonzero_stage") != expected_first or
+            analysis.get("b8_cache_key_max_amplification_over_k_rope") != 1024.0 or
+            analysis.get("b8_cache_value_max_amplification_over_value") !=
+                195.04761904761904 or
+            analysis.get("fp32_qkv_projection_is_first_source_supported") is not True or
+            analysis.get("bf16_store_is_first_source_supported") is not False or
+            analysis.get("precision_default_changed") is not False):
+        errors.append("prefill block0 trace analysis changed")
+    if (check.get("measurement_commit") !=
+            "d861308481bf56e3590f66517a4ad68c1447e1ae" or
+            check.get("dirty_at_measurement") is not False or
+            check.get("gpu") != "AMD Instinct MI300X VF" or
+            check.get("architecture") != "gfx942" or
+            check.get("process_rows") != 8 or check.get("stage_count") != 10 or
+            check.get("captured_batch_rows") != 2 or
+            check.get("trace_records_per_process") != 50 or
+            check.get("largest_complete_row_elements") != 3145728 or
+            check.get("first_nonzero_stage") != expected_first or
+            check.get("cpu_label") != {"passed": 375, "total": 375} or
+            check.get("sanitizer_label") != {"passed": 373, "total": 373} or
+            check.get("hip_label") != {"passed": 194, "total": 194} or
+            check.get("rccl_label") != {"passed": 53, "total": 53} or
+            check.get("torch_operator_parity") != {"passed": 1, "total": 1} or
+            check.get("coverage_manifest_audit") != "pass" or
+            check.get("registered_test_files") != 129):
+        errors.append("prefill block0 trace verification changed")
+    for name in ("README.md", "raw.jsonl", "summary.json", "analysis.json",
+                 "verification.json", "prefill-trace.svg"):
+        if not (root / name).is_file():
+            errors.append(f"prefill block0 trace evidence missing: {name}")
+    try:
+        ET.parse(root / "prefill-trace.svg")
+    except ET.ParseError as error:
+        errors.append(f"invalid prefill block0 trace SVG: {error}")
+    runner = (REPOSITORY / "benchmarks/single_gpu" /
+              "audit_prefill_block0_trace.py").read_text(encoding="utf-8")
+    model = (REPOSITORY / "src/model/model.cpp").read_text(encoding="utf-8")
+    if ("captured_batch_rows" not in runner or
+            "attention.q_projection" not in runner or
+            "trace_prefill_rows" not in model or
+            "inference.cached_prefill" not in model):
+        errors.append("prefill block0 trace source contract changed")
+    return (len(raw), summary.get("first_nonzero_stage", ""),
+            metric(prefix + "q_projection", "maximum") or 0.0,
+            metric(prefix + "cache_key", "maximum") or 0.0)
+
+
 def validate_links(errors: list[str]) -> int:
     checked = 0
     for document in sorted(ROOT.rglob("*.md")):
@@ -20111,6 +20203,8 @@ def main() -> int:
         bf16_invariance_zero = validate_bf16_row_invariance(errors)
     prefill_cache_rows, prefill_cache_key, prefill_cache_value, \
         prefill_cache_within = validate_prefill_cache_prefix(errors)
+    prefill_trace_rows, prefill_trace_first, prefill_trace_q, \
+        prefill_trace_cache = validate_prefill_block0_trace(errors)
     link_count = validate_links(errors)
     validate_assets(errors)
     if errors:
@@ -20755,6 +20849,8 @@ def main() -> int:
           f"{bf16_invariance_zero} "
           f"prefill_cache={prefill_cache_rows}/{prefill_cache_key:.5f}/"
           f"{prefill_cache_value:.7f}/{int(prefill_cache_within)} "
+          f"prefill_trace={prefill_trace_rows}/{prefill_trace_q:.5e}/"
+          f"{prefill_trace_cache:.5f}/{prefill_trace_first} "
           f"profile_calls={profile_kernel_calls}/{profile_api_calls},"
           f"{post_profile_kernel_calls}/{post_profile_api_calls},"
           f"{training_profile_kernel_calls}/{training_profile_api_calls} links={link_count}")

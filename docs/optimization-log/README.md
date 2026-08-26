@@ -1005,6 +1005,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [BF16 row-invariance SVG](../../benchmarks/results/2026-08-26-bf16-decode-row-invariance/row-invariance.svg) | 64个solution的CPU/row双门 |
 | [experiments/302-prefill-cache-prefix.md](experiments/302-prefill-cache-prefix.md) | decode前K/V已漂移与prefill QKV trace交接 |
 | [prefill cache-prefix SVG](../../benchmarks/results/2026-08-26-deepseek-prefill-cache-prefix/cache-prefix.svg) | Block0完整BF16 K/V跨batch误差 |
+| [experiments/303-prefill-block0-trace.md](experiments/303-prefill-block0-trace.md) | FP32 Q projection首次非零与大M solution交接 |
+| [prefill block-0 trace SVG](../../benchmarks/results/2026-08-26-deepseek-prefill-block0-trace/prefill-trace.svg) | 10个边界的B2/B4/B8完整row误差 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

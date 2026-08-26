@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 302 shows block-0 BF16 K/V
-> cache prefixes already differ after full prefill and before decode. Key reaches
-> Max `0.03125`; value reaches `0.0009765625`; B4/B8 repeated rows also diverge.
-> Defaults remain unchanged while block-0 full-prefill Q/K/V and cache-store
-> boundaries are traced. See the
-> [cache-prefix experiment](docs/optimization-log/experiments/302-prefill-cache-prefix.md).
+> **Current optimization checkpoint:** Experiment 303 locates the first
+> full-prefill difference at block-0 FP32 Q projection; embedding and Attention
+> Norm are exact. B8 Q/K/V Max is `9.16e-5/3.05e-5/5.01e-6`, then BF16 cache
+> storage amplifies Key/Value Max to `0.03125/0.0009765625`. Defaults remain
+> unchanged while large-M FP32 Q/K/V solutions are screened. See the
+> [prefill trace experiment](docs/optimization-log/experiments/303-prefill-block0-trace.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1580" height="650" viewBox="0 0 1580 650">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,SFMono-Regular,monospace;fill:#e5e7eb}.title{font-size:22px;font-weight:700}.label{font-size:11px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="30" y="38" class="title">Block-0 full-prefill boundary drift</text>
+<text x="30" y="62" class="muted">DeepSeek T2048 · complete row0 values · linear Max scale</text>
+<text x="30" y="123" class="label">B2</text>
+<rect x="130" y="228.00" width="34" height="2.00" fill="#38bdf8"/>
+<text x="147" y="250" class="label" text-anchor="middle" transform="rotate(55 147 250)">embedding_rows</text>
+<rect x="270" y="228.00" width="34" height="2.00" fill="#38bdf8"/>
+<text x="287" y="250" class="label" text-anchor="middle" transform="rotate(55 287 250)">attention_norm</text>
+<rect x="410" y="228.00" width="34" height="2.00" fill="#38bdf8"/>
+<text x="427" y="250" class="label" text-anchor="middle" transform="rotate(55 427 250)">attention.q_projection</text>
+<rect x="550" y="228.00" width="34" height="2.00" fill="#38bdf8"/>
+<text x="567" y="250" class="label" text-anchor="middle" transform="rotate(55 567 250)">attention.k_projection</text>
+<rect x="690" y="228.00" width="34" height="2.00" fill="#38bdf8"/>
+<text x="707" y="250" class="label" text-anchor="middle" transform="rotate(55 707 250)">attention.v_projection</text>
+<rect x="830" y="228.00" width="34" height="2.00" fill="#38bdf8"/>
+<text x="847" y="250" class="label" text-anchor="middle" transform="rotate(55 847 250)">attention.q_rope</text>
+<rect x="970" y="228.00" width="34" height="2.00" fill="#38bdf8"/>
+<text x="987" y="250" class="label" text-anchor="middle" transform="rotate(55 987 250)">attention.k_rope</text>
+<rect x="1110" y="228.00" width="34" height="2.00" fill="#38bdf8"/>
+<text x="1127" y="250" class="label" text-anchor="middle" transform="rotate(55 1127 250)">attention.value</text>
+<rect x="1250" y="140.00" width="34" height="90.00" fill="#38bdf8"/>
+<text x="1267" y="250" class="label" text-anchor="middle" transform="rotate(55 1267 250)">attention.cache_key</text>
+<rect x="1390" y="224.38" width="34" height="5.62" fill="#38bdf8"/>
+<text x="1407" y="250" class="label" text-anchor="middle" transform="rotate(55 1407 250)">attention.cache_value</text>
+<text x="30" y="288" class="label">B4</text>
+<rect x="130" y="393.00" width="34" height="2.00" fill="#f97316"/>
+<text x="147" y="415" class="label" text-anchor="middle" transform="rotate(55 147 415)">embedding_rows</text>
+<rect x="270" y="393.00" width="34" height="2.00" fill="#f97316"/>
+<text x="287" y="415" class="label" text-anchor="middle" transform="rotate(55 287 415)">attention_norm</text>
+<rect x="410" y="393.00" width="34" height="2.00" fill="#f97316"/>
+<text x="427" y="415" class="label" text-anchor="middle" transform="rotate(55 427 415)">attention.q_projection</text>
+<rect x="550" y="393.00" width="34" height="2.00" fill="#f97316"/>
+<text x="567" y="415" class="label" text-anchor="middle" transform="rotate(55 567 415)">attention.k_projection</text>
+<rect x="690" y="393.00" width="34" height="2.00" fill="#f97316"/>
+<text x="707" y="415" class="label" text-anchor="middle" transform="rotate(55 707 415)">attention.v_projection</text>
+<rect x="830" y="393.00" width="34" height="2.00" fill="#f97316"/>
+<text x="847" y="415" class="label" text-anchor="middle" transform="rotate(55 847 415)">attention.q_rope</text>
+<rect x="970" y="393.00" width="34" height="2.00" fill="#f97316"/>
+<text x="987" y="415" class="label" text-anchor="middle" transform="rotate(55 987 415)">attention.k_rope</text>
+<rect x="1110" y="393.00" width="34" height="2.00" fill="#f97316"/>
+<text x="1127" y="415" class="label" text-anchor="middle" transform="rotate(55 1127 415)">attention.value</text>
+<rect x="1250" y="305.00" width="34" height="90.00" fill="#f97316"/>
+<text x="1267" y="415" class="label" text-anchor="middle" transform="rotate(55 1267 415)">attention.cache_key</text>
+<rect x="1390" y="389.38" width="34" height="5.62" fill="#f97316"/>
+<text x="1407" y="415" class="label" text-anchor="middle" transform="rotate(55 1407 415)">attention.cache_value</text>
+<text x="30" y="453" class="label">B8</text>
+<rect x="130" y="558.00" width="34" height="2.00" fill="#22c55e"/>
+<text x="147" y="580" class="label" text-anchor="middle" transform="rotate(55 147 580)">embedding_rows</text>
+<rect x="270" y="558.00" width="34" height="2.00" fill="#22c55e"/>
+<text x="287" y="580" class="label" text-anchor="middle" transform="rotate(55 287 580)">attention_norm</text>
+<rect x="410" y="558.00" width="34" height="2.00" fill="#22c55e"/>
+<text x="427" y="580" class="label" text-anchor="middle" transform="rotate(55 427 580)">attention.q_projection</text>
+<rect x="550" y="558.00" width="34" height="2.00" fill="#22c55e"/>
+<text x="567" y="580" class="label" text-anchor="middle" transform="rotate(55 567 580)">attention.k_projection</text>
+<rect x="690" y="558.00" width="34" height="2.00" fill="#22c55e"/>
+<text x="707" y="580" class="label" text-anchor="middle" transform="rotate(55 707 580)">attention.v_projection</text>
+<rect x="830" y="558.00" width="34" height="2.00" fill="#22c55e"/>
+<text x="847" y="580" class="label" text-anchor="middle" transform="rotate(55 847 580)">attention.q_rope</text>
+<rect x="970" y="558.00" width="34" height="2.00" fill="#22c55e"/>
+<text x="987" y="580" class="label" text-anchor="middle" transform="rotate(55 987 580)">attention.k_rope</text>
+<rect x="1110" y="558.00" width="34" height="2.00" fill="#22c55e"/>
+<text x="1127" y="580" class="label" text-anchor="middle" transform="rotate(55 1127 580)">attention.value</text>
+<rect x="1250" y="380.00" width="34" height="180.00" fill="#22c55e"/>
+<text x="1267" y="580" class="label" text-anchor="middle" transform="rotate(55 1267 580)">attention.cache_key</text>
+<rect x="1390" y="554.38" width="34" height="5.62" fill="#22c55e"/>
+<text x="1407" y="580" class="label" text-anchor="middle" transform="rotate(55 1407 580)">attention.cache_value</text>
+</svg>
