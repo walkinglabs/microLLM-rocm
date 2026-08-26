@@ -129,6 +129,11 @@ cross-device timing ratio is not a speed comparison.
 1. Add a microLLM runner that records a complete named parameter trace and stable
    operator/layer checkpoint order.
 2. Rebuild the same architecture in the PyTorch runner using those exact weights.
+
+For official checkpoints, `hf_pytorch_hidden_alignment.py` reuses the inference trace
+and PyTorch forward hooks to compare embedding, every decoder block, final norm and
+last-token logits. The committed context-4 Qwen/DeepSeek matrix is synchronous numerical
+evidence; large value traces are deleted after per-stage metrics are computed.
 3. Start with one token and one layer; compare after each architectural component.
 4. Add prefill, decode, KV cache, and multi-token cases separately.
 5. Pin tokenizer/config/weights and record their immutable source revision.

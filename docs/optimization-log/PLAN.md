@@ -194,6 +194,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [163](steps/163-pytorch-custom-op-softmax-out.md) | complete; integration keep | caller-owned out schema | w1024 1.116×/1.087×；wide 0.813×/0.467× |
 | [164](steps/164-pytorch-bf16-wave1024-softmax.md) | complete; keep | BF16 cached wave1024 | core1.687×/1.578×；Custom out约1.687× |
 | [165](steps/165-pytorch-softmax-out-fallthrough-reject.md) | complete; removed/closed | out Autograd fallthrough | FP16/BF16仅1.008×/0.998× |
+| [166](steps/166-official-pytorch-hidden-alignment.md) | complete | official per-layer alignment | Qwen/Deep 27/31阶段；embedding exact；首差block0 |
 
 ## 为什么按这个顺序
 

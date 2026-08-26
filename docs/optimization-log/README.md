@@ -1098,6 +1098,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [BF16 wave1024 SVG](assets/pytorch-rocm-bf16-wave1024-softmax.svg) | core/Custom out前后Event |
 | [experiments/349-pytorch-softmax-out-fallthrough-reject.md](experiments/349-pytorch-softmax-out-fallthrough-reject.md) | Autograd fallthrough无收益并删除 |
 | [Softmax out fallthrough SVG](assets/pytorch-rocm-softmax-out-fallthrough-reject.svg) | 两dtype相对1.05门 |
+| [experiments/350-official-pytorch-hidden-alignment.md](experiments/350-official-pytorch-hidden-alignment.md) | 真实Qwen/DeepSeek逐层PyTorch对齐 |
+| [Official hidden alignment SVG](assets/official-pytorch-hidden-alignment.svg) | 27/31阶段relative-L2曲线 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

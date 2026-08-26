@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="720" viewBox="0 0 1420 720">
+<rect width="1420" height="720" fill="#f7f9fc"/>
+<text x="710" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">Every Official-Model Hidden State Now Has a PyTorch Oracle</text>
+<text x="710" y="79" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">FP32 relative-L2 by stage · context 4 · complete synchronous snapshots</text>
+<line x1="100" y1="585.0" x2="1020" y2="585.0" stroke="#dbe1ea"/>
+<text x="88" y="590.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1e-08</text>
+<line x1="100" y1="470.0" x2="1020" y2="470.0" stroke="#dbe1ea"/>
+<text x="88" y="475.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1e-07</text>
+<line x1="100" y1="355.0" x2="1020" y2="355.0" stroke="#dbe1ea"/>
+<text x="88" y="360.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1e-06</text>
+<line x1="100" y1="240.0" x2="1020" y2="240.0" stroke="#dbe1ea"/>
+<text x="88" y="245.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1e-05</text>
+<line x1="100" y1="125.0" x2="1020" y2="125.0" stroke="#dbe1ea"/>
+<text x="88" y="130.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1e-04</text>
+<polyline points="100.0,585.0 135.4,309.3 170.8,312.5 206.2,320.7 241.5,327.7 276.9,327.7 312.3,328.5 347.7,328.5 383.1,328.5 418.5,328.6 453.8,328.6 489.2,328.6 524.6,328.6 560.0,328.7 595.4,328.7 630.8,328.7 666.2,328.8 701.5,328.8 736.9,328.8 772.3,328.8 807.7,328.7 843.1,328.6 878.5,187.0 913.8,213.2 949.2,208.6 984.6,224.6 1020.0,285.2" fill="none" stroke="#4776c5" stroke-width="3"/>
+<circle cx="100.0" cy="585.0" r="3.5" fill="#4776c5"/>
+<circle cx="135.4" cy="309.3" r="3.5" fill="#4776c5"/>
+<circle cx="170.8" cy="312.5" r="3.5" fill="#4776c5"/>
+<circle cx="206.2" cy="320.7" r="3.5" fill="#4776c5"/>
+<circle cx="241.5" cy="327.7" r="3.5" fill="#4776c5"/>
+<circle cx="276.9" cy="327.7" r="3.5" fill="#4776c5"/>
+<circle cx="312.3" cy="328.5" r="3.5" fill="#4776c5"/>
+<circle cx="347.7" cy="328.5" r="3.5" fill="#4776c5"/>
+<circle cx="383.1" cy="328.5" r="3.5" fill="#4776c5"/>
+<circle cx="418.5" cy="328.6" r="3.5" fill="#4776c5"/>
+<circle cx="453.8" cy="328.6" r="3.5" fill="#4776c5"/>
+<circle cx="489.2" cy="328.6" r="3.5" fill="#4776c5"/>
+<circle cx="524.6" cy="328.6" r="3.5" fill="#4776c5"/>
+<circle cx="560.0" cy="328.7" r="3.5" fill="#4776c5"/>
+<circle cx="595.4" cy="328.7" r="3.5" fill="#4776c5"/>
+<circle cx="630.8" cy="328.7" r="3.5" fill="#4776c5"/>
+<circle cx="666.2" cy="328.8" r="3.5" fill="#4776c5"/>
+<circle cx="701.5" cy="328.8" r="3.5" fill="#4776c5"/>
+<circle cx="736.9" cy="328.8" r="3.5" fill="#4776c5"/>
+<circle cx="772.3" cy="328.8" r="3.5" fill="#4776c5"/>
+<circle cx="807.7" cy="328.7" r="3.5" fill="#4776c5"/>
+<circle cx="843.1" cy="328.6" r="3.5" fill="#4776c5"/>
+<circle cx="878.5" cy="187.0" r="3.5" fill="#4776c5"/>
+<circle cx="913.8" cy="213.2" r="3.5" fill="#4776c5"/>
+<circle cx="949.2" cy="208.6" r="3.5" fill="#4776c5"/>
+<circle cx="984.6" cy="224.6" r="3.5" fill="#4776c5"/>
+<circle cx="1020.0" cy="285.2" r="3.5" fill="#4776c5"/>
+<line x1="130" y1="145" x2="175" y2="145" stroke="#4776c5" stroke-width="4"/>
+<text x="185" y="150" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">Qwen2.5-0.5B</text>
+<polyline points="100.0,585.0 130.7,302.7 161.3,381.3 192.0,383.1 222.7,382.8 253.3,383.0 284.0,382.5 314.7,382.6 345.3,382.6 376.0,382.8 406.7,382.9 437.3,383.2 468.0,383.3 498.7,383.4 529.3,383.5 560.0,383.5 590.7,382.9 621.3,384.0 652.0,384.0 682.7,383.9 713.3,383.9 744.0,383.8 774.7,383.8 805.3,383.5 836.0,383.1 866.7,382.4 897.3,380.0 928.0,360.2 958.7,303.2 989.3,325.9 1020.0,339.4" fill="none" stroke="#d06d45" stroke-width="3"/>
+<circle cx="100.0" cy="585.0" r="3.5" fill="#d06d45"/>
+<circle cx="130.7" cy="302.7" r="3.5" fill="#d06d45"/>
+<circle cx="161.3" cy="381.3" r="3.5" fill="#d06d45"/>
+<circle cx="192.0" cy="383.1" r="3.5" fill="#d06d45"/>
+<circle cx="222.7" cy="382.8" r="3.5" fill="#d06d45"/>
+<circle cx="253.3" cy="383.0" r="3.5" fill="#d06d45"/>
+<circle cx="284.0" cy="382.5" r="3.5" fill="#d06d45"/>
+<circle cx="314.7" cy="382.6" r="3.5" fill="#d06d45"/>
+<circle cx="345.3" cy="382.6" r="3.5" fill="#d06d45"/>
+<circle cx="376.0" cy="382.8" r="3.5" fill="#d06d45"/>
+<circle cx="406.7" cy="382.9" r="3.5" fill="#d06d45"/>
+<circle cx="437.3" cy="383.2" r="3.5" fill="#d06d45"/>
+<circle cx="468.0" cy="383.3" r="3.5" fill="#d06d45"/>
+<circle cx="498.7" cy="383.4" r="3.5" fill="#d06d45"/>
+<circle cx="529.3" cy="383.5" r="3.5" fill="#d06d45"/>
+<circle cx="560.0" cy="383.5" r="3.5" fill="#d06d45"/>
+<circle cx="590.7" cy="382.9" r="3.5" fill="#d06d45"/>
+<circle cx="621.3" cy="384.0" r="3.5" fill="#d06d45"/>
+<circle cx="652.0" cy="384.0" r="3.5" fill="#d06d45"/>
+<circle cx="682.7" cy="383.9" r="3.5" fill="#d06d45"/>
+<circle cx="713.3" cy="383.9" r="3.5" fill="#d06d45"/>
+<circle cx="744.0" cy="383.8" r="3.5" fill="#d06d45"/>
+<circle cx="774.7" cy="383.8" r="3.5" fill="#d06d45"/>
+<circle cx="805.3" cy="383.5" r="3.5" fill="#d06d45"/>
+<circle cx="836.0" cy="383.1" r="3.5" fill="#d06d45"/>
+<circle cx="866.7" cy="382.4" r="3.5" fill="#d06d45"/>
+<circle cx="897.3" cy="380.0" r="3.5" fill="#d06d45"/>
+<circle cx="928.0" cy="360.2" r="3.5" fill="#d06d45"/>
+<circle cx="958.7" cy="303.2" r="3.5" fill="#d06d45"/>
+<circle cx="989.3" cy="325.9" r="3.5" fill="#d06d45"/>
+<circle cx="1020.0" cy="339.4" r="3.5" fill="#d06d45"/>
+<line x1="130" y1="177" x2="175" y2="177" stroke="#d06d45" stroke-width="4"/>
+<text x="185" y="182" font-family="Inter,Arial,sans-serif" font-size="15" fill="#172033">DeepSeek-Distill-1.5B</text>
+<text x="100" y="618" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">embedding</text>
+<text x="560.0" y="618" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">decoder blocks</text>
+<text x="1020" y="618" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">norm + logits</text>
+<rect x="1060" y="125" width="315" height="460" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="1090" y="168" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Evidence</text>
+<text x="1090" y="216" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ embedding exact: both models</text>
+<text x="1090" y="249" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ 27 / 31 stages complete</text>
+<text x="1090" y="299" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">first nonzero: block 0</text>
+<text x="1090" y="332" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Qwen max rel-L2 2.89e-5</text>
+<text x="1090" y="365" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Deep max rel-L2 2.85e-6</text>
+<text x="1090" y="415" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">Qwen logits Max 8.01e-5</text>
+<text x="1090" y="448" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">Deep logits Max 2.48e-5</text>
+<text x="1090" y="498" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">numerical diagnostic only</text>
+<text x="1090" y="529" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">no performance claim</text>
+<text x="710" y="680" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">The first difference is visible instead of inferred from final logits</text>
+</svg>

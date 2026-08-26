@@ -94,7 +94,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   Cache fallback;
 - [x] keep uncached batch greedy row-wise argmax on device;
 - [x] compare tokenizer IDs, complete logits, and greedy tokens with PyTorch on fixed prompts;
-- [ ] compare every per-layer hidden state with PyTorch;
+- [x] compare every per-layer hidden state with PyTorch on real FP32 Qwen/DeepSeek:
+  27/31 stages complete, embeddings exact, first nonzero at block 0, final logits
+  Max/RMS 8.01e-5/1.01e-5 and 2.48e-5/4.19e-6;
 - [x] record engine peak, resident policy, prefill/decode latency, tokens/s and KV utilization;
 - [x] require one cached model forward per measured decode token and sweep output lengths
   1/8/32 across short/medium/long contexts and B1/B8;

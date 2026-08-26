@@ -851,3 +851,17 @@ are FP16/BF16 0.821×/0.804×.
 An Autograd fallthrough candidate for the inference-only out op is rejected: width4096
 FP16/BF16 changes only about 1.008×/0.998×. Its complete correct matrix is retained in
 `2026-08-26-pytorch-rocm-custom-op-softmax-out-fallthrough`.
+
+Compare every official-model hidden state with PyTorch using:
+
+```bash
+/path/to/rocm-venv/bin/python \
+  benchmarks/single_gpu/hf_pytorch_hidden_alignment.py \
+  --manifest /path/to/hf-model-manifest.json \
+  --binary build/hip-release/apps/microllm_hf_infer \
+  --output-directory /tmp/microllm-hidden-alignment \
+  --context 4
+```
+
+The committed Qwen/DeepSeek run covers 27/31 stages. Embeddings are exact, first nonzero
+differences occur at block 0, and final-logit Max remains at most 8.01e-5.

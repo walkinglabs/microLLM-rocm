@@ -701,6 +701,13 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.PyTorchSoftmaxOutFallthroughRejectContract PROPERTIES
         LABELS "cpu;benchmark;torch;softmax;mutation;autograd;performance;schema")
     add_test(
+        NAME Benchmark.OfficialPyTorchHiddenAlignmentContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_official_pytorch_hidden_alignment.py
+    )
+    set_tests_properties(Benchmark.OfficialPyTorchHiddenAlignmentContract PROPERTIES
+        LABELS "cpu;benchmark;pytorch;huggingface;model;graph;precision;schema")
+    add_test(
         NAME Benchmark.DataParallelVerificationMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_data_parallel_verification_matrix.py

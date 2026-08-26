@@ -5253,3 +5253,13 @@ inference-only out仍经过Autograd kernel。候选把拒绝移入backend并注�
 这条负结果关闭adapter局部提交线：剩余wide差距不在这一层，下一步必须重新看模型/图profile。
 
 ![Softmax out fallthrough rejection](assets/pytorch-rocm-softmax-out-fallthrough-reject.svg)
+
+## 366. Experiment 350：最终logits之前，每一层都要有证人
+
+C++正式trace与PyTorch forward hooks读取同一真实safetensors和四个token，比较embedding、每个block、
+final norm、last logits。Qwen/DeepSeek覆盖27/31个阶段，embedding都bit-exact，首差都在block0。
+
+Qwen最大relative-L2为2.89e-5，logits Max/RMS 8.01e-5/1.01e-5；DeepSeek分别为2.85e-6与
+2.48e-5/4.19e-6。逐层空白关闭，后续图级优化能在第一处变化处验收，而不只看最终token。
+
+![Official hidden alignment](assets/official-pytorch-hidden-alignment.svg)
