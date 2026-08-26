@@ -31,17 +31,21 @@ ROCTX动作一定发生在两次Python读数之间。取每个小区间的中点
 - `calibrate_python_rocprof_clock`至少要求两个成功range，时钟比例必须在1%内；
 - 首次ROCTX调用会包含初始化，所以正式runner先做一次不参与拟合的warm-up；
 - 最大调用边界必须不超过100µs，最大拟合残差不超过50µs；
-- `merge_rocprof_perfetto(..., python_jsonl=...)`把全部Python span放入测得的rocprof时间轴；
-- 一个range可以包含多个Kernel，每个marker/kernel对获得自己的flow ID，不能让多个结束事件
-  争用同一个flow。
+- `merge_rocprof_perfetto(..., hip_api_csv=..., python_jsonl=...)`把全部Python span放入
+  测得的rocprof时间轴，并只生成有launch API证据的Kernel flow；
+- 一个range可以包含多个launch/copy API；API与Kernel用精确ID关联，每条
+  marker/API/Kernel证据链获得自己的flow ID；不假设marker ID等于Kernel ID。
 
 ## 三次正式结果
 
 | 运行 | 比例误差 | 最大残差 | 最宽边界 | 关联add | Trace Event |
 |---|---:|---:|---:|---:|---:|
-| run-1 | 11.88 ppm | 1.427µs | 9.545µs | 8/8 | 85 |
-| run-2 | 15.84 ppm | 1.092µs | 8.483µs | 8/8 | 85 |
-| run-3 | 18.65 ppm | 1.037µs | 8.491µs | 8/8 | 85 |
+| run-1 | 13.88 ppm | 1.154µs | 8.583µs | 8/8 | 85 |
+| run-2 | 9.66 ppm | 1.232µs | 8.667µs | 8/8 | 85 |
+| run-3 | 15.11 ppm | 1.340µs | 9.342µs | 8/8 | 85 |
+
+正式复跑还修正了一项解释：不开HIP API trace时，marker与Kernel的ID恰好相同并不足以证明关系。
+当前三次结果都开启`--hip-trace`，只接受“range包含host API，host API与Kernel精确同ID”的链条。
 
 ![Calibration quality](../../benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/calibration-quality.svg)
 

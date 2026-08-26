@@ -1,8 +1,9 @@
 # 2026-08-26 — ROCTX与GPU Kernel统一Perfetto时间线
 
-HIP测试在`microllm.test.finished` ROCTX范围内提交add。rocprof同时导出marker/kernel CSV；两者共享
-`Correlation_Id=2`。合并器写marker/kernel `X`事件和`s/f` flow，不用时间包含猜关联。正式结果为
-2 marker、2 kernel、1相关ID、6 Trace Events。
+HIP测试在`microllm.test.finished` ROCTX范围内提交add。修正后的正式数据同时导出244条HIP API：
+range包含`hipLaunchKernel`调用，launch与add Kernel共享精确ID。合并器不再假设marker ID等于Kernel
+ID，也不要求异步Kernel时间戳落在host range内。结果为2 marker、2 kernel、1个证据链、6个Trace
+Event。
 
 Python `perf_counter_ns`与rocprof timestamp尚未校准，所以Python spans不被错误地硬合并。
 

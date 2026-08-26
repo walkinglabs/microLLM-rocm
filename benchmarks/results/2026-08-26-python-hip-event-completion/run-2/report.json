@@ -1,0 +1,19 @@
+{
+  "completion_duration_ns": 3597355,
+  "device": 0,
+  "device_elapsed_ns": 1517098,
+  "elements": 4194304,
+  "event_ready_at_submit": false,
+  "host_work_before_completion_observed_ns": 3065301,
+  "host_work_ns": 3065301,
+  "host_work_sentinel": 333328333350000,
+  "maximum_output_error": 0.0,
+  "observer_thread_is_distinct": true,
+  "profile_output": "/home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-hip-event-completion/run-2/profile.jsonl",
+  "rows": 4096,
+  "schema_version": 1,
+  "status": "pass",
+  "submission_duration_ns": 151832,
+  "synchronization_scope": "hip_event_default_stream",
+  "width": 1024
+}

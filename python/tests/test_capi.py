@@ -31,12 +31,31 @@ class TensorTest(unittest.TestCase):
         with self.assertRaises(microllm.MicroLLMError):
             _ = left + right
 
+    def test_event_default_stream_lifecycle(self):
+        event = microllm.Event("cpu", enable_timing=False)
+        self.assertEqual(event.device, (microllm.Device.CPU, 0))
+        self.assertFalse(event.timing_enabled)
+        self.assertFalse(event.ready())
+        event.record_default_stream()
+        self.assertTrue(event.ready())
+        event.synchronize()
+        with self.assertRaises(microllm.MicroLLMError):
+            event.elapsed_ms_since(event)
+
     def test_optional_hip_roundtrip(self):
         if microllm.hip_device_count() == 0:
             self.skipTest("no visible HIP device")
         tensor = microllm.Tensor.from_f32([1, 2, 3, 4], (2, 2)).to("hip:0")
         self.assertEqual(tensor.device, (microllm.Device.HIP, 0))
-        self.assertEqual((tensor + tensor).tolist(), [2, 4, 6, 8])
+        start = microllm.Event("hip:0")
+        finish = microllm.Event("hip:0")
+        start.record_default_stream()
+        result = tensor + tensor
+        finish.record_default_stream()
+        finish.synchronize()
+        self.assertTrue(finish.ready())
+        self.assertGreaterEqual(finish.elapsed_ms_since(start), 0.0)
+        self.assertEqual(result.tolist(), [2, 4, 6, 8])
 
 
 if __name__ == "__main__":

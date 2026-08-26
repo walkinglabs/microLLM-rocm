@@ -554,13 +554,32 @@ Set `TraceOptions.emit_roctx_ranges=true` to mirror active `TraceTimer` spans in
 ROCTX. rocprofv3 `--marker-trace` then records the same names; unfinished timers are
 closed by the destructor. The option is default-off and loads ROCTX at runtime.
 
-`merge_rocprof_perfetto(marker_csv, kernel_csv, output_json)` merges rocprof marker
-and Kernel CSV using `Correlation_Id` flows. Pass `python_jsonl=...` to add all Python
-spans using the measured clock map. Every marker/kernel pair receives a unique flow ID,
-including a range that contains several Kernels. The three-run MI300X evidence keeps
-scale error at most 18.65ppm, residual at most 1.427us, and correlates 24/24 HIP adds.
+`merge_rocprof_perfetto(marker_csv, kernel_csv, output_json, hip_api_csv=...)` uses a
+two-part proof: the ROCTX range contains a launch/copy host API, then that API and its
+Kernel share exact `Correlation_Id`. Marker/Kernel ID equality alone is not accepted.
+Pass `python_jsonl=...` to add all Python spans using the measured clock map. Every
+marker/API/Kernel chain receives a unique flow ID. The three-run MI300X evidence keeps
+scale error at most 15.11ppm, residual at most 1.340us, and correlates 24/24 HIP adds.
 See the [raw result](../../benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/README.md).
 
 Ad-hoc wall-clock timing around asynchronous kernels is not accepted evidence. HIP Event
-completion remains a separate missing feature; the clock map never turns wall time into
-Kernel time and does not add a hidden global synchronization.
+completion uses a separate explicit scope:
+
+```python
+with hip_event_profile_scope("softmax", output="trace.jsonl") as completion:
+    result = softmax(input)
+future = completion.observe_async()
+# Host work can continue here.
+record = future.result()
+completion.close()
+```
+
+The scope records start/finish Events on the C API default Stream. Context exit is only
+submission completion; the background observer waits on the finish Event, never calls
+device- or Stream-wide synchronization, and writes submission, host-observation and
+device-Event durations separately. Call `close()` after `wait()`/Future completion to
+release both Event handles; it is idempotent and refuses to destroy pending Events. The
+host observation is an upper bound because the
+thread may wait for Python scheduling. Three MI300X softmax runs are pending at submit,
+have exact output, and show zero `hipDeviceSynchronize`/`hipStreamSynchronize` calls.
+Explicit Python Stream binding remains missing.

@@ -29,6 +29,13 @@ class _TensorHandle(ctypes.Structure):
 _TensorPointer = ctypes.POINTER(_TensorHandle)
 
 
+class _EventHandle(ctypes.Structure):
+    pass
+
+
+_EventPointer = ctypes.POINTER(_EventHandle)
+
+
 def _library_path() -> str:
     configured = os.environ.get("MICROLLM_LIBRARY")
     if configured:
@@ -73,6 +80,7 @@ _lib.ml_tensor_from_i32.argtypes = [
 ]
 _lib.ml_tensor_from_i32.restype = ctypes.c_int
 _lib.ml_tensor_destroy.argtypes = [_TensorPointer]
+_lib.ml_tensor_destroy.restype = None
 _lib.ml_tensor_rank.argtypes = [_TensorPointer, ctypes.POINTER(ctypes.c_size_t)]
 _lib.ml_tensor_rank.restype = ctypes.c_int
 _lib.ml_tensor_shape.argtypes = [_TensorPointer, ctypes.c_size_t, ctypes.POINTER(ctypes.c_int64)]
@@ -98,6 +106,20 @@ _lib.ml_tensor_to.argtypes = [
     ctypes.POINTER(_TensorPointer),
 ]
 _lib.ml_tensor_to.restype = ctypes.c_int
+_lib.ml_event_create.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                 ctypes.POINTER(_EventPointer)]
+_lib.ml_event_create.restype = ctypes.c_int
+_lib.ml_event_destroy.argtypes = [_EventPointer]
+_lib.ml_event_destroy.restype = None
+_lib.ml_event_record_default_stream.argtypes = [_EventPointer]
+_lib.ml_event_record_default_stream.restype = ctypes.c_int
+_lib.ml_event_ready.argtypes = [_EventPointer, ctypes.POINTER(ctypes.c_int)]
+_lib.ml_event_ready.restype = ctypes.c_int
+_lib.ml_event_synchronize.argtypes = [_EventPointer]
+_lib.ml_event_synchronize.restype = ctypes.c_int
+_lib.ml_event_elapsed_ms.argtypes = [_EventPointer, _EventPointer,
+                                     ctypes.POINTER(ctypes.c_float)]
+_lib.ml_event_elapsed_ms.restype = ctypes.c_int
 for _name in ("ml_add", "ml_multiply", "ml_matmul"):
     _function = getattr(_lib, _name)
     _function.argtypes = [_TensorPointer, _TensorPointer, ctypes.POINTER(_TensorPointer)]
@@ -247,6 +269,55 @@ class Tensor:
 
     def __matmul__(self, other: "Tensor") -> "Tensor":
         return matmul(self, other)
+
+
+class Event:
+    def __init__(
+        self,
+        device: str | Device | tuple[Device, int] = "cpu",
+        *,
+        enable_timing: bool = True,
+    ) -> None:
+        kind, index = _parse_device(device)
+        output = _EventPointer()
+        _check(_lib.ml_event_create(
+            int(kind), index, int(enable_timing), ctypes.byref(output)))
+        self._handle = output
+        self._device = (kind, index)
+        self._timing = bool(enable_timing)
+
+    def close(self) -> None:
+        if getattr(self, "_handle", None):
+            _lib.ml_event_destroy(self._handle)
+            self._handle = _EventPointer()
+
+    def __del__(self) -> None:
+        self.close()
+
+    @property
+    def device(self) -> tuple[Device, int]:
+        return self._device
+
+    @property
+    def timing_enabled(self) -> bool:
+        return self._timing
+
+    def record_default_stream(self) -> None:
+        _check(_lib.ml_event_record_default_stream(self._handle))
+
+    def ready(self) -> bool:
+        result = ctypes.c_int()
+        _check(_lib.ml_event_ready(self._handle, ctypes.byref(result)))
+        return result.value != 0
+
+    def synchronize(self) -> None:
+        _check(_lib.ml_event_synchronize(self._handle))
+
+    def elapsed_ms_since(self, start: "Event") -> float:
+        milliseconds = ctypes.c_float()
+        _check(_lib.ml_event_elapsed_ms(
+            start._handle, self._handle, ctypes.byref(milliseconds)))
+        return float(milliseconds.value)
 
 
 def _binary(function: ctypes._CFuncPtr, left: Tensor, right: Tensor) -> Tensor:

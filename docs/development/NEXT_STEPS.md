@@ -210,10 +210,14 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] optional standard-library Python context manager/decorator with schema JSONL;
 - [x] Chrome/Perfetto Trace Event export for Python schema spans;
 - [x] default-off ROCTX ranges with rocprof marker trace evidence;
-- [x] merge C++ ROCTX markers and GPU kernels into one Perfetto timeline by correlation ID;
+- [x] merge C++ ROCTX, contained HIP launch APIs and exact-ID GPU Kernels into one
+  Perfetto timeline; never equate marker and Kernel IDs directly;
 - [x] calibrate Python `perf_counter_ns` against rocprof timestamps and merge Python,
-  ROCTX and GPU events; three runs keep residual at most 1.427us and correlate 24/24 adds;
-- [ ] represent asynchronous HIP completion with Events without adding a global synchronization.
+  ROCTX and GPU events; three runs keep residual at most 1.340us and correlate 24/24 adds;
+- [x] represent default-Stream asynchronous HIP completion with C/Python Events and a
+  background observer; three softmax runs are pending at submit with zero device/Stream sync;
+- [ ] expose an explicit Python Stream binding and prove one Event wait does not block an
+  intentionally busy independent Stream.
 
 ## P2.5 — production data parallel reducer
 

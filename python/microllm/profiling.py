@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextvars
+import concurrent.futures
 import csv
 import ctypes
 import functools
@@ -174,6 +175,220 @@ class ProfileScope(AbstractContextManager["ProfileScope"]):
         return False
 
 
+class HipEventProfileScope(AbstractContextManager["HipEventProfileScope"]):
+    """Observe default-Stream HIP completion without a device-wide synchronize."""
+
+    def __init__(self, name: str, *, output: str | Path,
+                 device: str = "hip:0", phase: str = "python_gpu",
+                 run_id: str | None = None,
+                 metadata: Mapping[str, Any] | None = None,
+                 emit_roctx: bool = False) -> None:
+        if not name or not phase:
+            raise ValueError("profile name and phase must be non-empty")
+        self.name = name
+        self.output = Path(output)
+        self.device = device
+        self.phase = phase
+        self.run_id = run_id or uuid.uuid4().hex
+        self.metadata = dict(metadata or {})
+        json.dumps(self.metadata, allow_nan=False)
+        self.emit_roctx = bool(emit_roctx)
+        self.span_id = uuid.uuid4().hex
+        self._token: contextvars.Token[int] | None = None
+        self._depth = 0
+        self._start_ns = 0
+        self._submission_finish_ns = 0
+        self._process_id = 0
+        self._thread_id = 0
+        self._native_thread_id = 0
+        self._exception_type: str | None = None
+        self._start_event = None
+        self._finish_event = None
+        self._event_ready_at_submit = False
+        self._exited = False
+        self._record: dict[str, Any] | None = None
+        self._closed = False
+        self._completion_lock = threading.Lock()
+        self._future: concurrent.futures.Future[dict[str, Any]] | None = None
+        self._roctx_emitted = False
+        self._roctx_status = "disabled"
+        self._roctx_range_name: str | None = None
+        self._roctx_push_before_ns: int | None = None
+        self._roctx_push_after_ns: int | None = None
+        self._roctx_pop_before_ns: int | None = None
+        self._roctx_pop_after_ns: int | None = None
+
+    def __enter__(self) -> "HipEventProfileScope":
+        from ._capi import Device, Event
+
+        self._start_event = Event(self.device, enable_timing=True)
+        self._finish_event = Event(self.device, enable_timing=True)
+        if self._start_event.device[0] is not Device.HIP:
+            self._start_event.close()
+            self._finish_event.close()
+            raise ValueError("HIP Event profiling requires a HIP device")
+        self._depth = _DEPTH.get()
+        self._token = _DEPTH.set(self._depth + 1)
+        self._process_id = os.getpid()
+        self._thread_id = threading.get_ident()
+        self._native_thread_id = threading.get_native_id()
+        self._start_ns = time.perf_counter_ns()
+        if self.emit_roctx:
+            runtime = _roctx_runtime()
+            if not runtime.available:
+                self._roctx_status = "unavailable"
+            else:
+                self._roctx_range_name = _roctx_range_name(self.name, self.span_id)
+                self._roctx_push_before_ns = time.perf_counter_ns()
+                try:
+                    self._roctx_emitted = runtime.push(self._roctx_range_name)
+                except (OSError, ValueError):
+                    self._roctx_emitted = False
+                self._roctx_push_after_ns = time.perf_counter_ns()
+                self._roctx_status = "emitted" if self._roctx_emitted else "push_error"
+        try:
+            self._start_event.record_default_stream()
+        except Exception:
+            self._finish_roctx_range()
+            _DEPTH.reset(self._token)
+            self._token = None
+            self._start_event.close()
+            self._finish_event.close()
+            raise
+        return self
+
+    def _finish_roctx_range(self) -> None:
+        if not self._roctx_emitted or self._roctx_pop_before_ns is not None:
+            return
+        self._roctx_pop_before_ns = time.perf_counter_ns()
+        try:
+            popped = _roctx_runtime().pop()
+        except (OSError, ValueError):
+            popped = False
+        self._roctx_pop_after_ns = time.perf_counter_ns()
+        if not popped:
+            self._roctx_status = "pop_error"
+
+    def __exit__(self, exception_type, exception, traceback) -> bool:
+        if self._token is None or self._finish_event is None:
+            raise RuntimeError("HIP Event profile scope exited before entering")
+        finish_error: Exception | None = None
+        try:
+            self._finish_event.record_default_stream()
+            self._event_ready_at_submit = self._finish_event.ready()
+        except Exception as error:
+            finish_error = error
+        finally:
+            self._finish_roctx_range()
+            self._submission_finish_ns = time.perf_counter_ns()
+            self._exception_type = (exception_type.__name__
+                                    if exception_type is not None else None)
+            _DEPTH.reset(self._token)
+            self._token = None
+        if finish_error is not None:
+            self._start_event.close()
+            self._finish_event.close()
+            if exception_type is None:
+                raise finish_error
+            return False
+        self._exited = True
+        if exception_type is not None:
+            try:
+                self.wait()
+            except Exception:
+                pass
+        return False
+
+    def ready(self) -> bool:
+        if not self._exited or self._finish_event is None:
+            raise RuntimeError("HIP Event profile scope has not submitted its finish Event")
+        return self._record is not None or self._finish_event.ready()
+
+    def wait(self) -> dict[str, Any]:
+        if not self._exited or self._start_event is None or self._finish_event is None:
+            raise RuntimeError("HIP Event profile scope has not finished submission")
+        with self._completion_lock:
+            if self._record is not None:
+                return dict(self._record)
+            self._finish_event.synchronize()
+            completion_observed_ns = time.perf_counter_ns()
+            device_elapsed_ms = self._finish_event.elapsed_ms_since(
+                self._start_event)
+            record = {
+                "schema_version": 1,
+                "framework": "microllm-python",
+                "record_type": "python_profile_span",
+                "run_id": self.run_id,
+                "phase": self.phase,
+                "kind": "hip_event_completion_span",
+                "name": self.name,
+                "span_id": self.span_id,
+                "depth": self._depth,
+                "process_id": self._process_id,
+                "thread_id": self._thread_id,
+                "native_thread_id": self._native_thread_id,
+                "start_ns": self._start_ns,
+                "duration_ns": completion_observed_ns - self._start_ns,
+                "submission_duration_ns": (self._submission_finish_ns -
+                                           self._start_ns),
+                "completion_observed_ns": completion_observed_ns,
+                "completion_observer_native_thread_id": threading.get_native_id(),
+                "device_elapsed_ns": int(round(device_elapsed_ms * 1_000_000.0)),
+                "event_ready_at_submit": self._event_ready_at_submit,
+                "synchronization_scope": "hip_event_default_stream",
+                "status": "error" if self._exception_type else "pass",
+                "exception_type": self._exception_type,
+                "metadata": self.metadata,
+                "roctx_requested": self.emit_roctx,
+                "roctx_emitted": self._roctx_emitted,
+                "roctx_status": self._roctx_status,
+                "roctx_range_name": self._roctx_range_name,
+                "roctx_push_before_ns": self._roctx_push_before_ns,
+                "roctx_push_after_ns": self._roctx_push_after_ns,
+                "roctx_pop_before_ns": self._roctx_pop_before_ns,
+                "roctx_pop_after_ns": self._roctx_pop_after_ns,
+            }
+            self.output.parent.mkdir(parents=True, exist_ok=True)
+            line = json.dumps(record, sort_keys=True, allow_nan=False) + "\n"
+            with _LOCK, self.output.open("a", encoding="utf-8") as stream:
+                stream.write(line)
+            self._record = record
+            return dict(record)
+
+    def close(self) -> None:
+        with self._completion_lock:
+            if self._record is None:
+                raise RuntimeError("wait for HIP Event completion before closing")
+            if self._closed:
+                return
+            if self._start_event is None or self._finish_event is None:
+                raise RuntimeError("HIP Event handles are unavailable")
+            self._start_event.close()
+            self._finish_event.close()
+            self._closed = True
+
+    def observe_async(self) -> concurrent.futures.Future[dict[str, Any]]:
+        if not self._exited:
+            raise RuntimeError("HIP Event profile scope has not finished submission")
+        if self._future is not None:
+            return self._future
+        future: concurrent.futures.Future[dict[str, Any]] = \
+            concurrent.futures.Future()
+
+        def observe() -> None:
+            try:
+                future.set_result(self.wait())
+            except BaseException as error:
+                future.set_exception(error)
+
+        thread = threading.Thread(
+            target=observe, name=f"microllm-event-{self.span_id[:8]}",
+            daemon=False)
+        self._future = future
+        thread.start()
+        return future
+
+
 def profile_scope(name: str, *, output: str | Path,
                   phase: str = "python", run_id: str | None = None,
                   metadata: Mapping[str, Any] | None = None,
@@ -181,6 +396,16 @@ def profile_scope(name: str, *, output: str | Path,
     return ProfileScope(name, output=output, phase=phase,
                         run_id=run_id, metadata=metadata,
                         emit_roctx=emit_roctx)
+
+
+def hip_event_profile_scope(
+        name: str, *, output: str | Path, device: str = "hip:0",
+        phase: str = "python_gpu", run_id: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        emit_roctx: bool = False) -> HipEventProfileScope:
+    return HipEventProfileScope(
+        name, output=output, device=device, phase=phase, run_id=run_id,
+        metadata=metadata, emit_roctx=emit_roctx)
 
 
 def profile(function: _F | None = None, *, name: str | None = None,
@@ -235,6 +460,23 @@ def _write_json_atomic(document: Mapping[str, Any], output: str | Path) -> None:
     temporary.replace(destination)
 
 
+def _profile_event_args(row: Mapping[str, Any]) -> dict[str, Any]:
+    arguments = {
+        "status": row["status"], "depth": row["depth"],
+        "run_id": row["run_id"],
+        "exception_type": row.get("exception_type"),
+        **row["metadata"],
+    }
+    for name in (
+            "kind", "span_id", "submission_duration_ns",
+            "completion_observed_ns", "completion_observer_native_thread_id",
+            "device_elapsed_ns", "event_ready_at_submit",
+            "synchronization_scope", "roctx_emitted"):
+        if name in row:
+            arguments[name] = row[name]
+    return arguments
+
+
 def export_perfetto(input_jsonl: str | Path,
                     output_json: str | Path) -> dict[str, Any]:
     """Convert microLLM Python span JSONL to Chrome/Perfetto Trace Event JSON."""
@@ -247,10 +489,7 @@ def export_perfetto(input_jsonl: str | Path,
             "ts": (int(row["start_ns"]) - origin) / 1000.0,
             "dur": int(row["duration_ns"]) / 1000.0,
             "pid": 0, "tid": int(row.get("thread_id", 0)),
-            "args": {"status": row["status"], "depth": row["depth"],
-                     "run_id": row["run_id"],
-                     "exception_type": row["exception_type"],
-                     **row["metadata"]},
+            "args": _profile_event_args(row),
         })
     document = {"traceEvents": events,
                 "displayTimeUnit": "ms",
@@ -367,8 +606,9 @@ def calibrate_python_rocprof_clock(profile_jsonl: str | Path,
 def merge_rocprof_perfetto(marker_csv: str | Path,
                            kernel_csv: str | Path,
                            output_json: str | Path, *,
+                           hip_api_csv: str | Path | None = None,
                            python_jsonl: str | Path | None = None) -> dict[str, Any]:
-    """Merge rocprof marker/kernel CSV using correlation IDs and trace flows."""
+    """Merge marker/launch-API/kernel CSV with evidence-backed trace flows."""
     with Path(marker_csv).open(newline="", encoding="utf-8") as stream:
         markers = list(csv.DictReader(stream))
     with Path(kernel_csv).open(newline="", encoding="utf-8") as stream:
@@ -388,6 +628,17 @@ def merge_rocprof_perfetto(marker_csv: str | Path,
     for row in markers + kernels:
         if int(row["End_Timestamp"]) < int(row["Start_Timestamp"]):
             raise ValueError("rocprof CSV contains a negative duration")
+    hip_apis: list[dict[str, str]] = []
+    if hip_api_csv is not None:
+        with Path(hip_api_csv).open(newline="", encoding="utf-8") as stream:
+            hip_apis = list(csv.DictReader(stream))
+        required_api = {"Function", "Process_Id", "Thread_Id", "Correlation_Id",
+                        "Start_Timestamp", "End_Timestamp"}
+        if not hip_apis or required_api - hip_apis[0].keys():
+            raise ValueError("rocprof HIP API CSV schema is incompatible")
+        for row in hip_apis:
+            if int(row["End_Timestamp"]) < int(row["Start_Timestamp"]):
+                raise ValueError("rocprof HIP API CSV contains a negative duration")
     python_rows: list[dict[str, Any]] = []
     calibration: dict[str, Any] | None = None
     if python_jsonl is not None:
@@ -395,7 +646,8 @@ def merge_rocprof_perfetto(marker_csv: str | Path,
         calibration = _clock_calibration(python_rows, markers)
 
     def python_to_rocprof(timestamp: int) -> int:
-        assert calibration is not None
+        if calibration is None:
+            raise RuntimeError("Python clock calibration is unavailable")
         return int(round(int(calibration["rocprof_origin_ns"]) +
                          float(calibration["scale"]) *
                          (timestamp - int(calibration["python_origin_ns"]))))
@@ -405,15 +657,37 @@ def merge_rocprof_perfetto(marker_csv: str | Path,
                   for row in python_rows)
     origin = min(starts)
     events: list[dict[str, Any]] = []
-    marker_ids = {int(row["Correlation_Id"]) for row in markers}
-    kernel_ids = {int(row["Correlation_Id"]) for row in kernels}
-    linked = marker_ids & kernel_ids
-    correlated_kernel_indices: dict[int, list[int]] = {}
-    for index, row in enumerate(kernels):
-        correlation = int(row["Correlation_Id"])
-        if correlation in linked:
-            correlated_kernel_indices.setdefault(correlation, []).append(index)
-    for row in markers:
+    api_by_correlation: dict[int, list[dict[str, str]]] = {}
+    for row in hip_apis:
+        api_by_correlation.setdefault(int(row["Correlation_Id"]), []).append(row)
+    kernel_pairs: dict[int, tuple[int, dict[str, str]]] = {}
+    marker_to_kernels: dict[int, list[int]] = {}
+    for kernel_index, kernel in enumerate(kernels):
+        correlation = int(kernel["Correlation_Id"])
+        api_matches = api_by_correlation.get(correlation, [])
+        if len(api_matches) > 1:
+            raise ValueError(
+                f"kernel correlation {correlation} matched multiple HIP API rows")
+        if not api_matches:
+            continue
+        api = api_matches[0]
+        api_start = int(api["Start_Timestamp"])
+        api_end = int(api["End_Timestamp"])
+        containing = [
+            (index, marker) for index, marker in enumerate(markers)
+            if (marker["Process_Id"] == api["Process_Id"] and
+                int(marker["Start_Timestamp"]) <= api_start and
+                api_end <= int(marker["End_Timestamp"]))
+        ]
+        if not containing:
+            continue
+        marker_index, _ = min(
+            containing,
+            key=lambda item: (int(item[1]["End_Timestamp"]) -
+                              int(item[1]["Start_Timestamp"]), item[0]))
+        kernel_pairs[kernel_index] = (marker_index, api)
+        marker_to_kernels.setdefault(marker_index, []).append(kernel_index)
+    for marker_index, row in enumerate(markers):
         correlation = int(row["Correlation_Id"])
         start = int(row["Start_Timestamp"])
         events.append({"name": row["Function"], "cat": "roctx", "ph": "X",
@@ -422,12 +696,14 @@ def merge_rocprof_perfetto(marker_csv: str | Path,
                        "pid": int(row["Process_Id"]),
                        "tid": int(row["Thread_Id"]),
                        "args": {"correlation_id": correlation}})
-        for kernel_index in correlated_kernel_indices.get(correlation, []):
+        for kernel_index in marker_to_kernels.get(marker_index, []):
+            api = kernel_pairs[kernel_index][1]
             events.append({"name": "ROCTX to HIP", "cat": "correlation",
-                           "ph": "s", "ts": (start-origin)/1000.0,
+                           "ph": "s",
+                           "ts": (int(api["Start_Timestamp"])-origin)/1000.0,
                            "pid": int(row["Process_Id"]),
                            "tid": int(row["Thread_Id"]),
-                           "id": f"{correlation}:{kernel_index}"})
+                           "id": f"{marker_index}:{correlation}:{kernel_index}"})
     for kernel_index, row in enumerate(kernels):
         correlation = int(row["Correlation_Id"])
         start = int(row["Start_Timestamp"])
@@ -436,13 +712,19 @@ def merge_rocprof_perfetto(marker_csv: str | Path,
                        "ts": (start-origin)/1000.0,
                        "dur": (int(row["End_Timestamp"])-start)/1000.0,
                        "pid": 0, "tid": gpu_tid,
-                       "args": {"agent": row["Agent_Id"],
-                                "correlation_id": correlation}})
-        if correlation in linked:
+                       "args": {
+                           "agent": row["Agent_Id"],
+                           "correlation_id": correlation,
+                           "roctx_range": (markers[kernel_pairs[kernel_index][0]]["Function"]
+                                           if kernel_index in kernel_pairs else None),
+                           "hip_api": (kernel_pairs[kernel_index][1]["Function"]
+                                       if kernel_index in kernel_pairs else None)}})
+        if kernel_index in kernel_pairs:
+            marker_index = kernel_pairs[kernel_index][0]
             events.append({"name": "ROCTX to HIP", "cat": "correlation",
                            "ph": "f", "ts": (start-origin)/1000.0,
                            "pid": 0, "tid": gpu_tid,
-                           "id": f"{correlation}:{kernel_index}"})
+                           "id": f"{marker_index}:{correlation}:{kernel_index}"})
     for row in python_rows:
         start = python_to_rocprof(int(row["start_ns"]))
         end = python_to_rocprof(int(row["start_ns"]) +
@@ -452,10 +734,7 @@ def merge_rocprof_perfetto(marker_csv: str | Path,
             "ts": (start-origin)/1000.0, "dur": (end-start)/1000.0,
             "pid": int(row.get("process_id", 0)),
             "tid": int(row.get("native_thread_id", row.get("thread_id", 0))),
-            "args": {"status": row["status"], "depth": row["depth"],
-                     "run_id": row["run_id"], "span_id": row.get("span_id"),
-                     "roctx_emitted": bool(row.get("roctx_emitted")),
-                     **row["metadata"]},
+            "args": _profile_event_args(row),
         })
     document = {"traceEvents": events, "displayTimeUnit": "ms",
                 "metadata": {"source": "microllm-rocprof-merge",
@@ -464,14 +743,19 @@ def merge_rocprof_perfetto(marker_csv: str | Path,
     destination = Path(output_json)
     _write_json_atomic(document, destination)
     return {"marker_events": len(markers), "kernel_events": len(kernels),
-            "correlated_ids": len(linked), "trace_events": len(events),
-            "correlated_pairs": sum(len(indices) for indices in
-                                    correlated_kernel_indices.values()),
+            "hip_api_events": len(hip_apis),
+            "correlation_method": ("marker_contains_correlated_hip_api"
+                                   if hip_apis else "none"),
+            "correlated_ids": len({int(kernels[index]["Correlation_Id"])
+                                   for index in kernel_pairs}),
+            "trace_events": len(events),
+            "correlated_pairs": len(kernel_pairs),
             "python_events": len(python_rows),
             "python_clock_calibration": calibration,
             "output": str(destination)}
 
 
-__all__ = ["ProfileScope", "calibrate_python_rocprof_clock", "export_perfetto",
-           "merge_rocprof_perfetto", "profile", "profile_scope",
-           "roctx_available"]
+__all__ = ["HipEventProfileScope", "ProfileScope",
+           "calibrate_python_rocprof_clock", "export_perfetto",
+           "hip_event_profile_scope", "merge_rocprof_perfetto", "profile",
+           "profile_scope", "roctx_available"]

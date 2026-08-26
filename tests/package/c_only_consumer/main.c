@@ -11,6 +11,7 @@ int main(void) {
     ml_tensor* left = NULL;
     ml_tensor* right = NULL;
     ml_tensor* output = NULL;
+    ml_event* event = NULL;
 
     if (ml_capi_version() != ML_CAPI_VERSION ||
         ml_tensor_from_f32(left_values, shape, 1, ML_DEVICE_CPU, 0, &left) !=
@@ -18,17 +19,22 @@ int main(void) {
         ml_tensor_from_f32(right_values, shape, 1, ML_DEVICE_CPU, 0, &right) !=
             ML_STATUS_OK ||
         ml_add(left, right, &output) != ML_STATUS_OK ||
+        ml_event_create(ML_DEVICE_CPU, 0, 0, &event) != ML_STATUS_OK ||
+        ml_event_record_default_stream(event) != ML_STATUS_OK ||
+        ml_event_synchronize(event) != ML_STATUS_OK ||
         ml_tensor_copy_f32(output, output_values, 2) != ML_STATUS_OK) {
         fprintf(stderr, "microLLM C-only package consumer failed: %s\n", ml_last_error());
         ml_tensor_destroy(left);
         ml_tensor_destroy(right);
         ml_tensor_destroy(output);
+        ml_event_destroy(event);
         return 1;
     }
 
     ml_tensor_destroy(left);
     ml_tensor_destroy(right);
     ml_tensor_destroy(output);
+    ml_event_destroy(event);
     if (output_values[0] != 4.0F || output_values[1] != 6.0F) return 1;
     puts("microLLM C-only package consumer: pass");
     return 0;

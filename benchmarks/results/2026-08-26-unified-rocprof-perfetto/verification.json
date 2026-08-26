@@ -1,1 +1,1 @@
-{"schema_version":1,"status":"pass","merge_commit":"df495477","hip_range_test_commit":"69cda6ba","rocprof_flags":["--marker-trace","--kernel-trace"],"focused_hip_test":"pass","perfetto_json_parsed":true}
+{"schema_version":1,"status":"pass","merge_commit":"df495477","hip_range_test_commit":"69cda6ba","rocprof_flags":["--hip-trace","--marker-trace","--kernel-trace"],"focused_hip_test":"pass","launch_api_inside_marker":true,"launch_kernel_correlation_exact":true,"perfetto_json_parsed":true}

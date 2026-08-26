@@ -83,7 +83,7 @@ def merge(arguments: argparse.Namespace) -> int:
         arguments.profile, arguments.marker, arguments.calibration)
     report = merge_rocprof_perfetto(
         arguments.marker, arguments.kernel, arguments.output,
-        python_jsonl=arguments.profile)
+        hip_api_csv=arguments.hip_api, python_jsonl=arguments.profile)
     print(json.dumps({
         "schema_version": 1,
         "status": "pass",
@@ -110,6 +110,7 @@ def parser() -> argparse.ArgumentParser:
     merge_parser.add_argument("--profile", required=True)
     merge_parser.add_argument("--marker", required=True)
     merge_parser.add_argument("--kernel", required=True)
+    merge_parser.add_argument("--hip-api", required=True)
     merge_parser.add_argument("--calibration", required=True)
     merge_parser.add_argument("--output", required=True)
     merge_parser.set_defaults(handler=merge)

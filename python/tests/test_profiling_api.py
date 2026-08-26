@@ -1,14 +1,17 @@
 import asyncio
+import enum
 import json
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
 
 import microllm.profiling as profiling_module
 from microllm.profiling import (calibrate_python_rocprof_clock,
-                                export_perfetto, merge_rocprof_perfetto,
-                                profile, profile_scope)
+                                export_perfetto, hip_event_profile_scope,
+                                merge_rocprof_perfetto, profile, profile_scope)
 
 
 class ProfilingApiTest(unittest.TestCase):
@@ -26,6 +29,38 @@ class ProfilingApiTest(unittest.TestCase):
         def pop(self):
             self.pops += 1
             return True
+
+    class FakeDevice(enum.Enum):
+        CPU = 0
+        HIP = 1
+
+    class FakeHipEvent:
+        instances = []
+
+        def __init__(self, device, *, enable_timing=True):
+            self.device = (ProfilingApiTest.FakeDevice.HIP, 0)
+            self.enable_timing = enable_timing
+            self.recorded = False
+            self.synchronized = False
+            self.closed = False
+            self.__class__.instances.append(self)
+
+        def record_default_stream(self):
+            self.recorded = True
+
+        def ready(self):
+            return self.synchronized
+
+        def synchronize(self):
+            self.synchronized = True
+
+        def elapsed_ms_since(self, start):
+            if not start.recorded or not self.recorded:
+                raise RuntimeError("events were not recorded")
+            return 2.5
+
+        def close(self):
+            self.closed = True
 
     def test_decorator_scope_error_and_async_records(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -114,6 +149,42 @@ class ProfilingApiTest(unittest.TestCase):
             unavailable.push.assert_not_called()
             unavailable.pop.assert_not_called()
 
+    def test_hip_event_scope_observes_completion_on_background_thread(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "event.jsonl"
+            self.FakeHipEvent.instances = []
+            fake_capi = types.SimpleNamespace(
+                Device=self.FakeDevice, Event=self.FakeHipEvent)
+            with mock.patch.dict(sys.modules, {"microllm._capi": fake_capi}):
+                with hip_event_profile_scope(
+                        "async.add", output=output, run_id="run",
+                        metadata={"elements": 1024}) as completion:
+                    pass
+                self.assertFalse(completion.ready())
+                with self.assertRaisesRegex(RuntimeError, "wait for HIP Event"):
+                    completion.close()
+                future = completion.observe_async()
+                record = future.result(timeout=1.0)
+                self.assertTrue(completion.ready())
+                self.assertEqual(completion.wait(), record)
+                completion.close()
+                completion.close()
+            self.assertEqual(len(output.read_text().splitlines()), 1)
+            self.assertEqual(record["kind"], "hip_event_completion_span")
+            self.assertEqual(record["device_elapsed_ns"], 2_500_000)
+            self.assertFalse(record["event_ready_at_submit"])
+            self.assertEqual(record["synchronization_scope"],
+                             "hip_event_default_stream")
+            self.assertEqual(record["metadata"], {"elements": 1024})
+            self.assertTrue(all(event.closed
+                                for event in self.FakeHipEvent.instances))
+            perfetto = Path(directory) / "event.json"
+            export_perfetto(output, perfetto)
+            event = json.loads(perfetto.read_text())["traceEvents"][0]
+            self.assertEqual(event["args"]["device_elapsed_ns"], 2_500_000)
+            self.assertEqual(event["args"]["submission_duration_ns"],
+                             record["submission_duration_ns"])
+
     def test_invalid_identity_and_metadata_fail_before_call(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "trace.jsonl"
@@ -130,6 +201,7 @@ class ProfilingApiTest(unittest.TestCase):
             root = Path(directory)
             marker = root / "marker.csv"
             kernel = root / "kernel.csv"
+            hip_api = root / "hip-api.csv"
             marker.write_text(
                 '"Function","Process_Id","Thread_Id","Correlation_Id",'
                 '"Start_Timestamp","End_Timestamp"\n'
@@ -138,10 +210,17 @@ class ProfilingApiTest(unittest.TestCase):
                 '"Agent_Id","Queue_Id","Kernel_Name","Correlation_Id",'
                 '"Start_Timestamp","End_Timestamp"\n'
                 '"Agent 2",1,"add",2,2010,2100\n'
-                '"Agent 2",1,"copy",2,2110,2150\n', encoding="utf-8")
+                '"Agent 2",1,"copy",3,2110,2150\n', encoding="utf-8")
+            hip_api.write_text(
+                '"Domain","Function","Process_Id","Thread_Id","Correlation_Id",'
+                '"Start_Timestamp","End_Timestamp"\n'
+                '"HIP_RUNTIME_API","hipLaunchKernel",7,8,2,1200,1250\n'
+                '"HIP_RUNTIME_API","hipMemcpy",7,8,3,1300,1350\n',
+                encoding="utf-8")
             output = root / "merged.json"
-            report = merge_rocprof_perfetto(marker, kernel, output)
-            self.assertEqual(report["correlated_ids"], 1)
+            report = merge_rocprof_perfetto(
+                marker, kernel, output, hip_api_csv=hip_api)
+            self.assertEqual(report["correlated_ids"], 2)
             self.assertEqual(report["correlated_pairs"], 2)
             self.assertEqual(report["trace_events"], 7)
             events = json.loads(output.read_text())["traceEvents"]
@@ -156,6 +235,7 @@ class ProfilingApiTest(unittest.TestCase):
             profile_path = root / "profile.jsonl"
             marker = root / "marker.csv"
             kernel = root / "kernel.csv"
+            hip_api = root / "hip-api.csv"
             rows = [
                 {
                     "schema_version": 1, "record_type": "python_profile_span",
@@ -201,6 +281,11 @@ class ProfilingApiTest(unittest.TestCase):
                 '"Agent_Id","Queue_Id","Kernel_Name","Correlation_Id",'
                 '"Start_Timestamp","End_Timestamp"\n'
                 '"Agent 2",1,"add",2,10050,10090\n', encoding="utf-8")
+            hip_api.write_text(
+                '"Domain","Function","Process_Id","Thread_Id","Correlation_Id",'
+                '"Start_Timestamp","End_Timestamp"\n'
+                '"HIP_RUNTIME_API","hipLaunchKernel",7,8,2,10020,10040\n',
+                encoding="utf-8")
             calibration_path = root / "calibration.json"
             calibration = calibrate_python_rocprof_clock(
                 profile_path, marker, calibration_path)
@@ -216,7 +301,8 @@ class ProfilingApiTest(unittest.TestCase):
 
             output = root / "three-way.json"
             report = merge_rocprof_perfetto(
-                marker, kernel, output, python_jsonl=profile_path)
+                marker, kernel, output, hip_api_csv=hip_api,
+                python_jsonl=profile_path)
             self.assertEqual(report["python_events"], 3)
             self.assertEqual(report["trace_events"], 8)
             document = json.loads(output.read_text())

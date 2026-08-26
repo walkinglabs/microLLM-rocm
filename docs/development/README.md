@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-08-26: Python asynchronous HIP Event completion](2026-08-26-python-hip-event-completion.md)
 - [2026-08-26: Python/ROCTX/GPU clock calibration](2026-08-26-python-roctx-gpu-clock.md)
 - [2026-08-26: CMake Config component and relocation gates](2026-08-26-cmake-config-component-gates.md)
 - [2026-08-26: Unified ROCTX/GPU Perfetto](2026-08-26-unified-rocprof-perfetto.md)

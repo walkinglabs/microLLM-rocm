@@ -930,9 +930,9 @@ Current `main` gates:
 |---|---:|---|
 | CPU Debug | 381/381 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
 | ASan/UBSan CPU | 378/378 | host lifetime, external Storage and instrumented-package linking |
-| MI300X/gfx942 HIP label | 197/197 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model and multi-shard streaming |
+| MI300X/gfx942 HIP label | 199/199 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming and C/Python Event APIs |
 | PyTorch-enabled CPU build | 384/384 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
-| Multi-GPU/RCCL | 53/53 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure and package gates |
+| Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
 | Registered test files | 130 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
@@ -1285,8 +1285,10 @@ MICROLLM_BENCH_DEVICE=hip \
 The current exact-shape registry covers readable 2D matmul and hipBLASLt. It is not a
 general autotuner. C++ `TraceSession`/`TraceTimer`, Python `@profile`, optional ROCTX
 ranges, measured Python/rocprof clock calibration, and three-way Perfetto export are
-implemented. Three MI300X processes correlate 24/24 profiled HIP adds with at most
-1.427us fit residual; asynchronous HIP Event completion remains future work.
+implemented. Three MI300X processes correlate 24/24 profiled HIP adds through contained
+launch APIs with at most 1.340us fit residual. A separate three-run Python HIP Event gate
+observes pending work on a background thread with zero device/Stream synchronization;
+explicit Python Stream binding remains future work.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

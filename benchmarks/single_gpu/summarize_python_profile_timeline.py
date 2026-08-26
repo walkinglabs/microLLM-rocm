@@ -28,11 +28,15 @@ def load_run(path: Path, expected_iterations: int) -> dict:
     with (path / "python-unified_kernel_trace.csv").open(
             newline="", encoding="utf-8") as stream:
         kernels = list(csv.DictReader(stream))
+    with (path / "python-unified_hip_api_trace.csv").open(
+            newline="", encoding="utf-8") as stream:
+        hip_apis = list(csv.DictReader(stream))
     events = timeline.get("traceEvents", [])
-    marker_ids = {row["Correlation_Id"] for row in markers}
-    correlated = [row for row in kernels if row["Correlation_Id"] in marker_ids]
-    correlated_adds = [row for row in correlated
-                       if "add_typed_kernel" in row["Kernel_Name"]]
+    correlated = [event for event in events
+                  if (event.get("cat") == "gpu_kernel" and
+                      event.get("args", {}).get("roctx_range"))]
+    correlated_adds = [event for event in correlated
+                       if "add_typed_kernel" in event["name"]]
     python_events = [event for event in events
                      if str(event.get("cat", "")).startswith("python_")]
     flows = [event for event in events if event.get("cat") == "correlation"]
@@ -54,6 +58,7 @@ def load_run(path: Path, expected_iterations: int) -> dict:
         "profile_rows": len(profile_rows),
         "marker_events": len(markers),
         "kernel_events": len(kernels),
+        "hip_api_events": len(hip_apis),
         "correlated_pairs": len(correlated),
         "correlated_adds": len(correlated_adds),
         "trace_events": len(events),

@@ -28,7 +28,7 @@ result=/tmp/microllm-python-timeline
 mkdir -p "$result"
 HIP_VISIBLE_DEVICES=0 PYTHONPATH=python \
 MICROLLM_LIBRARY="$PWD/build/hip-release/bindings/capi/libmicrollm.so" \
-rocprofv3 --marker-trace --kernel-trace --output-format csv \
+rocprofv3 --hip-trace --marker-trace --kernel-trace --output-format csv \
   --output-file python-unified --output-directory "$result" -- \
   python3 benchmarks/single_gpu/python_profile_timeline.py capture \
     --output "$result/profile.jsonl" --iterations 8 --overwrite
@@ -37,6 +37,7 @@ PYTHONPATH=python python3 benchmarks/single_gpu/python_profile_timeline.py merge
   --profile "$result/profile.jsonl" \
   --marker "$result/python-unified_marker_api_trace.csv" \
   --kernel "$result/python-unified_kernel_trace.csv" \
+  --hip-api "$result/python-unified_hip_api_trace.csv" \
   --calibration "$result/calibration.json" \
   --output "$result/unified.json"
 ```
@@ -47,6 +48,27 @@ maximum residual no larger than 50us. The curated three-process result and gener
 quality chart are in
 [`2026-08-26-python-roctx-gpu-perfetto`](results/2026-08-26-python-roctx-gpu-perfetto/).
 This aligns clocks; it does not treat a Python wall span as asynchronous GPU completion.
+
+### Asynchronous Python HIP Event completion
+
+Use a start/finish HIP Event pair when a Python call only submits GPU work. The formal
+runner keeps completion observation on a distinct thread and records HIP Event device
+time separately from host observation time:
+
+```bash
+result=/tmp/microllm-event
+mkdir -p "$result"
+HIP_VISIBLE_DEVICES=0 PYTHONPATH=python \
+MICROLLM_LIBRARY="$PWD/build/hip-release/bindings/capi/libmicrollm.so" \
+rocprofv3 --hip-trace --marker-trace --kernel-trace --output-format csv \
+  --output-file event --output-directory "$result" -- \
+  python3 benchmarks/single_gpu/python_event_completion.py \
+    --output "$result/profile.jsonl" --report "$result/report.json" --overwrite
+```
+
+The three-run result retains every HIP API row and proves that the formal route uses
+Event record/query/synchronize with no device- or Stream-wide synchronize:
+[`2026-08-26-python-hip-event-completion`](results/2026-08-26-python-hip-event-completion/).
 
 ### FP32 Attention request-batch invariance
 

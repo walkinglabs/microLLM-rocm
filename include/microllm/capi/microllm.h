@@ -29,6 +29,7 @@ typedef enum ml_device_type {
 } ml_device_type;
 
 typedef struct ml_tensor ml_tensor;
+typedef struct ml_event ml_event;
 
 uint32_t ml_capi_version(void);
 const char* ml_engine_version(void);
@@ -53,6 +54,15 @@ ml_status ml_tensor_copy_f32(const ml_tensor* tensor, float* values, size_t capa
 ml_status ml_tensor_copy_i32(const ml_tensor* tensor, int32_t* values, size_t capacity);
 ml_status ml_tensor_to(const ml_tensor* tensor, ml_device_type device_type, int device_index,
                        ml_tensor** output);
+
+ml_status ml_event_create(ml_device_type device_type, int device_index,
+                          int enable_timing, ml_event** output);
+void ml_event_destroy(ml_event* event);
+ml_status ml_event_record_default_stream(ml_event* event);
+ml_status ml_event_ready(const ml_event* event, int* ready);
+ml_status ml_event_synchronize(const ml_event* event);
+ml_status ml_event_elapsed_ms(const ml_event* start, const ml_event* finish,
+                              float* milliseconds);
 
 ml_status ml_add(const ml_tensor* left, const ml_tensor* right, ml_tensor** output);
 ml_status ml_multiply(const ml_tensor* left, const ml_tensor* right, ml_tensor** output);

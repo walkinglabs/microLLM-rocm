@@ -1,9 +1,12 @@
-W0826 10:32:51.408675 2889631 simple_timer.cpp:55] [rocprofv3] tool initialization ::     0.000448 sec
-W0826 10:32:51.408925 2889631 simple_timer.cpp:55] [rocprofv3] 'python3 benchmarks/single_gpu/python_profile_timeline.py capture --output /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/profile.jsonl --iterations 8 --sleep-ms 5 --run-id formal-2 --overwrite' ::     0.000000 sec
-W0826 10:32:51.585824 2889631 tool.cpp:2728] HSA version 1.21.0 initialized (instance=0)
-W0826 10:32:51.725704 2889631 tool.cpp:2728] MARKER (ROCTx) version 1.3.0 initialized (instance=0)
-E0826 10:32:51.835846 2889631 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/python-unified_kernel_trace.csv
-E0826 10:32:51.840633 2889631 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/python-unified_marker_api_trace.csv
-E0826 10:32:51.841529 2889631 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/python-unified_agent_info.csv
-W0826 10:32:51.843266 2889631 simple_timer.cpp:55] [rocprofv3] output generation ::     0.012220 sec
-W0826 10:32:51.843316 2889631 simple_timer.cpp:55] [rocprofv3] tool finalization ::     0.012340 sec
+W0826 10:50:10.045272 2899069 simple_timer.cpp:55] [rocprofv3] tool initialization ::     0.001089 sec
+W0826 10:50:10.045545 2899069 simple_timer.cpp:55] [rocprofv3] 'python3 benchmarks/single_gpu/python_profile_timeline.py capture --output /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/profile.jsonl --iterations 8 --sleep-ms 5 --run-id formal-2 --overwrite' ::     0.000000 sec
+W0826 10:50:10.166649 2899069 tool.cpp:2728] HIP (compiler) version 7.13.0 initialized (instance=0)
+W0826 10:50:10.177180 2899069 tool.cpp:2728] HIP (runtime) version 7.13.0 initialized (instance=0)
+W0826 10:50:10.237167 2899069 tool.cpp:2728] HSA version 1.21.0 initialized (instance=0)
+W0826 10:50:10.385161 2899069 tool.cpp:2728] MARKER (ROCTx) version 1.3.0 initialized (instance=0)
+E0826 10:50:10.500464 2899069 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/python-unified_kernel_trace.csv
+E0826 10:50:10.508538 2899069 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/python-unified_hip_api_trace.csv
+E0826 10:50:10.512961 2899069 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/python-unified_marker_api_trace.csv
+E0826 10:50:10.513870 2899069 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/run-2/python-unified_agent_info.csv
+W0826 10:50:10.516738 2899069 simple_timer.cpp:55] [rocprofv3] output generation ::     0.020886 sec
+W0826 10:50:10.516798 2899069 simple_timer.cpp:55] [rocprofv3] tool finalization ::     0.021169 sec

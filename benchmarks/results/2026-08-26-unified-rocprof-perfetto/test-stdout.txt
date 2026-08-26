@@ -4,9 +4,9 @@ Note: Google Test filter = TraceSessionTest.EmitsOptionalRoctxRangesWithoutChang
 [----------] Global test environment set-up.
 [----------] 1 test from TraceSessionTest
 [ RUN      ] TraceSessionTest.EmitsOptionalRoctxRangesWithoutChangingRecords
-[       OK ] TraceSessionTest.EmitsOptionalRoctxRangesWithoutChangingRecords (200 ms)
-[----------] 1 test from TraceSessionTest (200 ms total)
+[       OK ] TraceSessionTest.EmitsOptionalRoctxRangesWithoutChangingRecords (198 ms)
+[----------] 1 test from TraceSessionTest (198 ms total)
 
 [----------] Global test environment tear-down
-[==========] 1 test from 1 test suite ran. (201 ms total)
+[==========] 1 test from 1 test suite ran. (198 ms total)
 [  PASSED  ] 1 test.

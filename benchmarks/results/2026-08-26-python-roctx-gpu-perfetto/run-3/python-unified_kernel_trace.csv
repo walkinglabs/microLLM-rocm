@@ -1,21 +1,21 @@
 "Kind","Agent_Id","Queue_Id","Stream_Id","Thread_Id","Dispatch_Id","Kernel_Id","Kernel_Name","Correlation_Id","Start_Timestamp","End_Timestamp","LDS_Block_Size","Scratch_Size","VGPR_Count","Accum_VGPR_Count","SGPR_Count","Workgroup_Size_X","Workgroup_Size_Y","Workgroup_Size_Z","Grid_Size_X","Grid_Size_Y","Grid_Size_Z"
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,1,8,"__amd_rocclr_copyBuffer",1,3614822340604465,3614822340612002,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,2,8,"__amd_rocclr_copyBuffer",2,3614822341046729,3614822341052262,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,3,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",3,3614822356957576,3614822356961344,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,4,8,"__amd_rocclr_copyBuffer",4,3614822357001872,3614822357006643,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,5,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",6,3614822365400234,3614822365403200,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,6,8,"__amd_rocclr_copyBuffer",6,3614822365422899,3614822365425786,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,7,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",7,3614822372119849,3614822372122816,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,8,8,"__amd_rocclr_copyBuffer",7,3614822372172138,3614822372175305,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,9,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",8,3614822379884438,3614822379887806,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,10,8,"__amd_rocclr_copyBuffer",8,3614822379926233,3614822379929120,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,11,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",9,3614822388506942,3614822388509628,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,12,8,"__amd_rocclr_copyBuffer",9,3614822388541516,3614822388544764,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,13,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",10,3614822398028696,3614822398031542,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,14,8,"__amd_rocclr_copyBuffer",10,3614822398064486,3614822398067974,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,15,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",11,3614822408570155,3614822408573282,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,16,8,"__amd_rocclr_copyBuffer",11,3614822408602617,3614822408605985,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,17,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",12,3614822420136655,3614822420139421,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,18,8,"__amd_rocclr_copyBuffer",12,3614822420175138,3614822420177944,0,0,16,0,32,512,1,1,1024,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,19,192,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",13,3614822432767916,3614822432770922,0,0,8,0,32,256,1,1,4096,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2889656,20,8,"__amd_rocclr_copyBuffer",13,3614822432803507,3614822432806714,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,1,11,"__amd_rocclr_copyBuffer",233,3615861021673666,3615861021680923,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,2,11,"__amd_rocclr_copyBuffer",237,3615861022150939,3615861022156111,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,3,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",243,3615861038795471,3615861038799520,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,4,11,"__amd_rocclr_copyBuffer",246,3615861038867801,3615861038871369,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,5,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",254,3615861049527240,3615861049530247,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,6,11,"__amd_rocclr_copyBuffer",257,3615861049576105,3615861049580194,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,7,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",264,3615861056317695,3615861056320341,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,8,11,"__amd_rocclr_copyBuffer",269,3615861056367262,3615861056370630,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,9,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",276,3615861064005386,3615861064008072,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,10,11,"__amd_rocclr_copyBuffer",281,3615861064055983,3615861064059070,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,11,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",288,3615861072581603,3615861072584490,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,12,11,"__amd_rocclr_copyBuffer",293,3615861072617178,3615861072620666,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,13,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",300,3615861082115355,3615861082117801,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,14,11,"__amd_rocclr_copyBuffer",305,3615861082150207,3615861082153094,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,15,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",312,3615861092647809,3615861092650455,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,16,11,"__amd_rocclr_copyBuffer",317,3615861092680633,3615861092684883,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,17,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",324,3615861104188457,3615861104191223,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,18,11,"__amd_rocclr_copyBuffer",329,3615861104222959,3615861104225685,0,0,16,0,32,512,1,1,1024,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,19,133,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",336,3615861116879556,3615861116882082,0,0,8,0,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899093,20,11,"__amd_rocclr_copyBuffer",341,3615861116922130,3615861116925217,0,0,16,0,32,512,1,1,1024,1,1

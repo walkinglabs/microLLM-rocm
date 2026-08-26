@@ -6,6 +6,7 @@ from importlib import import_module
 _CAPI_NAMES = {
     "DType",
     "Device",
+    "Event",
     "MicroLLMError",
     "Tensor",
     "add",
@@ -15,9 +16,10 @@ _CAPI_NAMES = {
     "softmax",
 }
 
-_PROFILING_NAMES = {"ProfileScope", "calibrate_python_rocprof_clock",
-                    "export_perfetto", "merge_rocprof_perfetto", "profile",
-                    "profile_scope", "roctx_available"}
+_PROFILING_NAMES = {"HipEventProfileScope", "ProfileScope",
+                    "calibrate_python_rocprof_clock", "export_perfetto",
+                    "hip_event_profile_scope", "merge_rocprof_perfetto",
+                    "profile", "profile_scope", "roctx_available"}
 __all__ = sorted(_CAPI_NAMES | _PROFILING_NAMES | {"torch_ops"})
 
 

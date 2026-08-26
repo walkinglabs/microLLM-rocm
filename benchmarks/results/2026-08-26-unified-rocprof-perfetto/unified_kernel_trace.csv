@@ -1,3 +1,3 @@
 "Kind","Agent_Id","Queue_Id","Stream_Id","Thread_Id","Dispatch_Id","Kernel_Id","Kernel_Name","Correlation_Id","Start_Timestamp","End_Timestamp","LDS_Block_Size","Scratch_Size","VGPR_Count","Accum_VGPR_Count","SGPR_Count","Workgroup_Size_X","Workgroup_Size_Y","Workgroup_Size_Z","Grid_Size_X","Grid_Size_Y","Grid_Size_Z"
-"KERNEL_DISPATCH","Agent 2",1,0,2863646,1,11,"__amd_rocclr_copyBuffer",1,3613492830183974,3613492830192032,0,0,16,0,32,512,1,1,512,1,1
-"KERNEL_DISPATCH","Agent 2",1,0,2863646,2,163,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",2,3613492844263211,3613492844266779,0,0,8,0,32,256,1,1,256,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899372,1,9,"__amd_rocclr_copyBuffer",233,3615894528074608,3615894528082065,0,0,16,0,32,512,1,1,512,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2899372,2,164,"void microllm::ops::hip::(anonymous namespace)::add_typed_kernel<float>(float const*, float const*, float*, long)",240,3615894543803967,3615894543807174,0,0,8,0,32,256,1,1,256,1,1

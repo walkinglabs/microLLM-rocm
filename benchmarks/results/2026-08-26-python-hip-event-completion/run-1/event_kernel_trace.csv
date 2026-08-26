@@ -1,0 +1,4 @@
+"Kind","Agent_Id","Queue_Id","Stream_Id","Thread_Id","Dispatch_Id","Kernel_Id","Kernel_Name","Correlation_Id","Start_Timestamp","End_Timestamp","LDS_Block_Size","Scratch_Size","VGPR_Count","Accum_VGPR_Count","SGPR_Count","Workgroup_Size_X","Workgroup_Size_Y","Workgroup_Size_Z","Grid_Size_X","Grid_Size_Y","Grid_Size_Z"
+"KERNEL_DISPATCH","Agent 2",1,0,2922365,1,82,"microllm::ops::hip::(anonymous namespace)::softmax_kernel(float const*, float*, long, long)",239,3617434733742446,3617434735164490,0,0,20,4,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2922365,2,82,"microllm::ops::hip::(anonymous namespace)::softmax_kernel(float const*, float*, long, long)",255,3617435083600238,3617435085026009,0,0,20,4,32,256,1,1,4096,1,1
+"KERNEL_DISPATCH","Agent 2",1,0,2922365,3,82,"microllm::ops::hip::(anonymous namespace)::softmax_kernel(float const*, float*, long, long)",276,3617435440936512,3617435442360719,0,0,20,4,32,256,1,1,4096,1,1

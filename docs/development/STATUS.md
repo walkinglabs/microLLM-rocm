@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 381/381, ASan/UBSan 378/378, PyTorch-enabled CPU 384/384, single-GPU HIP label 197/197, RCCL label 53/53 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 381/381, ASan/UBSan 378/378, PyTorch-enabled CPU 384/384, single-GPU HIP label 199/199, RCCL label 55/55 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -97,10 +97,10 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | PyTorch Custom Ops | smoke-tested on CPU | Torch 2.13 add/multiply via dispatcher | build/run with PyTorch ROCm |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled build 384/384; Tensor/graph/model/optimizer parity plus package, trajectory and schema gates | broader direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
-| C ABI v1 | smoke-tested | pure C CPU/HIP create/copy/ops/error client plus build-tree and relocated-install C-only Config consumers | zero-copy external views |
-| Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/error plus sync/async `@profile` and nested scope JSONL | packaging/broader ops |
+| C ABI v1 | smoke-tested | pure C CPU/HIP Tensor/ops/error plus default-Stream Event create/record/query/wait/elapsed; build/install C-only consumers | zero-copy external views and explicit Stream handle |
+| Python ctypes API | smoke-tested | CPU/HIP Tensor/ops/Event plus sync/async `@profile`, nested scope and background Event completion | packaging/broader ops and explicit Stream handle |
 | External TensorView ops | smoke-tested | caller-owned CPU/HIP buffers and Stream | Torch build validation |
-| In-process profiling | smoke-tested | three Python/ROCTX/GPU runs: 72 spans, 24/24 correlated adds, clock error ≤18.65ppm, residual ≤1.427us; C++ ranges and binary values | async HIP Event completion and multi-process clock model |
+| In-process profiling | smoke-tested | calibrated timeline has 24/24 launch-correlated adds and residual ≤1.340us; 3/3 Event spans pending at submit with 0 device/Stream sync and exact softmax | explicit Python Stream isolation and multi-process clock model |
 | Cross-framework alignment | smoke-tested | CPU and MI300X both pass 58/58 forward/loss/all-parameter-gradient checkpoints, plus op/layer/backward timings | Qwen/DeepSeek runners/direct PyTorch ROCm |
 | Profiling/autotune | smoke-tested | rocprofv3, exact registries including isolated prefill Q/K/V/QK/P×V/O scopes, complete output/state before timing, real Attention batch-invariance harness and Autograd/layout diagnostics | automated model regression and broader trace correlation |
 | Micro-benchmark harness | smoke-tested | CPU/HIP Event+wall JSONL and error gate | PyTorch operator timing/more shapes |
@@ -165,7 +165,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | hipBLASLt matmul | smoke-tested | FP32/BF16, rank-N strided batches, four transpose contracts, Model-S and T≥256 Attention forward/backward | workspace-aware candidate enumeration/timing |
 | BF16 solution tuning | smoke-tested | eight T512 shapes, 24 processes, 1,536 complete-output candidates and two rejected model policies | stable cross-process winner plus both-model 1.05 gate before persistence |
 | Matmul tuning registry | smoke-tested | exact persistent key plus complete-output gate, Event/wall P50/P95 and explicit acceptance | solution-index enumeration and automatic model regression |
-| RCCL two-GPU baseline | smoke-tested | full RCCL label 53/53; XGMI average, global-batch parameter equivalence, checkpoint, uneven input and three overlap policies | broader hardware/topology matrix |
+| RCCL two-GPU baseline | smoke-tested | full RCCL label 55/55; XGMI average, global-batch parameter equivalence, checkpoint, uneven input, bindings and three overlap policies | broader hardware/topology matrix |
 | DataParallelTrainer | smoke-tested | DataParallel tests 11/11; baseline 20-step rank diff 0; verification timing plus persistent bucket/view/ready-overlap gates | production one-process-per-GPU integration beyond the teaching harness |
 | RCCL gradient buckets | smoke-tested | 1MB payload with 64/4/1 bucket matrix | overlap with backward |
 | RCCL four-GPU | environment-blocked | four visible MI300X VFs; 4/4 debug logs fail one 21,823,872-byte segment with 64MiB `/dev/shm`; total requirement remains unknown | rerun the existing world4 gate with an adequately sized shared-memory mount |

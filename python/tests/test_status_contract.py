@@ -13,13 +13,14 @@ STATUS = ROOT / "docs/development/STATUS.md"
 def main() -> int:
     text = STATUS.read_text(encoding="utf-8")
     for token in (
-        "RCCL label 53/53",
+        "RCCL label 55/55",
         "CPU 381/381",
         "ASan/UBSan 378/378",
         "PyTorch-enabled CPU 384/384",
-        "single-GPU HIP label 197/197",
-        "24/24 correlated adds",
-        "residual ≤1.427us",
+        "single-GPU HIP label 199/199",
+        "24/24 launch-correlated adds",
+        "residual ≤1.340us",
+        "0 device/Stream sync",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -76,6 +77,7 @@ def main() -> int:
         assert token in text
     for stale in (
         "RCCL label 49/49",
+        "RCCL label 53/53",
         "CPU 374/374",
         "CPU 376/376",
         "CPU 377/377",
@@ -90,6 +92,7 @@ def main() -> int:
         "single-GPU HIP label 192/192",
         "single-GPU HIP label 195/195",
         "single-GPU HIP label 196/196",
+        "single-GPU HIP label 197/197",
         "PyTorch-enabled CPU 377/377",
         "PyTorch-enabled CPU 379/379",
         "PyTorch-enabled CPU 380/380",
@@ -221,10 +224,15 @@ def main() -> int:
         "benchmarks/results/2026-08-26-unified-rocprof-perfetto/analysis.json",
         "benchmarks/results/2026-08-26-unified-rocprof-perfetto/verification.json",
         "benchmarks/results/2026-08-26-unified-rocprof-perfetto/unified-timeline.svg",
+        "benchmarks/results/2026-08-26-unified-rocprof-perfetto/unified_hip_api_trace.csv",
         "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/summary.json",
         "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/analysis.json",
         "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/verification.json",
         "benchmarks/results/2026-08-26-python-roctx-gpu-perfetto/calibration-quality.svg",
+        "benchmarks/results/2026-08-26-python-hip-event-completion/summary.json",
+        "benchmarks/results/2026-08-26-python-hip-event-completion/analysis.json",
+        "benchmarks/results/2026-08-26-python-hip-event-completion/verification.json",
+        "benchmarks/results/2026-08-26-python-hip-event-completion/event-completion.svg",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -236,19 +244,51 @@ def main() -> int:
     assert python_timeline["iterations_per_run"] == 8
     assert python_timeline["total_correlated_adds"] == 24
     assert python_timeline["total_profile_rows"] == 72
-    assert python_timeline["max_scale_error_ppm"] < 19.0
-    assert python_timeline["max_abs_residual_ns"] <= 1427.0
-    assert python_timeline["max_boundary_width_ns"] <= 9545
+    assert python_timeline["max_scale_error_ppm"] < 16.0
+    assert python_timeline["max_abs_residual_ns"] <= 1340.0
+    assert python_timeline["max_boundary_width_ns"] <= 9342
     for run in range(1, 4):
         run_root = python_timeline_root / f"run-{run}"
         calibration = json.loads(
             (run_root / "calibration.json").read_text(encoding="utf-8"))
         timeline = json.loads(
             (run_root / "unified.json").read_text(encoding="utf-8"))
+        assert (run_root / "python-unified_hip_api_trace.csv").is_file()
         assert calibration["status"] == "pass"
         assert calibration["matched_spans"] == 8
         assert len(timeline["traceEvents"]) == 85
+        run_summary = python_timeline["runs"][run - 1]
+        assert run_summary["hip_api_events"] == 343
+        assert run_summary["correlated_pairs"] == 16
+        assert run_summary["correlated_adds"] == 8
     ET.parse(python_timeline_root / "calibration-quality.svg")
+    event_root = ROOT / (
+        "benchmarks/results/2026-08-26-python-hip-event-completion")
+    event_summary = json.loads(
+        (event_root / "summary.json").read_text(encoding="utf-8"))
+    assert event_summary["status"] == "pass"
+    assert event_summary["run_count"] == 3
+    assert event_summary["all_pending_at_submit"] is True
+    assert event_summary["all_observers_distinct"] is True
+    assert event_summary["all_launch_kernel_correlations_exact"] is True
+    assert event_summary["marker_kernel_id_equal_count"] == 0
+    assert event_summary["total_device_synchronizes"] == 0
+    assert event_summary["total_stream_synchronizes"] == 0
+    assert event_summary["minimum_host_work_before_observation_ms"] > 2.9
+    assert event_summary["maximum_device_elapsed_ms"] < 1.6
+    assert event_summary["maximum_output_error"] == 0.0
+    for run in range(1, 4):
+        assert (event_root / f"run-{run}/event_hip_api_trace.csv").is_file()
+        assert (event_root / f"run-{run}/event_marker_api_trace.csv").is_file()
+        assert (event_root / f"run-{run}/event_kernel_trace.csv").is_file()
+        assert (event_root / f"run-{run}/report.json").is_file()
+        profile_rows = [json.loads(line) for line in
+                        (event_root / f"run-{run}/profile.jsonl").read_text(
+                            encoding="utf-8").splitlines() if line]
+        assert len(profile_rows) == 1
+        assert profile_rows[0]["kind"] == "hip_event_completion_span"
+        assert profile_rows[0]["event_ready_at_submit"] is False
+    ET.parse(event_root / "event-completion.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

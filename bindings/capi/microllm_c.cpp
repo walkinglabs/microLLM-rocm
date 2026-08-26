@@ -22,6 +22,13 @@ struct ml_tensor {
     microllm::Tensor value;
 };
 
+struct ml_event {
+    ml_event(microllm::Device event_device, bool enable_timing)
+        : device(event_device), value(event_device, enable_timing) {}
+    microllm::Device device;
+    microllm::runtime::Event value;
+};
+
 namespace {
 
 thread_local std::string last_error;
@@ -66,6 +73,16 @@ const microllm::Tensor& require_tensor(const ml_tensor* tensor) {
     return tensor->value;
 }
 
+ml_event& require_event(ml_event* event) {
+    if (event == nullptr) throw std::invalid_argument("event is null");
+    return *event;
+}
+
+const ml_event& require_event(const ml_event* event) {
+    if (event == nullptr) throw std::invalid_argument("event is null");
+    return *event;
+}
+
 void require_output(ml_tensor** output) {
     if (output == nullptr) throw std::invalid_argument("output tensor pointer is null");
     *output = nullptr;
@@ -75,6 +92,11 @@ void return_tensor(microllm::Tensor value, ml_tensor** output) {
     auto result = std::make_unique<ml_tensor>();
     result->value = std::move(value);
     *output = result.release();
+}
+
+void require_event_output(ml_event** output) {
+    if (output == nullptr) throw std::invalid_argument("output event pointer is null");
+    *output = nullptr;
 }
 
 template <typename Operation>
@@ -205,6 +227,54 @@ ML_EXPORT ml_status ml_tensor_to(const ml_tensor* tensor, ml_device_type device_
     return guard([&] {
         require_output(output);
         return_tensor(require_tensor(tensor).to(device_from_c(device_type, device_index)), output);
+    });
+}
+
+ML_EXPORT ml_status ml_event_create(ml_device_type device_type, int device_index,
+                                    int enable_timing, ml_event** output) {
+    return guard([&] {
+        require_event_output(output);
+        const auto device = device_from_c(device_type, device_index);
+        auto event = std::make_unique<ml_event>(device, enable_timing != 0);
+        *output = event.release();
+    });
+}
+
+ML_EXPORT void ml_event_destroy(ml_event* event) { delete event; }
+
+ML_EXPORT ml_status ml_event_record_default_stream(ml_event* event) {
+    return guard([&] {
+        auto& required = require_event(event);
+        if (required.device.is_cpu()) {
+            const microllm::runtime::Stream stream(required.device);
+            required.value.record(stream);
+        } else {
+            required.value.record_default_stream();
+        }
+    });
+}
+
+ML_EXPORT ml_status ml_event_ready(const ml_event* event, int* ready) {
+    return guard([&] {
+        if (ready == nullptr) throw std::invalid_argument("event ready output is null");
+        *ready = require_event(event).value.ready() ? 1 : 0;
+    });
+}
+
+ML_EXPORT ml_status ml_event_synchronize(const ml_event* event) {
+    return guard([&] { require_event(event).value.synchronize(); });
+}
+
+ML_EXPORT ml_status ml_event_elapsed_ms(const ml_event* start,
+                                        const ml_event* finish,
+                                        float* milliseconds) {
+    return guard([&] {
+        if (milliseconds == nullptr) {
+            throw std::invalid_argument("elapsed milliseconds output is null");
+        }
+        const auto& required_start = require_event(start);
+        const auto& required_finish = require_event(finish);
+        *milliseconds = required_finish.value.elapsed_ms_since(required_start.value);
     });
 }
 
