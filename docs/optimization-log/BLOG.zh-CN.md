@@ -5055,3 +5055,14 @@ Kernel。16M元素的FP32/FP16/BF16 forward达到1.570×/1.178×/1.142×，三�
 promotion拒绝。下一次只隔离backward，不改forward结论。
 
 ![Fused SwiGLU Custom Op](assets/pytorch-rocm-custom-op-swiglu.svg)
+
+## 348. Experiment 332：backward慢，float4不是答案
+
+显式float4 backward在4K/64K/1M/16M相对scalar只有0.971×/1.039×/1.003×/0.946×，没有
+大shape过1.05。candidate Kernel、selector、测试和runner随后删除。
+
+真正重要的是反方向证据：原scalar fused producer已经比可读native公式快2.07×–2.82×，峰值少
+三分之一。所以整图0.761×不能归因于backward算术。新的嫌疑是`sum()`产生的zero-stride gradient
+被`.contiguous()`物化成完整Tensor。下一节改layout合同，不再调packet。
+
+![SwiGLU backward](assets/pytorch-rocm-swiglu-backward.svg)

@@ -49,3 +49,10 @@ primitive, while FP16/BF16 retain explicit readable formulas. At 16M elements, f
 is `1.142×–1.570×` native Torch and measured peak halves. Forward+backward remains only
 `0.615×–0.761×`, so the adapter does not make a training speed claim. See
 [Experiment 331](../optimization-log/experiments/331-pytorch-custom-op-swiglu.md).
+
+The first backward rebuttal rejects and removes a float4 candidate: its Event ratio is
+only `0.946×–1.039×` versus the retained scalar producer. The scalar producer itself is
+already `2.07×–2.82×` the readable native formula with lower peak. Training work therefore
+moves to the expanded scalar seed that the Python Autograd bridge currently materializes,
+not another packet-width search. See
+[Experiment 332](../optimization-log/experiments/332-pytorch-swiglu-backward-vector-reject.md).

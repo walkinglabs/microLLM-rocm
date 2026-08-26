@@ -23,6 +23,8 @@ vector16；尾部在同一Kernel安全处理。FP32、小Tensor或任一未对�
 PyTorch fused SwiGLU的forward共同域是连续同shape/device/dtype的FP32/FP16/BF16；输出由
 `at::empty_like`拥有。FP32 Autograd调用caller-owned fused backward；低精度暂用PyTorch公式并按
 FP16 `4e-3`、BF16 `6.25e-2`报告Max/RMS。16M forward性能可被引用，F+B性能失败必须同时保留。
+FP32 backward的float4候选已经因0.946×–1.039×被删除；当前只保留scalar fused producer。
+任何新优化先检查output gradient的stride/storage，而不是重新引入已拒绝的向量selector。
 
 ## BF16 weight gradient
 

@@ -933,12 +933,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 389/389 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 386/386 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 390/390 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 387/387 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 201/201 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 392/392 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 393/393 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 134 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 135 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1319,6 +1319,10 @@ The first larger fusion is now measured: `torch.ops.microllm.swiglu` removes the
 SiLU intermediate. At 16M elements FP32/FP16/BF16 forward is
 `1.570×/1.178×/1.142×` native Torch and allocator peak halves. Its Autograd contract is
 correct, but 1M forward+backward is only `0.615×–0.761×`; no training speedup is claimed.
+An isolated backward rebuttal removes the float4 candidate: it reaches only
+`0.946×–1.039×` scalar. The retained scalar fused producer is already
+`2.07×–2.82×` the readable native formula with one-third lower peak, pointing instead
+to Autograd's zero-stride gradient materialization.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

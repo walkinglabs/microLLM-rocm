@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 389/389, ASan/UBSan 386/386, PyTorch-enabled CPU 392/392, single-GPU HIP label 201/201, RCCL label 55/55 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 390/390, ASan/UBSan 387/387, PyTorch-enabled CPU 393/393, single-GPU HIP label 201/201, RCCL label 55/55 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -96,6 +96,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | Stable model failure | smoke-tested | low-loss cycle breaks beyond training context | rebuttal experiments |
 | PyTorch Custom Ops | smoke-tested on CPU and MI300X ROCm | FP32/FP16/BF16 zero-copy add/multiply, current HIP Stream, Autograd and Meta/fullgraph; 6-process 20/20 exact, equal peaks; scalar Event 0.469×–0.973×; selective low-precision vector16 improves 16M by 1.277×–1.411× vs scalar | still 0.816×–0.842× native Torch at low precision; larger fusion |
 | PyTorch fused SwiGLU | forward admitted; training performance rejected | 6-process 15-case dtype/shape/Autograd/Meta matrix; 16M forward 1.142×–1.570× native Torch and peak halves; all precision gates pass | 1M F+B only 0.615×–0.761×; isolate backward before training claim |
+| PyTorch FP32 SwiGLU backward producer | scalar retained; vector removed | complete two-gradient matrix: scalar is 2.07×–2.82× readable native formula and peak -33%; vector/scalar only 0.946×–1.039× | zero-stride scalar-seed gradient materialization |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled CPU build plus Tensor/graph/model/optimizer parity, package, trajectory and schema gates | broader official-model direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | external descriptors/native Stream, forward outputs and six caller-owned backward families with explicit scratch; 58 symbols | Autograd external leaf pool |

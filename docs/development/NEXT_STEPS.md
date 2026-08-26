@@ -248,7 +248,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] move the adapter boundary to fused SwiGLU: 16M forward is 1.142×–1.570× native
   Torch and peak halves across three dtypes, while F+B 0.615×–0.761× is retained as
   a training counterexample;
-- [ ] vectorize/isolate FP32 fused SwiGLU backward with complete gradients and peak;
+- [x] isolate FP32 fused SwiGLU backward and reject vector4: 0.946×–1.039× scalar,
+  while the retained scalar producer is already 2.07×–2.82× the readable native formula;
+- [ ] remove `sum()` zero-stride output-gradient materialization with an explicit scalar-seed
+  contract, then rerun complete F+B and peak gates;
 - [ ] define a typed low-precision SwiGLU backward contract before replacing the readable
   PyTorch fallback formulas;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
