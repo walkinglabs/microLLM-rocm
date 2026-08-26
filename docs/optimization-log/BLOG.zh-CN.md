@@ -5159,3 +5159,13 @@ Event/wall提高1.244×/1.226×，FP16提高1.217×/1.193×；相对PyTorch来�
 转向wave-level reduction；如果它不能稳定改善，就关闭这条local Kernel线。
 
 ![Cached typed Softmax](assets/pytorch-rocm-cached-softmax.svg)
+
+## 357. Experiment 341：一种dtype赢了，也不能算广义成功
+
+候选用wave shuffle替换cached Kernel的两次shared tree。10格精度和资源合同都通过，FP16
+width4096 Event/wall也提高1.071×/1.070×。但BF16只有1.050×/1.033×，wall没有越过1.05门。
+
+实验范围一开始就是两种dtype，因此不能平均、不能事后改验收。wave helper和调用点全部删除，
+cached shared-tree保持默认。若继续，只能新建FP16-only谓词实验，并明确BF16走fallback。
+
+![Wave typed Softmax rejection](assets/pytorch-rocm-wave-softmax-reject.svg)

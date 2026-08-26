@@ -1080,6 +1080,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Block Softmax SVG](assets/pytorch-rocm-block-softmax.svg) | serial/block/PyTorch十格对比 |
 | [experiments/340-pytorch-cached-softmax.md](experiments/340-pytorch-cached-softmax.md) | bounded LDS cache删除第二次exp |
 | [Cached Softmax SVG](assets/pytorch-rocm-cached-softmax.svg) | width4096 Torch/block/cache Event图 |
+| [experiments/341-pytorch-wave-softmax-reject.md](experiments/341-pytorch-wave-softmax-reject.md) | broad wave归约因BF16 wall失败而删除 |
+| [Wave Softmax reject SVG](assets/pytorch-rocm-wave-softmax-reject.svg) | 两dtype Event/wall与1.05门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

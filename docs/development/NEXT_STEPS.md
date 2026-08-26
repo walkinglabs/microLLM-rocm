@@ -275,8 +275,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] cache FP32 exponentials in bounded width2048–8192 block-local LDS without a
   Tensor allocation; width4096 Event/wall improves 1.217×–1.244×/1.193×–1.226×,
   with 2047/2048 and 8192/8193 correctness/resource boundaries;
-- [ ] replace the two eight-barrier full-block reductions with a wave-level reduction;
-  cached width4096 still reaches only 0.550×–0.576× Torch.
+- [x] test broad wave-level reduction and remove it: FP16 width4096 improves
+  1.071×/1.070× Event/wall, but BF16 reaches only 1.050×/1.033× and fails the
+  two-dtype 1.05 gate;
+- [ ] test an explicit FP16-only wave predicate as a separate policy; do not average the
+  rejected BF16 row into a broad keep decision.
 
 ## P2.5 — production data parallel reducer
 

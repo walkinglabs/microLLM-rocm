@@ -752,3 +752,15 @@ python3 docs/optimization-log/scripts/render_pytorch_cached_softmax.py \
   --candidate benchmarks/results/2026-08-26-pytorch-rocm-cached-softmax \
   --output docs/optimization-log/assets/pytorch-rocm-cached-softmax.svg
 ```
+
+The next broad wave-reduction candidate is intentionally retained only as rejected evidence in
+`benchmarks/results/2026-08-26-pytorch-rocm-wave-softmax-reject`. FP16 improves
+1.071×/1.070× Event/wall, but BF16 wall reaches only 1.033×, so the implementation was removed.
+Render the decision with:
+
+```bash
+python3 docs/optimization-log/scripts/render_pytorch_wave_softmax_reject.py \
+  --baseline benchmarks/results/2026-08-26-pytorch-rocm-cached-softmax \
+  --candidate benchmarks/results/2026-08-26-pytorch-rocm-wave-softmax-reject \
+  --output docs/optimization-log/assets/pytorch-rocm-wave-softmax-reject.svg
+```

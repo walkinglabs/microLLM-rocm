@@ -74,7 +74,9 @@ and round only the caller output. Widths through 32 retain the readable serial r
 64/128/256-thread block reductions. Dispatch-boundary tests must cover 32/33, 64/65 and 128/129,
 while widths 2048–8192 may retain FP32 exponentials in bounded block-local LDS. Tests must also
 cover 2047/2048 and 8192/8193 so an unsupported width cannot request excess shared memory.
-Performance claims must keep the remaining width4096 reduction-barrier counterexample visible.
+Performance claims must keep the remaining width4096 counterexample visible. A broad wave-shuffle
+reduction was removed because BF16 wall improved only 1.033× even though FP16 passed; any retry must
+declare a dtype-specific predicate before measurement rather than averaging those rows.
 That model gate now exists for FFN Norm: `bf16_ffn_precast_out_` consumes an already-filled Arena
 input, Qwen/DeepSeek both pass, and enabling BF16 FFN Arena enables this exact route by default.
 Keep explicit false available, and never apply the shortcut to trace, cached, training or bypassed

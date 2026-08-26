@@ -185,6 +185,7 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [154](steps/154-pytorch-typed-softmax-baseline.md) | complete; correctness keep | direct FP16/BF16 Softmax | 10/10 zero-temp；serial w1024/4096仅0.011×/0.004× |
 | [155](steps/155-pytorch-block-softmax.md) | complete; shape-aware keep | typed Softmax block reduction | w128/1024过Torch；w4096提高146×–149×但仍0.43×–0.46× |
 | [156](steps/156-pytorch-cached-softmax.md) | complete; keep/parity open | bounded FP32 exp cache | w4096 Event1.217×–1.244×；仍0.550×–0.576×Torch |
+| [157](steps/157-pytorch-wave-softmax-reject.md) | complete; removed | broad wave reduction | FP16过门；BF16 wall仅1.033×，候选删除 |
 
 ## 为什么按这个顺序
 
