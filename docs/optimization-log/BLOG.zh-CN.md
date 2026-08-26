@@ -4975,3 +4975,10 @@ lane和旧tree，只减少物理线程，没有缩小归约结构。
 再测Event/wall；T2048任一case失败就删除并关闭finalize局部线。
 
 ![Finalize gap](../../benchmarks/results/2026-08-26-finalize-architecture-gap-audit/finalize-gap.svg)
+
+## 341. Experiment 324：128线程闲置不是主要解释
+
+native128完整输出16/16通过，但T2048 Event/wall只有约1.003×，0/4过门。减少128个闲置线程没有带来
+预期收益，说明dominant顺序P×V更受内存/指令流限制。candidate删除，finalize局部线关闭。
+
+![Native128 result](../../benchmarks/results/2026-08-26-native128-finalize/native128.svg)

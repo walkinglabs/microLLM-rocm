@@ -167,6 +167,29 @@ NATIVE128_SPEC.loader.exec_module(NATIVE128)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_native128_finalize_is_rejected(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-native128-finalize")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in
+               (root / "raw.jsonl").read_text(encoding="utf-8").splitlines()
+               if line]
+        self.assertEqual((len(raw), summary["process_rows"]), (16, 16))
+        self.assertTrue(summary["all_accuracy_gates_passed"])
+        self.assertEqual(summary["t2048_performance_pass_count"], 0)
+        self.assertFalse(summary["candidate_admitted"])
+        self.assertAlmostEqual(summary["minimum_t2048_event_speedup"],
+                               1.0025122105724575)
+        self.assertAlmostEqual(summary["minimum_t2048_wall_speedup"],
+                               1.0023484745155855)
+        self.assertLessEqual(analysis["maximum_error"], 3.73e-9)
+        self.assertEqual(verification["focused_gates"]["formal_processes"],
+                         "16/16")
+        ET.parse(root / "native128.svg")
+
     def test_native128_summary_requires_every_t2048_case(self):
         rows = []
         for sequence in NATIVE128.SEQUENCES:

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1250" height="520" viewBox="0 0 1250 520">
+<rect width="100%" height="100%" fill="#0b1020"/>
+<style>text{font-family:ui-monospace,monospace;fill:#e5e7eb}.title{font-size:23px;font-weight:700}.label{font-size:13px}.muted{fill:#94a3b8;font-size:12px}</style>
+<text x="35" y="42" class="title">Native 128-lane finalize gate</text>
+<text x="35" y="67" class="muted">candidate/current · green requires T2048 Event 1.05x and wall 1.02x</text>
+<text x="40" y="123" class="label">T512 B1 FP32</text>
+<rect x="350" y="105" width="300.84" height="24" rx="4" fill="#ef4444"/>
+<text x="690" y="123" class="label">Event 1.003x · wall 1.001x · Max 2.27e-09</text>
+<text x="40" y="170" class="label">T512 B1 BF16</text>
+<rect x="350" y="152" width="301.74" height="24" rx="4" fill="#ef4444"/>
+<text x="690" y="170" class="label">Event 1.006x · wall 1.009x · Max 2.27e-09</text>
+<text x="40" y="217" class="label">T512 B2 FP32</text>
+<rect x="350" y="199" width="301.15" height="24" rx="4" fill="#ef4444"/>
+<text x="690" y="217" class="label">Event 1.004x · wall 1.004x · Max 2.62e-09</text>
+<text x="40" y="264" class="label">T512 B2 BF16</text>
+<rect x="350" y="246" width="301.19" height="24" rx="4" fill="#ef4444"/>
+<text x="690" y="264" class="label">Event 1.004x · wall 1.005x · Max 2.62e-09</text>
+<text x="40" y="311" class="label">T2048 B1 FP32</text>
+<rect x="350" y="293" width="300.75" height="24" rx="4" fill="#ef4444"/>
+<text x="690" y="311" class="label">Event 1.003x · wall 1.003x · Max 3.73e-09</text>
+<text x="40" y="358" class="label">T2048 B1 BF16</text>
+<rect x="350" y="340" width="300.81" height="24" rx="4" fill="#ef4444"/>
+<text x="690" y="358" class="label">Event 1.003x · wall 1.002x · Max 3.73e-09</text>
+<text x="40" y="405" class="label">T2048 B2 FP32</text>
+<rect x="350" y="387" width="300.82" height="24" rx="4" fill="#ef4444"/>
+<text x="690" y="405" class="label">Event 1.003x · wall 1.004x · Max 3.73e-09</text>
+<text x="40" y="452" class="label">T2048 B2 BF16</text>
+<rect x="350" y="434" width="300.82" height="24" rx="4" fill="#ef4444"/>
+<text x="690" y="452" class="label">Event 1.003x · wall 1.004x · Max 3.73e-09</text>
+</svg>

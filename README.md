@@ -43,10 +43,11 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > DeepSeek T2048/B2/N64. microLLM/PyTorch are `177.77/156.04 tok/s` (`1.1393x`),
 > all 64 tokens match, peak is `5.23/6.38 GB`, and KV bytes match exactly. Current
 > Kernel share is finalize `42.27%`, GEMM `33.25%`, scores `7.88%`. The next node
-> selects one genuinely new operator hypothesis: a native 128-lane reduction and
-> 128-column P×V, unlike the rejected 128-thread mapping that emulated 256 logical
-> lanes. Numerical order changes, so complete-output tolerance precedes timing.
-> See the [finalize gap audit](docs/optimization-log/experiments/323-finalize-architecture-gap.md).
+> tested native128 in 16 complete-output processes. Accuracy passes, but T2048
+> Event/wall improve only about `1.003x`; 0/4 cases pass the performance gate.
+> The candidate is rejected and cached-finalize local search is closed. Candidate
+> code is scheduled for removal; the next gap audit targets current GEMM `33.25%`.
+> See the [native128 rejection](docs/optimization-log/experiments/324-native128-finalize-reject.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.

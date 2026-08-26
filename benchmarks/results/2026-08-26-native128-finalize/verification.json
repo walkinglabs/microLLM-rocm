@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "experiment": 324,
+  "status": "pass",
+  "operator_and_runner_commit": "8175477d91af56eea56289744dfdf8502341c2d7",
+  "device": "AMD Instinct MI300X VF",
+  "architecture": "gfx942",
+  "sequences": [512, 2048],
+  "batches": [1, 2],
+  "cache_dtypes": ["fp32", "bf16"],
+  "runs_per_case": 2,
+  "warmup": 3,
+  "repetitions": 20,
+  "focused_gates": {
+    "cpu_operator": "pass",
+    "mi300x_cached_oracle": "pass",
+    "python_contracts": "76/76",
+    "formal_processes": "16/16"
+  },
+  "claims_not_made": [
+    "Native128 is not admitted into Auto or a model route.",
+    "A 0.3% median movement is not reported as a useful speedup.",
+    "Accuracy success does not override failed Event and wall gates."
+  ]
+}

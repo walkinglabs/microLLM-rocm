@@ -47,6 +47,8 @@ def main() -> int:
         "GEMM 272.93ms/33.25%",
         "native 128 changes reduction tree/lane stride",
         "old 128 mapping emulated 256 logical lanes",
+        "T2048 Event/wall ≈1.003×",
+        "0/4 performance cases pass",
         "experiments through 288",
         "Ranked per-leaf weighted overlap",
         "whole step 0.9594×",
@@ -164,6 +166,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-clean-deepseek-t2048-profile/profile-delta.svg",
         "benchmarks/results/2026-08-26-finalize-architecture-gap-audit/analysis.json",
         "benchmarks/results/2026-08-26-finalize-architecture-gap-audit/finalize-gap.svg",
+        "benchmarks/results/2026-08-26-native128-finalize/summary.json",
+        "benchmarks/results/2026-08-26-native128-finalize/analysis.json",
+        "benchmarks/results/2026-08-26-native128-finalize/verification.json",
+        "benchmarks/results/2026-08-26-native128-finalize/native128.svg",
     ):
         assert (ROOT / relative).is_file()
     diagnostic_root = ROOT / (
@@ -318,6 +324,12 @@ def main() -> int:
     assert finalize_gap["idle_threads_during_pv"] == 128
     assert finalize_gap["numerical_order_changes"] is True
     ET.parse(finalize_gap_root / "finalize-gap.svg")
+    native_root = ROOT / "benchmarks/results/2026-08-26-native128-finalize"
+    native = json.loads((native_root / "summary.json").read_text(encoding="utf-8"))
+    assert native["all_accuracy_gates_passed"] is True
+    assert native["t2048_performance_pass_count"] == 0
+    assert native["candidate_admitted"] is False
+    ET.parse(native_root / "native128.svg")
     for removed in (
         "benchmarks/single_gpu/fp32_prefill_ffn_model_gate.py",
         "benchmarks/single_gpu/fp32_prefill_ffn_all_exact_gate.py",

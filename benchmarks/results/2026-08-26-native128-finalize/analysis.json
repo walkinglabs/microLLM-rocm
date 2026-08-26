@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "experiment": 324,
+  "status": "operator_rejected_finalize_local_line_closed",
+  "process_rows": 16,
+  "case_count": 8,
+  "all_accuracy_gates_passed": true,
+  "maximum_error": 0.00000000372529029846,
+  "all_bitwise_equal_materialized": false,
+  "minimum_t2048_event_speedup": 1.0025122105724575,
+  "minimum_t2048_wall_speedup": 1.0023484745155855,
+  "maximum_t2048_event_speedup": 1.0027257828432852,
+  "maximum_t2048_wall_speedup": 1.0039631335577164,
+  "t2048_performance_pass_count": 0,
+  "candidate_admitted": false,
+  "next_experiment": "Remove native128 candidate code and close cached-finalize local search; audit the current 33.25% GEMM category for a genuinely untested architecture."
+}
