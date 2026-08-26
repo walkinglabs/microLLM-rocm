@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"blocked_external_profiler_injection","tool":"rocprofv3","target":"PyTorch ROCm 2.11 process","failure":"LLVM option spirv-expand-step registered more than once","signal":"SIGABRT","signal_handler_hung":true,"outer_timeout_seconds":20,"forced_termination":true,"performance_claim_allowed":false}
