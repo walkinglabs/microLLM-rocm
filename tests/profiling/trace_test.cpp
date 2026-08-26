@@ -183,4 +183,26 @@ TEST(TraceSessionTest, ValueFiltersKeepMetadataButCaptureOnlyMatchingNames) {
     std::filesystem::remove_all(binary_directory, ignored);
 }
 
+TEST(TraceSessionTest, EmitsOptionalRoctxRangesWithoutChangingRecords) {
+    TraceOptions options;
+    options.capture_values = false;
+    options.synchronize_device = false;
+    options.emit_roctx_ranges = true;
+    TraceSession session("microllm", "roctx", options);
+    const auto output = Tensor::from_vector({1.0F}, {1});
+    {
+        ScopedTraceSession active(session);
+        TraceTimer finished(TraceKind::Operator, "microllm.test.finished",
+                            Device::cpu());
+        finished.finish(output);
+        TraceTimer destructor_pop(TraceKind::Operator,
+                                  "microllm.test.destructor", Device::cpu());
+        EXPECT_TRUE(destructor_pop.enabled());
+    }
+    ASSERT_EQ(session.records().size(), 1U);
+    EXPECT_EQ(session.records()[0].name, "microllm.test.finished");
+    // Capability may be false on non-ROCm hosts; enabling markers remains safe.
+    (void)roctx_markers_available();
+}
+
 }  // namespace microllm::profiling

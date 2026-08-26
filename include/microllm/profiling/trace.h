@@ -20,6 +20,7 @@ struct TraceOptions {
     bool record_model = true;
     bool capture_values = true;
     bool synchronize_device = true;
+    bool emit_roctx_ranges = false;
     bool record_all_layer_details = false;
     std::vector<std::string> value_name_filters;
     std::size_t max_captured_elements = 4096;
@@ -98,6 +99,7 @@ private:
 class TraceTimer {
 public:
     TraceTimer(TraceKind kind, std::string name, Device device);
+    ~TraceTimer();
     void finish(const Tensor& output);
     [[nodiscard]] bool enabled() const noexcept;
 
@@ -108,8 +110,10 @@ private:
     Device device_ = Device::cpu();
     std::chrono::steady_clock::time_point start_{};
     bool finished_ = false;
+    bool roctx_pushed_ = false;
 };
 
 [[nodiscard]] const char* trace_kind_name(TraceKind kind) noexcept;
+[[nodiscard]] bool roctx_markers_available() noexcept;
 
 }  // namespace microllm::profiling

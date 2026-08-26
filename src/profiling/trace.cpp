@@ -10,12 +10,48 @@
 #include <stdexcept>
 #include <string_view>
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <dlfcn.h>
+#endif
+
 #include <microllm/runtime/runtime.h>
 
 namespace microllm::profiling {
 namespace {
 
 thread_local TraceSession* active_session = nullptr;
+
+struct RoctxFunctions {
+    using Push = int (*)(const char*);
+    using Pop = int (*)();
+    void* library = nullptr;
+    Push push = nullptr;
+    Pop pop = nullptr;
+};
+
+RoctxFunctions& roctx_functions() {
+    static RoctxFunctions functions = [] {
+        RoctxFunctions value;
+#if defined(__unix__) || defined(__APPLE__)
+        for (const auto* name : {"librocprofiler-sdk-roctx.so", "libroctx64.so"}) {
+            value.library = ::dlopen(name, RTLD_LAZY | RTLD_LOCAL);
+            if (value.library != nullptr) break;
+        }
+        if (value.library != nullptr) {
+            value.push = reinterpret_cast<RoctxFunctions::Push>(
+                ::dlsym(value.library, "roctxRangePushA"));
+            value.pop = reinterpret_cast<RoctxFunctions::Pop>(
+                ::dlsym(value.library, "roctxRangePop"));
+            if (value.push == nullptr || value.pop == nullptr) {
+                (void)::dlclose(value.library);
+                value = {};
+            }
+        }
+#endif
+        return value;
+    }();
+    return functions;
+}
 
 std::string escape_json(std::string_view value) {
     std::string output;
@@ -318,7 +354,21 @@ TraceTimer::TraceTimer(TraceKind kind, std::string name, Device device)
         return;
     }
     if (session_->options().synchronize_device) runtime::synchronize(device_);
+    if (session_->options().emit_roctx_ranges) {
+        auto& roctx = roctx_functions();
+        if (roctx.push != nullptr) {
+            (void)roctx.push(name_.c_str());
+            roctx_pushed_ = true;
+        }
+    }
     start_ = std::chrono::steady_clock::now();
+}
+
+TraceTimer::~TraceTimer() {
+    if (roctx_pushed_) {
+        (void)roctx_functions().pop();
+        roctx_pushed_ = false;
+    }
 }
 
 void TraceTimer::finish(const Tensor& output) {
@@ -326,10 +376,19 @@ void TraceTimer::finish(const Tensor& output) {
     if (session_->options().synchronize_device) runtime::synchronize(device_);
     const auto finish_time = std::chrono::steady_clock::now();
     const auto elapsed = std::chrono::duration<double, std::milli>(finish_time - start_).count();
+    if (roctx_pushed_) {
+        (void)roctx_functions().pop();
+        roctx_pushed_ = false;
+    }
     session_->record(kind_, std::move(name_), output, elapsed);
     finished_ = true;
 }
 
 bool TraceTimer::enabled() const noexcept { return session_ != nullptr; }
+
+bool roctx_markers_available() noexcept {
+    const auto& functions = roctx_functions();
+    return functions.push != nullptr && functions.pop != nullptr;
+}
 
 }  // namespace microllm::profiling

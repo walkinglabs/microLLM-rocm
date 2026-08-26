@@ -11,6 +11,7 @@ target_include_directories(microllm_profiling
 )
 target_link_libraries(microllm_profiling
     PUBLIC microllm::core microllm::runtime microllm_project_options microllm_build_config
+           ${CMAKE_DL_LIBS}
 )
 
 install(TARGETS microllm_profiling EXPORT microLLMTargets
