@@ -173,6 +173,38 @@ POST_GATE_UP_SPEC.loader.exec_module(POST_GATE_UP)
 
 
 class HfInferenceShapeMatrixTest(unittest.TestCase):
+    def test_current_post_exact_gate_up_trace_selects_down(self):
+        root = (ROOT / "benchmarks/results" /
+                "2026-08-26-post-exact-gate-up-ffn-trace")
+        summary = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+        analysis = json.loads((root / "analysis.json").read_text(encoding="utf-8"))
+        verification = json.loads((root / "verification.json").read_text(
+            encoding="utf-8"))
+        raw = [json.loads(line) for line in
+               (root / "raw.jsonl").read_text(encoding="utf-8").splitlines()
+               if line]
+        self.assertEqual(summary["record_type"],
+                         "post_exact_gate_up_ffn_stage_trace_audit")
+        self.assertEqual((len(raw), summary["process_rows"]), (8, 8))
+        self.assertEqual(summary["first_nonzero_stage"],
+                         POST_GATE_UP.BASE.PREFIX + ".ffn.down")
+        self.assertTrue(summary["all_repeat_metrics_equal"])
+        for case in summary["cases"]:
+            for stage in case["stages"][:4]:
+                self.assertTrue(stage["b1_vs_batch_row0"]["bitwise_equal"])
+                self.assertTrue(stage["batch_row0_vs_row1"]["bitwise_equal"])
+            if case["batch"] > 1:
+                self.assertFalse(case["stages"][4][
+                    "b1_vs_batch_row0"]["bitwise_equal"])
+        b2 = next(case for case in summary["cases"] if case["batch"] == 2)
+        self.assertEqual(b2["stages"][4]["b1_vs_batch_row0"]["maximum"],
+                         1.71661376953125e-05)
+        self.assertTrue(analysis[
+            "all_norm_gate_up_activation_cross_batch_bitwise_equal"])
+        self.assertEqual(verification["scope_dispatches_per_process"], 224)
+        self.assertFalse(list(root.glob("*.bin")))
+        ET.parse(root / "post-exact-gate-up-trace.svg")
+
     def test_post_exact_gate_up_trace_combines_six_scoped_keys(self):
         args = type("Args", (), {
             "binary": Path("micro"), "context": 2048,

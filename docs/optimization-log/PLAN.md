@@ -164,7 +164,8 @@ M6 固定矩阵验收   正确性 + 吞吐 + 显存 + 失败图集
 | [133](steps/133-fp32-ffn-projection-solutions.md) | complete; common policy rejected | M2048–16384 gate/up共同FP32 solution | exact仅296100；M8192 0.941×失败 |
 | [134](steps/134-prefill-ffn-gate-up-model.md) | complete; rejected | B1/B2/B8 exact gate+up整模门 | 性能/Max过，RMS仅改善3.3% |
 | [135](steps/135-prefill-ffn-all-exact-model.md) | complete; rejected, track closed | all-batch exact gate+up最终反驳 | 性能过；Max+35.5%，RMS恶化5.8% |
-| [136](steps/136-post-exact-gate-up-trace-cleanup.md) | planned | exact gate/up后的首差与route清理 | 验证down后删除候选模型seam |
+| [136](steps/136-post-exact-gate-up-trace-cleanup.md) | trace complete; cleanup pending | exact gate/up后的首差与route清理 | down首差；下一提交删除模型seam |
+| [137](steps/137-fp32-ffn-down-solutions.md) | planned after cleanup | M2048–16384 down共同FP32 solution | K8960/N1536；先exact再计时 |
 
 ## 为什么按这个顺序
 

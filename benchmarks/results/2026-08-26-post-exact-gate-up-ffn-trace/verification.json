@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "experiment": 320,
+  "status": "pass",
+  "build_type": "Release",
+  "engine_commit": "8851faa92f1c392e4b549e6c2610f61d4020e1cb",
+  "runner_commit": "a9f38d8c2127b730e9772bd6045333e675111478",
+  "context": 2048,
+  "batches": [1, 2, 4, 8],
+  "runs_per_case": 2,
+  "process_rows": 8,
+  "scope_entries": 6,
+  "scope_dispatches_per_process": 224,
+  "focused_gates": {
+    "python_contracts": "73/73",
+    "mi300x_processes": "8/8",
+    "route_shape_binary_repeat_checks": "pass"
+  },
+  "claims_not_made": [
+    "The rejected gate/up model policy is not reopened.",
+    "Trace time is not a performance measurement.",
+    "Down is selected for an operator screen, not yet a model route."
+  ]
+}

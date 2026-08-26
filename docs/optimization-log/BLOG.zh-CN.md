@@ -4932,3 +4932,13 @@ FFN vendor-solution模型线到此关闭。删除scope前只做一次因果trace
 首差，就把下一问题明确交给down descriptor；随后移除候选CLI与runner，避免留下失败用户路径。
 
 ![All-exact FFN gate](../../benchmarks/results/2026-08-26-fp32-prefill-ffn-all-exact-gate/ffn-all-exact-model-gate.svg)
+
+## 337. Experiment 320：gate/up因果成立，但失败route仍要删
+
+exact Attention+gate/up后，FFN norm、gate、up和SwiGLU跨/内batch全部位级一致，down统一首差，Max为
+1.72e-5/1.05e-5/1.43e-5。上一阶段的因果解释成立。
+
+但模型RMS已经失败，不能因为trace漂亮就保留用户route。下一提交先删除gate/up CLI/scope与candidate
+runner，再筛down的K8960/N1536 operator descriptor。
+
+![Post-exact gate/up](../../benchmarks/results/2026-08-26-post-exact-gate-up-ffn-trace/post-exact-gate-up-trace.svg)

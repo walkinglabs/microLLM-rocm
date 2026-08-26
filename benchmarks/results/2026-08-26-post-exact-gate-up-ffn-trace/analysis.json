@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "experiment": 320,
+  "status": "down_projection_selected",
+  "process_rows": 8,
+  "stage_count": 7,
+  "first_nonzero_stage": "inference.cached_prefill.blocks.0.ffn.down",
+  "all_norm_gate_up_activation_cross_batch_bitwise_equal": true,
+  "all_norm_gate_up_activation_within_batch_bitwise_equal": true,
+  "down_cross_batch_maximum_by_batch": {
+    "2": 0.0000171661376953125,
+    "4": 0.00001049041748046875,
+    "8": 0.00001430511474609375
+  },
+  "down_within_batch_maximum_by_batch": {
+    "2": 0.00002002716064453125,
+    "4": 0.000019550323486328125,
+    "8": 0.0000152587890625
+  },
+  "all_repeat_metrics_equal": true,
+  "binary_files_retained": 0,
+  "next_experiment": "Remove the rejected gate/up CLI and model scope, then screen the real down descriptor M2048/4096/8192/16384 by K8960 by N1536 at operator level."
+}

@@ -39,12 +39,12 @@ Start with [Quick start](#quick-start), consume the installed library through th
 <details>
 <summary>Latest optimization checkpoints</summary>
 
-> **Current optimization checkpoint:** Experiment 319 applies exact gate/up to
-> all batches. End-to-end prefill passes at `0.964x–1.000x` and complete-logit
-> Max improves `35.5%`, but RMS worsens `5.8%`; the candidate is rejected and the
-> FFN vendor-solution model line is closed. One final diagnostic trace will test
-> whether down projection becomes the first drift before candidate-route cleanup.
-> See the [all-exact FFN rejection](docs/optimization-log/experiments/319-prefill-ffn-all-exact-reject.md).
+> **Current optimization checkpoint:** Experiment 320 uses exact Attention plus
+> exact gate/up as a diagnostic control. FFN norm, gate, up, and SwiGLU become
+> bitwise equal across and within batches; down projection is the first drift
+> (Max `1.05e-5–1.72e-5`). The rejected gate/up user route is now scheduled for
+> cleanup; the next operator screen targets `K8960/N1536` down projection.
+> See the [post-exact gate/up trace](docs/optimization-log/experiments/320-post-exact-gate-up-down.md).
 
 > **Current training checkpoint:** the current B1T512 BF16 profile measures
 > 31.327/71.873 ms of Kernel time for Qwen/DeepSeek; GEMM remains 58.56%/63.43%.
