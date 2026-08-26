@@ -5080,3 +5080,13 @@ hook显示，`out.sum()`的gradient虽然shape等于out，但stride全0、storag
 Autograd提交成本。
 
 ![SwiGLU scalar seed](assets/pytorch-rocm-swiglu-scalar-seed.svg)
+
+## 350. Experiment 334：GPU只要0.029ms，Autograd路径为什么是0.141ms
+
+我们把同一数学拆成native Torch Autograd、Python注册的custom Autograd、手动提交microLLM三个producer。
+1M Event分别为0.1119/0.1408/0.0290ms；64K为0.0984/0.1263/0.0240ms。全部loss和梯度一致。
+
+manual比custom快4.855×–5.271×，证明剩余时间在Python callback/Autograd engine的Kernel提交空洞，
+不是HIP数学。数学Kernel局部线关闭，下一步只允许C++ Autograd或compiled graph。
+
+![SwiGLU Autograd attribution](assets/pytorch-rocm-swiglu-autograd-attribution.svg)

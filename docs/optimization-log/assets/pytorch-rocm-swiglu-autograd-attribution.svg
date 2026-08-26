@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="680" viewBox="0 0 1220 680">
+<rect width="1220" height="680" fill="#f7f9fc"/>
+<text x="610" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">SwiGLU F+B Gap Is in Autograd Submission</text>
+<text x="610" y="78" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">same FP32 math · six fresh MI300X processes · Event milliseconds per iteration</text>
+<line x1="80" y1="500" x2="820" y2="500" stroke="#aab3c2" stroke-width="2"/>
+<rect x="140" y="299.6" width="60" height="200.4" rx="7" fill="#d97706"/>
+<text x="170" y="291.6" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">0.0984</text>
+<text x="170" y="525" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">native</text>
+<rect x="220" y="242.6" width="60" height="257.4" rx="7" fill="#b42335"/>
+<text x="250" y="234.6" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">0.1263</text>
+<text x="250" y="525" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">custom</text>
+<rect x="300" y="451.2" width="60" height="48.8" rx="7" fill="#198754"/>
+<text x="330" y="443.2" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">0.0240</text>
+<text x="330" y="525" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">manual</text>
+<text x="250" y="560" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#172033">medium · 65536</text>
+<rect x="490" y="272.0" width="60" height="228.0" rx="7" fill="#d97706"/>
+<text x="520" y="264.0" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">0.1119</text>
+<text x="520" y="525" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">native</text>
+<rect x="570" y="213.0" width="60" height="287.0" rx="7" fill="#b42335"/>
+<text x="600" y="205.0" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">0.1408</text>
+<text x="600" y="525" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">custom</text>
+<rect x="650" y="440.9" width="60" height="59.1" rx="7" fill="#198754"/>
+<text x="680" y="432.9" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#172033">0.0290</text>
+<text x="680" y="525" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">manual</text>
+<text x="600" y="560" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#172033">large · 1048576</text>
+<rect x="865" y="125" width="300" height="375" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="895" y="167" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Attribution</text>
+<text x="895" y="211" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ all losses/gradients match</text>
+<text x="895" y="244" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ same fused GPU producers</text>
+<text x="895" y="292" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">manual/custom 4.855×–5.271×</text>
+<text x="895" y="325" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">manual/native 3.859×–4.105×</text>
+<text x="895" y="373" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335">Python Autograd submission gap</text>
+<text x="895" y="406" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">not a HIP arithmetic bottleneck</text>
+<text x="895" y="449" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">next: C++ Autograd or compiled graph</text>
+<text x="610" y="635" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">Stop changing math kernels · optimize the framework boundary</text>
+</svg>

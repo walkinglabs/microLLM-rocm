@@ -666,3 +666,16 @@ python3 benchmarks/single_gpu/compare_pytorch_swiglu_scalar_seed.py \
 
 The memory gate requires at least 99% peak reduction, exact gradients and no Event
 regression. It does not generalize the scalar-seed contract beyond all-zero strides.
+
+Attribute the remaining F+B cost without changing GPU math:
+
+```bash
+/path/to/rocm-venv/bin/python \
+  benchmarks/single_gpu/pytorch_swiglu_autograd_attribution.py \
+  --library build/torch-rocm/bindings/torch/libmicrollm_torch_ops.so \
+  --output /tmp/microllm-swiglu-autograd-attribution \
+  --runs 2 --warmup 5 --repetitions 25
+```
+
+Manual peak is intentionally not used as a production comparison because the attribution
+loop keeps explicit outputs alive. Event/wall and complete loss/gradients are the causal evidence.

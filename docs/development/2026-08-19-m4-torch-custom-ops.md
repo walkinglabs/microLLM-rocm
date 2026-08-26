@@ -63,3 +63,10 @@ only when every gradient stride is zero. Mean, weighted and general gradients re
 ordinary path. This removes 99.42%–99.96% of measured temporary peak and improves 64K/1M
 F+B by `1.164×/1.081×`, but remains below native Torch. See
 [Experiment 333](../optimization-log/experiments/333-pytorch-swiglu-scalar-seed.md).
+
+Three-way attribution holds the fused producers constant. Manual submission is
+`4.855×–5.271×` the Python-registered custom Autograd route and
+`3.859×–4.105×` native Autograd with matching loss and gradients. This closes the
+mathematical SwiGLU Kernel line and moves the next experiment to C++ Autograd or graph
+capture. See
+[Experiment 334](../optimization-log/experiments/334-pytorch-swiglu-autograd-attribution.md).

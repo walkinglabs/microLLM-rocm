@@ -253,8 +253,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] remove `sum()` zero-stride output-gradient materialization with an exact FP32
   scalar-seed contract: 64K/1M Event improves 1.164×/1.081× and peak falls
   99.42%–99.96%; mean/weighted/general gradients keep the ordinary path;
-- [ ] attribute remaining 0.773×–0.781× FP32 F+B gap to dispatcher/Autograd/sum
-  submission before changing the fused mathematical Kernel again;
+- [x] attribute remaining FP32 F+B gap: manual submission of the same fused producers is
+  4.855×–5.271× custom Autograd and 3.859×–4.105× native; close mathematical Kernel tuning;
+- [ ] compare C++ Autograd Function and `torch.compile` capture against the same manual
+  upper bound; stop the adapter training line if neither materially closes submission gaps;
 - [ ] define a typed low-precision SwiGLU backward contract before replacing the readable
   PyTorch fallback formulas;
 - [ ] implement typed low-precision Softmax rather than inserting FP32 temporaries.
