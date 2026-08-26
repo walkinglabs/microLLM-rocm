@@ -144,6 +144,14 @@
       "filter": {"include": {"label": "cpu"}}
     },
     {
+      "name": "package-cpu",
+      "displayName": "CPU CMake package contract",
+      "description": "Verify build-tree, relocated install-tree, components, versions and the public consumer",
+      "configurePreset": "cpu-debug",
+      "output": {"outputOnFailure": true},
+      "filter": {"include": {"label": "package"}}
+    },
+    {
       "name": "hip-release",
       "configurePreset": "hip-release",
       "output": {"outputOnFailure": true},

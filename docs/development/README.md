@@ -699,3 +699,5 @@ the next gate. Records are append-only except for factual corrections.
   adds address-stable averaging and a same-binary Model-S gate.
 - [2026-08-25-data-parallel-inplace-average-result.md](2026-08-25-data-parallel-inplace-average-result.md):
   records the retained 1.107x Model-S reducer improvement.
+- [2026-08-26-cmake-config-public-gate.md](2026-08-26-cmake-config-public-gate.md):
+  exposes one copy-paste CTest preset for the complete build/install/relocation/consumer package contract.

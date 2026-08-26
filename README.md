@@ -789,6 +789,21 @@ is the SDK's address card: another project asks for microLLM, and CMake supplies
 headers, libraries, C++20 requirement, and enabled backend dependencies. Do not copy
 source files or hand-write `-I`, `-L`, and `-l` flags.
 
+The short answer to “does this repository provide a usable CMake Config?” is **yes**.
+After a normal CPU build, this focused command installs the SDK, moves the whole install
+prefix, configures independent C++ and C-only projects, compiles them, runs them, checks a
+narrow component, exercises the public example, and proves that bad versions, missing
+components, and non-relocatable destinations are rejected:
+
+```bash
+cmake --preset cpu-debug
+cmake --build --preset cpu-debug --parallel
+ctest --preset package-cpu
+```
+
+Success currently means all four `PackageConfig.*` tests pass. This is a package/consumer
+contract test; it does not replace operator numerical tests or AMD GPU tests.
+
 Choose the path by what you are doing:
 
 | Situation | Supported discovery input | Use |

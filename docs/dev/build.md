@@ -221,6 +221,20 @@ target propagates its public microLLM dependencies. When the C API is built, pla
 consumers request the `capi` component and link `microLLM::capi`. A package produced by
 a HIP build also resolves HIP and hipBLASLt; an RCCL build additionally resolves RCCL.
 
+Run the focused package contract after a CPU build:
+
+```bash
+cmake --preset cpu-debug
+cmake --build --preset cpu-debug --parallel
+ctest --preset package-cpu
+```
+
+The four tests cover the configured build tree, a relocated install tree, the standalone
+public example, and rejection of a Config destination outside the install prefix. Their
+independent consumers also cover the umbrella C++ target, the narrow `core` component,
+the versioned C ABI from a truly C-only project, required-component errors, and the
+pre-1.0 version-compatibility rule.
+
 A copy-paste-ready standalone consumer lives in
 [`examples/package-consumer`](../../examples/package-consumer). The
 `PackageConfig.PublicExample` test installs the current SDK, configures that independent
