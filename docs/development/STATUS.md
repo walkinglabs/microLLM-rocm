@@ -4,7 +4,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 
 | Component | State | Current evidence | Missing gate |
 |---|---|---|---|
-| Current validation configurations | smoke-tested | CPU 406/406, ASan/UBSan 403/403, PyTorch-enabled CPU 409/409, single-GPU HIP label 203/203, RCCL label 55/55 | broader compiler/OS/GPU matrix |
+| Current validation configurations | smoke-tested | CPU 407/407, ASan/UBSan 404/404, PyTorch-enabled CPU 410/410, single-GPU HIP label 203/203, RCCL label 55/55 | broader compiler/OS/GPU matrix |
 | CPU code coverage | smoke-tested | 78.4% lines, 86.6% functions, 59.1% branches over `src/` + `include/`; quiescent handoff and other HIP-only paths remain visible as CPU gaps | split CPU/HIP reports and add justified thresholds |
 | Device/DType | smoke-tested | real FP16/BF16 two-byte CPU/MI300X storage, native cast, views and transfer | remaining low-precision operator families |
 | CPU Storage | smoke-tested | sharing/lifetime/zero-byte tests | sanitizer log in CI |
@@ -104,7 +104,7 @@ States: `draft`, `implemented`, `smoke-tested`, `reference-trained`, `released`.
 | PyTorch typed SwiGLU backward | smoke-tested, kept/line closed | FP16/BF16 typed/ATen 1.257×–1.319×, typed/native 1.048×–1.084×, equal peak; BF16 exact, FP16 Max2.38e-7 | new profile required before further adapter work |
 | Direct typed Softmax | FP16/BF16 cached wave1024 kept | 10/10 PyTorch/pointer rows; BF16 width4096 tree256→wave1024 Event/wall 1.687×/1.578×, reaches 0.888× PyTorch; PyTorch/raw/C++/Python Event 4.530/4.764/4.815/5.086μs, C++/raw 1.011×, Python/C++ 1.056×, raw/PyTorch 1.052× | both wide dtypes remain below parity; new profile/architecture scale |
 | PyTorch Custom Op Softmax | functional adapter kept; wide partial | CPU/ROCm current Stream, FP32/FP16/BF16, Meta/fullgraph and C++ Autograd; no-grad gate improves FP16 wide 1.158×; native ratios at width1024 are 1.026×/0.993× | width4096 FP16/BF16 only 0.795×/0.529×; caller-owned schema requires separate contract |
-| PyTorch Custom Op Softmax out | caller-owned integration kept; wide partial | `Tensor(a!)`, exact pointer, zero peak; BF16 wave1024 improves Custom wide about 1.687×; width1024 FP16/BF16 1.086×/1.085× native out | width4096 FP16/BF16 0.821×/0.804×; both remain below parity |
+| PyTorch Custom Op Softmax out | caller-owned integration kept; adapter local line closed | exact pointer/zero peak; BF16 wave1024 improves wide about 1.687×; width1024 FP16/BF16 1.086×/1.085× native out; Autograd fallthrough only 1.008×/0.998× and removed | width4096 FP16/BF16 0.821×/0.804×; select new model/profile target |
 | PyTorch correctness oracle | smoke-tested | PyTorch-enabled CPU build plus Tensor/graph/model/optimizer parity, package, trajectory and schema gates | broader official-model direct PyTorch ROCm operator matrix |
 | PyTorch ROCm environment | smoke-tested | Torch 2.10.0+rocm7.13 and Transformers 5.8.1 run official Qwen/DeepSeek BF16 training on MI300X with native device discovery | additional Torch/ROCm versions and Radeon |
 | C ABI v1 | smoke-tested | external descriptors/native Stream, forward outputs and six caller-owned backward families with explicit scratch; 58 symbols | Autograd external leaf pool |

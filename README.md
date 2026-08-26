@@ -274,6 +274,10 @@ Start with [Quick start](#quick-start), consume the installed library through th
 > `1.687×/1.578×`, and Custom out rises from `0.467×` to `0.804×` native. Current
 > FP16/BF16 wide ratios are `0.821×/0.804×`; both remain partial rather than parity.
 
+> Removing the out-op Autograd dispatch layer was also measured and rejected:
+> FP16/BF16 wide changes only `1.008×/0.998×`. The explicit inference-only rejection
+> remains, and this local adapter line is closed pending a new model/profile target.
+
 </details>
 
 ## Why this project exists
@@ -982,12 +986,12 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 406/406 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
-| ASan/UBSan CPU | 403/403 | host lifetime, external Storage and instrumented-package linking |
+| CPU Debug | 407/407 | host code, CLI, model/graph, benchmark, four package gates and evidence schemas |
+| ASan/UBSan CPU | 404/404 | host lifetime, external Storage and instrumented-package linking |
 | MI300X/gfx942 HIP label | 203/203 | allocator/arena/Stream/Graph, cached Attention, BF16/FP8, model, streaming, bindings and low-precision TensorView APIs |
-| PyTorch-enabled CPU build | 409/409 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
+| PyTorch-enabled CPU build | 410/410 | dispatcher parity, optimizer state, full operator/graph/model oracle and all package paths |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
-| Registered test files | 151 | machine-audited native/Python test sources; package consumers run inside the integration gate |
+| Registered test files | 152 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
 | CPU source coverage | 78.4% lines / 86.6% functions / 59.1% branches | 8,878/11,329 lines; quiescent handoff and other HIP-only branches remain visible; GCC 13.3 + gcovr 8.3 |
 
@@ -1409,6 +1413,7 @@ The caller-owned out variant removes allocation ambiguity and reaches
 `1.116×/1.087×` at width1024; its width4096 ratios remain `0.813×/0.467×`.
 BF16 wave1024 then raises its width4096 core and Custom-out paths by about 1.69×;
 the current caller-owned wide ratios are `0.821×/0.804×` for FP16/BF16.
+Autograd fallthrough then fails at only `1.008×/0.998×`; the adapter dispatch line is closed.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

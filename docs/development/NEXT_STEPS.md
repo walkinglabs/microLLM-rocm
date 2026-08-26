@@ -298,6 +298,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   FP16/BF16 0.821×/0.804×;
 - [ ] stop local thread/exp tuning and select the next target from a model or adapter
   profile; 1024 is the legal workgroup ceiling and both wide dtypes remain partial.
+- [x] reject `softmax_out` Autograd fallthrough: FP16/BF16 width4096 changes only
+  about 1.008×/0.998×, so the explicit inference-only rejection kernel remains;
+- [ ] refresh the full adapter/model profile before extending another Custom Op family.
 
 ## P2.5 — production data parallel reducer
 

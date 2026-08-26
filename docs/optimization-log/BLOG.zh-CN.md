@@ -5244,3 +5244,12 @@ Custom out同步从8.758降到5.191μs，native比值0.467×→0.804×。所以B
 变量是workgroup size。当前FP16/BF16 wide为0.821×/0.804×，仍不写成parity。
 
 ![BF16 wave1024 Softmax](assets/pytorch-rocm-bf16-wave1024-softmax.svg)
+
+## 365. Experiment 349：少一层dispatch几乎不值钱
+
+inference-only out仍经过Autograd kernel。候选把拒绝移入backend并注册fallthrough；全部正确性合同通过，
+但FP16/BF16 width4096只变化约1.008×/0.998×。因此fallthrough删除，显式拒绝恢复。
+
+这条负结果关闭adapter局部提交线：剩余wide差距不在这一层，下一步必须重新看模型/图profile。
+
+![Softmax out fallthrough rejection](assets/pytorch-rocm-softmax-out-fallthrough-reject.svg)

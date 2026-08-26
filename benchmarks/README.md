@@ -847,3 +847,7 @@ The subsequent BF16-only 1024-thread wave gate changes core width4096 Event/wall
 `2026-08-26-pytorch-rocm-bf16-wave1024-softmax` and
 `2026-08-26-pytorch-rocm-custom-op-softmax-out-wave1024`; current wide native-out ratios
 are FP16/BF16 0.821×/0.804×.
+
+An Autograd fallthrough candidate for the inference-only out op is rejected: width4096
+FP16/BF16 changes only about 1.008×/0.998×. Its complete correct matrix is retained in
+`2026-08-26-pytorch-rocm-custom-op-softmax-out-fallthrough`.

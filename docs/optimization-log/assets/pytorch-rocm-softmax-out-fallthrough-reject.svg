@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="620" viewBox="0 0 1060 620">
+<rect width="1060" height="620" fill="#f7f9fc"/>
+<text x="530" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">Autograd Fallthrough Is Not the Remaining Hotspot</text>
+<text x="530" y="79" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">explicit Autograd kernel / fallthrough Custom Event · width4096</text>
+<line x1="105" y1="500.0" x2="650" y2="500.0" stroke="#dbe1ea"/>
+<text x="92" y="505.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">0.98×</text>
+<line x1="105" y1="446.4" x2="650" y2="446.4" stroke="#dbe1ea"/>
+<text x="92" y="451.4" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">0.99×</text>
+<line x1="105" y1="392.9" x2="650" y2="392.9" stroke="#dbe1ea"/>
+<text x="92" y="397.9" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.00×</text>
+<line x1="105" y1="339.3" x2="650" y2="339.3" stroke="#dbe1ea"/>
+<text x="92" y="344.3" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.01×</text>
+<line x1="105" y1="285.7" x2="650" y2="285.7" stroke="#dbe1ea"/>
+<text x="92" y="290.7" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.02×</text>
+<line x1="105" y1="232.1" x2="650" y2="232.1" stroke="#dbe1ea"/>
+<text x="92" y="237.1" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.03×</text>
+<line x1="105" y1="178.6" x2="650" y2="178.6" stroke="#dbe1ea"/>
+<text x="92" y="183.6" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.04×</text>
+<line x1="105" y1="125.0" x2="650" y2="125.0" stroke="#dbe1ea"/>
+<text x="92" y="130.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">1.05×</text>
+<line x1="105" y1="125.0" x2="650" y2="125.0" stroke="#b42335" stroke-width="2" stroke-dasharray="8 7"/>
+<rect x="198" y="405.3" width="104" height="94.7" rx="9" fill="#b42335"/>
+<text x="250" y="395.3" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">0.998×</text>
+<text x="250" y="535" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033">BF16</text>
+<rect x="458" y="351.6" width="104" height="148.4" rx="9" fill="#b42335"/>
+<text x="510" y="341.6" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">1.008×</text>
+<text x="510" y="535" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033">FP16</text>
+<rect x="700" y="125" width="310" height="375" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="730" y="168" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Decision</text>
+<text x="730" y="216" font-family="Inter,Arial,sans-serif" font-size="16" fill="#198754">✓ precision / pointer / peak</text>
+<text x="730" y="266" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335">FP16 gain ≈ 1.008×</text>
+<text x="730" y="299" font-family="Inter,Arial,sans-serif" font-size="16" fill="#b42335">BF16 gain ≈ 0.998×</text>
+<text x="730" y="349" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700" fill="#b42335">fallthrough removed</text>
+<text x="730" y="399" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">explicit rejection stays central</text>
+<text x="730" y="432" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">adapter local line closed</text>
+<text x="530" y="590" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">Correct architecture changes still need a speed gate</text>
+</svg>
