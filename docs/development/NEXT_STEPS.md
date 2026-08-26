@@ -216,8 +216,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   ROCTX and GPU events; three runs keep residual at most 1.340us and correlate 24/24 adds;
 - [x] represent default-Stream asynchronous HIP completion with C/Python Events and a
   background observer; three softmax runs are pending at submit with zero device/Stream sync;
-- [ ] expose an explicit Python Stream binding and prove one Event wait does not block an
-  intentionally busy independent Stream.
+- [x] expose explicit C/Python Stream bindings and prove target Event wait leaves an
+  independent 64-GEMM Stream pending in 3/3 runs with zero wide synchronization;
+- [ ] add non-owning native Stream interop and extend caller-owned output across the
+  remaining C/Python operator surface before claiming framework scheduler integration.
 
 ## P2.5 — production data parallel reducer
 

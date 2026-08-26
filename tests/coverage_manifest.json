@@ -293,6 +293,7 @@
     "calibrate_python_rocprof_clock": "python/tests/test_profiling_api.py",
     "merge_rocprof_perfetto": "python/tests/test_profiling_api.py",
     "Event": "python/tests/test_capi.py",
+    "Stream": "python/tests/test_capi.py",
     "ScopedAllocationSource": "tests/runtime/runtime_test.cpp",
     "allocation_source_diagnostics": "tests/runtime/runtime_test.cpp",
     "compare_values": "python/tests/test_alignment_tools.py",

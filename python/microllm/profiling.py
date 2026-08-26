@@ -182,7 +182,7 @@ class HipEventProfileScope(AbstractContextManager["HipEventProfileScope"]):
                  device: str = "hip:0", phase: str = "python_gpu",
                  run_id: str | None = None,
                  metadata: Mapping[str, Any] | None = None,
-                 emit_roctx: bool = False) -> None:
+                 emit_roctx: bool = False, stream: Any | None = None) -> None:
         if not name or not phase:
             raise ValueError("profile name and phase must be non-empty")
         self.name = name
@@ -193,6 +193,7 @@ class HipEventProfileScope(AbstractContextManager["HipEventProfileScope"]):
         self.metadata = dict(metadata or {})
         json.dumps(self.metadata, allow_nan=False)
         self.emit_roctx = bool(emit_roctx)
+        self.stream = stream
         self.span_id = uuid.uuid4().hex
         self._token: contextvars.Token[int] | None = None
         self._depth = 0
@@ -247,7 +248,10 @@ class HipEventProfileScope(AbstractContextManager["HipEventProfileScope"]):
                 self._roctx_push_after_ns = time.perf_counter_ns()
                 self._roctx_status = "emitted" if self._roctx_emitted else "push_error"
         try:
-            self._start_event.record_default_stream()
+            if self.stream is None:
+                self._start_event.record_default_stream()
+            else:
+                self._start_event.record(self.stream)
         except Exception:
             self._finish_roctx_range()
             _DEPTH.reset(self._token)
@@ -274,7 +278,10 @@ class HipEventProfileScope(AbstractContextManager["HipEventProfileScope"]):
             raise RuntimeError("HIP Event profile scope exited before entering")
         finish_error: Exception | None = None
         try:
-            self._finish_event.record_default_stream()
+            if self.stream is None:
+                self._finish_event.record_default_stream()
+            else:
+                self._finish_event.record(self.stream)
             self._event_ready_at_submit = self._finish_event.ready()
         except Exception as error:
             finish_error = error
@@ -335,7 +342,9 @@ class HipEventProfileScope(AbstractContextManager["HipEventProfileScope"]):
                 "completion_observer_native_thread_id": threading.get_native_id(),
                 "device_elapsed_ns": int(round(device_elapsed_ms * 1_000_000.0)),
                 "event_ready_at_submit": self._event_ready_at_submit,
-                "synchronization_scope": "hip_event_default_stream",
+                "synchronization_scope": ("hip_event_default_stream"
+                                          if self.stream is None else
+                                          "hip_event_explicit_stream"),
                 "status": "error" if self._exception_type else "pass",
                 "exception_type": self._exception_type,
                 "metadata": self.metadata,
@@ -402,10 +411,11 @@ def hip_event_profile_scope(
         name: str, *, output: str | Path, device: str = "hip:0",
         phase: str = "python_gpu", run_id: str | None = None,
         metadata: Mapping[str, Any] | None = None,
-        emit_roctx: bool = False) -> HipEventProfileScope:
+        emit_roctx: bool = False, stream: Any | None = None
+        ) -> HipEventProfileScope:
     return HipEventProfileScope(
         name, output=output, device=device, phase=phase, run_id=run_id,
-        metadata=metadata, emit_roctx=emit_roctx)
+        metadata=metadata, emit_roctx=emit_roctx, stream=stream)
 
 
 def profile(function: _F | None = None, *, name: str | None = None,

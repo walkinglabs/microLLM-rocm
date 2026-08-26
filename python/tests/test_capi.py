@@ -42,6 +42,30 @@ class TensorTest(unittest.TestCase):
         with self.assertRaises(microllm.MicroLLMError):
             event.elapsed_ms_since(event)
 
+    def test_cpu_stream_routes_out_operator_and_event(self):
+        stream = microllm.Stream("cpu")
+        self.assertEqual(stream.device, (microllm.Device.CPU, 0))
+        self.assertTrue(stream.non_blocking)
+        left = microllm.Tensor.from_f32([1, 2, 3, 4], (2, 2))
+        right = microllm.Tensor.from_f32([5, 6, 7, 8], (2, 2))
+        output = microllm.multiply(left, right)
+        matmul_output = microllm.matmul(left, right)
+        microllm.multiply_out(output, right, left, stream=stream)
+        microllm.matmul_out(matmul_output, right, left, stream=stream)
+        streamed_sum = microllm.add(left, right, stream=stream)
+        streamed_product = microllm.matmul(left, right, stream=stream)
+        streamed_softmax = microllm.softmax(left, stream=stream)
+        marker = microllm.Event("cpu", enable_timing=False)
+        marker.record(stream)
+        marker.wait(stream)
+        stream.synchronize()
+        self.assertTrue(marker.ready())
+        self.assertEqual(output.tolist(), [5, 12, 21, 32])
+        self.assertEqual(matmul_output.tolist(), [23, 34, 31, 46])
+        self.assertEqual(streamed_sum.tolist(), [6, 8, 10, 12])
+        self.assertEqual(streamed_product.tolist(), [19, 22, 43, 50])
+        self.assertAlmostEqual(sum(streamed_softmax.tolist()[:2]), 1.0, places=6)
+
     def test_optional_hip_roundtrip(self):
         if microllm.hip_device_count() == 0:
             self.skipTest("no visible HIP device")
@@ -49,9 +73,12 @@ class TensorTest(unittest.TestCase):
         self.assertEqual(tensor.device, (microllm.Device.HIP, 0))
         start = microllm.Event("hip:0")
         finish = microllm.Event("hip:0")
-        start.record_default_stream()
-        result = tensor + tensor
-        finish.record_default_stream()
+        stream = microllm.Stream("hip:0")
+        with self.assertRaises(microllm.MicroLLMError):
+            microllm.add(tensor, tensor, stream=microllm.Stream("cpu"))
+        start.record(stream)
+        result = microllm.add(tensor, tensor, stream=stream)
+        finish.record(stream)
         finish.synchronize()
         self.assertTrue(finish.ready())
         self.assertGreaterEqual(finish.elapsed_ms_since(start), 0.0)

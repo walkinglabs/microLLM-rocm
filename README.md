@@ -1286,9 +1286,11 @@ The current exact-shape registry covers readable 2D matmul and hipBLASLt. It is 
 general autotuner. C++ `TraceSession`/`TraceTimer`, Python `@profile`, optional ROCTX
 ranges, measured Python/rocprof clock calibration, and three-way Perfetto export are
 implemented. Three MI300X processes correlate 24/24 profiled HIP adds through contained
-launch APIs with at most 1.340us fit residual. A separate three-run Python HIP Event gate
-observes pending work on a background thread with zero device/Stream synchronization;
-explicit Python Stream binding remains future work.
+launch APIs with at most 1.340us fit residual. Python HIP Event completion and owned
+C/Python Streams are also implemented: a three-process isolation gate waits a
+target Event while an independent 64-GEMM Stream remains pending, with 192/192 busy
+Kernels and zero device/Stream-wide synchronization. Non-owning native Stream interop
+remains future work.
 Filtered traces can also write complete FP32/Int32 values to compact binary files while
 keeping JSON samples bounded; this is synchronous numerical evidence, never a timing path.
 See [Profiling](docs/dev/profiling.md) and

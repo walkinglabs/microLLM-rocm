@@ -30,6 +30,7 @@ typedef enum ml_device_type {
 
 typedef struct ml_tensor ml_tensor;
 typedef struct ml_event ml_event;
+typedef struct ml_stream ml_stream;
 
 uint32_t ml_capi_version(void);
 const char* ml_engine_version(void);
@@ -63,11 +64,29 @@ ml_status ml_event_ready(const ml_event* event, int* ready);
 ml_status ml_event_synchronize(const ml_event* event);
 ml_status ml_event_elapsed_ms(const ml_event* start, const ml_event* finish,
                               float* milliseconds);
+ml_status ml_stream_create(ml_device_type device_type, int device_index,
+                           int non_blocking, ml_stream** output);
+void ml_stream_destroy(ml_stream* stream);
+ml_status ml_stream_synchronize(const ml_stream* stream);
+ml_status ml_event_record(ml_event* event, ml_stream* stream);
+ml_status ml_event_wait(const ml_event* event, ml_stream* stream);
 
 ml_status ml_add(const ml_tensor* left, const ml_tensor* right, ml_tensor** output);
 ml_status ml_multiply(const ml_tensor* left, const ml_tensor* right, ml_tensor** output);
 ml_status ml_matmul(const ml_tensor* left, const ml_tensor* right, ml_tensor** output);
 ml_status ml_softmax(const ml_tensor* input, ml_tensor** output);
+ml_status ml_add_on_stream(const ml_tensor* left, const ml_tensor* right,
+                           ml_stream* stream, ml_tensor** output);
+ml_status ml_multiply_on_stream(const ml_tensor* left, const ml_tensor* right,
+                                ml_stream* stream, ml_tensor** output);
+ml_status ml_matmul_on_stream(const ml_tensor* left, const ml_tensor* right,
+                              ml_stream* stream, ml_tensor** output);
+ml_status ml_softmax_on_stream(const ml_tensor* input, ml_stream* stream,
+                               ml_tensor** output);
+ml_status ml_multiply_out_on_stream(ml_tensor* output, const ml_tensor* left,
+                                    const ml_tensor* right, ml_stream* stream);
+ml_status ml_matmul_out_on_stream(ml_tensor* output, const ml_tensor* left,
+                                  const ml_tensor* right, ml_stream* stream);
 
 #ifdef __cplusplus
 }

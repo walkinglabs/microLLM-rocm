@@ -7,12 +7,15 @@ _CAPI_NAMES = {
     "DType",
     "Device",
     "Event",
+    "Stream",
     "MicroLLMError",
     "Tensor",
     "add",
     "hip_device_count",
     "matmul",
+    "matmul_out",
     "multiply",
+    "multiply_out",
     "softmax",
 }
 

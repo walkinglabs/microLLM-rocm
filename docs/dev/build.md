@@ -206,9 +206,11 @@ target_link_libraries(c_app PRIVATE microLLM::capi)
 The C API contract is tested from a separate `project(... LANGUAGES C)` consumer. It
 does not initialize a C++ compiler; the imported shared-library target carries the C
 header, library location, and runtime link information required by the C application.
-The same stable header exposes opaque `ml_event*` lifecycle, default-Stream record/query,
-Event-only synchronization, and elapsed device time. Additive Event functions retain
-the v1 ABI; they do not expose a Python/C explicit Stream handle yet.
+The same stable header exposes opaque `ml_event*` and owned `ml_stream*` lifecycles,
+default/explicit-Stream Event record/query/wait, Event-only synchronization, elapsed
+device time, Stream versions of all four C ABI operators, and caller-owned
+multiply/matmul outputs. These additive functions retain the v1 ABI. The API does not
+accept a non-owning native Stream from another framework.
 
 During local development, installation is optional. After configuring and building
 microLLM, point the consumer directly at that configured build tree:

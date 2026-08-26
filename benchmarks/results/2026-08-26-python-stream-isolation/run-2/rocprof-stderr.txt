@@ -1,0 +1,12 @@
+W0826 11:27:03.400787 2926740 simple_timer.cpp:55] [rocprofv3] tool initialization ::     0.001235 sec
+W0826 11:27:03.401066 2926740 simple_timer.cpp:55] [rocprofv3] 'python3 benchmarks/single_gpu/python_stream_isolation.py --output /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-stream-isolation/run-2/profile.jsonl --report /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-stream-isolation/run-2/report.json --size 2048 --busy-iterations 64 --run-id formal-2 --overwrite' ::     0.000000 sec
+W0826 11:27:03.526765 2926740 tool.cpp:2728] HIP (compiler) version 7.13.0 initialized (instance=0)
+W0826 11:27:03.539205 2926740 tool.cpp:2728] HIP (runtime) version 7.13.0 initialized (instance=0)
+W0826 11:27:03.597159 2926740 tool.cpp:2728] HSA version 1.21.0 initialized (instance=0)
+W0826 11:27:05.510772 2926740 tool.cpp:2728] MARKER (ROCTx) version 1.3.0 initialized (instance=0)
+E0826 11:27:06.544794 2926740 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-stream-isolation/run-2/stream_kernel_trace.csv
+E0826 11:27:06.552697 2926740 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-stream-isolation/run-2/stream_hip_api_trace.csv
+E0826 11:27:06.558273 2926740 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-stream-isolation/run-2/stream_marker_api_trace.csv
+E0826 11:27:06.559174 2926740 output_stream.cpp:111] Opened result file: /home/devpod/github/microLLM-rocm/benchmarks/results/2026-08-26-python-stream-isolation/run-2/stream_agent_info.csv
+W0826 11:27:06.562342 2926740 simple_timer.cpp:55] [rocprofv3] output generation ::     0.022426 sec
+W0826 11:27:06.562624 2926740 simple_timer.cpp:55] [rocprofv3] tool finalization ::     0.022982 sec

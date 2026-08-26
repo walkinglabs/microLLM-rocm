@@ -1,0 +1,1 @@
+{"schema_version":1,"status":"pass","process_runs":3,"mi300x_gfx":"gfx942","rocprof_flags":["--hip-trace","--marker-trace","--kernel-trace"],"target_event_wait_only":true,"busy_event_pending_after_target_wait":true,"busy_kernel_count":"192/192","device_synchronize_calls":0,"stream_synchronize_calls":0,"capi_symbol_count":36,"svg_parsed":true}

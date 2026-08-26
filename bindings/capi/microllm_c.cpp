@@ -29,6 +29,13 @@ struct ml_event {
     microllm::runtime::Event value;
 };
 
+struct ml_stream {
+    ml_stream(microllm::Device stream_device, bool non_blocking)
+        : device(stream_device), value(stream_device, non_blocking) {}
+    microllm::Device device;
+    microllm::runtime::Stream value;
+};
+
 namespace {
 
 thread_local std::string last_error;
@@ -73,6 +80,11 @@ const microllm::Tensor& require_tensor(const ml_tensor* tensor) {
     return tensor->value;
 }
 
+microllm::Tensor& require_tensor(ml_tensor* tensor) {
+    if (tensor == nullptr) throw std::invalid_argument("tensor is null");
+    return tensor->value;
+}
+
 ml_event& require_event(ml_event* event) {
     if (event == nullptr) throw std::invalid_argument("event is null");
     return *event;
@@ -81,6 +93,22 @@ ml_event& require_event(ml_event* event) {
 const ml_event& require_event(const ml_event* event) {
     if (event == nullptr) throw std::invalid_argument("event is null");
     return *event;
+}
+
+ml_stream& require_stream(ml_stream* stream) {
+    if (stream == nullptr) throw std::invalid_argument("stream is null");
+    return *stream;
+}
+
+const ml_stream& require_stream(const ml_stream* stream) {
+    if (stream == nullptr) throw std::invalid_argument("stream is null");
+    return *stream;
+}
+
+microllm::ops::OpContext stream_context(ml_stream* stream) {
+    microllm::ops::OpContext context;
+    context.stream = &require_stream(stream).value;
+    return context;
 }
 
 void require_output(ml_tensor** output) {
@@ -96,6 +124,11 @@ void return_tensor(microllm::Tensor value, ml_tensor** output) {
 
 void require_event_output(ml_event** output) {
     if (output == nullptr) throw std::invalid_argument("output event pointer is null");
+    *output = nullptr;
+}
+
+void require_stream_output(ml_stream** output) {
+    if (output == nullptr) throw std::invalid_argument("output stream pointer is null");
     *output = nullptr;
 }
 
@@ -278,6 +311,34 @@ ML_EXPORT ml_status ml_event_elapsed_ms(const ml_event* start,
     });
 }
 
+ML_EXPORT ml_status ml_stream_create(ml_device_type device_type, int device_index,
+                                     int non_blocking, ml_stream** output) {
+    return guard([&] {
+        require_stream_output(output);
+        const auto device = device_from_c(device_type, device_index);
+        auto stream = std::make_unique<ml_stream>(device, non_blocking != 0);
+        *output = stream.release();
+    });
+}
+
+ML_EXPORT void ml_stream_destroy(ml_stream* stream) { delete stream; }
+
+ML_EXPORT ml_status ml_stream_synchronize(const ml_stream* stream) {
+    return guard([&] { require_stream(stream).value.synchronize(); });
+}
+
+ML_EXPORT ml_status ml_event_record(ml_event* event, ml_stream* stream) {
+    return guard([&] {
+        require_event(event).value.record(require_stream(stream).value);
+    });
+}
+
+ML_EXPORT ml_status ml_event_wait(const ml_event* event, ml_stream* stream) {
+    return guard([&] {
+        require_event(event).value.wait(require_stream(stream).value);
+    });
+}
+
 ML_EXPORT ml_status ml_add(const ml_tensor* left, const ml_tensor* right, ml_tensor** output) {
     return binary_operation(left, right, output,
                             [](const auto& first, const auto& second) {
@@ -302,6 +363,74 @@ ML_EXPORT ml_status ml_softmax(const ml_tensor* input, ml_tensor** output) {
     return guard([&] {
         require_output(output);
         return_tensor(microllm::ops::softmax(require_tensor(input)), output);
+    });
+}
+
+ML_EXPORT ml_status ml_add_on_stream(const ml_tensor* left,
+                                     const ml_tensor* right,
+                                     ml_stream* stream,
+                                     ml_tensor** output) {
+    return binary_operation(left, right, output,
+                            [&](const auto& first, const auto& second) {
+                                return microllm::ops::add(
+                                    first, second, stream_context(stream));
+                            });
+}
+
+ML_EXPORT ml_status ml_multiply_on_stream(const ml_tensor* left,
+                                          const ml_tensor* right,
+                                          ml_stream* stream,
+                                          ml_tensor** output) {
+    return binary_operation(left, right, output,
+                            [&](const auto& first, const auto& second) {
+                                return microllm::ops::multiply(
+                                    first, second, stream_context(stream));
+                            });
+}
+
+ML_EXPORT ml_status ml_matmul_on_stream(const ml_tensor* left,
+                                        const ml_tensor* right,
+                                        ml_stream* stream,
+                                        ml_tensor** output) {
+    return binary_operation(left, right, output,
+                            [&](const auto& first, const auto& second) {
+                                return microllm::ops::matmul(
+                                    first, second, stream_context(stream));
+                            });
+}
+
+ML_EXPORT ml_status ml_softmax_on_stream(const ml_tensor* input,
+                                         ml_stream* stream,
+                                         ml_tensor** output) {
+    return guard([&] {
+        require_output(output);
+        return_tensor(microllm::ops::softmax(
+                          require_tensor(input), -1, stream_context(stream)),
+                      output);
+    });
+}
+
+ML_EXPORT ml_status ml_multiply_out_on_stream(ml_tensor* output,
+                                              const ml_tensor* left,
+                                              const ml_tensor* right,
+                                              ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::multiply_out_(
+            require_tensor(output),
+            require_tensor(left), require_tensor(right), stream_context(stream));
+    });
+}
+
+ML_EXPORT ml_status ml_matmul_out_on_stream(ml_tensor* output,
+                                            const ml_tensor* left,
+                                            const ml_tensor* right,
+                                            ml_stream* stream) {
+    return guard([&] {
+        microllm::ops::matmul_out_(
+            require_tensor(output),
+            require_tensor(left), require_tensor(right),
+            microllm::ops::MatmulImplementation::Auto, false, false,
+            stream_context(stream));
     });
 }
 

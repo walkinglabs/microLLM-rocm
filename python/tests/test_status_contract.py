@@ -21,6 +21,7 @@ def main() -> int:
         "24/24 launch-correlated adds",
         "residual ≤1.340us",
         "0 device/Stream sync",
+        "192/192-GEMM independent Stream pending",
         "B2 first drifts at P×V",
         "QK 34/34 and P×V 2/2",
         "complete-logit Max/RMS worsen 1.246×/1.068×",
@@ -233,6 +234,10 @@ def main() -> int:
         "benchmarks/results/2026-08-26-python-hip-event-completion/analysis.json",
         "benchmarks/results/2026-08-26-python-hip-event-completion/verification.json",
         "benchmarks/results/2026-08-26-python-hip-event-completion/event-completion.svg",
+        "benchmarks/results/2026-08-26-python-stream-isolation/summary.json",
+        "benchmarks/results/2026-08-26-python-stream-isolation/analysis.json",
+        "benchmarks/results/2026-08-26-python-stream-isolation/verification.json",
+        "benchmarks/results/2026-08-26-python-stream-isolation/stream-isolation.svg",
     ):
         assert (ROOT / relative).is_file()
     python_timeline_root = ROOT / (
@@ -289,6 +294,30 @@ def main() -> int:
         assert profile_rows[0]["kind"] == "hip_event_completion_span"
         assert profile_rows[0]["event_ready_at_submit"] is False
     ET.parse(event_root / "event-completion.svg")
+    stream_root = ROOT / (
+        "benchmarks/results/2026-08-26-python-stream-isolation")
+    stream_summary = json.loads(
+        (stream_root / "summary.json").read_text(encoding="utf-8"))
+    assert stream_summary["status"] == "pass"
+    assert stream_summary["run_count"] == 3
+    assert stream_summary["all_targets_pending_at_submit"] is True
+    assert stream_summary["all_busy_streams_pending_after_target_wait"] is True
+    assert stream_summary["total_busy_kernels"] == 192
+    assert stream_summary["total_device_synchronizes"] == 0
+    assert stream_summary["total_stream_synchronizes"] == 0
+    assert stream_summary["minimum_busy_wait_after_target_ms"] > 6.9
+    assert stream_summary["maximum_output_error"] < 3.0e-8
+    assert stream_summary["marker_kernel_id_equal_count"] == 0
+    for run in range(1, 4):
+        run_root = stream_root / f"run-{run}"
+        assert (run_root / "stream_hip_api_trace.csv").is_file()
+        assert (run_root / "stream_marker_api_trace.csv").is_file()
+        assert (run_root / "stream_kernel_trace.csv").is_file()
+        report = json.loads(
+            (run_root / "report.json").read_text(encoding="utf-8"))
+        assert report["busy_pending_after_target_wait"] is True
+        assert report["synchronization_scope"] == "hip_event_explicit_stream"
+    ET.parse(stream_root / "stream-isolation.svg")
     diagnostic_root = ROOT / (
         "benchmarks/results/2026-08-26-prefill-attention-core-diagnostics")
     diagnostic = json.loads(

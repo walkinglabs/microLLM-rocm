@@ -40,9 +40,9 @@ rocprof HIP API trace显示每个正式range内正好2次Event record和1次quer
 
 ## 没有扩大结论
 
-host观察时间会受GIL和线程调度影响，只是上界；Kernel时间仍以HIP Event/rocprof为准。Python接口
-当前绑定C API默认Stream，不把它写成显式多Stream支持。下一步若增加Python Stream，应证明等待
-一个Event不会阻塞另一条有意保持繁忙的Stream。
+host观察时间会受GIL和线程调度影响，只是上界；Kernel时间仍以HIP Event/rocprof为准。本节点最初
+只绑定默认Stream；同日后续[显式Stream隔离节点](2026-08-26-python-stream-isolation.md)已经用独立
+64-GEMM队列完成反驳实验。当前剩余边界是非拥有native Stream，而不是owned Stream。
 
 ## 完整回归与一次非稳定失败
 

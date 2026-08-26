@@ -48,6 +48,9 @@ class ProfilingApiTest(unittest.TestCase):
         def record_default_stream(self):
             self.recorded = True
 
+        def record(self, stream):
+            self.recorded = True
+
         def ready(self):
             return self.synchronized
 
@@ -158,7 +161,8 @@ class ProfilingApiTest(unittest.TestCase):
             with mock.patch.dict(sys.modules, {"microllm._capi": fake_capi}):
                 with hip_event_profile_scope(
                         "async.add", output=output, run_id="run",
-                        metadata={"elements": 1024}) as completion:
+                        metadata={"elements": 1024},
+                        stream=object()) as completion:
                     pass
                 self.assertFalse(completion.ready())
                 with self.assertRaisesRegex(RuntimeError, "wait for HIP Event"):
@@ -174,7 +178,7 @@ class ProfilingApiTest(unittest.TestCase):
             self.assertEqual(record["device_elapsed_ns"], 2_500_000)
             self.assertFalse(record["event_ready_at_submit"])
             self.assertEqual(record["synchronization_scope"],
-                             "hip_event_default_stream")
+                             "hip_event_explicit_stream")
             self.assertEqual(record["metadata"], {"elements": 1024})
             self.assertTrue(all(event.closed
                                 for event in self.FakeHipEvent.instances))

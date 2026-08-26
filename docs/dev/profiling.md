@@ -582,4 +582,21 @@ release both Event handles; it is idempotent and refuses to destroy pending Even
 host observation is an upper bound because the
 thread may wait for Python scheduling. Three MI300X softmax runs are pending at submit,
 have exact output, and show zero `hipDeviceSynchronize`/`hipStreamSynchronize` calls.
-Explicit Python Stream binding remains missing.
+That example uses the default Stream; the owned explicit form follows.
+
+For an owned explicit Stream, pass the same object to the operator and scope:
+
+```python
+stream = Stream("hip:0")
+with hip_event_profile_scope(
+        "matmul", output="trace.jsonl", stream=stream) as completion:
+    matmul_out(output, left, right, stream=stream)
+completion.wait()
+completion.close()
+```
+
+The isolation gate submits one target GEMM on Stream A and 64 preallocated GEMMs on
+Stream B. In 3/3 fresh processes, waiting A leaves B pending; B then requires another
+6.918–7.274ms. rocprof sees Stream IDs 1/2, 192/192 busy Kernels, exact launch
+correlations, and zero device-/Stream-wide synchronization. Native external Stream
+ownership remains outside this interface.

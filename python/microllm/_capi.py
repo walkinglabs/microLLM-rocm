@@ -36,6 +36,13 @@ class _EventHandle(ctypes.Structure):
 _EventPointer = ctypes.POINTER(_EventHandle)
 
 
+class _StreamHandle(ctypes.Structure):
+    pass
+
+
+_StreamPointer = ctypes.POINTER(_StreamHandle)
+
+
 def _library_path() -> str:
     configured = os.environ.get("MICROLLM_LIBRARY")
     if configured:
@@ -120,12 +127,37 @@ _lib.ml_event_synchronize.restype = ctypes.c_int
 _lib.ml_event_elapsed_ms.argtypes = [_EventPointer, _EventPointer,
                                      ctypes.POINTER(ctypes.c_float)]
 _lib.ml_event_elapsed_ms.restype = ctypes.c_int
+_lib.ml_stream_create.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                  ctypes.POINTER(_StreamPointer)]
+_lib.ml_stream_create.restype = ctypes.c_int
+_lib.ml_stream_destroy.argtypes = [_StreamPointer]
+_lib.ml_stream_destroy.restype = None
+_lib.ml_stream_synchronize.argtypes = [_StreamPointer]
+_lib.ml_stream_synchronize.restype = ctypes.c_int
+_lib.ml_event_record.argtypes = [_EventPointer, _StreamPointer]
+_lib.ml_event_record.restype = ctypes.c_int
+_lib.ml_event_wait.argtypes = [_EventPointer, _StreamPointer]
+_lib.ml_event_wait.restype = ctypes.c_int
 for _name in ("ml_add", "ml_multiply", "ml_matmul"):
     _function = getattr(_lib, _name)
     _function.argtypes = [_TensorPointer, _TensorPointer, ctypes.POINTER(_TensorPointer)]
     _function.restype = ctypes.c_int
 _lib.ml_softmax.argtypes = [_TensorPointer, ctypes.POINTER(_TensorPointer)]
 _lib.ml_softmax.restype = ctypes.c_int
+for _name in ("ml_add_on_stream", "ml_multiply_on_stream",
+              "ml_matmul_on_stream"):
+    _function = getattr(_lib, _name)
+    _function.argtypes = [_TensorPointer, _TensorPointer, _StreamPointer,
+                          ctypes.POINTER(_TensorPointer)]
+    _function.restype = ctypes.c_int
+_lib.ml_softmax_on_stream.argtypes = [
+    _TensorPointer, _StreamPointer, ctypes.POINTER(_TensorPointer)]
+_lib.ml_softmax_on_stream.restype = ctypes.c_int
+for _name in ("ml_multiply_out_on_stream", "ml_matmul_out_on_stream"):
+    _function = getattr(_lib, _name)
+    _function.argtypes = [_TensorPointer, _TensorPointer, _TensorPointer,
+                          _StreamPointer]
+    _function.restype = ctypes.c_int
 
 
 def _check(status: int) -> None:
@@ -305,6 +337,12 @@ class Event:
     def record_default_stream(self) -> None:
         _check(_lib.ml_event_record_default_stream(self._handle))
 
+    def record(self, stream: "Stream") -> None:
+        _check(_lib.ml_event_record(self._handle, stream._handle))
+
+    def wait(self, stream: "Stream") -> None:
+        _check(_lib.ml_event_wait(self._handle, stream._handle))
+
     def ready(self) -> bool:
         result = ctypes.c_int()
         _check(_lib.ml_event_ready(self._handle, ctypes.byref(result)))
@@ -320,28 +358,88 @@ class Event:
         return float(milliseconds.value)
 
 
-def _binary(function: ctypes._CFuncPtr, left: Tensor, right: Tensor) -> Tensor:
+class Stream:
+    def __init__(
+        self,
+        device: str | Device | tuple[Device, int] = "cpu",
+        *,
+        non_blocking: bool = True,
+    ) -> None:
+        kind, index = _parse_device(device)
+        output = _StreamPointer()
+        _check(_lib.ml_stream_create(
+            int(kind), index, int(non_blocking), ctypes.byref(output)))
+        self._handle = output
+        self._device = (kind, index)
+        self._non_blocking = bool(non_blocking)
+
+    def close(self) -> None:
+        if getattr(self, "_handle", None):
+            _lib.ml_stream_destroy(self._handle)
+            self._handle = _StreamPointer()
+
+    def __del__(self) -> None:
+        self.close()
+
+    @property
+    def device(self) -> tuple[Device, int]:
+        return self._device
+
+    @property
+    def non_blocking(self) -> bool:
+        return self._non_blocking
+
+    def synchronize(self) -> None:
+        _check(_lib.ml_stream_synchronize(self._handle))
+
+
+def _binary(function: ctypes._CFuncPtr, left: Tensor, right: Tensor,
+            stream: Stream | None = None) -> Tensor:
     output = _TensorPointer()
-    _check(function(left._handle, right._handle, ctypes.byref(output)))
+    if stream is None:
+        _check(function(left._handle, right._handle, ctypes.byref(output)))
+    else:
+        _check(function(left._handle, right._handle, stream._handle,
+                        ctypes.byref(output)))
     return Tensor(output)
 
 
-def add(left: Tensor, right: Tensor) -> Tensor:
-    return _binary(_lib.ml_add, left, right)
+def add(left: Tensor, right: Tensor, *, stream: Stream | None = None) -> Tensor:
+    return _binary(_lib.ml_add if stream is None else _lib.ml_add_on_stream,
+                   left, right, stream)
 
 
-def multiply(left: Tensor, right: Tensor) -> Tensor:
-    return _binary(_lib.ml_multiply, left, right)
+def multiply(left: Tensor, right: Tensor, *,
+             stream: Stream | None = None) -> Tensor:
+    return _binary(_lib.ml_multiply if stream is None else
+                   _lib.ml_multiply_on_stream, left, right, stream)
 
 
-def matmul(left: Tensor, right: Tensor) -> Tensor:
-    return _binary(_lib.ml_matmul, left, right)
+def matmul(left: Tensor, right: Tensor, *, stream: Stream | None = None) -> Tensor:
+    return _binary(_lib.ml_matmul if stream is None else _lib.ml_matmul_on_stream,
+                   left, right, stream)
 
 
-def softmax(input: Tensor) -> Tensor:
+def softmax(input: Tensor, *, stream: Stream | None = None) -> Tensor:
     output = _TensorPointer()
-    _check(_lib.ml_softmax(input._handle, ctypes.byref(output)))
+    if stream is None:
+        _check(_lib.ml_softmax(input._handle, ctypes.byref(output)))
+    else:
+        _check(_lib.ml_softmax_on_stream(
+            input._handle, stream._handle, ctypes.byref(output)))
     return Tensor(output)
+
+
+def multiply_out(output: Tensor, left: Tensor, right: Tensor,
+                 *, stream: Stream) -> None:
+    _check(_lib.ml_multiply_out_on_stream(
+        output._handle, left._handle, right._handle, stream._handle))
+
+
+def matmul_out(output: Tensor, left: Tensor, right: Tensor,
+               *, stream: Stream) -> None:
+    _check(_lib.ml_matmul_out_on_stream(
+        output._handle, left._handle, right._handle, stream._handle))
 
 
 def hip_device_count() -> int:
