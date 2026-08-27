@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "status": "pass_fp32_reject_bf16_complete_one_step",
+  "model": "Qwen/Qwen3-0.6B",
+  "shape": {
+    "batch": 1,
+    "context": 32,
+    "warmup": 0,
+    "steps": 1
+  },
+  "scope": {
+    "source_stored_tensors": 311,
+    "independent_runtime_tensors": 310,
+    "gradient_elements": 596049920,
+    "updated_parameter_elements": 596049920,
+    "compared_values": 1192099840,
+    "observed_parameter_families": 9,
+    "tied_alias": "lm_head.weight -> token_embedding.weight"
+  },
+  "fp32": {
+    "status": "pass",
+    "absolute_loss_difference": 2.3799682624670027e-7,
+    "gradient_maximum_absolute_difference": 0.0005745887756347656,
+    "gradient_rms_difference": 5.02375928851246e-7,
+    "gradient_maximum_tensor_rms_difference": 0.00002355568752886636,
+    "worst_gradient_tensor": "token_embedding.weight",
+    "worst_gradient_rms_tensor": "blocks.5.attention.q_norm.weight",
+    "parameter_maximum_absolute_difference": 0.00001998990774154663,
+    "parameter_rms_difference": 5.110227075705387e-8,
+    "parameter_maximum_tensor_rms_difference": 0.000001206165930321697,
+    "worst_parameter_tensor": "blocks.0.feed_forward.down_proj.weight",
+    "all_aggregate_gates_passed": true
+  },
+  "bf16": {
+    "status": "precision_mismatch",
+    "absolute_loss_difference": 0.009960174945312428,
+    "gradient_maximum_absolute_difference": 0.36407503485679626,
+    "gradient_rms_difference": 0.00040710722342180485,
+    "gradient_maximum_tensor_rms_difference": 0.019928445725583527,
+    "worst_gradient_tensor": "token_embedding.weight",
+    "worst_gradient_rms_tensor": "blocks.0.attention.q_norm.weight",
+    "parameter_maximum_absolute_difference": 0.00002288818359375,
+    "parameter_rms_difference": 0.0000022532390647919327,
+    "parameter_maximum_tensor_rms_difference": 0.000005300969683953531,
+    "worst_parameter_tensor": "blocks.23.attention_norm.weight",
+    "failed_aggregate_gates": [
+      "gradient_maximum",
+      "parameter_rms"
+    ]
+  },
+  "limits": {
+    "fp32_gradient_max": 0.01,
+    "fp32_gradient_rms": 0.00001,
+    "fp32_parameter_max": 0.0001,
+    "fp32_parameter_rms": 0.000001,
+    "bf16_gradient_max": 0.05,
+    "bf16_gradient_rms": 0.001,
+    "bf16_parameter_max": 0.0002,
+    "bf16_parameter_rms": 0.000002
+  },
+  "temporary_exports": {
+    "bytes_per_precision": 9536932560,
+    "retained": false,
+    "removed_after_comparison": true
+  },
+  "regression": {
+    "cpu": "434/434",
+    "asan_ubsan": "431/431",
+    "mi300x_hip": "215/215",
+    "tensor_operators": 199,
+    "graph_apis": 45,
+    "registered_test_files": 159
+  },
+  "decision": "keep official FP32 one-step full-parameter alignment; reject the current Qwen3 BF16 training formula",
+  "boundary": "Max is global across every value and RMS is aggregated across the full model; per-Tensor RMS remains diagnostic. AdamW moments, multi-step trajectory, SFT and other hardware remain separate."
+}

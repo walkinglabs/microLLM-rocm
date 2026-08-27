@@ -29,6 +29,9 @@ the worker profile `diagnostic`. No performance conclusion uses these runs.
 This is a large but still partial model audit. Attention, norms, embeddings/output and optimizer
 moment tensors remain for the next complete-family gate.
 
+The subsequent complete-parameter audit now covers the first group above; this directory remains
+the narrower historical attribution. Optimizer moments are still separate.
+
 Repository regression closes at CPU 434/434 and ASan/UBSan 431/431. Coverage inventory reports
 199 Tensor operators, 45 graph APIs and 159 registered test files.
 

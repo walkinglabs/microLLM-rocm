@@ -12,3 +12,5 @@ BF16 Gradient 0.25356/3.597e-4，Parameter 2.003e-5/2.626e-6；Gradient Max和Pa
 失败，最坏是block6 up。
 
 结论：官方FP32 gate/up对齐；当前BF16训练公式拒绝。导出不参与计时，remaining families仍要测。
+
+Experiment 383随后完成全部310个独立运行时Tensor；本节点保留为范围逐步扩大的证据。

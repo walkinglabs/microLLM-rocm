@@ -208,6 +208,8 @@ int main(int argc, char** argv) {
         std::filesystem::path loss_trajectory_output;
         std::filesystem::path gate_up_parameters_output;
         std::filesystem::path gate_up_gradients_output;
+        std::filesystem::path all_parameters_output;
+        std::filesystem::path all_gradients_output;
         bool bf16_weight_mirrors = true;
         bool tied_embedding_sparse_add = true;
         bool unique_gradient_inplace_add = false;
@@ -260,6 +262,12 @@ int main(int argc, char** argv) {
             }
             else if (name == "--gate-up-gradients-output") {
                 gate_up_gradients_output = argv[index + 1];
+            }
+            else if (name == "--all-parameters-output") {
+                all_parameters_output = argv[index + 1];
+            }
+            else if (name == "--all-gradients-output") {
+                all_gradients_output = argv[index + 1];
             }
             else if (name == "--tied-embedding-sparse-add") {
                 const std::string value = argv[index + 1];
@@ -350,10 +358,18 @@ int main(int argc, char** argv) {
             throw std::invalid_argument(
                 "--warmup must be nonnegative; --steps and --batch must be positive");
         }
-        if (!gate_up_gradients_output.empty() &&
+        if ((!gate_up_gradients_output.empty() ||
+             !all_gradients_output.empty()) &&
             (warmup != 0 || steps != 1)) {
             throw std::invalid_argument(
-                "--gate-up-gradients-output requires warmup 0 and steps 1");
+                "gradient output requires warmup 0 and steps 1");
+        }
+        if ((!gate_up_gradients_output.empty() ||
+             !gate_up_parameters_output.empty()) &&
+            (!all_gradients_output.empty() ||
+             !all_parameters_output.empty())) {
+            throw std::invalid_argument(
+                "gate/up and all-Tensor outputs are mutually exclusive");
         }
         if (linear_precision != "fp32" && linear_precision != "bf16") {
             throw std::invalid_argument("--linear-precision must be fp32 or bf16");
@@ -517,6 +533,25 @@ int main(int argc, char** argv) {
             }
             return selected;
         };
+        const auto all_state = [&](bool gradients) {
+            microllm::io::StateDict selected;
+            for (const auto& [name, parameter] : named) {
+                if (gradients) {
+                    if (!parameter->has_grad()) {
+                        throw std::logic_error(
+                            "all-gradient output encountered a missing gradient: " +
+                            name);
+                    }
+                    selected.emplace(name, parameter->grad());
+                } else {
+                    selected.emplace(name, parameter->data());
+                }
+            }
+            if (selected.size() != named.size()) {
+                throw std::logic_error("all-Tensor output lost a named parameter");
+            }
+            return selected;
+        };
         microllm::autograd::Value* observed = nullptr;
         for (const auto& [name, parameter] : named) {
             if (name == "final_norm.weight") observed = parameter;
@@ -535,6 +570,12 @@ int main(int argc, char** argv) {
             if (!gate_up_gradients_output.empty()) {
                 microllm::io::save_safetensors(
                     gate_up_gradients_output, gate_up_state(true),
+                    {.dtype = microllm::io::WeightFileDType::Float32,
+                     .atomic_replace = true});
+            }
+            if (!all_gradients_output.empty()) {
+                microllm::io::save_safetensors(
+                    all_gradients_output, all_state(true),
                     {.dtype = microllm::io::WeightFileDType::Float32,
                      .atomic_replace = true});
             }
@@ -610,6 +651,10 @@ int main(int argc, char** argv) {
         std::uint64_t gate_up_parameter_elements = 0;
         std::size_t gate_up_gradient_tensors = 0;
         std::uint64_t gate_up_gradient_elements = 0;
+        std::size_t all_parameter_tensors = 0;
+        std::uint64_t all_parameter_elements = 0;
+        std::size_t all_gradient_tensors = 0;
+        std::uint64_t all_gradient_elements = 0;
         if (!gate_up_gradients_output.empty()) {
             const auto selected = gate_up_state(true);
             gate_up_gradient_tensors = selected.size();
@@ -629,6 +674,28 @@ int main(int argc, char** argv) {
             gate_up_parameter_tensors = selected.size();
             microllm::io::save_safetensors(
                 gate_up_parameters_output, selected,
+                {.dtype = microllm::io::WeightFileDType::Float32,
+                 .atomic_replace = true});
+        }
+        if (!all_gradients_output.empty()) {
+            const auto selected = all_state(true);
+            all_gradient_tensors = selected.size();
+            for (const auto& [name, tensor] : selected) {
+                (void)name;
+                all_gradient_elements +=
+                    static_cast<std::uint64_t>(tensor.numel());
+            }
+        }
+        if (!all_parameters_output.empty()) {
+            auto selected = all_state(false);
+            all_parameter_tensors = selected.size();
+            for (const auto& [name, tensor] : selected) {
+                (void)name;
+                all_parameter_elements +=
+                    static_cast<std::uint64_t>(tensor.numel());
+            }
+            microllm::io::save_safetensors(
+                all_parameters_output, selected,
                 {.dtype = microllm::io::WeightFileDType::Float32,
                  .atomic_replace = true});
         }
@@ -688,6 +755,14 @@ int main(int argc, char** argv) {
                   << gate_up_gradient_tensors
                   << ",\"gate_up_gradient_elements\":"
                   << gate_up_gradient_elements
+                  << ",\"all_parameters_output_written\":"
+                  << (!all_parameters_output.empty() ? "true" : "false")
+                  << ",\"all_parameter_tensors\":" << all_parameter_tensors
+                  << ",\"all_parameter_elements\":" << all_parameter_elements
+                  << ",\"all_gradients_output_written\":"
+                  << (!all_gradients_output.empty() ? "true" : "false")
+                  << ",\"all_gradient_tensors\":" << all_gradient_tensors
+                  << ",\"all_gradient_elements\":" << all_gradient_elements
                   << ",\"gate_up_parameter_tensors\":"
                   << gate_up_parameter_tensors
                   << ",\"gate_up_parameter_elements\":"
@@ -717,7 +792,8 @@ int main(int argc, char** argv) {
                   << ",\"attention_gqa_forward_value_broadcast\":"
                   << (attention_gqa_forward_value_broadcast ? "true" : "false")
                   << ",\"measurement_profile\":\""
-                  << (!gate_up_gradients_output.empty()
+                  << (!gate_up_gradients_output.empty() ||
+                              !all_gradients_output.empty()
                           ? "diagnostic"
                           : warmup > 0 || steps > 1 ? "comparison" : "smoke")
                   << "\""

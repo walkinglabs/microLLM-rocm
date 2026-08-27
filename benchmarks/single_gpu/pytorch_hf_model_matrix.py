@@ -18,6 +18,11 @@ import torch.nn.functional as F
 import transformers
 from transformers import AutoModelForCausalLM
 
+try:
+    from .hf_internal_parameter_mapping import internal_parameter
+except ImportError:
+    from hf_internal_parameter_mapping import internal_parameter
+
 
 MODES = {"infer", "train"}
 COMMON_FILES = ("config", "weights")
@@ -41,6 +46,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--gate-up-parameters-output", type=Path)
     parser.add_argument("--gate-up-gradients-output", type=Path)
+    parser.add_argument("--all-parameters-output", type=Path)
+    parser.add_argument("--all-gradients-output", type=Path)
     parser.add_argument("--allow-unavailable", action="store_true")
     parser.add_argument("--allow-amdsmi-fallback", action="store_true")
     parser.add_argument("--worker-model", help=argparse.SUPPRESS)
@@ -256,28 +263,41 @@ def infer(model: dict, loaded, device: torch.device, base: dict) -> dict:
     return base
 
 
-def gate_up_state(loaded, gradients: bool) -> dict[str, torch.Tensor]:
+def internal_state(loaded, gradients: bool,
+                   gate_up_only: bool = False) -> dict[str, torch.Tensor]:
     result = {}
     for name, parameter in loaded.named_parameters():
-        fields = name.split(".")
-        if (len(fields) != 6 or fields[0] != "model" or
-                fields[1] != "layers" or fields[3] != "mlp" or
-                fields[4] not in {"gate_proj", "up_proj"} or
-                fields[5] != "weight"):
+        mapped = internal_parameter(name)
+        if mapped is None:
+            raise RuntimeError(f"unmapped PyTorch parameter: {name}")
+        internal, transpose = mapped
+        if gate_up_only and not (
+                internal.endswith(".gate_proj.weight") or
+                internal.endswith(".up_proj.weight")):
             continue
         source = parameter.grad if gradients else parameter
         if source is None:
-            raise RuntimeError(f"missing gate/up gradient: {name}")
-        internal = f"blocks.{fields[2]}.feed_forward.{fields[4]}.weight"
-        result[internal] = source.detach().float().T.contiguous().cpu()
+            raise RuntimeError(f"missing parameter gradient: {name}")
+        tensor = source.detach().float()
+        if transpose:
+            tensor = tensor.T
+        result[internal] = tensor.contiguous().cpu()
     if not result:
-        raise RuntimeError("PyTorch gate/up Tensor selection is empty")
+        raise RuntimeError("PyTorch Tensor selection is empty")
     return result
 
 
 def save_gate_up(path: Path, loaded, gradients: bool) -> tuple[int, int]:
     from safetensors.torch import save_file
-    state = gate_up_state(loaded, gradients)
+    state = internal_state(loaded, gradients, True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    save_file(state, path)
+    return len(state), sum(tensor.numel() for tensor in state.values())
+
+
+def save_all(path: Path, loaded, gradients: bool) -> tuple[int, int]:
+    from safetensors.torch import save_file
+    state = internal_state(loaded, gradients, False)
     path.parent.mkdir(parents=True, exist_ok=True)
     save_file(state, path)
     return len(state), sum(tensor.numel() for tensor in state.values())
@@ -285,7 +305,9 @@ def save_gate_up(path: Path, loaded, gradients: bool) -> tuple[int, int]:
 
 def train(model: dict, loaded, device: torch.device, base: dict,
           parameter_output: Path | None = None,
-          gradient_output: Path | None = None) -> dict:
+          gradient_output: Path | None = None,
+          all_parameter_output: Path | None = None,
+          all_gradient_output: Path | None = None) -> dict:
     training = model["training"]
     all_tokens = [int(value) for value in training["tokens"].split(",")]
     batch = int(training.get("batch", 1))
@@ -302,16 +324,22 @@ def train(model: dict, loaded, device: torch.device, base: dict,
         raise RuntimeError(f"{model['name']} is missing model.norm.weight")
     warmup = int(training.get("warmup", 0))
     steps = int(training.get("steps", 1))
-    if gradient_output is not None and (warmup != 0 or steps != 1):
+    if (gradient_output is not None or all_gradient_output is not None) and \
+            (warmup != 0 or steps != 1):
         raise RuntimeError(
-            "gate/up gradient output requires warmup 0 and steps 1")
+            "gradient output requires warmup 0 and steps 1")
     gradient_count = 0
     gradient_elements = 0
     parameter_count_output = 0
     parameter_elements = 0
+    all_gradient_count = 0
+    all_gradient_elements = 0
+    all_parameter_count = 0
+    all_parameter_elements = 0
 
     def train_once(capture: bool = False):
         nonlocal gradient_count, gradient_elements
+        nonlocal all_gradient_count, all_gradient_elements
         optimizer.zero_grad(set_to_none=True)
         with autocast_context(device, base["compute_dtype"]):
             logits = loaded(input_ids=inputs, use_cache=False).logits
@@ -321,6 +349,9 @@ def train(model: dict, loaded, device: torch.device, base: dict,
         if capture and gradient_output is not None:
             gradient_count, gradient_elements = save_gate_up(
                 gradient_output, loaded, True)
+        if capture and all_gradient_output is not None:
+            all_gradient_count, all_gradient_elements = save_all(
+                all_gradient_output, loaded, True)
         optimizer_start = time.perf_counter()
         optimizer.step()
         synchronize(device)
@@ -349,6 +380,9 @@ def train(model: dict, loaded, device: torch.device, base: dict,
     if parameter_output is not None:
         parameter_count_output, parameter_elements = save_gate_up(
             parameter_output, loaded, False)
+    if all_parameter_output is not None:
+        all_parameter_count, all_parameter_elements = save_all(
+            all_parameter_output, loaded, False)
     after = float(observed[0].detach())
     step_ms = (finish - start) * 1000.0
     trained_tokens = inputs.numel() * steps
@@ -357,7 +391,8 @@ def train(model: dict, loaded, device: torch.device, base: dict,
     base.update({
         "mode": "train",
         "measurement_profile": (
-            "diagnostic" if gradient_output is not None else
+            "diagnostic" if gradient_output is not None or
+                            all_gradient_output is not None else
             "comparison" if warmup > 0 or steps > 1 else "smoke"),
         "gate_up_parameters_output_written": parameter_output is not None,
         "gate_up_parameter_tensors": parameter_count_output,
@@ -365,6 +400,12 @@ def train(model: dict, loaded, device: torch.device, base: dict,
         "gate_up_gradients_output_written": gradient_output is not None,
         "gate_up_gradient_tensors": gradient_count,
         "gate_up_gradient_elements": gradient_elements,
+        "all_parameters_output_written": all_parameter_output is not None,
+        "all_parameter_tensors": all_parameter_count,
+        "all_parameter_elements": all_parameter_elements,
+        "all_gradients_output_written": all_gradient_output is not None,
+        "all_gradient_tensors": all_gradient_count,
+        "all_gradient_elements": all_gradient_elements,
         "warmup": warmup,
         "steps": steps,
         "batch": batch,
@@ -391,13 +432,16 @@ def train(model: dict, loaded, device: torch.device, base: dict,
 
 def run_worker(model: dict, mode: str, device_name: str, allow_fallback: bool,
                dtype_name: str, parameter_output: Path | None = None,
-               gradient_output: Path | None = None) -> dict:
+               gradient_output: Path | None = None,
+               all_parameter_output: Path | None = None,
+               all_gradient_output: Path | None = None) -> dict:
     device, workaround = prepare_device(device_name, allow_fallback)
     loaded, load_ms, parameter_count, tensor_count = load_model(model, device, dtype_name)
     base = common(model, loaded, device, workaround, load_ms, parameter_count, tensor_count,
                   dtype_name)
     return infer(model, loaded, device, base) if mode == "infer" else train(
-        model, loaded, device, base, parameter_output, gradient_output
+        model, loaded, device, base, parameter_output, gradient_output,
+        all_parameter_output, all_gradient_output
     )
 
 
@@ -421,16 +465,26 @@ def main() -> int:
     if (args.worker_model is None) != (args.worker_mode is None):
         raise RuntimeError("worker model and mode must be provided together")
     if (args.gate_up_parameters_output is not None or
-            args.gate_up_gradients_output is not None) and \
+            args.gate_up_gradients_output is not None or
+            args.all_parameters_output is not None or
+            args.all_gradients_output is not None) and \
             args.worker_mode != "train":
-        raise RuntimeError("gate/up outputs require train worker mode")
+        raise RuntimeError("Tensor outputs require train worker mode")
+    if ((args.gate_up_parameters_output is not None or
+         args.gate_up_gradients_output is not None) and
+            (args.all_parameters_output is not None or
+             args.all_gradients_output is not None)):
+        raise RuntimeError(
+            "gate/up and all-Tensor outputs are mutually exclusive")
     if args.worker_model is not None:
         if args.worker_model not in by_name:
             raise RuntimeError(f"unknown worker model: {args.worker_model}")
         print(json.dumps(run_worker(by_name[args.worker_model], args.worker_mode, args.device,
                                     args.allow_amdsmi_fallback, args.dtype,
                                     args.gate_up_parameters_output,
-                                    args.gate_up_gradients_output), sort_keys=True))
+                                    args.gate_up_gradients_output,
+                                    args.all_parameters_output,
+                                    args.all_gradients_output), sort_keys=True))
         return 0
 
     records: list[dict] = []

@@ -13,4 +13,6 @@ BF16 Gradient为0.25356/3.597e-4，Parameter为2.003e-5/2.626e-6；Gradient Max�
 导出是diagnostic，不作性能数据。当前只覆盖gate/up；下一步扩attention/down/norm/embedding/output，
 之后才能称完整官方模型梯度对齐。
 
+后续[全参数审计](2026-08-27-qwen3-training-all-parameter-audit.md)已经完成这一步并保留相同结论。
+
 回归证据：CPU 434/434、ASan/UBSan 431/431；coverage inventory为199 ops、45 graph API、159 tests。

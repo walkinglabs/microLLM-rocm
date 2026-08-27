@@ -1164,6 +1164,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 training smoke SVG](assets/qwen3-training-smoke.svg) | FP32局部对齐与BF16速度/显存反例 |
 | [experiments/382-qwen3-training-gate-up-audit.md](experiments/382-qwen3-training-gate-up-audit.md) | Qwen3 gate/up梯度与参数全量审计 |
 | [Qwen3 gate/up audit SVG](assets/qwen3-training-gate-up-audit.svg) | FP32通过、BF16 Gradient/Parameter失败 |
+| [experiments/383-qwen3-training-all-parameter-audit.md](experiments/383-qwen3-training-all-parameter-audit.md) | Qwen3全部310个独立梯度与参数审计 |
+| [Qwen3 complete training audit SVG](assets/qwen3-training-all-parameter-audit.svg) | FP32完整一步通过、BF16族别失败归因 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

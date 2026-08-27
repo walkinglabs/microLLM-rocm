@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="850" viewBox="0 0 1440 850" role="img" aria-labelledby="title description">
+<title id="title">Qwen3 complete one-step training alignment</title>
+<desc id="description">FP32 passes every complete-model gradient and parameter gate. BF16 fails gradient maximum and parameter RMS.</desc>
+<rect width="1440" height="850" fill="#f7f9fc"/>
+<text x="720" y="48" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#172033">Qwen3 Full Training Alignment: FP32 Pass · BF16 Rejected</text>
+<text x="720" y="80" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">310 independent Tensors · 596,049,920 values per state · gradients before AdamW + parameters after one step</text>
+<rect x="50" y="112" width="650" height="350" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<rect x="740" y="112" width="650" height="350" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="80" y="154" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#198754">FP32 · PASS</text>
+<text x="770" y="154" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#c0392b">BF16 · REJECT</text>
+<text x="80" y="205" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Gradient Max</text>
+<text x="285" y="205" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#172033">5.746e-04</text>
+<text x="430" y="205" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#5b6474">limit 1.0e-02</text>
+<rect x="580" y="185" width="92" height="28" rx="14" fill="#198754" opacity="0.13"/>
+<text x="626" y="205" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#198754">PASS</text>
+<text x="80" y="263" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Gradient RMS</text>
+<text x="285" y="263" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#172033">5.024e-07</text>
+<text x="430" y="263" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#5b6474">limit 1.0e-05</text>
+<rect x="580" y="243" width="92" height="28" rx="14" fill="#198754" opacity="0.13"/>
+<text x="626" y="263" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#198754">PASS</text>
+<text x="80" y="321" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Parameter Max</text>
+<text x="285" y="321" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#172033">1.999e-05</text>
+<text x="430" y="321" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#5b6474">limit 1.0e-04</text>
+<rect x="580" y="301" width="92" height="28" rx="14" fill="#198754" opacity="0.13"/>
+<text x="626" y="321" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#198754">PASS</text>
+<text x="80" y="379" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Parameter RMS</text>
+<text x="285" y="379" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#172033">5.110e-08</text>
+<text x="430" y="379" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#5b6474">limit 1.0e-06</text>
+<rect x="580" y="359" width="92" height="28" rx="14" fill="#198754" opacity="0.13"/>
+<text x="626" y="379" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#198754">PASS</text>
+<text x="770" y="205" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Gradient Max</text>
+<text x="975" y="205" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#172033">3.641e-01</text>
+<text x="1120" y="205" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#5b6474">limit 5.0e-02</text>
+<rect x="1270" y="185" width="92" height="28" rx="14" fill="#c0392b" opacity="0.13"/>
+<text x="1316" y="205" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#c0392b">FAIL</text>
+<text x="770" y="263" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Gradient RMS</text>
+<text x="975" y="263" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#172033">4.071e-04</text>
+<text x="1120" y="263" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#5b6474">limit 1.0e-03</text>
+<rect x="1270" y="243" width="92" height="28" rx="14" fill="#198754" opacity="0.13"/>
+<text x="1316" y="263" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#198754">PASS</text>
+<text x="770" y="321" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Parameter Max</text>
+<text x="975" y="321" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#172033">2.289e-05</text>
+<text x="1120" y="321" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#5b6474">limit 2.0e-04</text>
+<rect x="1270" y="301" width="92" height="28" rx="14" fill="#198754" opacity="0.13"/>
+<text x="1316" y="321" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#198754">PASS</text>
+<text x="770" y="379" font-family="Inter,Arial,sans-serif" font-size="16" fill="#172033">Parameter RMS</text>
+<text x="975" y="379" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#172033">2.253e-06</text>
+<text x="1120" y="379" font-family="ui-monospace,SFMono-Regular,monospace" font-size="15" fill="#5b6474">limit 2.0e-06</text>
+<rect x="1270" y="359" width="92" height="28" rx="14" fill="#c0392b" opacity="0.13"/>
+<text x="1316" y="379" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700" fill="#c0392b">FAIL</text>
+<text x="80" y="430" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">Worst gradient: token_embedding.weight · 5.746e-4</text>
+<text x="770" y="430" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">Worst gradient: token_embedding.weight · 3.641e-1</text>
+<rect x="50" y="495" width="1340" height="285" rx="18" fill="#ffffff" stroke="#dbe1ea"/>
+<text x="80" y="535" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700" fill="#172033">BF16 gradient Max by parameter family</text>
+<text x="1120" y="535" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">red line = fixed 5e-2 gate</text>
+<line x1="438.1" y1="552" x2="438.1" y2="758" stroke="#c0392b" stroke-width="2" stroke-dasharray="5 4"/>
+<text x="80" y="582" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">attention norm</text>
+<rect x="315" y="570" width="211.7" height="15" rx="4" fill="#c0392b" opacity="0.86"/>
+<text x="1320" y="582" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">8.597e-02 · 1.72× gate</text>
+<text x="80" y="604" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">attention output</text>
+<rect x="315" y="592" width="127.1" height="15" rx="4" fill="#c0392b" opacity="0.86"/>
+<text x="1320" y="604" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">5.163e-02 · 1.03× gate</text>
+<text x="80" y="626" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">attention qk norm</text>
+<rect x="315" y="614" width="553.1" height="15" rx="4" fill="#c0392b" opacity="0.86"/>
+<text x="1320" y="626" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">2.246e-01 · 4.49× gate</text>
+<text x="80" y="648" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">attention qkv</text>
+<rect x="315" y="636" width="651.4" height="15" rx="4" fill="#c0392b" opacity="0.86"/>
+<text x="1320" y="648" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">2.645e-01 · 5.29× gate</text>
+<text x="80" y="670" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">embedding</text>
+<rect x="315" y="658" width="896.5" height="15" rx="4" fill="#c0392b" opacity="0.86"/>
+<text x="1320" y="670" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">3.641e-01 · 7.28× gate</text>
+<text x="80" y="692" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">ffn down</text>
+<rect x="315" y="680" width="749.3" height="15" rx="4" fill="#c0392b" opacity="0.86"/>
+<text x="1320" y="692" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">3.043e-01 · 6.09× gate</text>
+<text x="80" y="714" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">ffn gate up</text>
+<rect x="315" y="702" width="624.4" height="15" rx="4" fill="#c0392b" opacity="0.86"/>
+<text x="1320" y="714" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">2.536e-01 · 5.07× gate</text>
+<text x="80" y="736" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">ffn norm</text>
+<rect x="315" y="724" width="53.0" height="15" rx="4" fill="#4776c5" opacity="0.86"/>
+<text x="1320" y="736" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">2.151e-02 · 0.43× gate</text>
+<text x="80" y="758" font-family="Inter,Arial,sans-serif" font-size="14" fill="#172033">final norm</text>
+<rect x="315" y="746" width="6.8" height="15" rx="4" fill="#4776c5" opacity="0.86"/>
+<text x="1320" y="758" text-anchor="end" font-family="ui-monospace,SFMono-Regular,monospace" font-size="13" fill="#172033">2.747e-03 · 0.05× gate</text>
+<text x="720" y="822" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">Source checkpoint: 311 stored Tensors; tied lm_head reuses token embedding, so runtime exports 310 once · temporary 9.54 GB exports removed</text>
+</svg>

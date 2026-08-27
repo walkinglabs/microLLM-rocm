@@ -1415,7 +1415,13 @@ loss gap, so complete gradients and multi-step trajectories remain required.
 [Experiment 382](docs/optimization-log/experiments/382-qwen3-training-gate-up-audit.md) replaces the
 single observed parameter with 56 gate/up tensors: FP32 compares 176,160,768 gradients and the same
 number of updated parameters within fixed Max/RMS gates; BF16 fails Gradient Max and Parameter RMS.
-The diagnostic export stays out of performance timing, and remaining parameter families stay open.
+The diagnostic export stays out of performance timing.
+[Experiment 383](docs/optimization-log/experiments/383-qwen3-training-all-parameter-audit.md) closes
+the remaining one-step parameter families: the 311 stored Tensors form 310 independent runtime
+parameters after the tied lm_head alias, so each precision compares 596,049,920 gradients and the
+same number of updated values. FP32 passes the fixed aggregate Max/RMS gates; BF16 fails Gradient
+Max at `0.3641` and Parameter RMS at `2.253e-6`. Per-Tensor RMS remains an explicitly separate
+diagnostic, while AdamW moments and multi-step trajectories remain open.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.
