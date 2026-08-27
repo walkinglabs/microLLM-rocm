@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="620" viewBox="0 0 1400 620">
+<rect width="1400" height="620" fill="#f7f9fc"/>
+<text x="700" y="48" text-anchor="middle" font-family="Inter,Arial" font-size="30" font-weight="700" fill="#172033">Qwen3 Checkpoint Resume: Shared-State Branch Passes</text>
+<text x="700" y="80" text-anchor="middle" font-family="Inter,Arial" font-size="16" fill="#5b6474">step1 save → fresh process → steps2–3 versus same-process continuation</text>
+<rect x="60" y="120" width="620" height="390" rx="18" fill="#fff" stroke="#dbe1ea"/>
+<text x="90" y="165" font-family="Inter,Arial" font-size="23" font-weight="700" fill="#198754">FP32 · 5/5 PASS</text>
+<text x="95" y="225" font-family="Inter,Arial" font-size="17" fill="#172033">resumed loss Max</text>
+<text x="360" y="225" font-family="monospace" font-size="17" fill="#172033">0.000e+00</text>
+<text x="95" y="290" font-family="Inter,Arial" font-size="17" fill="#172033">parameter Max</text>
+<text x="360" y="290" font-family="monospace" font-size="17" fill="#172033">1.863e-09</text>
+<text x="95" y="355" font-family="Inter,Arial" font-size="17" fill="#172033">moment Max</text>
+<text x="360" y="355" font-family="monospace" font-size="17" fill="#172033">2.980e-08</text>
+<text x="95" y="440" font-family="Inter,Arial" font-size="14" fill="#5b6474">loss bitwise: true</text>
+<text x="95" y="470" font-family="Inter,Arial" font-size="14" fill="#5b6474">parameter/moment bitwise: false · strict tolerance reported</text>
+<rect x="720" y="120" width="620" height="390" rx="18" fill="#fff" stroke="#dbe1ea"/>
+<text x="750" y="165" font-family="Inter,Arial" font-size="23" font-weight="700" fill="#198754">BF16 · 5/5 PASS</text>
+<text x="755" y="225" font-family="Inter,Arial" font-size="17" fill="#172033">resumed loss Max</text>
+<text x="1020" y="225" font-family="monospace" font-size="17" fill="#172033">0.000e+00</text>
+<text x="755" y="290" font-family="Inter,Arial" font-size="17" fill="#172033">parameter Max</text>
+<text x="1020" y="290" font-family="monospace" font-size="17" fill="#172033">1.490e-08</text>
+<text x="755" y="355" font-family="Inter,Arial" font-size="17" fill="#172033">moment Max</text>
+<text x="1020" y="355" font-family="monospace" font-size="17" fill="#172033">1.788e-07</text>
+<text x="755" y="440" font-family="Inter,Arial" font-size="14" fill="#5b6474">loss bitwise: true</text>
+<text x="755" y="470" font-family="Inter,Arial" font-size="14" fill="#5b6474">parameter/moment bitwise: false · strict tolerance reported</text>
+<text x="700" y="565" text-anchor="middle" font-family="Inter,Arial" font-size="15" fill="#5b6474">checkpoint v2 · 930 final-state Tensors · step/global step=3 · temporary 21.46 GB removed per precision</text>
+</svg>

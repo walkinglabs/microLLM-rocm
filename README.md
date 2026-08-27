@@ -1430,6 +1430,10 @@ gradient split reaches optimizer state. BF16 moment storage and multi-step traje
 that contract to three consecutive steps. FP32 passes loss, final parameters, final moments and
 step=3 (6/6); BF16 fails loss, Parameter RMS and Moment Max, with the worst state moving to block2
 FFN down. Longer and checkpoint-resumed trajectories remain separate.
+[Experiment 386](docs/optimization-log/experiments/386-qwen3-training-checkpoint-resume-audit.md)
+uses one shared step1 checkpoint, then compares same-process continuation with a fresh-process
+two-step resume. FP32/BF16 both pass 5/5; losses are bitwise and parameter/moment maxima stay below
+`1e-7/1e-5`. Atomic tied paths remain explicitly non-bitwise.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

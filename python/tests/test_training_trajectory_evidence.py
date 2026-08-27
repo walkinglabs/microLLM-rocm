@@ -16,6 +16,7 @@ ALL_RENDER = (ROOT / "docs/optimization-log/scripts" /
               "render_qwen3_training_all_parameter_audit.py")
 MOMENT_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_adamw_state_audit.py"
 MULTISTEP_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_multistep_state_audit.py"
+RESUME_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_checkpoint_resume_audit.py"
 
 
 def main() -> int:
@@ -27,6 +28,7 @@ def main() -> int:
     all_render = ALL_RENDER.read_text(encoding="utf-8")
     moment_audit = MOMENT_AUDIT.read_text(encoding="utf-8")
     multistep_audit = MULTISTEP_AUDIT.read_text(encoding="utf-8")
+    resume_audit = RESUME_AUDIT.read_text(encoding="utf-8")
     for token in (
         "--loss-trajectory-output", "--gate-up-parameters-output",
         "--gate-up-gradients-output", "gate_up_gradient_tensors",
@@ -37,6 +39,9 @@ def main() -> int:
         "all_gradient_elements", "all_parameter_tensors",
         "all_parameter_elements", "--all-moments-output",
         "all_moment_tensors", "all_moment_elements", "all_moment_step",
+        "--checkpoint-output", "--resume-checkpoint",
+        "initial_global_step", "final_global_step", "restore_checkpoint",
+        "--checkpoint-after-steps",
         "all_state", "save_safetensors",
     ):
         assert token in train
@@ -123,6 +128,8 @@ def main() -> int:
         assert token in moment_audit
     for token in ("loss_trajectory", "compare_files", "compare_moments", "moment_max", "three consecutive steps"):
         assert token in multistep_audit
+    for token in ("parameters_within_tolerance", "moments_within_tolerance", "losses_within_tolerance", "bitwise_diagnostics", "checkpoint_format_version", "process restart"):
+        assert token in resume_audit
     print("training trajectory evidence contract: pass")
     return 0
 

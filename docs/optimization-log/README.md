@@ -1170,6 +1170,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 AdamW state SVG](assets/qwen3-training-adamw-state-audit.svg) | FP32状态通过、BF16差异传入optimizer |
 | [experiments/385-qwen3-training-multistep-state-audit.md](experiments/385-qwen3-training-multistep-state-audit.md) | Qwen3三步loss/参数/moment联合轨迹 |
 | [Qwen3 three-step SVG](assets/qwen3-training-multistep-state-audit.svg) | FP32六门通过、BF16三门失败 |
+| [experiments/386-qwen3-training-checkpoint-resume-audit.md](experiments/386-qwen3-training-checkpoint-resume-audit.md) | Qwen3同源checkpoint中断恢复 |
+| [Qwen3 checkpoint SVG](assets/qwen3-training-checkpoint-resume-audit.svg) | FP32/BF16恢复5/5通过与bitwise边界 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

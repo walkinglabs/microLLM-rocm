@@ -1,0 +1,239 @@
+{
+  "bitwise_diagnostics": {
+    "losses": true,
+    "moments": false,
+    "parameters": false
+  },
+  "boundary": "shared step1 checkpoint; loss/parameter/moment tolerances isolate tied-embedding atomic scheduling across process restart; PyTorch parity is inherited from Experiment 385",
+  "checkpoint_format_version": 2,
+  "control_losses": [
+    2.37707138,
+    1.38335228,
+    0.708753705
+  ],
+  "gates": {
+    "losses_within_tolerance": true,
+    "moments_within_tolerance": true,
+    "parameters_within_tolerance": true,
+    "resumed": true,
+    "steps": true
+  },
+  "limits": {
+    "loss_max": 1e-07,
+    "moment_max": 1e-05,
+    "parameter_max": 1e-07
+  },
+  "model": "qwen3-0.6b",
+  "moments": {
+    "compared_elements": 1192099840,
+    "groups": [
+      {
+        "all_finite": true,
+        "compared_elements": 28672,
+        "family": "attention_norm",
+        "maximum_absolute_difference": 2.2351741790771484e-08,
+        "moment": "first_moment",
+        "rms_difference": 9.365349964684148e-10,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.1.attention_norm.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 28672,
+        "family": "attention_norm",
+        "maximum_absolute_difference": 1.1641532182693481e-10,
+        "moment": "second_moment",
+        "rms_difference": 1.0484672114303085e-12,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.5.attention_norm.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 58720256,
+        "family": "attention_output",
+        "maximum_absolute_difference": 1.1175870895385742e-08,
+        "moment": "first_moment",
+        "rms_difference": 1.2612708224278802e-10,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.0.attention.o_proj.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 58720256,
+        "family": "attention_output",
+        "maximum_absolute_difference": 2.9103830456733704e-11,
+        "moment": "second_moment",
+        "rms_difference": 2.280301390722755e-14,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.0.attention.o_proj.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 7168,
+        "family": "attention_qk_norm",
+        "maximum_absolute_difference": 8.195638656616211e-08,
+        "moment": "first_moment",
+        "rms_difference": 1.3704346082860223e-09,
+        "tensor_count": 56,
+        "worst_tensor": "blocks.5.attention.q_norm.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 7168,
+        "family": "attention_qk_norm",
+        "maximum_absolute_difference": 4.656612873077393e-10,
+        "moment": "second_moment",
+        "rms_difference": 5.616200491831996e-12,
+        "tensor_count": 56,
+        "worst_tensor": "blocks.5.attention.q_norm.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 117440512,
+        "family": "attention_qkv",
+        "maximum_absolute_difference": 5.4016709327697754e-08,
+        "moment": "first_moment",
+        "rms_difference": 1.5900185230189715e-10,
+        "tensor_count": 84,
+        "worst_tensor": "blocks.2.attention.v_proj.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 117440512,
+        "family": "attention_qkv",
+        "maximum_absolute_difference": 2.3283064365386963e-10,
+        "moment": "second_moment",
+        "rms_difference": 1.5404985403020335e-13,
+        "tensor_count": 84,
+        "worst_tensor": "blocks.23.attention.q_proj.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 155582464,
+        "family": "embedding",
+        "maximum_absolute_difference": 1.4156103134155273e-07,
+        "moment": "first_moment",
+        "rms_difference": 6.641619617524487e-11,
+        "tensor_count": 1,
+        "worst_tensor": "token_embedding.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 155582464,
+        "family": "embedding",
+        "maximum_absolute_difference": 2.7939677238464355e-09,
+        "moment": "second_moment",
+        "rms_difference": 4.5309543074010126e-13,
+        "tensor_count": 1,
+        "worst_tensor": "token_embedding.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 88080384,
+        "family": "ffn_down",
+        "maximum_absolute_difference": 1.7881393432617188e-07,
+        "moment": "first_moment",
+        "rms_difference": 2.2496722972847141e-10,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.2.feed_forward.down_proj.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 88080384,
+        "family": "ffn_down",
+        "maximum_absolute_difference": 5.587935447692871e-09,
+        "moment": "second_moment",
+        "rms_difference": 2.0840072744405223e-12,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.2.feed_forward.down_proj.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 176160768,
+        "family": "ffn_gate_up",
+        "maximum_absolute_difference": 6.51925802230835e-08,
+        "moment": "first_moment",
+        "rms_difference": 1.1623699061066643e-10,
+        "tensor_count": 56,
+        "worst_tensor": "blocks.2.feed_forward.gate_proj.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 176160768,
+        "family": "ffn_gate_up",
+        "maximum_absolute_difference": 9.313225746154785e-10,
+        "moment": "second_moment",
+        "rms_difference": 1.5383312866751108e-13,
+        "tensor_count": 56,
+        "worst_tensor": "blocks.1.feed_forward.up_proj.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 28672,
+        "family": "ffn_norm",
+        "maximum_absolute_difference": 8.381903171539307e-09,
+        "moment": "first_moment",
+        "rms_difference": 2.948404977168604e-10,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.0.ffn_norm.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 28672,
+        "family": "ffn_norm",
+        "maximum_absolute_difference": 3.637978807091713e-12,
+        "moment": "second_moment",
+        "rms_difference": 5.351305130279576e-14,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.0.ffn_norm.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 1024,
+        "family": "final_norm",
+        "maximum_absolute_difference": 0.0,
+        "moment": "first_moment",
+        "rms_difference": 0.0,
+        "tensor_count": 1,
+        "worst_tensor": ""
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 1024,
+        "family": "final_norm",
+        "maximum_absolute_difference": 0.0,
+        "moment": "second_moment",
+        "rms_difference": 0.0,
+        "tensor_count": 1,
+        "worst_tensor": ""
+      }
+    ],
+    "maximum_absolute_difference": 1.7881393432617188e-07,
+    "rms_difference": 9.808548173989343e-11,
+    "tensor_count": 620,
+    "worst_tensor": "blocks.2.feed_forward.down_proj.weight.adamw.first_moment"
+  },
+  "parameters": {
+    "compared_elements": 596049920,
+    "maximum_absolute_difference": 1.4901161193847656e-08,
+    "maximum_tensor_rms_difference": 9.744030287605896e-11,
+    "rms_difference": 4.015793369681611e-11,
+    "tensor_count": 310,
+    "worst_rms_tensor": "blocks.0.attention.q_proj.weight",
+    "worst_tensor": "blocks.0.attention.k_proj.weight"
+  },
+  "precision": "bf16",
+  "record_type": "qwen3_training_checkpoint_resume_audit",
+  "resumed_loss_differences": [
+    0.0,
+    0.0
+  ],
+  "resumed_losses": [
+    1.38335228,
+    0.708753705
+  ],
+  "schema_version": 1,
+  "status": "pass",
+  "temporary_bytes": 21458063325,
+  "temporary_files_removed": true
+}

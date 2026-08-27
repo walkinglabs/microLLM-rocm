@@ -21,6 +21,7 @@
 #include <microllm/runtime/memory.h>
 #include <microllm/runtime/runtime.h>
 #include <microllm/training/optimizer.h>
+#include <microllm/training/checkpoint.h>
 
 namespace {
 
@@ -211,6 +212,9 @@ int main(int argc, char** argv) {
         std::filesystem::path all_parameters_output;
         std::filesystem::path all_gradients_output;
         std::filesystem::path all_moments_output;
+        std::filesystem::path checkpoint_output;
+        std::filesystem::path resume_checkpoint;
+        int checkpoint_after_steps = 0;
         bool bf16_weight_mirrors = true;
         bool tied_embedding_sparse_add = true;
         bool unique_gradient_inplace_add = false;
@@ -272,6 +276,15 @@ int main(int argc, char** argv) {
             }
             else if (name == "--all-moments-output") {
                 all_moments_output = argv[index + 1];
+            }
+            else if (name == "--checkpoint-output") {
+                checkpoint_output = argv[index + 1];
+            }
+            else if (name == "--resume-checkpoint") {
+                resume_checkpoint = argv[index + 1];
+            }
+            else if (name == "--checkpoint-after-steps") {
+                checkpoint_after_steps = std::stoi(argv[index + 1]);
             }
             else if (name == "--tied-embedding-sparse-add") {
                 const std::string value = argv[index + 1];
@@ -367,6 +380,16 @@ int main(int argc, char** argv) {
             (warmup != 0 || steps != 1)) {
             throw std::invalid_argument(
                 "gradient output requires warmup 0 and steps 1");
+        }
+        if ((!checkpoint_output.empty() || !resume_checkpoint.empty()) &&
+            warmup != 0) {
+            throw std::invalid_argument(
+                "checkpoint save/resume requires warmup 0");
+        }
+        if ((checkpoint_after_steps > 0 && checkpoint_output.empty()) ||
+            checkpoint_after_steps < 0 || checkpoint_after_steps > steps) {
+            throw std::invalid_argument(
+                "checkpoint-after-steps requires checkpoint-output and must be within steps");
         }
         if ((!gate_up_gradients_output.empty() ||
              !gate_up_parameters_output.empty()) &&
@@ -515,6 +538,28 @@ int main(int argc, char** argv) {
             batched_targets, {batch_size, static_cast<std::int64_t>(target_ids.size())});
         if (device.is_hip()) { inputs = inputs.to(device); targets = targets.to(device); }
         auto named = model.named_parameters();
+        const auto checkpoint_data_config =
+            "tokens=" + token_text + ";batch=" + std::to_string(batch_size);
+        microllm::training::ExperimentState experiment{
+            .global_step = 0,
+            .data_cursor = 0,
+            .rng_state = "deterministic-hf-train-step",
+            .model_config = external.model.summary(),
+            .data_config = checkpoint_data_config};
+        bool checkpoint_resumed = false;
+        if (!resume_checkpoint.empty()) {
+            microllm::training::restore_checkpoint(
+                microllm::training::load_checkpoint(resume_checkpoint),
+                named, optimizer, experiment);
+            if (experiment.model_config != external.model.summary() ||
+                experiment.data_config != checkpoint_data_config ||
+                experiment.rng_state != "deterministic-hf-train-step") {
+                throw std::invalid_argument(
+                    "checkpoint experiment contract changed");
+            }
+            checkpoint_resumed = true;
+        }
+        const auto initial_global_step = experiment.global_step;
         const auto gate_up_state = [&](bool gradients) {
             microllm::io::StateDict selected;
             for (const auto& [name, parameter] : named) {
@@ -619,6 +664,7 @@ int main(int argc, char** argv) {
         const auto start = std::chrono::steady_clock::now();
         for (int iteration = 0; iteration < steps; ++iteration) {
             const auto result = run_step();
+            ++experiment.global_step;
             if (iteration == 0) first_loss = result.loss;
             final_loss = result.loss;
             loss_trajectory.push_back(result.loss);
@@ -627,6 +673,10 @@ int main(int argc, char** argv) {
             optimizer_d2h += result.transfers.device_to_host_calls;
             optimizer_h2d_bytes += result.transfers.host_to_device_bytes;
             optimizer_d2h_bytes += result.transfers.device_to_host_bytes;
+            if (checkpoint_after_steps == iteration + 1) {
+                microllm::training::save_checkpoint(
+                    checkpoint_output, named, optimizer, experiment);
+            }
         }
         const auto finish = std::chrono::steady_clock::now();
         microllm::autograd::enable_gradient_accumulation_diagnostics(false);
@@ -731,6 +781,10 @@ int main(int argc, char** argv) {
                 {.dtype = microllm::io::WeightFileDType::Float32,
                  .atomic_replace = true});
         }
+        if (!checkpoint_output.empty() && checkpoint_after_steps == 0) {
+            microllm::training::save_checkpoint(
+                checkpoint_output, named, optimizer, experiment);
+        }
         const auto warmup_ms =
             std::chrono::duration<double, std::milli>(warmup_finish - warmup_start).count();
         const auto trained_tokens = input_ids.size() * static_cast<std::size_t>(batch_size) *
@@ -800,6 +854,12 @@ int main(int argc, char** argv) {
                   << ",\"all_moment_tensors\":" << all_moment_tensors
                   << ",\"all_moment_elements\":" << all_moment_elements
                   << ",\"all_moment_step\":" << all_moment_step
+                  << ",\"checkpoint_resumed\":"
+                  << (checkpoint_resumed ? "true" : "false")
+                  << ",\"checkpoint_written\":"
+                  << (!checkpoint_output.empty() ? "true" : "false")
+                  << ",\"initial_global_step\":" << initial_global_step
+                  << ",\"final_global_step\":" << experiment.global_step
                   << ",\"gate_up_parameter_tensors\":"
                   << gate_up_parameter_tensors
                   << ",\"gate_up_parameter_elements\":"

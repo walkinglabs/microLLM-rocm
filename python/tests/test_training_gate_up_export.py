@@ -129,6 +129,36 @@ def main() -> int:
         assert record["all_moment_step"] == 2
         header(moments, MOMENT_SHAPES)
 
+        checkpoint = root / "resume.ckpt"
+        first = subprocess.run(base + [
+            "--checkpoint-output", str(checkpoint),
+        ], check=True, capture_output=True, text=True)
+        first_record = json.loads(first.stdout)
+        assert first_record["initial_global_step"] == 0
+        assert first_record["final_global_step"] == 1
+        assert first_record["checkpoint_written"]
+        control_parameters = root / "control-parameters.safetensors"
+        control_moments = root / "control-moments.safetensors"
+        control = subprocess.run(base + [
+            "--steps", "3", "--all-parameters-output", str(control_parameters),
+            "--all-moments-output", str(control_moments),
+        ], check=True, capture_output=True, text=True)
+        assert json.loads(control.stdout)["final_global_step"] == 3
+        resumed_parameters = root / "resumed-parameters.safetensors"
+        resumed_moments = root / "resumed-moments.safetensors"
+        resumed = subprocess.run(base + [
+            "--steps", "2", "--resume-checkpoint", str(checkpoint),
+            "--all-parameters-output", str(resumed_parameters),
+            "--all-moments-output", str(resumed_moments),
+        ], check=True, capture_output=True, text=True)
+        resumed_record = json.loads(resumed.stdout)
+        assert resumed_record["checkpoint_resumed"]
+        assert resumed_record["initial_global_step"] == 1
+        assert resumed_record["final_global_step"] == 3
+        assert resumed_record["all_moment_step"] == 3
+        assert control_parameters.read_bytes() == resumed_parameters.read_bytes()
+        assert control_moments.read_bytes() == resumed_moments.read_bytes()
+
         rejected = subprocess.run(base + [
             "--warmup", "1", "--gate-up-gradients-output",
             str(root / "rejected.safetensors"),
