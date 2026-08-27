@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+import argparse,json
+from pathlib import Path
+p=argparse.ArgumentParser();p.add_argument('--fp32',type=Path,required=True);p.add_argument('--bf16',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();f=json.loads(a.fp32.read_text());b=json.loads(a.bf16.read_text())
+L=['<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="650" viewBox="0 0 1400 650">','<rect width="1400" height="650" fill="#f7f9fc"/>','<text x="700" y="48" text-anchor="middle" font-family="Inter,Arial" font-size="30" font-weight="700" fill="#172033">Qwen3 Three-Step State Trajectory</text>','<text x="700" y="80" text-anchor="middle" font-family="Inter,Arial" font-size="16" fill="#5b6474">loss each step · 310 final parameters · 620 final moments · strict step=3</text>']
+for x,d,title,color in ((60,f,'FP32 · ALL 6 GATES PASS','#198754'),(720,b,'BF16 · 3 GATES FAIL','#c0392b')):
+ L += [f'<rect x="{x}" y="115" width="620" height="440" rx="18" fill="#fff" stroke="#dbe1ea"/>',f'<text x="{x+30}" y="158" font-family="Inter,Arial" font-size="21" font-weight="700" fill="{color}">{title}</text>']
+ vals=[('loss max',d['losses']['maximum_absolute_difference'],d['limits']['loss'],d['gates']['loss']),('parameter Max',d['parameters']['maximum_absolute_difference'],d['limits']['parameter_max'],d['gates']['parameter_max']),('parameter RMS',d['parameters']['rms_difference'],d['limits']['parameter_rms'],d['gates']['parameter_rms']),('moment Max',d['moments']['maximum_absolute_difference'],d['limits']['moment_max'],d['gates']['moment_max']),('moment RMS',d['moments']['rms_difference'],d['limits']['moment_rms'],d['gates']['moment_rms'])]
+ for i,(n,v,lim,ok) in enumerate(vals):
+  y=210+i*55;c='#198754' if ok else '#c0392b';L += [f'<text x="{x+30}" y="{y}" font-family="Inter,Arial" font-size="16" fill="#172033">{n}</text>',f'<text x="{x+210}" y="{y}" font-family="monospace" font-size="15" fill="#172033">{v:.3e} / {lim:.1e}</text>',f'<text x="{x+540}" y="{y}" font-family="Inter,Arial" font-size="14" font-weight="700" fill="{c}">{"PASS" if ok else "FAIL"}</text>']
+ L += [f'<text x="{x+30}" y="505" font-family="Inter,Arial" font-size="14" fill="#5b6474">loss: '+ ' → '.join(f'{v:.4f}' for v in d['losses']['microllm'])+'</text>']
+L += ['<text x="700" y="610" text-anchor="middle" font-family="Inter,Arial" font-size="15" fill="#5b6474">930 final-state Tensors · 14.31 GB temporary exports removed · diagnostic only</text>','</svg>'];a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text('\n'.join(L)+'\n')

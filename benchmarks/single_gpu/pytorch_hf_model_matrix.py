@@ -402,12 +402,14 @@ def train(model: dict, loaded, device: torch.device, base: dict,
     first_loss = 0.0
     final_loss = 0.0
     optimizer_ms = 0.0
+    loss_trajectory = []
     start = time.perf_counter()
     for iteration in range(steps):
         loss_value, current_optimizer_ms = train_once(capture=iteration == steps - 1)
         if iteration == 0:
             first_loss = loss_value
         final_loss = loss_value
+        loss_trajectory.append(loss_value)
         optimizer_ms += current_optimizer_ms
     synchronize(device)
     finish = time.perf_counter()
@@ -457,6 +459,7 @@ def train(model: dict, loaded, device: torch.device, base: dict,
         "first_loss": first_loss,
         "final_loss": final_loss,
         "loss": final_loss,
+        "loss_trajectory": loss_trajectory,
         "observed_parameter_before": before,
         "observed_parameter_after": after,
         "parameter_changed": True,

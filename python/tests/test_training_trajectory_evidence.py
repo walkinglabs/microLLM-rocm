@@ -15,6 +15,7 @@ ALL_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_all_parameter_audit.py"
 ALL_RENDER = (ROOT / "docs/optimization-log/scripts" /
               "render_qwen3_training_all_parameter_audit.py")
 MOMENT_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_adamw_state_audit.py"
+MULTISTEP_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_multistep_state_audit.py"
 
 
 def main() -> int:
@@ -25,6 +26,7 @@ def main() -> int:
     all_audit = ALL_AUDIT.read_text(encoding="utf-8")
     all_render = ALL_RENDER.read_text(encoding="utf-8")
     moment_audit = MOMENT_AUDIT.read_text(encoding="utf-8")
+    multistep_audit = MULTISTEP_AUDIT.read_text(encoding="utf-8")
     for token in (
         "--loss-trajectory-output", "--gate-up-parameters-output",
         "--gate-up-gradients-output", "gate_up_gradient_tensors",
@@ -38,6 +40,7 @@ def main() -> int:
         "all_state", "save_safetensors",
     ):
         assert token in train
+    assert '"loss_trajectory"' in pytorch
     assert "--bf16-gate-up-weight-gradient" not in train
     for token in (
         "load_safetensors", "safetensors_complete_comparison",
@@ -118,6 +121,8 @@ def main() -> int:
         "moment_storage", "temporary_exports_removed",
     ):
         assert token in moment_audit
+    for token in ("loss_trajectory", "compare_files", "compare_moments", "moment_max", "three consecutive steps"):
+        assert token in multistep_audit
     print("training trajectory evidence contract: pass")
     return 0
 

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="650" viewBox="0 0 1400 650">
+<rect width="1400" height="650" fill="#f7f9fc"/>
+<text x="700" y="48" text-anchor="middle" font-family="Inter,Arial" font-size="30" font-weight="700" fill="#172033">Qwen3 Three-Step State Trajectory</text>
+<text x="700" y="80" text-anchor="middle" font-family="Inter,Arial" font-size="16" fill="#5b6474">loss each step · 310 final parameters · 620 final moments · strict step=3</text>
+<rect x="60" y="115" width="620" height="440" rx="18" fill="#fff" stroke="#dbe1ea"/>
+<text x="90" y="158" font-family="Inter,Arial" font-size="21" font-weight="700" fill="#198754">FP32 · ALL 6 GATES PASS</text>
+<text x="90" y="210" font-family="Inter,Arial" font-size="16" fill="#172033">loss max</text>
+<text x="270" y="210" font-family="monospace" font-size="15" fill="#172033">4.470e-06 / 1.0e-05</text>
+<text x="600" y="210" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="90" y="265" font-family="Inter,Arial" font-size="16" fill="#172033">parameter Max</text>
+<text x="270" y="265" font-family="monospace" font-size="15" fill="#172033">3.227e-05 / 3.0e-04</text>
+<text x="600" y="265" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="90" y="320" font-family="Inter,Arial" font-size="16" fill="#172033">parameter RMS</text>
+<text x="270" y="320" font-family="monospace" font-size="15" fill="#172033">5.161e-08 / 3.0e-06</text>
+<text x="600" y="320" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="90" y="375" font-family="Inter,Arial" font-size="16" fill="#172033">moment Max</text>
+<text x="270" y="375" font-family="monospace" font-size="15" fill="#172033">7.258e-05 / 3.0e-03</text>
+<text x="600" y="375" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="90" y="430" font-family="Inter,Arial" font-size="16" fill="#172033">moment RMS</text>
+<text x="270" y="430" font-family="monospace" font-size="15" fill="#172033">4.584e-08 / 3.0e-06</text>
+<text x="600" y="430" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="90" y="505" font-family="Inter,Arial" font-size="14" fill="#5b6474">loss: 2.3768 → 0.7796 → 0.3520</text>
+<rect x="720" y="115" width="620" height="440" rx="18" fill="#fff" stroke="#dbe1ea"/>
+<text x="750" y="158" font-family="Inter,Arial" font-size="21" font-weight="700" fill="#c0392b">BF16 · 3 GATES FAIL</text>
+<text x="750" y="210" font-family="Inter,Arial" font-size="16" fill="#172033">loss max</text>
+<text x="930" y="210" font-family="monospace" font-size="15" fill="#172033">1.167e-02 / 5.0e-03</text>
+<text x="1260" y="210" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#c0392b">FAIL</text>
+<text x="750" y="265" font-family="Inter,Arial" font-size="16" fill="#172033">parameter Max</text>
+<text x="930" y="265" font-family="monospace" font-size="15" fill="#172033">5.993e-05 / 2.0e-04</text>
+<text x="1260" y="265" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="750" y="320" font-family="Inter,Arial" font-size="16" fill="#172033">parameter RMS</text>
+<text x="930" y="320" font-family="monospace" font-size="15" fill="#172033">3.995e-06 / 2.0e-06</text>
+<text x="1260" y="320" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#c0392b">FAIL</text>
+<text x="750" y="375" font-family="Inter,Arial" font-size="16" fill="#172033">moment Max</text>
+<text x="930" y="375" font-family="monospace" font-size="15" fill="#172033">1.407e-01 / 1.0e-02</text>
+<text x="1260" y="375" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#c0392b">FAIL</text>
+<text x="750" y="430" font-family="Inter,Arial" font-size="16" fill="#172033">moment RMS</text>
+<text x="930" y="430" font-family="monospace" font-size="15" fill="#172033">8.677e-05 / 1.0e-04</text>
+<text x="1260" y="430" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="750" y="505" font-family="Inter,Arial" font-size="14" fill="#5b6474">loss: 2.3771 → 1.3834 → 0.7092</text>
+<text x="700" y="610" text-anchor="middle" font-family="Inter,Arial" font-size="15" fill="#5b6474">930 final-state Tensors · 14.31 GB temporary exports removed · diagnostic only</text>
+</svg>

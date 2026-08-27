@@ -1426,6 +1426,10 @@ diagnostic, while AdamW moments and multi-step trajectories remain open.
 compares all 620 first/second-moment Tensors and strict step state. FP32 passes at
 `5.743e-5/3.552e-8` Max/RMS; BF16 forward with FP32 moments fails Max at `0.03641`, proving the
 gradient split reaches optimizer state. BF16 moment storage and multi-step trajectories remain open.
+[Experiment 385](docs/optimization-log/experiments/385-qwen3-training-multistep-state-audit.md) extends
+that contract to three consecutive steps. FP32 passes loss, final parameters, final moments and
+step=3 (6/6); BF16 fails loss, Parameter RMS and Moment Max, with the worst state moving to block2
+FFN down. Longer and checkpoint-resumed trajectories remain separate.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.
