@@ -1385,6 +1385,10 @@ content while holding shapes fixed. Alternating, ascending and historical-sensit
 24/24 rows directly; only the constant seed retains three already-attributed splits. All 64 workers,
 16 KV rows and both-framework B2 invariants pass. This is synthetic content evidence, not yet a
 natural-language prompt claim.
+[Experiment 380](docs/optimization-log/experiments/380-qwen3-natural-prompts.md) uses four exact
+tokenizer-generated prompts (English, Chinese, C++ and Qwen chat): 32/32 workers, 14 direct rows,
+two FP32-attributed splits, 4/4 strict B1/B2 oracles and 8/8 exact KV rows. It extends the explicit
+policy to these short prompts without making a language-quality or default-policy claim.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

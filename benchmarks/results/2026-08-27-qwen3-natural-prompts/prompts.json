@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "model_revision": "c916fa4defd319b7d4e4da17604ca7338f4d99f5",
+  "prompts": [
+    {
+      "family": "english",
+      "text": "The quick brown fox jumps over the lazy dog. In one sentence, explain why this pangram is useful.",
+      "token_ids": [785, 3974, 13876, 38835, 34208, 916, 279, 15678, 5562, 13, 758, 825, 11652, 11, 10339, 3170, 419, 96874, 2396, 374, 5390, 13]
+    },
+    {
+      "family": "chinese",
+      "text": "请用三句话向初中生解释为什么天空看起来是蓝色的。",
+      "token_ids": [14880, 11622, 44991, 100908, 69041, 105328, 21287, 104136, 100678, 101916, 104544, 20412, 105681, 9370, 1773]
+    },
+    {
+      "family": "code",
+      "text": "Write a C++20 function that adds two integers safely and include one simple test:",
+      "token_ids": [7985, 264, 356, 1027, 17, 15, 729, 429, 11367, 1378, 25780, 21000, 323, 2924, 825, 4285, 1273, 25]
+    },
+    {
+      "family": "chat",
+      "text": "Explain KV cache in simple words and give one example.",
+      "chat_template": true,
+      "enable_thinking": false,
+      "token_ids": [151644, 872, 198, 840, 20772, 84648, 6500, 304, 4285, 4244, 323, 2968, 825, 3110, 13, 151645, 198, 151644, 77091, 198, 151667, 271, 151668, 271]
+    }
+  ]
+}

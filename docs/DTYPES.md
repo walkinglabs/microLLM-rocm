@@ -173,6 +173,10 @@ Transformers BF16为4/6。该结果仍不能代替不同自然语言prompt或Rad
 合计24/24直接一致，只有constant保留3个已归因分叉；64/64 worker、16/16 KV和双方B2行不变量
 全部通过。它扩展合成内容证据，不等于自然语言鲁棒性。
 
+四条exact tokenizer prompt进一步覆盖英文、中文、C++和Qwen chat模板：14/16直接一致，两处分叉
+经B1/B2共四份strict FP32 oracle支持phase候选；KV8/8与B2行4/4通过。仍只证明四条短prompt，
+不评价回答质量、采样或长文档。
+
 KV Cache的形状、字节公式、API和精度失败见
 [KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 

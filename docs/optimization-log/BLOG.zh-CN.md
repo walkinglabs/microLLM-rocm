@@ -5544,3 +5544,13 @@ KV16/16精确。最大峰值microLLM/PyTorch为3.166/4.714GB，单进程不作�
 keep三种合成内容变化，constant边界保留。下一尺度必须使用tokenizer生成真实prompt。
 
 ![Qwen3 prompt pattern matrix](assets/qwen3-phase-prompt-patterns.svg)
+
+## 396. Experiment 380：exact自然prompt，不重复填充
+
+固定tokenizer生成英文22、中文15、C++18和chat-template24 token。每条按原长度跑B1/B2 prefill/N8。
+32/32 worker完成：14 pass、2 precision mismatch、0 batch失败。
+
+英文B1的785/4416和中文B2的3837/104136，经B1/B2四份strict完整logit oracle都判给phase候选。
+代码/chat 8/8直接一致，KV8/8、B2行4/4通过。单进程不作速度或语言质量结论。
+
+![Qwen3 exact natural prompts](assets/qwen3-natural-prompts.svg)

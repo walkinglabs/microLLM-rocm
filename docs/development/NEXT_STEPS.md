@@ -83,8 +83,10 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] change prompt content with fixed shapes: alternating, ascending and historical
   sensitive seeds pass24/24 directly; only constant keeps three known oracle splits;
   all64 workers,16 KV rows and both-framework B2 invariants pass;
-- [ ] move beyond synthetic token seeds to tokenizer-generated natural-language and
-  structured prompt families; Radeon/backend and memory-constrained devices remain open;
+- [x] run four exact tokenizer prompts without repeat padding: English/Chinese/code/chat
+  complete32/32, direct14/16, strict B1/B2 oracles4/4, KV8/8 and B2 rows4/4;
+- [ ] expand beyond four short prompts to a versioned prompt suite, longer documents,
+  sampling and quality evaluation; Radeon/backend and memory-constrained devices remain open;
 - [x] preserve identical-input batch rows instead of throwing a generic PyTorch worker
   failure; classify T1024/B2/N8 as `batch_invariance_mismatch`, with microLLM 2/2,
   Transformers BF16 474/2 and common FP32 oracle 2;

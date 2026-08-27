@@ -298,3 +298,7 @@ T1024/B2/N8合同见
 [Experiment 379](../optimization-log/experiments/379-qwen3-phase-prompt-patterns.md)。先用
 `make_qwen3_prompt_pattern_manifest.py`复制本地fixture并替换`inference.token_ids`，不要提交
 带本机绝对路径的manifest。
+exact自然prompt不能用统一context轴重复填充。使用
+`make_qwen3_natural_prompt_manifest.py`记录每条`exact_context`，再由
+`qwen3_exact_prompt_matrix.py`分别调用底层shape worker。结果与四份B1/B2 oracle见
+[Experiment 380](../optimization-log/experiments/380-qwen3-natural-prompts.md)。

@@ -759,3 +759,5 @@ the next gate. Records are append-only except for factual corrections.
   extends fixed-prompt row/oracle/KV evidence through T2048 with strict limits intact.
 - [2026-08-27-qwen3-phase-prompt-patterns.md](2026-08-27-qwen3-phase-prompt-patterns.md):
   changes four synthetic prompt seeds while fixing model, shape and phase policy.
+- [2026-08-27-qwen3-natural-prompts.md](2026-08-27-qwen3-natural-prompts.md):
+  runs four exact tokenizer-generated prompts and attributes both batch-dependent splits.

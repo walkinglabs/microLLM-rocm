@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import math
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -36,6 +37,8 @@ LONG_CONTEXT_ROOT = (ROOT / "benchmarks/results" /
                      "2026-08-27-qwen3-decode-up-fp32-long-context")
 PROMPT_PATTERN_ROOT = (ROOT / "benchmarks/results" /
                        "2026-08-27-qwen3-phase-prompt-patterns")
+NATURAL_PROMPT_ROOT = (ROOT / "benchmarks/results" /
+                       "2026-08-27-qwen3-natural-prompts")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -78,8 +81,48 @@ PROMPT_MANIFEST_SPEC = importlib.util.spec_from_file_location(
 PROMPT_MANIFEST = importlib.util.module_from_spec(PROMPT_MANIFEST_SPEC)
 assert PROMPT_MANIFEST_SPEC.loader is not None
 PROMPT_MANIFEST_SPEC.loader.exec_module(PROMPT_MANIFEST)
+NATURAL_MANIFEST_SPEC = importlib.util.spec_from_file_location(
+    "make_qwen3_natural_prompt_manifest",
+    ROOT / "benchmarks/single_gpu/make_qwen3_natural_prompt_manifest.py")
+NATURAL_MANIFEST = importlib.util.module_from_spec(NATURAL_MANIFEST_SPEC)
+assert NATURAL_MANIFEST_SPEC.loader is not None
+NATURAL_MANIFEST_SPEC.loader.exec_module(NATURAL_MANIFEST)
+EXACT_PROMPT_SPEC = importlib.util.spec_from_file_location(
+    "qwen3_exact_prompt_matrix",
+    ROOT / "benchmarks/single_gpu/qwen3_exact_prompt_matrix.py")
+EXACT_PROMPT = importlib.util.module_from_spec(EXACT_PROMPT_SPEC)
+assert EXACT_PROMPT_SPEC.loader is not None
+EXACT_PROMPT_SPEC.loader.exec_module(EXACT_PROMPT)
 
 def main():
+    natural_tokens = {
+        "english": [1, 2], "chinese": [3, 4, 5],
+        "code": [6], "chat": [7, 8, 9, 10],
+    }
+    natural_manifest = NATURAL_MANIFEST.build_manifest({
+        "schema_version": 1,
+        "models": [{"name": "qwen3-0.6b", "inference": {},
+                    "marker": "preserved"}],
+    }, natural_tokens)
+    assert [model["inference"]["exact_context"]
+            for model in natural_manifest["models"]] == [2, 3, 1, 4]
+    assert all(model["marker"] == "preserved"
+               for model in natural_manifest["models"])
+    with tempfile.TemporaryDirectory() as temporary:
+        natural_path = Path(temporary) / "natural.json"
+        natural_path.write_text(json.dumps(natural_manifest), encoding="utf-8")
+        exact_models = EXACT_PROMPT.load_prompts(natural_path)
+    exact_summaries = []
+    for model in exact_models:
+        exact_summaries.append({"rows": [
+            {"model": model["name"],
+             "context": model["inference"]["exact_context"],
+             "status": "pass"} for _ in range(4)]})
+    exact_summary = EXACT_PROMPT.aggregate(
+        exact_models, exact_summaries, [{"status": "pass"}] * 32)
+    assert exact_summary["status"] == "pass"
+    assert exact_summary["worker_passes"] == exact_summary["worker_count"] == 32
+    assert exact_summary["aggregate_rows"] == exact_summary["pass_rows"] == 16
     prompt_manifest = PROMPT_MANIFEST.build_manifest({
         "schema_version": 1,
         "models": [{"name": "qwen3-0.6b", "inference": {"token_ids": [9]},
@@ -715,6 +758,66 @@ def main():
         assert rows["torch-fp32"]["argmax_token"] == token
         assert rows[candidate_name]["argmax_token"] == token
         assert rows["torch-bf16"]["argmax_token"] == torch_token
+    natural_result = json.loads(
+        (NATURAL_PROMPT_ROOT / "summary.json").read_text())
+    natural_matrix = json.loads(
+        (NATURAL_PROMPT_ROOT / "matrix-summary.json").read_text())
+    natural_raw = [json.loads(line) for line in
+                   (NATURAL_PROMPT_ROOT / "matrix-raw.jsonl").read_text().splitlines()
+                   if line]
+    natural_prompts = json.loads(
+        (NATURAL_PROMPT_ROOT / "prompts.json").read_text())
+    assert natural_result["status"] == \
+        "pass_exact_natural_prompts_with_two_oracle_splits"
+    assert natural_result["matrix"]["worker_passes"] == 32
+    assert natural_result["matrix"]["pass_rows"] == 14
+    assert natural_result["matrix"]["precision_mismatch_rows"] == 2
+    assert natural_result["matrix"]["batch_invariance_mismatch_rows"] == 0
+    assert natural_result["oracles"]["cases_passed"] == 4
+    assert natural_result["oracles"]["strict_complete_logit_cases_passed"] == 4
+    assert {item["family"]: len(item["token_ids"])
+            for item in natural_prompts["prompts"]} == {
+                "english": 22, "chinese": 15, "code": 18, "chat": 24}
+    assert len(natural_matrix["rows"]) == 16 and len(natural_raw) == 32
+    assert natural_matrix["worker_passes"] == natural_matrix["worker_count"] == 32
+    assert natural_matrix["pass_rows"] == 14
+    assert natural_matrix["precision_mismatch_rows"] == 2
+    assert natural_matrix["batch_invariance_mismatch_rows"] == 0
+    natural_cached = [item for item in natural_matrix["rows"]
+                      if item["workload"] == "decode"]
+    assert len(natural_cached) == 8
+    assert all(item["microllm_kv_cache_actual_bytes"] ==
+               item["microllm_kv_cache_theoretical_bytes"] ==
+               item["pytorch_kv_cache_actual_bytes"] ==
+               item["pytorch_kv_cache_theoretical_bytes"]
+               for item in natural_cached)
+    assert all(item["microllm_generated_rows_equal"] and
+               item["pytorch_generated_rows_equal"]
+               for item in natural_cached if item["batch"] == 2)
+    natural_rows = {(item["prompt_family"], item["batch"], item["workload"]): item
+                    for item in natural_matrix["rows"]}
+    assert natural_rows[("english", 1, "decode")]["status"] == \
+        "precision_mismatch"
+    assert natural_rows[("english", 2, "decode")]["status"] == "pass"
+    assert natural_rows[("chinese", 1, "decode")]["status"] == "pass"
+    assert natural_rows[("chinese", 2, "decode")]["status"] == \
+        "precision_mismatch"
+    assert all(natural_rows[(family, batch, workload)]["status"] == "pass"
+               for family in ("code", "chat")
+               for batch in (1, 2) for workload in ("prefill", "decode"))
+    for family, step, token, torch_by_batch in (
+            ("english", 6, 4416, {1: 785, 2: 4416}),
+            ("chinese", 2, 104136, {1: 104136, 2: 3837})):
+        for batch in (1, 2):
+            oracle = json.loads((NATURAL_PROMPT_ROOT / "oracles" /
+                f"{family}-b{batch}-step{step}-summary.json").read_text())
+            rows = {item["policy"]: item for item in oracle["policy_rows"]}
+            assert oracle["status"] == "pass_diagnosed_precision_policy"
+            assert all(oracle["gates"].values())
+            assert rows["torch-fp32"]["argmax_token"] == token
+            assert rows["micro-fp32-fp32"]["argmax_token"] == token
+            assert rows["micro-phase-decode-up-fp32"]["argmax_token"] == token
+            assert rows["torch-bf16"]["argmax_token"] == torch_by_batch[batch]
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

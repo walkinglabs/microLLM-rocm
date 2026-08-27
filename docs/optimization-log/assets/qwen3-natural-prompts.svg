@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+  <rect width="1500" height="760" fill="#f7f8fc"/>
+  <text x="60" y="62" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 phase policy · exact tokenizer prompts</text>
+  <text x="60" y="99" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">No repeat padding · English · Chinese · C++ · Qwen chat template</text>
+
+  <rect x="55" y="145" width="320" height="295" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+  <text x="215" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#92400e">English · T22</text>
+  <text x="215" y="270" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#b45309">3 / 4</text>
+  <text x="215" y="315" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">direct pass</text>
+  <text x="215" y="360" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">B1: 4416 / 785</text>
+  <text x="215" y="400" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#166534">FP32 = 4416</text>
+
+  <rect x="405" y="145" width="320" height="295" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+  <text x="565" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#92400e">Chinese · T15</text>
+  <text x="565" y="270" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#b45309">3 / 4</text>
+  <text x="565" y="315" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">direct pass</text>
+  <text x="565" y="360" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">B2: 104136 / 3837</text>
+  <text x="565" y="400" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#166534">FP32 = 104136</text>
+
+  <rect x="755" y="145" width="320" height="295" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="915" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">C++ code · T18</text>
+  <text x="915" y="285" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="700" fill="#166534">4 / 4</text>
+  <text x="915" y="340" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">direct pass</text>
+  <text x="915" y="400" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534">B1 / B2 rows equal</text>
+
+  <rect x="1105" y="145" width="340" height="295" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="1275" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">Chat template · T24</text>
+  <text x="1275" y="285" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="700" fill="#166534">4 / 4</text>
+  <text x="1275" y="340" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">direct pass</text>
+  <text x="1275" y="400" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534">thinking disabled</text>
+
+  <rect x="55" y="495" width="1390" height="145" rx="20" fill="#ffffff" stroke="#d8deea" stroke-width="2"/>
+  <text x="120" y="545" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Shared gates</text>
+  <text x="350" y="545" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534">32 / 32 workers</text>
+  <text x="620" y="545" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534">4 / 4 strict oracles</text>
+  <text x="900" y="545" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534">8 / 8 KV exact</text>
+  <text x="1160" y="545" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534">B2 rows 4 / 4</text>
+  <text x="120" y="600" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">max KV 7.34 MB</text>
+  <text x="430" y="600" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">micro peak 1.866 GB</text>
+  <text x="760" y="600" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">PyTorch peak 1.315 GB</text>
+  <text x="1100" y="600" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b45309">one process · no speed rank</text>
+
+  <rect x="55" y="685" width="1390" height="50" rx="18" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>
+  <text x="750" y="718" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#166534">Keep exact-prompt evidence · default off · no language-quality claim</text>
+</svg>

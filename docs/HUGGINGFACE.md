@@ -67,6 +67,10 @@ T2048，但自然语言prompt、训练和其他硬件仍未由此证明。
 全部属于constant且已有FP32 oracle。双方B2行8/8一致，KV16/16精确。可复现manifest由
 `make_qwen3_prompt_pattern_manifest.py`从本地fixture生成。
 
+exact自然prompt使用`make_qwen3_natural_prompt_manifest.py`从同一tokenizer生成英文22、中文15、
+代码18和chat24 token，再由`qwen3_exact_prompt_matrix.py`逐条按原长度运行。32/32 worker、
+14/16直接一致，两处B1/B2分叉的四份strict oracle均支持候选。
+
 ### 一条命令准备固定 fixture
 
 仓库不会提交数GB权重，但会固定来源、revision、许可和结构预期：

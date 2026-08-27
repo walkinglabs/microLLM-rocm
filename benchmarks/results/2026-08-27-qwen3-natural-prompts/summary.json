@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "pass_exact_natural_prompts_with_two_oracle_splits",
+  "model": "Qwen/Qwen3-0.6B",
+  "candidate": "phase-selective decode-up FP32",
+  "matrix": {
+    "worker_passes": 32,
+    "worker_count": 32,
+    "aggregate_rows": 16,
+    "pass_rows": 14,
+    "precision_mismatch_rows": 2,
+    "batch_invariance_mismatch_rows": 0,
+    "limited_rows": 0,
+    "cached_rows_with_exact_kv_bytes": 8,
+    "cached_row_count": 8,
+    "microllm_b2_rows_equal": 4,
+    "microllm_b2_row_count": 4,
+    "pytorch_b2_rows_equal": 4,
+    "pytorch_b2_row_count": 4,
+    "elapsed_seconds": 331
+  },
+  "families": {
+    "english": {"context": 22, "pass_rows": 3, "precision_mismatch_rows": 1},
+    "chinese": {"context": 15, "pass_rows": 3, "precision_mismatch_rows": 1},
+    "code": {"context": 18, "pass_rows": 4, "precision_mismatch_rows": 0},
+    "chat": {"context": 24, "pass_rows": 4, "precision_mismatch_rows": 0}
+  },
+  "oracles": {
+    "cases_passed": 4,
+    "case_count": 4,
+    "strict_complete_logit_cases_passed": 4,
+    "strict_complete_logit_case_count": 4,
+    "english": {
+      "fp32_argmax_b1": 4416,
+      "fp32_argmax_b2": 4416,
+      "candidate_argmax_b1": 4416,
+      "candidate_argmax_b2": 4416,
+      "pytorch_bf16_argmax_b1": 785,
+      "pytorch_bf16_argmax_b2": 4416
+    },
+    "chinese": {
+      "fp32_argmax_b1": 104136,
+      "fp32_argmax_b2": 104136,
+      "candidate_argmax_b1": 104136,
+      "candidate_argmax_b2": 104136,
+      "pytorch_bf16_argmax_b1": 104136,
+      "pytorch_bf16_argmax_b2": 3837
+    }
+  },
+  "memory": {
+    "resident_weight_bytes": 1855717376,
+    "maximum_kv_cache_bytes": 7340032,
+    "maximum_microllm_peak_bytes": 1865810304,
+    "maximum_pytorch_peak_bytes": 1314718720
+  },
+  "decision": "extend the explicit policy evidence to four exact tokenizer-generated prompts; preserve batch-dependent full-BF16 splits",
+  "boundary": "four short prompts, greedy N8 and one process per framework/shape; no language-quality, sampling, long-document, Radeon or training claim"
+}

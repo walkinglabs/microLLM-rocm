@@ -1158,6 +1158,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 long-context SVG](assets/qwen3-decode-up-fp32-long-context.svg) | 10/10 argmax、8/10 strict、batch与显存 |
 | [experiments/379-qwen3-phase-prompt-patterns.md](experiments/379-qwen3-phase-prompt-patterns.md) | 四种prompt seed内容矩阵 |
 | [Qwen3 prompt pattern SVG](assets/qwen3-phase-prompt-patterns.svg) | constant边界与三seed 24/24 |
+| [experiments/380-qwen3-natural-prompts.md](experiments/380-qwen3-natural-prompts.md) | 四条exact tokenizer prompt |
+| [Qwen3 natural prompt SVG](assets/qwen3-natural-prompts.svg) | 英中代码chat与四份strict oracle |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
