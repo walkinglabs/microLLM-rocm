@@ -80,6 +80,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [ ] broaden the kept policy beyond the calibration set: prompt families, contexts
   above512, Radeon/backend versions and memory-constrained devices; keep the strict
   common-FP32 full-logit result visible at 7/8;
+- [x] preserve identical-input batch rows instead of throwing a generic PyTorch worker
+  failure; classify T1024/B2/N8 as `batch_invariance_mismatch`, with microLLM 2/2,
+  Transformers BF16 474/2 and common FP32 oracle 2;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

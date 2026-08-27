@@ -283,3 +283,11 @@ up-FP32的64-worker、八个唯一oracle和五场景性能拒绝见
 [Experiment 376](../optimization-log/experiments/376-qwen3-decode-up-fp32-gate.md)：64/64 worker、
 8/8 argmax oracle和5/5性能通过；strict full-logit common-oracle为7/8。这里必须把“候选argmax
 通过”与“两个FP32实现完整向量过阈值”写成两项。
+
+### 相同输入的两行不一样怎么办
+
+这不是普通worker崩溃。每个decode worker现在报告`generated_rows`和
+`generated_rows_equal`。只要任一框架对相同输入行产生不同token，aggregate优先写
+`batch_invariance_mismatch`；首行跨框架比较仍保留，但不能覆盖框架内部失败。官方
+T1024/B2/N8合同见
+[Experiment 377](../optimization-log/experiments/377-hf-batch-invariance-contract.md)。

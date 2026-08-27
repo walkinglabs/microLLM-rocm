@@ -30,6 +30,8 @@ PHASE_ROUTE_ROOT = (ROOT / "benchmarks/results" /
                     "2026-08-27-qwen3-decode-up-fp32-route")
 PHASE_GATE_ROOT = (ROOT / "benchmarks/results" /
                    "2026-08-27-qwen3-decode-up-fp32-gate")
+BATCH_CONTRACT_ROOT = (ROOT / "benchmarks/results" /
+                       "2026-08-27-hf-batch-invariance-contract")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -547,6 +549,35 @@ def main():
         "candidate_over_current_throughput_geometric_mean"] < 0.983
     assert all(item["status"] == "pass"
                for item in phase_performance_repeat["cases"])
+    batch_contract = json.loads(
+        (BATCH_CONTRACT_ROOT / "summary.json").read_text())
+    batch_matrix = json.loads(
+        (BATCH_CONTRACT_ROOT / "matrix-summary.json").read_text())
+    batch_raw = [json.loads(line) for line in
+                 (BATCH_CONTRACT_ROOT / "matrix-raw.jsonl").read_text().splitlines()
+                 if line]
+    batch_oracle = json.loads(
+        (BATCH_CONTRACT_ROOT / "oracle-summary.json").read_text())
+    assert batch_contract["status"] == "pass_batch_invariance_evidence_contract"
+    assert batch_contract["aggregate_status"] == "batch_invariance_mismatch"
+    assert batch_contract["microllm"]["generated_rows_equal"] is True
+    assert batch_contract["pytorch_bf16"]["generated_rows_equal"] is False
+    assert batch_contract["common_fp32_oracle"]["pytorch_fp32_argmax"] == 2
+    assert batch_contract["common_fp32_oracle"]["phase_candidate_argmax"] == 2
+    assert len(batch_raw) == 2 and len(batch_matrix["rows"]) == 1
+    batch_row = batch_matrix["rows"][0]
+    assert batch_row["status"] == "batch_invariance_mismatch"
+    assert batch_row["microllm_generated_rows"] == \
+        batch_contract["microllm"]["generated_rows"]
+    assert batch_row["pytorch_generated_rows"] == \
+        batch_contract["pytorch_bf16"]["generated_rows"]
+    assert batch_oracle["status"] == "pass_diagnosed_precision_policy"
+    batch_oracle_rows = {item["policy"]: item
+                         for item in batch_oracle["policy_rows"]}
+    assert batch_oracle_rows["torch-fp32"]["argmax_token"] == 2
+    assert batch_oracle_rows["micro-fp32-fp32"]["argmax_token"] == 2
+    assert batch_oracle_rows["micro-phase-decode-up-fp32"]["argmax_token"] == 2
+    assert batch_oracle_rows["torch-bf16"]["argmax_token"] == 474
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

@@ -753,3 +753,5 @@ the next gate. Records are append-only except for factual corrections.
   builds the default-off dual representation and proves its phase, lifetime and memory contract.
 - [2026-08-27-qwen3-decode-up-fp32-gate.md](2026-08-27-qwen3-decode-up-fp32-gate.md):
   keeps the route as an explicit precision policy after complete shape/oracle/performance gates.
+- [2026-08-27-hf-batch-invariance-contract.md](2026-08-27-hf-batch-invariance-contract.md):
+  preserves every identical-input batch row and separates invariance from worker failure.

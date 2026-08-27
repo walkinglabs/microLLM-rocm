@@ -5509,3 +5509,13 @@ prefill从0.8875恢复到1.0011；增量峰值不变。代价是固定+336MiB常
 更长上下文、Radeon/backend版本或训练。
 
 ![Qwen3 phase policy complete gate](assets/qwen3-decode-up-fp32-gate.svg)
+
+## 393. Experiment 377：`failed`不能回答哪一行错了
+
+T1024/B2/N8相同输入中，microLLM两行都选FP32 oracle的2；Transformers BF16 row0选474、
+row1选2。旧worker抛generic failure，丢掉两行。新合同保存`generated_rows`、跨测量确定性和
+`generated_rows_equal`，aggregate分类`batch_invariance_mismatch`。KV两边都是236,716,032字节。
+
+这个节点只keep证据基础设施，不用单样本吞吐作排名；长上下文矩阵从头重跑。
+
+![Identical-input batch evidence](assets/hf-batch-invariance-contract.svg)

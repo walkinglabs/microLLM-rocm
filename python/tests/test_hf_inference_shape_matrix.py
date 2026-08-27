@@ -2283,6 +2283,38 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(row["cross_framework_first_token_difference"], 1)
         self.assertEqual(summary["status"], "complete_with_recorded_limits")
 
+    def test_summary_preserves_identical_input_batch_invariance_failure(self):
+        model = {"name": "tiny", "revision": "fixed"}
+        records = []
+        for framework, equal, rows in (
+                ("microllm", True, [[1, 2], [1, 2]]),
+                ("pytorch", False, [[1, 2], [1, 3]])):
+            records.append({
+                "model": "tiny", "context": 8, "batch": 2,
+                "decode_tokens": 2, "workload": "decode",
+                "cache_mode": "cached", "framework": framework,
+                "status": "pass", "generated_tokens": rows[0],
+                "generated_rows": rows, "generated_rows_equal": equal,
+                "throughput_tokens_per_second": 10.0,
+                "latency_ms": 2.0, "peak_bytes": 100,
+                "resident_weight_bytes": 80, "device_total_bytes": 1000,
+                "kv_cache_actual_bytes": 8, "kv_cache_active_bytes": 8,
+                "kv_cache_theoretical_bytes": 8,
+                "kv_cache_capacity_tokens": 10,
+                "kv_cache_active_tokens": 10, "kv_cache_element_bytes": 2,
+                "kv_cache_allocation_efficiency": 1.0,
+                "kv_cache_utilization": 1.0, "kv_cache_share_of_peak": 0.08,
+            })
+        summary = MATRIX.summarize(
+            records, [model], [8], [2], 1, cases=["cached"],
+            decode_lengths=[2])
+        row = summary["rows"][0]
+        self.assertEqual(row["status"], "batch_invariance_mismatch")
+        self.assertTrue(row["microllm_generated_rows_equal"])
+        self.assertFalse(row["pytorch_generated_rows_equal"])
+        self.assertEqual(row["pytorch_generated_rows"], [[1, 2], [1, 3]])
+        self.assertTrue(row["cross_framework_tokens_equal"])
+
     def test_manifest_runtime_and_stored_counts_are_consistent(self):
         base = {
             "name": "tied", "revision": "fixed", "config": "/config",
@@ -2357,6 +2389,8 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         self.assertEqual(record["peak_memory_share_of_device"], 0.2)
         self.assertEqual(record["precision"],
                          "mixed_bf16_weights_fp32_activations")
+        self.assertTrue(record["generated_rows_equal"])
+        self.assertEqual(record["generated_rows"], [[]])
 
     def test_micro_command_propagates_explicit_bf16_cache_policy(self):
         args = type("Args", (), {

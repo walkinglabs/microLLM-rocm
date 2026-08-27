@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="690" viewBox="0 0 1500 690">
+  <rect width="1500" height="690" fill="#f7f8fc"/>
+  <text x="60" y="62" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Identical-input batch invariance · T1024 / B2 / N8</text>
+  <text x="60" y="99" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Preserve both rows · classify the invariant · audit the first sensitive token</text>
+
+  <rect x="55" y="140" width="420" height="350" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="265" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#166534">microLLM phase policy</text>
+  <text x="125" y="260" font-family="Inter,Arial,sans-serif" font-size="19" fill="#5b6474">row 0</text>
+  <text x="350" y="260" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="700" fill="#166534">2</text>
+  <text x="125" y="340" font-family="Inter,Arial,sans-serif" font-size="19" fill="#5b6474">row 1</text>
+  <text x="350" y="340" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="700" fill="#166534">2</text>
+  <text x="265" y="420" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">rows equal</text>
+  <text x="265" y="460" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">full N8 sequences equal</text>
+
+  <rect x="540" y="140" width="420" height="350" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="750" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#b42335">Transformers BF16</text>
+  <text x="610" y="260" font-family="Inter,Arial,sans-serif" font-size="19" fill="#5b6474">row 0</text>
+  <text x="835" y="260" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="700" fill="#b42335">474</text>
+  <text x="610" y="340" font-family="Inter,Arial,sans-serif" font-size="19" fill="#5b6474">row 1</text>
+  <text x="835" y="340" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="700" fill="#166534">2</text>
+  <text x="750" y="420" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#b42335">rows differ</text>
+  <text x="750" y="460" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">saved, not collapsed into generic failure</text>
+
+  <rect x="1025" y="140" width="420" height="350" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="1235" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#1d4ed8">Common FP32 oracle</text>
+  <text x="1235" y="280" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="52" font-weight="700" fill="#166534">2</text>
+  <text x="1235" y="325" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">PyTorch FP32 = microLLM FP32</text>
+  <text x="1235" y="375" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#166534">phase candidate matches</text>
+  <text x="1235" y="425" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033">KV 236,716,032 bytes</text>
+  <text x="1235" y="460" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">exact for both frameworks</text>
+
+  <rect x="55" y="540" width="1390" height="90" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+  <text x="750" y="580" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#92400e">New aggregate status: batch_invariance_mismatch</text>
+  <text x="750" y="610" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">Not environment failure · not OOM · not ordinary first-row precision mismatch</text>
+</svg>

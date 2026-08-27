@@ -399,6 +399,10 @@ def normalize_micro(raw: dict, model: dict, context: int, batch: int,
                 args, "micro_cache_capacity", "exact") == "exact"
             else "fixed_sweep_max_capacity"),
         "decode_step_semantics": "one_model_forward_per_measured_token",
+        "generated_rows": (
+            [list(raw.get("generated_tokens", [])) for _ in range(batch)]
+            if workload == "decode" else []),
+        "generated_rows_equal": True,
         "kv_cache_fp32_layer_policy": raw.get("kv_cache_fp32_layer_policy", ""),
         "kv_cache_fp32_layers": int(raw.get("kv_cache_fp32_layers", 0)),
         "kv_cache_bf16_layers": int(raw.get("kv_cache_bf16_layers", 0)),
@@ -482,7 +486,7 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
         selected = torch.argmax(logits, dim=-1)
         return torch.cat((input_ids, selected[:, None]), dim=1)
 
-    def decode_uncached(sequence) -> list[int]:
+    def decode_uncached(sequence) -> list[list[int]]:
         suffix = []
         for _ in range(args.decode_tokens):
             logits = loaded(input_ids=sequence, use_cache=False).logits[:, -1, :]
@@ -490,10 +494,7 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
             suffix.append(selected)
             sequence = torch.cat((sequence, selected[:, None]), dim=1)
         stacked = torch.stack(suffix, dim=1)
-        rows = stacked.tolist()
-        if any(row != rows[0] for row in rows):
-            raise RuntimeError("identical PyTorch batch rows generated different tokens")
-        return rows[0]
+        return stacked.tolist()
 
     with torch.inference_mode():
         for _ in range(args.warmup):
@@ -514,7 +515,7 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
         torch.cuda.reset_peak_memory_stats(device)
         final = None
         final_past = None
-        first_suffix = None
+        first_suffixes = None
         elapsed_ms = 0.0
         cache_prepare_ms = 0.0
         for _ in range(args.steps):
@@ -546,24 +547,22 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
                 stacked = torch.stack(suffix_tensors, dim=1)
                 suffixes = stacked.tolist()
                 final_past = past
-                if any(row != suffixes[0] for row in suffixes):
-                    raise RuntimeError("identical PyTorch batch rows generated different tokens")
-                if first_suffix is not None and suffixes[0] != first_suffix:
+                if first_suffixes is not None and suffixes != first_suffixes:
                     raise RuntimeError("PyTorch generation changed across measured steps")
-                first_suffix = suffixes[0]
+                first_suffixes = suffixes
             else:
                 prepare_start = time.perf_counter()
                 sequence = seed_uncached()
                 torch.cuda.synchronize(device)
                 cache_prepare_ms += (time.perf_counter() - prepare_start) * 1000.0
                 start = time.perf_counter()
-                suffix = decode_uncached(sequence)
+                suffixes = decode_uncached(sequence)
                 final_past = None
                 torch.cuda.synchronize(device)
                 elapsed_ms += (time.perf_counter() - start) * 1000.0
-                if first_suffix is not None and suffix != first_suffix:
+                if first_suffixes is not None and suffixes != first_suffixes:
                     raise RuntimeError("PyTorch generation changed across measured steps")
-                first_suffix = suffix
+                first_suffixes = suffixes
     measured = (context * batch * args.steps if workload == "prefill"
                 else args.decode_tokens * batch * args.steps)
     tensors = cache_tensors(final_past) \
@@ -620,7 +619,11 @@ def pytorch_worker(args: argparse.Namespace, model: dict) -> dict:
         "kv_cache_utilization": 1.0 if actual else 0.0,
         "kv_cache_share_of_peak": actual / peak if actual else 0.0,
         "top_logits": top_logits,
-        "generated_tokens": first_suffix or [],
+        "generated_tokens": first_suffixes[0] if first_suffixes else [],
+        "generated_rows": first_suffixes or [],
+        "generated_rows_equal": (
+            all(row == first_suffixes[0] for row in first_suffixes[1:])
+            if first_suffixes else True),
     }
 
 
@@ -715,6 +718,12 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                                 if workload == "decode":
                                     row[f"{framework}_generated_tokens"] = measured[0][
                                         "generated_tokens"]
+                                    row[f"{framework}_generated_rows"] = measured[0].get(
+                                        "generated_rows",
+                                        [measured[0]["generated_tokens"]])
+                                    row[f"{framework}_generated_rows_equal"] = all(
+                                        record.get("generated_rows_equal", True)
+                                        for record in measured)
                                 peak = row[f"{framework}_peak_bytes"]
                                 resident = row[f"{framework}_resident_weight_bytes"]
                                 incremental = max(0.0, peak - resident)
@@ -786,6 +795,10 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                                         float(torch_top[0]["logit"]))
                         if len(per_framework) != 2:
                             row["status"] = "limited"
+                        elif workload == "decode" and not (
+                                row.get("microllm_generated_rows_equal", True) and
+                                row.get("pytorch_generated_rows_equal", True)):
+                            row["status"] = "batch_invariance_mismatch"
                         elif workload == "decode" and not row.get(
                                 "cross_framework_tokens_equal", False):
                             row["status"] = "precision_mismatch"

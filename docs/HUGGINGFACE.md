@@ -55,6 +55,10 @@ CPU/HIP/sanitizer均通过。它只进入完整测量，尚未成为默认或速
 完整门随后通过8/8固定FP32 argmax和5/5性能case，几何均值0.97984；T512/B2 prefill恢复到
 1.0011。common-FP32完整向量严格门为7/8，因此保留显式策略与边界，不替换默认all-BF16。
 
+长上下文B2还必须读取`generated_rows_equal`。T1024/B2/N8中Transformers BF16两行分别走474/2，
+microLLM两行都是FP32 oracle的2。runner保存全部行并分类`batch_invariance_mismatch`，不再把它
+压成一个没有数值的`failed`。
+
 ### 一条命令准备固定 fixture
 
 仓库不会提交数GB权重，但会固定来源、revision、许可和结构预期：

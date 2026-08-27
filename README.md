@@ -337,6 +337,9 @@ If “Config package” is unfamiliar, read the beginner-facing
 > memory smoke pass at +336 MiB resident. Its complete gate now passes 8/8 fixed FP32 argmax
 > states and two independent 5/5 performance matrices (geometric means 0.97984×/0.98178×); strict common-FP32 full-logit
 > alignment remains 7/8. The route stays explicit and default-off.
+> Long-context validation then exposes a test-contract issue at T1024/B2: Transformers BF16
+> identical rows choose 474/2 while microLLM chooses 2/2 and the FP32 oracle is 2. Row outputs are
+> now preserved as `batch_invariance_mismatch`; the old generic worker failure is retired.
 
 </details>
 
@@ -1368,6 +1371,10 @@ decision: 64/64 workers, 8/8 fixed FP32 argmax states and 5/5 performance cases 
 prefill recovers to 1.0011×; two independent geometric means are 0.97984×/0.98178×. One pre-existing common-FP32
 full-logit boundary keeps the strict count at 7/8. The +336 MiB route is retained as an explicit
 precision policy, not made default and not described as acceleration.
+[Experiment 377](docs/optimization-log/experiments/377-hf-batch-invariance-contract.md) upgrades
+identical-input row divergence from a generic worker failure to first-class evidence. At
+T1024/B2/N8, microLLM produces 2/2, Transformers BF16 produces 474/2, and the common FP32 oracle
+is 2; all rows and exact KV bytes remain inspectable.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

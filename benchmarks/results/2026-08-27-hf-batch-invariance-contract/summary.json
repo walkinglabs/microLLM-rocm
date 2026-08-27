@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "status": "pass_batch_invariance_evidence_contract",
+  "model": "Qwen/Qwen3-0.6B",
+  "case": "T1024/B2/N8 cached decode",
+  "aggregate_status": "batch_invariance_mismatch",
+  "microllm": {
+    "generated_rows_equal": true,
+    "first_sensitive_token": 2,
+    "generated_rows": [
+      [198, 262, 3190, 2, 1096, 5316, 374, 264],
+      [198, 262, 3190, 2, 1096, 5316, 374, 264]
+    ],
+    "kv_cache_bytes": 236716032
+  },
+  "pytorch_bf16": {
+    "generated_rows_equal": false,
+    "row0_first_sensitive_token": 474,
+    "row1_first_sensitive_token": 2,
+    "generated_rows": [
+      [198, 262, 3190, 474, 198, 474, 314, 330],
+      [198, 262, 3190, 2, 1096, 5316, 374, 264]
+    ],
+    "kv_cache_bytes": 236716032
+  },
+  "common_fp32_oracle": {
+    "capture_step": 3,
+    "pytorch_fp32_argmax": 2,
+    "microllm_fp32_argmax": 2,
+    "phase_candidate_argmax": 2,
+    "pytorch_bf16_argmax": 474,
+    "fp32_implementations_aligned": true
+  },
+  "tests": {
+    "shape_matrix_contract_passed": 83,
+    "shape_matrix_contract_total": 83
+  },
+  "decision": "preserve row-level output and classify batch invariance separately from process failure and cross-framework precision",
+  "boundary": "one official model/shape/run; throughput values are not a repeated performance claim"
+}
