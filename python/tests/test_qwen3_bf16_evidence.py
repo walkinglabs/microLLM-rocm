@@ -18,6 +18,8 @@ PROJECTION_ROOT = (ROOT / "benchmarks/results" /
                    "2026-08-26-qwen3-bf16-ffn-projection-search")
 CANDIDATE_ROOT = (ROOT / "benchmarks/results" /
                   "2026-08-26-qwen3-ffn0-4-fp32-reject")
+GATE_FP32_ROOT = (ROOT / "benchmarks/results" /
+                  "2026-08-26-qwen3-bf16-gate-fp32-reject")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -200,6 +202,22 @@ def main():
     assert "identical batch rows" in failures[0]["error"]
     assert "ffn_fp32_layers=0,1,2,3,4" in \
         candidate_matrix["precision_boundary"]["microllm"]
+    gate_fp32 = json.loads((GATE_FP32_ROOT / "summary.json").read_text())
+    gate_fp32_raw = [json.loads(line) for line in
+                     (GATE_FP32_ROOT / "raw.jsonl").read_text().splitlines()
+                     if line]
+    assert gate_fp32["status"] == "reject_oracle"
+    assert gate_fp32["case_count"] == 5
+    assert gate_fp32["gates"]["all_five_cases_present"] is True
+    assert gate_fp32["gates"]["candidate_matches_every_fp32_argmax"] is False
+    rows = {item["name"]: item for item in gate_fp32["rows"]}
+    assert sum(item["candidate_matches_oracle"] for item in rows.values()) == 4
+    assert (rows["t512-b1-step2"]["oracle_argmax"],
+            rows["t512-b1-step2"]["candidate_argmax"],
+            rows["t512-b1-step2"]["torch_bf16_argmax"]) == (2955, 1096, 1096)
+    assert rows["t512-b1-step2"]["candidate_margin"] < 0.0033
+    assert len(gate_fp32_raw) == 20
+    assert all(item["status"] == "pass" for item in gate_fp32_raw)
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

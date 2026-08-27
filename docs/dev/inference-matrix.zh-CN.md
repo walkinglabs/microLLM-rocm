@@ -262,3 +262,5 @@ FFN gate/up/down七种scope和两个最小层集合见
 [Experiment 369](../optimization-log/experiments/369-qwen3-bf16-ffn-projection-search.md)。
 layers0–4 FP32候选的完整shape拒绝见
 [Experiment 370](../optimization-log/experiments/370-qwen3-ffn0-4-fp32-reject.md)。
+全模型gate-FP32五case预筛拒绝见
+[Experiment 371](../optimization-log/experiments/371-qwen3-bf16-gate-fp32-reject.md)。

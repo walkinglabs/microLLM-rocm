@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="730" viewBox="0 0 1500 730">
+  <rect width="1500" height="730" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 calibrated rule · gate FP32, up/down BF16</text>
+  <text x="60" y="103" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Five shared-input FP32 oracle cases · preflight before shape/performance</text>
+
+  <rect x="55" y="145" width="1390" height="360" rx="20" fill="#ffffff" stroke="#d7dce6" stroke-width="2"/>
+  <text x="100" y="195" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#172033">Case</text>
+  <text x="520" y="195" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#172033">FP32 / candidate / full BF16</text>
+  <text x="1230" y="195" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#172033">gate</text>
+
+  <text x="100" y="250" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T32/B1 step1</text>
+  <text x="520" y="250" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">374 / 374 / 323</text>
+  <text x="1230" y="250" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">pass</text>
+  <text x="100" y="305" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T32/B2 step1</text>
+  <text x="520" y="305" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">374 / 374 / 323</text>
+  <text x="1230" y="305" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">pass</text>
+  <text x="100" y="360" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T128/B2 step8</text>
+  <text x="520" y="360" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">320 / 320 / 320</text>
+  <text x="1230" y="360" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">pass</text>
+  <rect x="80" y="382" width="1320" height="55" rx="10" fill="#fee2e2"/>
+  <text x="100" y="417" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335">T512/B1 step2</text>
+  <text x="520" y="417" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335">2955 / 1096 / 1096</text>
+  <text x="1230" y="417" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#b42335">reject</text>
+  <text x="100" y="475" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T512/B2 step8 forced</text>
+  <text x="520" y="475" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">1273 / 1273 / 4285</text>
+  <text x="1230" y="475" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">pass</text>
+
+  <rect x="55" y="555" width="650" height="120" rx="18" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+  <text x="380" y="605" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#b42335">4 / 5 ≠ pass</text>
+  <text x="380" y="645" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">no shape or performance run</text>
+
+  <rect x="755" y="555" width="690" height="120" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="1100" y="603" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#1d4ed8">Close simple PTQ policy search</text>
+  <text x="1100" y="645" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">reopen with calibration data, QAT or training signal</text>
+</svg>

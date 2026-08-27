@@ -5445,3 +5445,13 @@ Attention-only仍选320，margin 0.07367。batch内Max分别0.1443/0.0325。
 正确性先失败，所以性能runner删除，默认不改。
 
 ![Qwen3 early FFN FP32 rejection](assets/qwen3-ffn0-4-fp32-reject.svg)
+
+## 387. Experiment 371：简单全模型规则也要允许一个case推翻
+
+全模型gate FP32、up/down与Attention BF16。五个共同oracle中，T32两格、T128和强制T512/B2
+通过；T512/B1中FP32选2955，候选和full-BF16都选1096，候选margin仅0.003286。
+
+4/5不能进入完整shape或性能。结合早期层候选失败，当前手工/简单PTQ BF16 policy搜索关闭；重开
+需要校准数据、QAT或训练信号。
+
+![Qwen3 gate-FP32 rejection](assets/qwen3-bf16-gate-fp32-reject.svg)

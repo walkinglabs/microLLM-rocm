@@ -1140,6 +1140,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 FFN projection SVG](assets/qwen3-bf16-ffn-projection-search.svg) | 12个partial scope与all-three翻转 |
 | [experiments/370-qwen3-ffn0-4-fp32-reject.md](experiments/370-qwen3-ffn0-4-fp32-reject.md) | 早期五层FP32候选完整矩阵拒绝 |
 | [Qwen3 early FFN reject SVG](assets/qwen3-ffn0-4-fp32-reject.svg) | 前缀改善、batch失败与90MiB代价 |
+| [experiments/371-qwen3-bf16-gate-fp32-reject.md](experiments/371-qwen3-bf16-gate-fp32-reject.md) | 全模型gate-FP32简单校准拒绝 |
+| [Qwen3 gate-FP32 reject SVG](assets/qwen3-bf16-gate-fp32-reject.svg) | 五case 4/5与T512反例 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

@@ -36,6 +36,7 @@ MICRO_POLICIES = {
     "micro-ffn-gate-up-bf16-fp32": (True, False, "fp32", "gate-up"),
     "micro-ffn-gate-down-bf16-fp32": (True, False, "fp32", "gate-down"),
     "micro-ffn-up-down-bf16-fp32": (True, False, "fp32", "up-down"),
+    "micro-mixed-up-down-bf16": (True, True, "bf16", "up-down"),
 }
 TORCH_POLICIES = ("torch-fp32", "torch-bf16")
 DEFAULT_MICRO_POLICIES = (
@@ -59,6 +60,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--allow-amdsmi-fallback", action="store_true")
     parser.add_argument("--micro-policies", default=",".join(DEFAULT_MICRO_POLICIES))
     parser.add_argument("--micro-ffn-fp32-layers", default="")
+    parser.add_argument("--micro-current-policy")
     parser.add_argument("--worker-dtype", choices=("fp32", "bf16"))
     parser.add_argument("--worker-output", type=Path)
     args = parser.parse_args()
@@ -96,10 +98,16 @@ def options() -> argparse.Namespace:
     if (len(args.micro_policies) != len(set(args.micro_policies)) or
             any(policy not in MICRO_POLICIES for policy in args.micro_policies) or
             "micro-fp32-fp32" not in args.micro_policies or
-            not ({"micro-bf16-bf16", "micro-ffn-bf16-fp32"} &
-                 set(args.micro_policies))):
+            not (set(args.micro_policies) - {"micro-fp32-fp32"})):
         parser.error(
             "micro policies must be unique known names and include FP32 plus a current policy")
+    if args.micro_current_policy is None:
+        args.micro_current_policy = (
+            "micro-bf16-bf16" if "micro-bf16-bf16" in args.micro_policies
+            else "micro-ffn-bf16-fp32")
+    if args.micro_current_policy not in args.micro_policies or \
+            args.micro_current_policy == "micro-fp32-fp32":
+        parser.error("micro current policy must name a selected low-precision policy")
     return args
 
 
@@ -321,7 +329,8 @@ def run_torch(args: argparse.Namespace, model: dict, vocabulary: int,
 def summarize(samples: dict[str, tuple[dict, list[float]]], vocabulary: int,
               context: int, batch: int, decode_tokens: int,
               capture_step: int,
-              forced_inputs: list[int] | tuple[int, ...] = ()) -> dict:
+              forced_inputs: list[int] | tuple[int, ...] = (),
+              current_micro_policy: str | None = None) -> dict:
     oracle = samples["torch-fp32"][1]
     policies = []
     policy_order = ["torch-fp32"] + [
@@ -356,8 +365,11 @@ def summarize(samples: dict[str, tuple[dict, list[float]]], vocabulary: int,
     fp32_alignment = comparison("micro-fp32-fp32", "torch-fp32")
     torch_top = by_name["torch-bf16"]["top3"]
     oracle_token = by_name["torch-fp32"]["argmax_token"]
-    current_micro = ("micro-bf16-bf16" if "micro-bf16-bf16" in by_name
-                     else "micro-ffn-bf16-fp32")
+    current_micro = current_micro_policy or (
+        "micro-bf16-bf16" if "micro-bf16-bf16" in by_name
+        else "micro-ffn-bf16-fp32")
+    if current_micro not in by_name:
+        raise RuntimeError("declared micro current policy is missing")
     micro_matches_oracle = by_name[current_micro]["argmax_token"] == oracle_token
     torch_matches_oracle = by_name["torch-bf16"]["argmax_token"] == oracle_token
     gates = {
@@ -368,8 +380,8 @@ def summarize(samples: dict[str, tuple[dict, list[float]]], vocabulary: int,
             fp32_alignment["rms_error"] <= 4.0e-5,
         "fp32_oracle_argmax_agrees_with_micro_fp32":
             by_name["micro-fp32-fp32"]["argmax_token"] == oracle_token,
-        "exactly_one_low_precision_policy_matches_fp32":
-            micro_matches_oracle != torch_matches_oracle,
+        "at_least_one_low_precision_policy_matches_fp32":
+            micro_matches_oracle or torch_matches_oracle,
     }
     attribution = {
         "micro_fp32_vs_torch_fp32": fp32_alignment,
@@ -404,6 +416,10 @@ def summarize(samples: dict[str, tuple[dict, list[float]]], vocabulary: int,
         "attribution": attribution,
         "oracle_matching_low_precision_policy":
             current_micro if micro_matches_oracle else "torch-bf16",
+        "oracle_matching_low_precision_policies": [
+            name for name, matches in (
+                (current_micro, micro_matches_oracle),
+                ("torch-bf16", torch_matches_oracle)) if matches],
         "micro_current_policy": current_micro,
         "conclusion": (
             "the two low-precision policies choose different low-margin tokens; "
@@ -440,7 +456,8 @@ def main() -> int:
         print(json.dumps(sample[0], sort_keys=True), flush=True)
     summary = summarize(
         samples, vocabulary, args.context, args.batch,
-        args.decode_tokens, args.capture_step, args.forced_inputs)
+        args.decode_tokens, args.capture_step, args.forced_inputs,
+        args.micro_current_policy)
     (args.output_directory / "raw.jsonl").write_text(
         "".join(json.dumps(record, sort_keys=True) + "\n" for record in raw),
         encoding="utf-8")

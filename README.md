@@ -325,6 +325,8 @@ If “Config package” is unfamiliar, read the beginner-facing
 > projection scopes keep FP32 token 320. Full shape/performance policy gates remain open.
 > The first deployable candidate (FFN layers0–4 FP32) is rejected before timing: T128
 > diverges again at token23 and T512/B2 identical rows fail in 3/3 fresh processes.
+> A simpler global gate-FP32 rule also fails: it matches only 4/5 FP32-oracle cases and
+> selects 1096 instead of 2955 at T512/B1. Hand-designed PTQ BF16 policy search is closed.
 
 </details>
 
@@ -1334,6 +1336,9 @@ projection-scoped preparation. In both minimal sets, every single/two-projection
 [Experiment 370](docs/optimization-log/experiments/370-qwen3-ffn0-4-fp32-reject.md) runs that
 complete gate for early layers0–4 FP32. It improves the T128 prefix but later diverges and makes
 T512/B2 identical rows fail 3/3, so the candidate is removed before performance measurement.
+[Experiment 371](docs/optimization-log/experiments/371-qwen3-bf16-gate-fp32-reject.md) tests the
+simple global gate-FP32 rule. It passes 4/5 common-oracle cases but fails T512/B1, closing the
+current hand-designed post-training BF16 policy line before shape or performance claims.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

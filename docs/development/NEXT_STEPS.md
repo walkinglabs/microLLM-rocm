@@ -59,6 +59,9 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] test the smaller deployable candidate with FFN layers0–4 wholly FP32 and all other
   FFN/Attention BF16: T128 prefix improves 8→22, but T512/B2 identical rows fail 3/3;
   reject before speed despite the exact +94,371,840-byte resident cost;
+- [x] test one simple global calibration rule (gate FP32, up/down BF16): it passes 4/5
+  first-divergence oracles but fails T512/B1, so the current hand-designed PTQ BF16 policy
+  line is closed before shape/performance work;
 - [ ] restart Qwen3 precision-policy work only with calibration/QAT or a policy justified by
   the complete mismatch matrix; do not continue ad-hoc early-layer FP32 combinations;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
