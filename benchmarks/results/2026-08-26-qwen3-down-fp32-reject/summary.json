@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "reject_extended_oracle",
+  "candidate": "FFN down FP32; FFN gate/up and all Attention BF16; BF16 Cache",
+  "resident_weight_bytes": 1679556608,
+  "resident_delta_bytes": 176160768,
+  "ffn_bf16_tensors": 56,
+  "attention_bf16_tensors": 112,
+  "original_oracle_cases_passed": 5,
+  "original_oracle_case_count": 5,
+  "complete_shape_worker_passes": 64,
+  "complete_shape_worker_rows": 64,
+  "complete_shape_pass_rows": 22,
+  "complete_shape_precision_mismatch_rows": 10,
+  "new_t128_b1_step8": {
+    "fp32_argmax": 320,
+    "down_fp32_argmax": 25,
+    "up_fp32_argmax": 320,
+    "torch_bf16_argmax": 320,
+    "down_fp32_margin": 0.0330657958984375,
+    "down_fp32_oracle_maximum_error": 0.4047800153493881,
+    "down_fp32_oracle_rms_error": 0.08499049177479796
+  },
+  "short_performance": {
+    "case": "T1/B1/N4",
+    "runs": 3,
+    "warmup": 2,
+    "steps": 5,
+    "current_tokens_per_second": 232.559210389,
+    "candidate_tokens_per_second": 221.978783024,
+    "candidate_over_current": 0.9545043718229771,
+    "performance_gate_passed": true
+  },
+  "decision": "reject down-FP32; advance up-FP32 to complete shape gate",
+  "up_fp32_extended_oracle_cases_passed": 6,
+  "up_fp32_extended_oracle_case_count": 6,
+  "boundary": "up-FP32 is still only a candidate; complete shape and performance remain open"
+}

@@ -63,8 +63,12 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   first-divergence oracles but fails T512/B1, so that rule is rejected;
 - [x] test the symmetric up-FP32 and down-FP32 rules: both pass5/5 at equal resident
   cost; select down-FP32 for its stronger minimum margin 0.009707 vs0.001289;
-- [ ] run down-FP32 through complete shape/batch invariants and repeated performance;
-  it remains a candidate, not a default, until both gates pass;
+- [x] run down-FP32 through complete shape and short repeated performance: speed is
+  0.9545x, but a new T128/B1 oracle selects 25 vs FP32 320, so reject;
+- [x] check up-FP32 on the new T128/B1 state: it selects FP32 token320 and reaches
+  extended6/6 oracle evidence;
+- [ ] run up-FP32 through complete shape/batch invariants and repeated performance;
+  it remains the final simple projection candidate, not a default;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

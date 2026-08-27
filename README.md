@@ -328,6 +328,8 @@ If “Config package” is unfamiliar, read the beginner-facing
 > A simpler global gate-FP32 rule also fails: it matches only 4/5 FP32-oracle cases and
 > selects 1096 instead of 2955 at T512/B1. Symmetric up/down-FP32 rules both pass 5/5;
 > down-FP32 is selected for the next gate by its stronger 0.009707 minimum margin.
+> That selection is later overturned: down-FP32 passes 0.9545× short speed but fails a
+> new T128/B1 FP32 oracle. up-FP32 passes the added state (extended 6/6) and remains pending.
 
 </details>
 
@@ -1343,6 +1345,9 @@ rule before shape or performance claims.
 [Experiment 372](docs/optimization-log/experiments/372-qwen3-bf16-projection-calibration.md) tests
 the symmetric alternatives. up/down-FP32 both pass5/5 at equal memory cost; down-FP32 advances
 only as a candidate because its minimum top-2 margin is larger.
+[Experiment 373](docs/optimization-log/experiments/373-qwen3-down-fp32-reject.md) overturns that
+selection on the complete trajectory: down-FP32 passes short speed but fails a new T128/B1 oracle.
+The symmetric up-FP32 control passes the added state and advances only to the next shape gate.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

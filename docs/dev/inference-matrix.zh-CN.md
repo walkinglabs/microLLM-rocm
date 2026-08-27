@@ -266,3 +266,5 @@ layers0–4 FP32候选的完整shape拒绝见
 [Experiment 371](../optimization-log/experiments/371-qwen3-bf16-gate-fp32-reject.md)。
 三个对称规则与down-FP32候选选择见
 [Experiment 372](../optimization-log/experiments/372-qwen3-bf16-projection-calibration.md)。
+down-FP32完整shape、新oracle和短性能拒绝见
+[Experiment 373](../optimization-log/experiments/373-qwen3-down-fp32-reject.md)。

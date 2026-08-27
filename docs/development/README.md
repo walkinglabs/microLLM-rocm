@@ -745,3 +745,5 @@ the next gate. Records are append-only except for factual corrections.
   rejects the gate-FP32 rule on a T512 oracle counterexample.
 - [2026-08-26-qwen3-bf16-projection-calibration.md](2026-08-26-qwen3-bf16-projection-calibration.md):
   measures all symmetric rules and selects down-FP32 for the complete shape gate.
+- [2026-08-26-qwen3-down-fp32-reject.md](2026-08-26-qwen3-down-fp32-reject.md):
+  rejects down-FP32 on a new T128 oracle despite passing short performance.

@@ -5461,3 +5461,12 @@ up-FP32与down-FP32都通过5/5，gate-FP32只有4/5。up/down常驻相同，均
 最小margin分别0.001289/0.009707。因此选择down-FP32进入完整shape门，但仍不是keep/default。
 
 ![Qwen3 projection calibration](assets/qwen3-bf16-projection-calibration.svg)
+
+## 389. Experiment 373：预筛和速度都过，完整轨迹仍有否决权
+
+down-FP32原5case通过，短性能0.9545×也过门。完整矩阵却新增T128/B1/B2分叉；B1 step8中
+FP32/full-BF16选320，候选选25，Max/RMS 0.4048/0.0850。
+
+down候选拒绝。对称up-FP32在新增状态选320，累计6/6 oracle，只晋级下一完整shape门。
+
+![Qwen3 down-FP32 rejection](assets/qwen3-down-fp32-reject.svg)

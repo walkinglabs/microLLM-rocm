@@ -22,6 +22,8 @@ GATE_FP32_ROOT = (ROOT / "benchmarks/results" /
                   "2026-08-26-qwen3-bf16-gate-fp32-reject")
 CALIBRATION_ROOT = (ROOT / "benchmarks/results" /
                     "2026-08-26-qwen3-bf16-projection-calibration")
+DOWN_REJECT_ROOT = (ROOT / "benchmarks/results" /
+                    "2026-08-26-qwen3-down-fp32-reject")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -248,6 +250,36 @@ def main():
         assert all(item["bf16_ffn_weight_scope"] == scope and
                    item["resident_weight_bytes"] == 1_679_556_608
                    for item in samples)
+    down_reject = json.loads((DOWN_REJECT_ROOT / "summary.json").read_text())
+    down_matrix = json.loads(
+        (DOWN_REJECT_ROOT / "matrix-summary.json").read_text())
+    down_matrix_raw = [json.loads(line) for line in
+                       (DOWN_REJECT_ROOT / "matrix-raw.jsonl").read_text().splitlines()
+                       if line]
+    down_perf = json.loads(
+        (DOWN_REJECT_ROOT / "short-performance-summary.json").read_text())
+    down_oracle = json.loads(
+        (DOWN_REJECT_ROOT / "down-new-oracle-summary.json").read_text())
+    up_oracle = json.loads(
+        (DOWN_REJECT_ROOT / "up-new-oracle-summary.json").read_text())
+    assert down_reject["status"] == "reject_extended_oracle"
+    assert down_reject["complete_shape_worker_passes"] == 64
+    assert down_reject["complete_shape_pass_rows"] == 22
+    assert down_reject["complete_shape_precision_mismatch_rows"] == 10
+    assert down_reject["new_t128_b1_step8"]["fp32_argmax"] == 320
+    assert down_reject["new_t128_b1_step8"]["down_fp32_argmax"] == 25
+    assert down_reject["new_t128_b1_step8"]["up_fp32_argmax"] == 320
+    assert down_reject["up_fp32_extended_oracle_cases_passed"] == 6
+    assert len(down_matrix["rows"]) == 32 and len(down_matrix_raw) == 64
+    assert all(item["status"] == "pass" for item in down_matrix_raw)
+    assert sum(item["status"] == "precision_mismatch"
+               for item in down_matrix["rows"]) == 10
+    assert down_perf["status"] == "pass_performance"
+    assert 0.95 <= down_perf["candidate_over_current_throughput"] < 0.96
+    down_policies = {item["policy"]: item for item in down_oracle["policy_rows"]}
+    up_policies = {item["policy"]: item for item in up_oracle["policy_rows"]}
+    assert down_policies["micro-mixed-gate-up-bf16"]["argmax_token"] == 25
+    assert up_policies["micro-mixed-gate-down-bf16"]["argmax_token"] == 320
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

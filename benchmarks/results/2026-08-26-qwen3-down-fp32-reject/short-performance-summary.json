@@ -1,0 +1,28 @@
+{
+  "boundary": "short-decode early-stop gate; complete shape was intentionally stopped",
+  "candidate_over_current_latency": 1.04766413808138,
+  "candidate_over_current_throughput": 0.9545043718229771,
+  "case": "T1/B1/N4 cached decode",
+  "current_engine_peak_bytes": 1505188888,
+  "current_latency_ms": 17.1999208,
+  "current_preparation_peak_bytes": 2912681984,
+  "current_resident_weight_bytes": 1503395840,
+  "current_throughput_tokens_per_second": 232.559210389,
+  "down-fp32_engine_peak_bytes": 1681349656,
+  "down-fp32_latency_ms": 18.0197402,
+  "down-fp32_preparation_peak_bytes": 2736521216,
+  "down-fp32_resident_weight_bytes": 1679556608,
+  "down-fp32_throughput_tokens_per_second": 221.978783024,
+  "gates": {
+    "latency_at_most_1_05": true,
+    "resident_delta_exact": true,
+    "throughput_at_least_point95": true,
+    "tokens_equal": true
+  },
+  "record_type": "qwen3_down_fp32_short_gate",
+  "runs": 3,
+  "schema_version": 1,
+  "status": "pass_performance",
+  "steps": 5,
+  "warmup": 2
+}

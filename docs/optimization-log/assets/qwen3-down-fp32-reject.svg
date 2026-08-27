@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="740" viewBox="0 0 1500 740">
+  <rect width="1500" height="740" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 down-FP32 candidate · extended gate</text>
+  <text x="60" y="103" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Original oracle 5/5 · complete shape 64/64 workers · formal short performance</text>
+
+  <rect x="55" y="145" width="430" height="390" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="270" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">What passed</text>
+  <text x="270" y="275" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="46" font-weight="700" fill="#166534">5 / 5</text>
+  <text x="270" y="315" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">original FP32 oracles</text>
+  <text x="270" y="390" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="32" font-weight="700" fill="#166534">0.9545×</text>
+  <text x="270" y="430" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">short throughput gate ≥0.95</text>
+  <text x="270" y="485" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">+176,160,768 resident bytes</text>
+
+  <rect x="535" y="145" width="430" height="390" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="750" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#b42335">What failed</text>
+  <text x="750" y="270" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033">new T128/B1 step8</text>
+  <text x="750" y="335" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#b42335">320 / 25 / 320</text>
+  <text x="750" y="375" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">FP32 / down-FP32 / full BF16</text>
+  <text x="750" y="445" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700" fill="#b42335">Max/RMS 0.4048 / 0.0850</text>
+  <text x="750" y="495" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b42335">10 mismatches vs current 8</text>
+
+  <rect x="1015" y="145" width="430" height="390" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="1230" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#1d4ed8">Symmetric control</text>
+  <text x="1230" y="280" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" fill="#172033">up-FP32 at new state</text>
+  <text x="1230" y="355" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#166534">320</text>
+  <text x="1230" y="410" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700" fill="#166534">extended oracle 6 / 6</text>
+  <text x="1230" y="475" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">advances, not admitted</text>
+
+  <rect x="55" y="585" width="1390" height="95" rx="18" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+  <text x="90" y="640" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#b42335">Reject down-FP32:</text>
+  <text x="330" y="640" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033">performance pass cannot override a new complete-logit oracle failure</text>
+</svg>

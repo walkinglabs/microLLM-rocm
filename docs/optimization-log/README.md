@@ -1144,6 +1144,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 gate-FP32 reject SVG](assets/qwen3-bf16-gate-fp32-reject.svg) | 五case 4/5与T512反例 |
 | [experiments/372-qwen3-bf16-projection-calibration.md](experiments/372-qwen3-bf16-projection-calibration.md) | gate/up/down对称五case选择 |
 | [Qwen3 projection calibration SVG](assets/qwen3-bf16-projection-calibration.svg) | 4/5、5/5、5/5与margin选择 |
+| [experiments/373-qwen3-down-fp32-reject.md](experiments/373-qwen3-down-fp32-reject.md) | down-FP32完整shape/新oracle拒绝 |
+| [Qwen3 down-FP32 reject SVG](assets/qwen3-down-fp32-reject.svg) | 性能通过、新T128失败与up控制 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 
