@@ -1434,6 +1434,9 @@ FFN down. Longer and checkpoint-resumed trajectories remain separate.
 uses one shared step1 checkpoint, then compares same-process continuation with a fresh-process
 two-step resume. FP32/BF16 both pass 5/5; losses are bitwise and parameter/moment maxima stay below
 `1e-7/1e-5`. Atomic tied paths remain explicitly non-bitwise.
+[Experiment 387](docs/optimization-log/experiments/387-qwen3-bf16-moment-storage-audit.md) halves
+Qwen3 optimizer moments from 4.768 to 2.384GB. Its internal added-error gates pass 6/6 over three
+steps, but the upstream BF16-vs-PyTorch training decision remains rejected.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

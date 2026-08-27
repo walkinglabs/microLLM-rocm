@@ -774,3 +774,5 @@ the next gate. Records are append-only except for factual corrections.
   compares loss and all final parameter/optimizer state across three steps.
 - [2026-08-27-qwen3-training-checkpoint-resume-audit.md](2026-08-27-qwen3-training-checkpoint-resume-audit.md):
   validates shared-step checkpoint restart for FP32 and BF16.
+- [2026-08-27-qwen3-bf16-moment-storage-audit.md](2026-08-27-qwen3-bf16-moment-storage-audit.md):
+  bounds the added error of halving Qwen3 optimizer-state storage.

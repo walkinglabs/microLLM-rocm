@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="620" viewBox="0 0 1300 620">
+<rect width="1300" height="620" fill="#f7f9fc"/>
+<text x="650" y="48" text-anchor="middle" font-family="Inter,Arial" font-size="30" font-weight="700" fill="#172033">Qwen3 BF16 AdamW Moments: Half the State, Bounded Added Error</text>
+<text x="650" y="80" text-anchor="middle" font-family="Inter,Arial" font-size="16" fill="#5b6474">internal policy comparison inside the already-rejected BF16 forward path</text>
+<rect x="60" y="120" width="1180" height="400" rx="18" fill="#fff" stroke="#dbe1ea"/>
+<rect x="120" y="175" width="800" height="55" rx="8" fill="#4776c5"/><text x="140" y="210" font-family="Inter,Arial" font-size="18" fill="#fff">FP32 moments · 4.768 GB</text>
+<rect x="120" y="250" width="400" height="55" rx="8" fill="#6aa57a"/><text x="140" y="285" font-family="Inter,Arial" font-size="18" fill="#fff">BF16 moments · 2.384 GB</text>
+<text x="650" y="185" font-family="Inter,Arial" font-size="16" fill="#172033">loss added Max</text>
+<text x="890" y="185" font-family="monospace" font-size="15" fill="#172033">2.605e-03 / 5.0e-02</text>
+<text x="1150" y="185" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="650" y="240" font-family="Inter,Arial" font-size="16" fill="#172033">parameter Max</text>
+<text x="890" y="240" font-family="monospace" font-size="15" fill="#172033">3.470e-05 / 2.0e-04</text>
+<text x="1150" y="240" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="650" y="295" font-family="Inter,Arial" font-size="16" fill="#172033">parameter RMS</text>
+<text x="890" y="295" font-family="monospace" font-size="15" fill="#172033">1.197e-06 / 1.0e-05</text>
+<text x="1150" y="295" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="650" y="350" font-family="Inter,Arial" font-size="16" fill="#172033">moment Max</text>
+<text x="890" y="350" font-family="monospace" font-size="15" fill="#172033">4.736e-02 / 5.0e-02</text>
+<text x="1150" y="350" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="650" y="405" font-family="Inter,Arial" font-size="16" fill="#172033">moment RMS</text>
+<text x="890" y="405" font-family="monospace" font-size="15" fill="#172033">3.335e-05 / 1.0e-03</text>
+<text x="1150" y="405" font-family="Inter,Arial" font-size="14" font-weight="700" fill="#198754">PASS</text>
+<text x="120" y="470" font-family="Inter,Arial" font-size="15" fill="#5b6474">hybrid multi-tensor: 169 tensors · 58,785,792 elements · threshold 1,048,576</text>
+<text x="650" y="575" text-anchor="middle" font-family="Inter,Arial" font-size="15" fill="#c0392b">Not a PyTorch parity claim · upstream BF16 training remains rejected</text>
+</svg>

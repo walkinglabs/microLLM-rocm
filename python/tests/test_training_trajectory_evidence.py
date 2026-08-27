@@ -17,6 +17,7 @@ ALL_RENDER = (ROOT / "docs/optimization-log/scripts" /
 MOMENT_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_adamw_state_audit.py"
 MULTISTEP_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_multistep_state_audit.py"
 RESUME_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_checkpoint_resume_audit.py"
+BF16_MOMENT_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_bf16_moment_storage_audit.py"
 
 
 def main() -> int:
@@ -29,6 +30,7 @@ def main() -> int:
     moment_audit = MOMENT_AUDIT.read_text(encoding="utf-8")
     multistep_audit = MULTISTEP_AUDIT.read_text(encoding="utf-8")
     resume_audit = RESUME_AUDIT.read_text(encoding="utf-8")
+    bf16_moment_audit = BF16_MOMENT_AUDIT.read_text(encoding="utf-8")
     for token in (
         "--loss-trajectory-output", "--gate-up-parameters-output",
         "--gate-up-gradients-output", "gate_up_gradient_tensors",
@@ -130,6 +132,8 @@ def main() -> int:
         assert token in multistep_audit
     for token in ("parameters_within_tolerance", "moments_within_tolerance", "losses_within_tolerance", "bitwise_diagnostics", "checkpoint_format_version", "process restart"):
         assert token in resume_audit
+    for token in ("moment_bytes_half", "BF16 forward + BF16 moments", "already rejected", "multi_tensor"):
+        assert token in bf16_moment_audit
     print("training trajectory evidence contract: pass")
     return 0
 
