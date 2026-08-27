@@ -24,6 +24,8 @@ CALIBRATION_ROOT = (ROOT / "benchmarks/results" /
                     "2026-08-26-qwen3-bf16-projection-calibration")
 DOWN_REJECT_ROOT = (ROOT / "benchmarks/results" /
                     "2026-08-26-qwen3-down-fp32-reject")
+UP_REJECT_ROOT = (ROOT / "benchmarks/results" /
+                  "2026-08-27-qwen3-up-fp32-reject")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -42,8 +44,59 @@ LAYER_SPEC = importlib.util.spec_from_file_location(
 LAYER_SEARCH = importlib.util.module_from_spec(LAYER_SPEC)
 assert LAYER_SPEC.loader is not None
 LAYER_SPEC.loader.exec_module(LAYER_SEARCH)
+UP_PERF_SPEC = importlib.util.spec_from_file_location(
+    "compare_qwen3_up_fp32_matrix",
+    ROOT / "benchmarks/single_gpu/compare_qwen3_up_fp32_matrix.py")
+UP_PERF = importlib.util.module_from_spec(UP_PERF_SPEC)
+assert UP_PERF_SPEC.loader is not None
+UP_PERF_SPEC.loader.exec_module(UP_PERF)
 
 def main():
+    assert len(UP_PERF.CASES) == 5
+    assert {(case["context"], case["batch"], case["decode_tokens"])
+            for case in UP_PERF.CASES} == {
+                (1, 1, 1), (32, 1, 4), (128, 2, 32),
+                (512, 2, 0), (512, 2, 32)}
+    synthetic = []
+    for case in UP_PERF.CASES:
+        for process_run in range(1, UP_PERF.RUNS + 1):
+            for policy in UP_PERF.POLICIES:
+                candidate = policy == "up-fp32"
+                synthetic.append({
+                    "case": case["name"], "policy": policy,
+                    "throughput_tokens_per_second": 98.0 if candidate else 100.0,
+                    "latency_ms": 102.0 if candidate else 100.0,
+                    "resident_weight_bytes":
+                        1_503_395_840 +
+                        (UP_PERF.RESIDENT_DELTA_BYTES if candidate else 0),
+                    "engine_peak_bytes":
+                        1_503_395_840 +
+                        (UP_PERF.RESIDENT_DELTA_BYTES if candidate else 0) + 4_194_304,
+                    "engine_incremental_peak_bytes": 4_194_304,
+                    "preparation_peak_bytes": 2_000_000_000,
+                    "output_signature": [case["context"], case["decode_tokens"]],
+                    "process_run": process_run,
+                })
+    synthetic_summary = UP_PERF.summarize(
+        synthetic, {"name": "qwen3-0.6b", "revision": "fixture"})
+    assert synthetic_summary["status"] == "pass_performance"
+    assert math.isclose(
+        synthetic_summary["candidate_over_current_throughput_geometric_mean"],
+        0.98)
+    for row in synthetic:
+        if row["policy"] == "up-fp32":
+            row["output_signature"] = [999, row["output_signature"][-1]]
+    changed_output_summary = UP_PERF.summarize(
+        synthetic, {"name": "qwen3-0.6b", "revision": "fixture"})
+    assert changed_output_summary["status"] == "pass_performance"
+    assert all(not case["outputs_equal_across_policies"]
+               for case in changed_output_summary["cases"])
+    synthetic[1]["throughput_tokens_per_second"] = 90.0
+    synthetic[3]["throughput_tokens_per_second"] = 90.0
+    synthetic[5]["throughput_tokens_per_second"] = 90.0
+    assert UP_PERF.summarize(
+        synthetic, {"name": "qwen3-0.6b", "revision": "fixture"})[
+            "status"] == "reject_performance"
     row = json.loads(SUMMARY.read_text())
     assert row["status"] == "pass_explicit_policy"
     assert row["bf16_ffn_linears"] == 84
@@ -280,6 +333,63 @@ def main():
     up_policies = {item["policy"]: item for item in up_oracle["policy_rows"]}
     assert down_policies["micro-mixed-gate-up-bf16"]["argmax_token"] == 25
     assert up_policies["micro-mixed-gate-down-bf16"]["argmax_token"] == 320
+    up_reject = json.loads((UP_REJECT_ROOT / "summary.json").read_text())
+    up_matrix = json.loads((UP_REJECT_ROOT / "shape-summary.json").read_text())
+    up_matrix_raw = [json.loads(line) for line in
+                     (UP_REJECT_ROOT / "shape-raw.jsonl").read_text().splitlines()
+                     if line]
+    up_perf = json.loads((UP_REJECT_ROOT / "performance-summary.json").read_text())
+    up_perf_raw = [json.loads(line) for line in
+                   (UP_REJECT_ROOT / "performance-raw.jsonl").read_text().splitlines()
+                   if line]
+    up_t128 = json.loads(
+        (UP_REJECT_ROOT / "t128-b2-step22-oracle-summary.json").read_text())
+    up_t512 = json.loads(
+        (UP_REJECT_ROOT / "t512-b2-step2-oracle-summary.json").read_text())
+    assert up_reject["status"] == "reject_global_performance"
+    assert up_reject["shape_gate"]["worker_passes"] == 64
+    assert up_reject["shape_gate"]["precision_mismatch_rows"] == 9
+    assert up_reject["oracle_gate"]["unique_states_passed"] == 8
+    assert up_reject["oracle_gate"]["mismatch_rows_attributed"] == 9
+    assert up_reject["performance_gate"]["decode_cases_passed"] == 4
+    assert up_reject["performance_gate"]["resident_delta_bytes"] == 176_160_768
+    assert up_matrix["status"] == "complete_with_recorded_limits"
+    assert len(up_matrix["rows"]) == 32 and len(up_matrix_raw) == 64
+    assert all(item["status"] == "pass" for item in up_matrix_raw)
+    assert sum(item["status"] == "pass" for item in up_matrix["rows"]) == 23
+    assert sum(item["status"] == "precision_mismatch"
+               for item in up_matrix["rows"]) == 9
+    cached_rows = [item for item in up_matrix["rows"]
+                   if item["workload"] == "decode"]
+    assert len(cached_rows) == 24
+    assert all(item["microllm_kv_cache_actual_bytes"] ==
+               item["microllm_kv_cache_theoretical_bytes"] ==
+               item["pytorch_kv_cache_actual_bytes"] ==
+               item["pytorch_kv_cache_theoretical_bytes"]
+               for item in cached_rows)
+    assert up_perf["status"] == "reject_performance"
+    assert len(up_perf_raw) == 30
+    assert all(item["status"] == "pass" for item in up_perf_raw)
+    assert 0.957 < up_perf[
+        "candidate_over_current_throughput_geometric_mean"] < 0.959
+    perf_cases = {item["name"]: item for item in up_perf["cases"]}
+    assert sum(item["status"] == "pass" for item in perf_cases.values()) == 4
+    assert perf_cases["prefill_T512_B2"]["status"] == "reject"
+    assert perf_cases["prefill_T512_B2"][
+        "candidate_over_current_throughput"] < 0.89
+    assert perf_cases["prefill_T512_B2"][
+        "candidate_over_current_latency"] > 1.12
+    assert all(item["gates"]["candidate_output_deterministic"] and
+               item["gates"]["current_output_deterministic"]
+               for item in perf_cases.values())
+    for oracle, token, torch_bf16 in ((up_t128, 4226, 3270),
+                                      (up_t512, 2955, 1096)):
+        assert oracle["status"] == "pass_diagnosed_precision_policy"
+        rows = {item["policy"]: item for item in oracle["policy_rows"]}
+        assert rows["torch-fp32"]["argmax_token"] == token
+        assert rows["micro-fp32-fp32"]["argmax_token"] == token
+        assert rows["micro-mixed-gate-down-bf16"]["argmax_token"] == token
+        assert rows["torch-bf16"]["argmax_token"] == torch_bf16
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

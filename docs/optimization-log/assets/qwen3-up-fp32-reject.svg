@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="800" viewBox="0 0 1500 800">
+  <rect width="1500" height="800" fill="#f7f8fc"/>
+  <text x="60" y="62" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 global up-FP32 · complete decision gate</text>
+  <text x="60" y="99" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">64 workers · 8 unique FP32 oracles · 5-case alternating performance matrix</text>
+
+  <rect x="55" y="135" width="420" height="250" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="265" y="183" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">Precision gate</text>
+  <text x="265" y="253" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#166534">8 / 8</text>
+  <text x="265" y="289" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">unique first-split FP32 oracles</text>
+  <text x="265" y="331" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#172033">64/64 workers · 24/24 KV exact</text>
+  <text x="265" y="360" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">9 mismatch rows remain visible and attributed</text>
+
+  <rect x="540" y="135" width="420" height="250" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="750" y="183" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#1d4ed8">Cached decode</text>
+  <text x="750" y="253" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#166534">4 / 4</text>
+  <text x="750" y="289" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">case gates pass</text>
+  <text x="750" y="331" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#172033">0.972× – 0.981×</text>
+  <text x="750" y="360" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">candidate/current throughput</text>
+
+  <rect x="1025" y="135" width="420" height="250" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="1235" y="183" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#b42335">Prefill counterexample</text>
+  <text x="1235" y="253" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#b42335">0.8875×</text>
+  <text x="1235" y="289" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">T512 / B2 throughput</text>
+  <text x="1235" y="331" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#b42335">1.1268× latency</text>
+  <text x="1235" y="360" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">fails both fixed gates</text>
+
+  <rect x="55" y="430" width="1390" height="235" rx="20" fill="#ffffff" stroke="#d8deea" stroke-width="2"/>
+  <text x="85" y="472" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Throughput ratio by case</text>
+  <line x1="250" y1="495" x2="1380" y2="495" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="250" y="487" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">0.88</text>
+  <line x1="910" y1="495" x2="910" y2="650" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="910" y="667" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#b42335">0.95 gate</text>
+  <line x1="1380" y1="500" x2="1380" y2="625" stroke="#94a3b8" stroke-width="2"/>
+  <text x="1380" y="667" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#5b6474">1.00</text>
+  <text x="85" y="518" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">T1 decode</text>
+  <rect x="250" y="505" width="867" height="18" rx="9" fill="#2563eb"/>
+  <text x="1132" y="519" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">0.972</text>
+  <text x="85" y="548" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">T32 decode</text>
+  <rect x="250" y="535" width="904" height="18" rx="9" fill="#2563eb"/>
+  <text x="1169" y="549" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">0.976</text>
+  <text x="85" y="578" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">T128 decode</text>
+  <rect x="250" y="565" width="904" height="18" rx="9" fill="#2563eb"/>
+  <text x="1169" y="579" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">0.976</text>
+  <text x="85" y="608" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">T512 prefill</text>
+  <rect x="250" y="595" width="75" height="18" rx="9" fill="#ef4444"/>
+  <text x="340" y="609" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#b42335">0.888</text>
+  <text x="85" y="638" font-family="Inter,Arial,sans-serif" font-size="14" fill="#5b6474">T512 decode</text>
+  <rect x="250" y="625" width="951" height="18" rx="9" fill="#2563eb"/>
+  <text x="1216" y="639" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">0.981</text>
+
+  <rect x="55" y="705" width="1390" height="65" rx="18" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+  <text x="85" y="746" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700" fill="#b42335">Reject global policy:</text>
+  <text x="315" y="746" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">geometric mean 0.9578× &lt; 0.97 · next test isolates decode-only dual representation</text>
+</svg>

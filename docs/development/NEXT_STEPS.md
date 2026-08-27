@@ -67,8 +67,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   0.9545x, but a new T128/B1 oracle selects 25 vs FP32 320, so reject;
 - [x] check up-FP32 on the new T128/B1 state: it selects FP32 token320 and reaches
   extended6/6 oracle evidence;
-- [ ] run up-FP32 through complete shape/batch invariants and repeated performance;
-  it remains the final simple projection candidate, not a default;
+- [x] run global up-FP32 through complete shape/oracle/performance: 64/64 workers,
+  24/24 exact cached rows and 8/8 unique FP32 oracles pass, but T512/B2 prefill is
+  0.8875x and the five-case geometric mean is 0.9578x, so reject the global rule;
+- [ ] test one phase-selective counterfactual: retain fused all-BF16 prefill and use
+  up-FP32 only for decode, including the required dual-representation memory gate;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

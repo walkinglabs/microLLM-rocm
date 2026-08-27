@@ -1,0 +1,274 @@
+{
+  "attribution": {
+    "micro_fp32_vs_torch_fp32": {
+      "bitwise_equal": false,
+      "left": "micro-fp32-fp32",
+      "maximum_error": 7.915496826171875e-05,
+      "right": "torch-fp32",
+      "rms_error": 1.594180421530949e-05
+    }
+  },
+  "batch": 2,
+  "boundary": "one fixed T32/B1 decode trajectory; no performance claim",
+  "capture_step": 22,
+  "conclusion": "the two low-precision policies choose different low-margin tokens; the recorded oracle-matching policy is selected by FP32 argmax, not by name",
+  "context": 128,
+  "decode_tokens": 23,
+  "forced_inputs": [
+    14582,
+    1,
+    374,
+    264,
+    3491,
+    429,
+    374,
+    537,
+    264,
+    320,
+    606,
+    11,
+    2265,
+    11,
+    323,
+    2400,
+    8,
+    315,
+    279,
+    279,
+    3491,
+    13,
+    5209
+  ],
+  "gates": {
+    "at_least_one_low_precision_policy_matches_fp32": true,
+    "fp32_implementations_aligned": true,
+    "fp32_oracle_argmax_agrees_with_micro_fp32": true,
+    "shared_inputs_before_capture": true
+  },
+  "micro_current_policy": "micro-mixed-gate-down-bf16",
+  "model": "Qwen/Qwen3-0.6B",
+  "observations": {
+    "micro_mixed_matches_fp32_argmax": true,
+    "torch_bf16_matches_fp32_argmax": false,
+    "torch_bf16_top_two_tied": true
+  },
+  "oracle": "torch-fp32",
+  "oracle_matching_low_precision_policies": [
+    "micro-mixed-gate-down-bf16"
+  ],
+  "oracle_matching_low_precision_policy": "micro-mixed-gate-down-bf16",
+  "policy_rows": [
+    {
+      "argmax_token": 4226,
+      "captured_rows_bitwise_equal": false,
+      "captured_rows_maximum_error": 3.62396240234375e-05,
+      "captured_rows_rms_error": 6.410264380352769e-06,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        3491,
+        429,
+        374,
+        537,
+        264,
+        320,
+        606,
+        11,
+        2265,
+        11,
+        323,
+        2400,
+        8,
+        315,
+        279,
+        279,
+        3491,
+        13,
+        5209,
+        4226
+      ],
+      "policy": "torch-fp32",
+      "resident_weight_bytes": 2384199680,
+      "top1_top2_margin": 0.07327842712402344,
+      "top3": [
+        {
+          "logit": 15.819252014160156,
+          "token": 4226
+        },
+        {
+          "logit": 15.745973587036133,
+          "token": 3270
+        },
+        {
+          "logit": 15.342851638793945,
+          "token": 3410
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": true,
+      "versus_torch_fp32_maximum_error": 0.0,
+      "versus_torch_fp32_rms_error": 0.0
+    },
+    {
+      "argmax_token": 4226,
+      "captured_rows_bitwise_equal": false,
+      "captured_rows_maximum_error": 5.245208740234375e-05,
+      "captured_rows_rms_error": 1.0607150049576812e-05,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        3491,
+        429,
+        374,
+        537,
+        264,
+        320,
+        606,
+        11,
+        2265,
+        11,
+        323,
+        2400,
+        8,
+        315,
+        279,
+        279,
+        3491,
+        13,
+        5209,
+        4226
+      ],
+      "policy": "micro-fp32-fp32",
+      "resident_weight_bytes": 2384199680,
+      "top1_top2_margin": 0.07325077056884766,
+      "top3": [
+        {
+          "logit": 15.819222450256348,
+          "token": 4226
+        },
+        {
+          "logit": 15.7459716796875,
+          "token": 3270
+        },
+        {
+          "logit": 15.342823028564453,
+          "token": 3410
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 7.915496826171875e-05,
+      "versus_torch_fp32_rms_error": 1.594180421530949e-05
+    },
+    {
+      "argmax_token": 4226,
+      "captured_rows_bitwise_equal": false,
+      "captured_rows_maximum_error": 0.12447452545166016,
+      "captured_rows_rms_error": 0.025157247866767523,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        3491,
+        429,
+        374,
+        537,
+        264,
+        320,
+        606,
+        11,
+        2265,
+        11,
+        323,
+        2400,
+        8,
+        315,
+        279,
+        279,
+        3491,
+        13,
+        5209,
+        4226
+      ],
+      "policy": "micro-mixed-gate-down-bf16",
+      "resident_weight_bytes": 1679556608,
+      "top1_top2_margin": 0.06443405151367188,
+      "top3": [
+        {
+          "logit": 15.7948637008667,
+          "token": 4226
+        },
+        {
+          "logit": 15.730429649353027,
+          "token": 3270
+        },
+        {
+          "logit": 15.332385063171387,
+          "token": 3410
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 0.13408732414245605,
+      "versus_torch_fp32_rms_error": 0.027555376589640596
+    },
+    {
+      "argmax_token": 3270,
+      "captured_rows_bitwise_equal": true,
+      "captured_rows_maximum_error": 0.0,
+      "captured_rows_rms_error": 0.0,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        1,
+        374,
+        264,
+        3491,
+        429,
+        374,
+        537,
+        264,
+        320,
+        606,
+        11,
+        2265,
+        11,
+        323,
+        2400,
+        8,
+        315,
+        279,
+        279,
+        3491,
+        13,
+        5209,
+        3270
+      ],
+      "policy": "torch-bf16",
+      "resident_weight_bytes": 1192099840,
+      "top1_top2_margin": 0.0,
+      "top3": [
+        {
+          "logit": 15.75,
+          "token": 3270
+        },
+        {
+          "logit": 15.75,
+          "token": 4226
+        },
+        {
+          "logit": 15.375,
+          "token": 3410
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 0.4865279197692871,
+      "versus_torch_fp32_rms_error": 0.10980015476102505
+    }
+  ],
+  "record_type": "qwen3_bf16_divergence_audit",
+  "schema_version": 1,
+  "status": "pass_diagnosed_precision_policy",
+  "vocabulary_size": 151936
+}

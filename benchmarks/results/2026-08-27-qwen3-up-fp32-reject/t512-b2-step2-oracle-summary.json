@@ -1,0 +1,174 @@
+{
+  "attribution": {
+    "micro_fp32_vs_torch_fp32": {
+      "bitwise_equal": false,
+      "left": "micro-fp32-fp32",
+      "maximum_error": 8.344650268554688e-05,
+      "right": "torch-fp32",
+      "rms_error": 1.474842906243487e-05
+    }
+  },
+  "batch": 2,
+  "boundary": "one fixed T32/B1 decode trajectory; no performance claim",
+  "capture_step": 2,
+  "conclusion": "the two low-precision policies choose different low-margin tokens; the recorded oracle-matching policy is selected by FP32 argmax, not by name",
+  "context": 512,
+  "decode_tokens": 3,
+  "forced_inputs": [
+    14582,
+    198,
+    262
+  ],
+  "gates": {
+    "at_least_one_low_precision_policy_matches_fp32": true,
+    "fp32_implementations_aligned": true,
+    "fp32_oracle_argmax_agrees_with_micro_fp32": true,
+    "shared_inputs_before_capture": true
+  },
+  "micro_current_policy": "micro-mixed-gate-down-bf16",
+  "model": "Qwen/Qwen3-0.6B",
+  "observations": {
+    "micro_mixed_matches_fp32_argmax": true,
+    "torch_bf16_matches_fp32_argmax": false,
+    "torch_bf16_top_two_tied": true
+  },
+  "oracle": "torch-fp32",
+  "oracle_matching_low_precision_policies": [
+    "micro-mixed-gate-down-bf16"
+  ],
+  "oracle_matching_low_precision_policy": "micro-mixed-gate-down-bf16",
+  "policy_rows": [
+    {
+      "argmax_token": 2955,
+      "captured_rows_bitwise_equal": false,
+      "captured_rows_maximum_error": 5.340576171875e-05,
+      "captured_rows_rms_error": 9.56048236221597e-06,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        198,
+        262,
+        2955
+      ],
+      "policy": "torch-fp32",
+      "resident_weight_bytes": 2384199680,
+      "top1_top2_margin": 0.034430503845214844,
+      "top3": [
+        {
+          "logit": 13.145042419433594,
+          "token": 2955
+        },
+        {
+          "logit": 13.110611915588379,
+          "token": 1096
+        },
+        {
+          "logit": 13.038763999938965,
+          "token": 671
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": true,
+      "versus_torch_fp32_maximum_error": 0.0,
+      "versus_torch_fp32_rms_error": 0.0
+    },
+    {
+      "argmax_token": 2955,
+      "captured_rows_bitwise_equal": false,
+      "captured_rows_maximum_error": 6.389617919921875e-05,
+      "captured_rows_rms_error": 1.3076647327803216e-05,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        198,
+        262,
+        2955
+      ],
+      "policy": "micro-fp32-fp32",
+      "resident_weight_bytes": 2384199680,
+      "top1_top2_margin": 0.034438133239746094,
+      "top3": [
+        {
+          "logit": 13.145055770874023,
+          "token": 2955
+        },
+        {
+          "logit": 13.110617637634277,
+          "token": 1096
+        },
+        {
+          "logit": 13.038753509521484,
+          "token": 671
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 8.344650268554688e-05,
+      "versus_torch_fp32_rms_error": 1.474842906243487e-05
+    },
+    {
+      "argmax_token": 2955,
+      "captured_rows_bitwise_equal": false,
+      "captured_rows_maximum_error": 0.13756275177001953,
+      "captured_rows_rms_error": 0.031225478133426066,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        198,
+        262,
+        2955
+      ],
+      "policy": "micro-mixed-gate-down-bf16",
+      "resident_weight_bytes": 1679556608,
+      "top1_top2_margin": 0.026625633239746094,
+      "top3": [
+        {
+          "logit": 13.137619018554688,
+          "token": 2955
+        },
+        {
+          "logit": 13.110993385314941,
+          "token": 1096
+        },
+        {
+          "logit": 13.058929443359375,
+          "token": 671
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 0.1658473014831543,
+      "versus_torch_fp32_rms_error": 0.03466513812408762
+    },
+    {
+      "argmax_token": 1096,
+      "captured_rows_bitwise_equal": true,
+      "captured_rows_maximum_error": 0.0,
+      "captured_rows_rms_error": 0.0,
+      "complete_logit_elements": 151936,
+      "generated_tokens": [
+        198,
+        262,
+        1096
+      ],
+      "policy": "torch-bf16",
+      "resident_weight_bytes": 1192099840,
+      "top1_top2_margin": 0.0,
+      "top3": [
+        {
+          "logit": 13.0625,
+          "token": 1096
+        },
+        {
+          "logit": 13.0625,
+          "token": 2955
+        },
+        {
+          "logit": 13.0,
+          "token": 671
+        }
+      ],
+      "versus_torch_fp32_bitwise_equal": false,
+      "versus_torch_fp32_maximum_error": 0.3816089630126953,
+      "versus_torch_fp32_rms_error": 0.08815373645608011
+    }
+  ],
+  "record_type": "qwen3_bf16_divergence_audit",
+  "schema_version": 1,
+  "status": "pass_diagnosed_precision_policy",
+  "vocabulary_size": 151936
+}

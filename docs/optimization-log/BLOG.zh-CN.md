@@ -5470,3 +5470,14 @@ FP32/full-BF16选320，候选选25，Max/RMS 0.4048/0.0850。
 down候选拒绝。对称up-FP32在新增状态选320，累计6/6 oracle，只晋级下一完整shape门。
 
 ![Qwen3 down-FP32 rejection](assets/qwen3-down-fp32-reject.svg)
+
+## 390. Experiment 374：答案门通过，也不能删掉性能否决权
+
+全局up-FP32完成64/64 worker、24/24精确KV行。9个跨框架mismatch都保留，并在共同输入的
+首次分叉处审计；新增T128/B2 step22和T512/B2 step2也与双FP32实现一致，唯一oracle达到8/8。
+
+正式五场景门中四个decode均为0.972–0.981×，但T512/B2 prefill只有0.8875×、延迟1.1268×；
+几何均值0.9578×低于0.97。全局候选拒绝。下一实验只改变阶段：prefill保留fused全BF16，
+decode使用FP32 up；双表示的额外内存必须重新测。
+
+![Qwen3 up-FP32 rejection](assets/qwen3-up-fp32-reject.svg)

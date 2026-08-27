@@ -46,7 +46,9 @@ payload 各保存了一份。Qwen3 strict loader 会先逐字节验证两份来�
 3/3生成不同token。当前不再继续手工拼早期FP32层。
 全模型gate-FP32规则只过4/5；对称up/down-FP32都过5/5。两者内存相同，down-FP32最小margin
 更大，因此先进入完整shape门；但它新增T128/B1 oracle失败并被拒。up-FP32在该新增状态匹配
-FP32，累计6/6，成为最后一个待完整验证的简单投影候选。
+FP32。全局up-FP32最终完成64/64 worker，新增T128/B2 step22和T512/B2 step2也匹配FP32，
+唯一oracle累计8/8；但T512/B2 prefill仅0.8875x，五场景几何均值0.9578x，未过0.97门。
+因此简单全局投影规则全部关闭；下一次只能单独验证decode-phase双表示，不能沿用本节点速度。
 
 ### 一条命令准备固定 fixture
 

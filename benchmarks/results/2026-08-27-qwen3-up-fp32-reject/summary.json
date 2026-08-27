@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "reject_global_performance",
+  "model": "Qwen/Qwen3-0.6B",
+  "candidate": "FFN up FP32; FFN gate/down and all Attention BF16; BF16 Cache",
+  "shape_gate": {
+    "worker_passes": 64,
+    "worker_count": 64,
+    "aggregate_rows": 32,
+    "direct_cross_framework_pass_rows": 23,
+    "precision_mismatch_rows": 9,
+    "limited_rows": 0,
+    "cached_rows": 24,
+    "cached_rows_with_exact_kv_bytes": 24,
+    "elapsed_seconds": 684
+  },
+  "oracle_gate": {
+    "unique_states_passed": 8,
+    "unique_state_count": 8,
+    "mismatch_rows_attributed": 9,
+    "mismatch_row_count": 9,
+    "new_t128_b2_step22": {
+      "torch_fp32_argmax": 4226,
+      "microllm_fp32_argmax": 4226,
+      "up_fp32_argmax": 4226,
+      "torch_bf16_argmax": 3270,
+      "up_fp32_oracle_maximum_error": 0.13408732414245605,
+      "up_fp32_oracle_rms_error": 0.027555376589640596
+    },
+    "new_t512_b2_step2": {
+      "torch_fp32_argmax": 2955,
+      "microllm_fp32_argmax": 2955,
+      "up_fp32_argmax": 2955,
+      "torch_bf16_argmax": 1096,
+      "up_fp32_oracle_maximum_error": 0.1658473014831543,
+      "up_fp32_oracle_rms_error": 0.03466513812408762
+    }
+  },
+  "performance_gate": {
+    "runs_per_policy_per_case": 3,
+    "warmup": 2,
+    "steps": 5,
+    "case_count": 5,
+    "decode_cases_passed": 4,
+    "decode_case_count": 4,
+    "candidate_over_current_throughput_geometric_mean": 0.9578126319585,
+    "geometric_mean_gate": 0.97,
+    "failed_case": "prefill_T512_B2",
+    "failed_case_throughput_ratio": 0.8875057850759887,
+    "failed_case_latency_ratio": 1.1267532187571971,
+    "resident_weight_bytes": 1679556608,
+    "resident_delta_bytes": 176160768,
+    "all_incremental_peak_gates_passed": true,
+    "all_policy_outputs_deterministic": true
+  },
+  "decision": "reject global up-FP32; do not change the default mixed-BF16 policy",
+  "next_hypothesis": "measure a decode-phase-only up-FP32 representation while retaining fused all-BF16 prefill",
+  "boundary": "the next hypothesis requires a dual representation and its own memory, precision and performance gates; no phase-selective speedup is claimed here"
+}

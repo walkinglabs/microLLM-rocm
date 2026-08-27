@@ -747,3 +747,5 @@ the next gate. Records are append-only except for factual corrections.
   measures all symmetric rules and selects down-FP32 for the complete shape gate.
 - [2026-08-26-qwen3-down-fp32-reject.md](2026-08-26-qwen3-down-fp32-reject.md):
   rejects down-FP32 on a new T128 oracle despite passing short performance.
+- [2026-08-27-qwen3-up-fp32-reject.md](2026-08-27-qwen3-up-fp32-reject.md):
+  passes eight FP32 oracles but rejects global up-FP32 on the T512/B2 prefill gate.
