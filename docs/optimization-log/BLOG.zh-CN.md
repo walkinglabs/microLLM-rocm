@@ -5415,3 +5415,13 @@ Attention-only仍选320，margin 0.07367。batch内Max分别0.1443/0.0325。
 28层FFN；Cache与Attention在这个反例中关闭，不拿全局Max/RMS替代top-2判断。
 
 ![Qwen3 T128 BF16 weight islands](assets/qwen3-bf16-t128-weight-islands.svg)
+
+## 384. Experiment 368：没有单一坏层，组合仍会翻转
+
+只改变FFN active BF16层。后半14–27安全，前半0–13翻转；0–2和3–6都能独立翻转。
+但0–6七个单层全部选320，说明不能指定一个“坏层”。
+
+组内proper subset继续验收后，最小已验证集合为`{0,1,2}`三层与`{3,4}`两层，分别3/3选25。
+近边界`{4,6}` margin仅0.0003157但3/3仍选320。下一步固定这两个集合拆gate/up/down。
+
+![Qwen3 BF16 FFN layer search](assets/qwen3-bf16-ffn-layer-search.svg)

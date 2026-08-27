@@ -256,3 +256,5 @@ Qwen3双计数fixture、64/64执行成功却有8个token分叉，以及修正后
 [Experiment 366](../optimization-log/experiments/366-qwen3-bf16-oracle-sweep.md)。
 T128反例的FFN/Attention/Cache三分归因见
 [Experiment 367](../optimization-log/experiments/367-qwen3-bf16-t128-weight-islands.md)。
+FFN分组、single、pair与repeat搜索见
+[Experiment 368](../optimization-log/experiments/368-qwen3-bf16-ffn-layer-search.md)。

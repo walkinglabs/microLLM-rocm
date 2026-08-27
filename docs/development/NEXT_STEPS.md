@@ -51,8 +51,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   a forced nine-token T512/B2 audit where natural FP32 had already left the trajectory;
 - [x] isolate the sole T128/B2 mixed-BF16 failure: FFN-only flips oracle 320→25,
   Attention-only keeps 320, and BF16 Cache shrinks error without restoring the answer;
-- [ ] locate the responsible Qwen3 FFN layer/substage with the same forced-input top-2
-  oracle; do not change Attention, Cache or thresholds during this search;
+- [x] search Qwen3 FFN layers with the forced-input top-2 oracle: no 0–6 single layer
+  flips; tested-minimal combinations `{0,1,2}` and `{3,4}` repeat 3/3, while near pair
+  `{4,6}` keeps oracle 320 at a 0.000316 margin;
+- [ ] split gate/up/down precision inside `{0,1,2}` and `{3,4}`; keep all other layers,
+  Attention, Cache and thresholds fixed so the combination explanation remains falsifiable;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

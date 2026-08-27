@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="780" viewBox="0 0 1500 780">
+  <rect width="1500" height="780" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 T128/B2 · BF16 FFN layer combinations</text>
+  <text x="60" y="103" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Forced shared inputs · FP32 Attention/Cache · oracle token 320</text>
+
+  <rect x="55" y="145" width="1390" height="150" rx="20" fill="#ffffff" stroke="#d7dce6" stroke-width="2"/>
+  <text x="95" y="190" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700" fill="#172033">Coarse split</text>
+  <rect x="280" y="170" width="480" height="70" rx="12" fill="#fee2e2"/>
+  <text x="520" y="201" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#b42335">active layers 0–13 → token 25</text>
+  <text x="520" y="228" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">lower-half combination flips</text>
+  <rect x="850" y="170" width="480" height="70" rx="12" fill="#dcfce7"/>
+  <text x="1090" y="201" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#166534">active layers 14–27 → token 320</text>
+  <text x="1090" y="228" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">upper half stays oracle</text>
+
+  <rect x="55" y="335" width="430" height="285" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="270" y="380" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#1d4ed8">Singles 0–6</text>
+  <text x="270" y="455" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="52" font-weight="700" fill="#166534">0 / 7 flip</text>
+  <text x="270" y="505" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">layer4 is closest</text>
+  <text x="270" y="545" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#b45309">margin 0.01760</text>
+  <text x="270" y="585" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">no single “bad layer”</text>
+
+  <rect x="535" y="335" width="430" height="285" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="750" y="380" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#b42335">Minimal tested sets</text>
+  <rect x="590" y="420" width="320" height="60" rx="11" fill="#fee2e2"/>
+  <text x="750" y="458" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#b42335">{0, 1, 2} → 25</text>
+  <rect x="590" y="505" width="320" height="60" rx="11" fill="#fee2e2"/>
+  <text x="750" y="543" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#b42335">{3, 4} → 25</text>
+  <text x="750" y="595" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">both repeat 3 / 3</text>
+
+  <rect x="1015" y="335" width="430" height="285" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+  <text x="1230" y="380" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#b45309">Near counterexample</text>
+  <text x="1230" y="450" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700" fill="#166534">{4, 6} → 320</text>
+  <text x="1230" y="505" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700" fill="#b45309">margin 0.000316</text>
+  <text x="1230" y="552" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534">stable 3 / 3</text>
+  <text x="1230" y="590" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">do not round it into a tie</text>
+
+  <rect x="55" y="665" width="1390" height="70" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="90" y="708" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#1d4ed8">Next:</text>
+  <text x="175" y="708" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033">hold {0,1,2} and {3,4}; split FFN gate / up / down precision</text>
+</svg>

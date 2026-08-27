@@ -735,3 +735,5 @@ the next gate. Records are append-only except for factual corrections.
   applies one common-input FP32 gate to all five unique mismatch states.
 - [2026-08-26-qwen3-bf16-t128-weight-islands.md](2026-08-26-qwen3-bf16-t128-weight-islands.md):
   isolates the sole mixed-BF16 counterexample to the FFN weight island.
+- [2026-08-26-qwen3-bf16-ffn-layer-search.md](2026-08-26-qwen3-bf16-ffn-layer-search.md):
+  finds two minimal tested early-layer combinations and rejects a single-layer story.

@@ -319,6 +319,8 @@ If “Config package” is unfamiliar, read the beginner-facing
 > FP32 in 4/1 cases (7/1 matrix rows); T128/B2 is the explicit mixed-BF16 counterexample.
 > That counterexample is now isolated to FFN-only BF16: it flips 320→25, while
 > Attention-only keeps 320 and changing Cache dtype does not restore the answer.
+> No single early FFN layer flips it. Tested-minimal sets `{0,1,2}` and `{3,4}`
+> each repeat 3/3; near pair `{4,6}` stays correct with only 0.000316 margin.
 
 </details>
 
@@ -1319,6 +1321,9 @@ rows; T128/B2 remains the counterexample, so neither policy is declared universa
 [Experiment 367](docs/optimization-log/experiments/367-qwen3-bf16-t128-weight-islands.md) fixes
 the T128 input and isolates the flip to FFN-only BF16. Attention-only preserves FP32 token 320;
 BF16 Cache reduces global error but does not restore the wrong FFN argmax.
+[Experiment 368](docs/optimization-log/experiments/368-qwen3-bf16-ffn-layer-search.md) rejects a
+single bad-layer explanation. No layer 0–6 flips alone; tested-minimal `{0,1,2}` and `{3,4}`
+combinations flip in 3/3 processes, while `{4,6}` is a stable near-boundary counterexample.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

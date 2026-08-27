@@ -12,6 +12,8 @@ SWEEP_ROOT = (ROOT / "benchmarks/results" /
               "2026-08-26-qwen3-bf16-oracle-sweep")
 ISLAND_ROOT = (ROOT / "benchmarks/results" /
                "2026-08-26-qwen3-bf16-t128-weight-islands")
+LAYER_ROOT = (ROOT / "benchmarks/results" /
+              "2026-08-26-qwen3-bf16-ffn-layer-search")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -24,6 +26,12 @@ SWEEP_SPEC = importlib.util.spec_from_file_location(
 SWEEP = importlib.util.module_from_spec(SWEEP_SPEC)
 assert SWEEP_SPEC.loader is not None
 SWEEP_SPEC.loader.exec_module(SWEEP)
+LAYER_SPEC = importlib.util.spec_from_file_location(
+    "qwen3_bf16_ffn_layer_search",
+    ROOT / "benchmarks/single_gpu/qwen3_bf16_ffn_layer_search.py")
+LAYER_SEARCH = importlib.util.module_from_spec(LAYER_SPEC)
+assert LAYER_SPEC.loader is not None
+LAYER_SPEC.loader.exec_module(LAYER_SEARCH)
 
 def main():
     row = json.loads(SUMMARY.read_text())
@@ -118,6 +126,26 @@ def main():
     assert raw_by_policy["micro-ffn-bf16-fp32"]["bf16_attention_weights"] is False
     assert raw_by_policy["micro-attention-bf16-fp32"]["bf16_ffn_weights"] is False
     assert raw_by_policy["micro-attention-bf16-fp32"]["bf16_attention_weights"] is True
+    layers = json.loads((LAYER_ROOT / "summary.json").read_text())
+    layer_raw = [json.loads(line) for line in
+                 (LAYER_ROOT / "raw.jsonl").read_text().splitlines() if line]
+    assert layers["status"] == "pass_minimal_combinations_found"
+    assert all(layers["gates"].values())
+    assert layers["process_rows"] == len(layer_raw) == 28
+    assert layers["single_layer_flips"] == []
+    assert layers["pair_layer_flips"] == [[3, 4]]
+    assert layers["minimal_flipping_sets"] == [[0, 1, 2], [3, 4]]
+    repeats = {item["name"]: item for item in layers["repeat_rows"]}
+    assert repeats["active-0-2"]["argmax_tokens"] == [25, 25, 25]
+    assert repeats["pair-3-4"]["argmax_tokens"] == [25, 25, 25]
+    assert repeats["pair-4-6"]["argmax_tokens"] == [320, 320, 320]
+    assert repeats["pair-4-6"]["minimum_margin"] < 0.00032
+    assert len(LAYER_SEARCH.SINGLES) == 7 and len(LAYER_SEARCH.PAIRS) == 9
+    assert all(item["converted_tensors"] ==
+               len(item["active_bf16_layers"]) * 3 for item in layer_raw)
+    assert all(set(item["active_bf16_layers"]).isdisjoint(item["fp32_layers"])
+               and len(item["active_bf16_layers"]) + len(item["fp32_layers"]) == 28
+               for item in layer_raw)
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":
