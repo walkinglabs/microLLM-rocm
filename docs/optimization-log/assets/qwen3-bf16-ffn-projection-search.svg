@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+  <rect width="1500" height="760" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 T128/B2 · BF16 FFN projection scopes</text>
+  <text x="60" y="103" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Two minimal layer sets · FP32 Attention/Cache · oracle token 320</text>
+
+  <rect x="55" y="145" width="675" height="430" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="392" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#1d4ed8">layers {0,1,2}</text>
+  <text x="105" y="250" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">gate / up / down only</text>
+  <text x="660" y="250" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">320 / 320 / 320</text>
+  <text x="105" y="315" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">gate+up / gate+down / up+down</text>
+  <text x="660" y="315" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">320 / 320 / 320</text>
+  <rect x="105" y="365" width="555" height="70" rx="12" fill="#fee2e2"/>
+  <text x="382" y="408" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#b42335">gate + up + down → 25</text>
+  <text x="392" y="485" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">best partial margin: up+down 0.09360</text>
+  <text x="392" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534">6 / 6 partial scopes keep oracle</text>
+
+  <rect x="770" y="145" width="675" height="430" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="1107" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#166534">layers {3,4}</text>
+  <text x="820" y="250" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">gate / up / down only</text>
+  <text x="1375" y="250" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">320 / 320 / 320</text>
+  <text x="820" y="315" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">gate+up / gate+down / up+down</text>
+  <text x="1375" y="315" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#166534">320 / 320 / 320</text>
+  <rect x="820" y="365" width="555" height="70" rx="12" fill="#fee2e2"/>
+  <text x="1097" y="408" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#b42335">gate + up + down → 25</text>
+  <text x="1107" y="485" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">best partial margin: up+down 0.09919</text>
+  <text x="1107" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534">6 / 6 partial scopes keep oracle</text>
+
+  <rect x="55" y="625" width="1390" height="80" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="90" y="674" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#1d4ed8">Next:</text>
+  <text x="175" y="674" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033">compare keeping gate/up/down FP32 in layers0–4 across the full shape + performance matrix</text>
+</svg>

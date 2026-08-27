@@ -5425,3 +5425,13 @@ Attention-only仍选320，margin 0.07367。batch内Max分别0.1443/0.0325。
 近边界`{4,6}` margin仅0.0003157但3/3仍选320。下一步固定这两个集合拆gate/up/down。
 
 ![Qwen3 BF16 FFN layer search](assets/qwen3-bf16-ffn-layer-search.svg)
+
+## 385. Experiment 369：两个最小层集合都需要三投影一起低精度
+
+框架新增七种FFN weight scope；all-BF16继续融合，partial scope走可读Linear fallback。
+固定`{0,1,2}`和`{3,4}`，gate/up/down单独与三种pair共12格全部选择320；两个all-three格选25。
+
+当前case中保留gate FP32、让up+down BF16的margin最大，但partial fallback可能变慢，其他shape也
+可能改变。下一步必须做完整shape/速度/常驻门，不能从一个top-2 margin直接改默认。
+
+![Qwen3 BF16 FFN projection search](assets/qwen3-bf16-ffn-projection-search.svg)

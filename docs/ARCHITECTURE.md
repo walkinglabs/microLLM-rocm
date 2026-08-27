@@ -88,6 +88,10 @@ the model depth. The ordinary path and every block's computation graph remain un
 The fused BF16 FFN has a diagnostic-return variant exposing device-resident intermediates. The
 ordinary API passes a null diagnostic sink and retains no extra Tensor handles. Trace value capture
 supports all floating dtypes; unsupported captured integer formats fail instead of appearing empty.
+Projection-scoped preparation is explicit through `Bf16FfnWeightScope`. A block enters the fused
+FFN only when gate, up and down are all BF16. A partial scope executes the three readable Linear
+paths independently, so mixed projection state remains correct and cannot silently claim fused
+performance.
 See [serving scheduler](dev/serving-scheduler.zh-CN.md).
 
 

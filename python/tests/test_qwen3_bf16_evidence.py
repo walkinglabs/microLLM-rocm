@@ -14,6 +14,8 @@ ISLAND_ROOT = (ROOT / "benchmarks/results" /
                "2026-08-26-qwen3-bf16-t128-weight-islands")
 LAYER_ROOT = (ROOT / "benchmarks/results" /
               "2026-08-26-qwen3-bf16-ffn-layer-search")
+PROJECTION_ROOT = (ROOT / "benchmarks/results" /
+                   "2026-08-26-qwen3-bf16-ffn-projection-search")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -146,6 +148,31 @@ def main():
     assert all(set(item["active_bf16_layers"]).isdisjoint(item["fp32_layers"])
                and len(item["active_bf16_layers"]) + len(item["fp32_layers"]) == 28
                for item in layer_raw)
+    projections = json.loads((PROJECTION_ROOT / "summary.json").read_text())
+    projection_raw = [json.loads(line) for line in
+                      (PROJECTION_ROOT / "raw.jsonl").read_text().splitlines()
+                      if line]
+    assert projections["status"] == "pass_all_three_projections_required"
+    assert all(projections["gates"].values())
+    assert projections["case_count"] == 2
+    assert projections["scope_rows"] == 12
+    assert len(projection_raw) == 20
+    assert all(case["all_projection_argmax"] == 25
+               for case in projections["cases"])
+    assert all(row["argmax_token"] == 320
+               for case in projections["cases"] for row in case["scope_rows"])
+    expected_scopes = {
+        "gate-only", "up-only", "down-only",
+        "gate-up", "gate-down", "up-down",
+    }
+    for case in ("layers-0-1-2", "layers-3-4"):
+        raw_scopes = {
+            item["bf16_ffn_weight_scope"] for item in projection_raw
+            if item["projection_case"] == case and
+            item["framework_policy"].startswith("micro-ffn-") and
+            item["bf16_ffn_weight_scope"] != "all"
+        }
+        assert raw_scopes == expected_scopes
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

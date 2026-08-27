@@ -68,6 +68,7 @@ def audit_args(args: argparse.Namespace) -> SimpleNamespace:
         binary=args.binary, context=CONTEXT, batch=BATCH,
         decode_tokens=DECODE_TOKENS, capture_step=CAPTURE_STEP,
         forced_inputs=FORCED_INPUTS, timeout_seconds=args.timeout_seconds,
+        micro_ffn_fp32_layers=[],
     )
 
 

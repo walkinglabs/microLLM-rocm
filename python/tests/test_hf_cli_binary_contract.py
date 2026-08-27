@@ -199,6 +199,23 @@ def main() -> int:
                 "requires --bf16-ffn true" not in rejected_bf16_layers.stderr:
             raise RuntimeError(
                 "hf_infer accepted selective BF16 layers without BF16 FFN")
+        rejected_bf16_scope = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--bf16-ffn", "true", "--bf16-ffn-weight-scope", "magic",
+        ], text=True, capture_output=True, check=False)
+        if rejected_bf16_scope.returncode == 0 or \
+                "must be all, gate-only" not in rejected_bf16_scope.stderr:
+            raise RuntimeError("hf_infer accepted an unknown BF16 FFN scope")
+        rejected_scope_without_ffn = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--bf16-ffn-weight-scope", "gate-only",
+        ], text=True, capture_output=True, check=False)
+        if rejected_scope_without_ffn.returncode == 0 or \
+                "requires --bf16-ffn true" not in \
+                rejected_scope_without_ffn.stderr:
+            raise RuntimeError("hf_infer accepted a BF16 scope without BF16 FFN")
         rejected_decode_algorithm = subprocess.run([
             str(args.binary), "--config", str(missing),
             "--weights", str(missing), "--tokens", "1", "--device", "cpu",

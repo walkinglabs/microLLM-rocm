@@ -737,3 +737,5 @@ the next gate. Records are append-only except for factual corrections.
   isolates the sole mixed-BF16 counterexample to the FFN weight island.
 - [2026-08-26-qwen3-bf16-ffn-layer-search.md](2026-08-26-qwen3-bf16-ffn-layer-search.md):
   finds two minimal tested early-layer combinations and rejects a single-layer story.
+- [2026-08-26-qwen3-bf16-ffn-projection-search.md](2026-08-26-qwen3-bf16-ffn-projection-search.md):
+  shows that both minimal layer sets require gate, up and down to be BF16 together.

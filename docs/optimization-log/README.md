@@ -1136,6 +1136,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 T128 weight islands SVG](assets/qwen3-bf16-t128-weight-islands.svg) | FFN翻转、Attention保留与Cache反驳 |
 | [experiments/368-qwen3-bf16-ffn-layer-search.md](experiments/368-qwen3-bf16-ffn-layer-search.md) | 28层FFN的分组/single/pair/repeat搜索 |
 | [Qwen3 FFN layer search SVG](assets/qwen3-bf16-ffn-layer-search.svg) | 两个最小组合与近边界反例 |
+| [experiments/369-qwen3-bf16-ffn-projection-search.md](experiments/369-qwen3-bf16-ffn-projection-search.md) | 两个最小层集合的gate/up/down搜索 |
+| [Qwen3 FFN projection SVG](assets/qwen3-bf16-ffn-projection-search.svg) | 12个partial scope与all-three翻转 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

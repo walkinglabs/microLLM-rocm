@@ -151,6 +151,10 @@ batch>1、Radeon 或其他 ROCm 版本。
 FP32，其余Block只留BF16。这样可以用实际converted count和完整logits回答“误差主要从哪几层
 注入”，而不是靠最终token猜测。层索引错误、重复或没有启用BF16 FFN都会立即失败。
 
+投影级诊断使用`Bf16FfnWeightScope`或CLI `--bf16-ffn-weight-scope`：`gate-only`、
+`up-only`、`down-only`、`gate-up`、`gate-down`、`up-down`和`all`。只有`all`能进入连续融合
+FFN；partial scope故意回到三个Linear的可读路径，因此必须单独测速度，不能把它当成免费精度修复。
+
 KV Cache的形状、字节公式、API和精度失败见
 [KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 

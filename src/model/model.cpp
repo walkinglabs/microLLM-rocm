@@ -1923,11 +1923,11 @@ public:
             }
         };
         Tensor output;
-        if (gate_.weight_data().dtype() == DType::BFloat16) {
-            if (up_.weight_data().dtype() != DType::BFloat16 ||
-                down_.weight_data().dtype() != DType::BFloat16) {
-                throw std::logic_error("FFN inference weights have mixed preparation state");
-            }
+        const auto all_bf16 =
+            gate_.weight_data().dtype() == DType::BFloat16 &&
+            up_.weight_data().dtype() == DType::BFloat16 &&
+            down_.weight_data().dtype() == DType::BFloat16;
+        if (all_bf16) {
             if (trace_prefix.empty()) {
                 if (arena_cache_ != nullptr) {
                     auto* entry = arena_cache_->acquire(
@@ -3112,11 +3112,17 @@ std::uint64_t TransformerModel::parameter_count() {
 }
 
 Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference() {
-    return prepare_bf16_ffn_inference({});
+    return prepare_bf16_ffn_inference({}, Bf16FfnWeightScope::All);
 }
 
 Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference(
     const std::vector<std::int64_t>& fp32_layers) {
+    return prepare_bf16_ffn_inference(fp32_layers, Bf16FfnWeightScope::All);
+}
+
+Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference(
+    const std::vector<std::int64_t>& fp32_layers,
+    Bf16FfnWeightScope scope) {
     if (impl_->bf16_ffn_prepared) {
         throw std::logic_error("BF16 FFN inference preparation is one-way and already complete");
     }
@@ -3131,10 +3137,37 @@ Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference(
                 "BF16 FFN FP32 layers must be unique in-range indices");
         }
     }
+    const auto selected_projection = [scope](const std::string& name) {
+        const auto gate = name.ends_with(".gate_proj.weight");
+        const auto up = name.ends_with(".up_proj.weight");
+        const auto down = name.ends_with(".down_proj.weight");
+        switch (scope) {
+            case Bf16FfnWeightScope::All: return gate || up || down;
+            case Bf16FfnWeightScope::GateOnly: return gate;
+            case Bf16FfnWeightScope::UpOnly: return up;
+            case Bf16FfnWeightScope::DownOnly: return down;
+            case Bf16FfnWeightScope::GateUp: return gate || up;
+            case Bf16FfnWeightScope::GateDown: return gate || down;
+            case Bf16FfnWeightScope::UpDown: return up || down;
+        }
+        throw std::invalid_argument("unknown BF16 FFN weight scope");
+    };
+    const auto projections = [&] {
+        switch (scope) {
+            case Bf16FfnWeightScope::All: return 3U;
+            case Bf16FfnWeightScope::GateOnly:
+            case Bf16FfnWeightScope::UpOnly:
+            case Bf16FfnWeightScope::DownOnly: return 1U;
+            case Bf16FfnWeightScope::GateUp:
+            case Bf16FfnWeightScope::GateDown:
+            case Bf16FfnWeightScope::UpDown: return 2U;
+        }
+        throw std::invalid_argument("unknown BF16 FFN weight scope");
+    }();
     // Transactional helper keeps every FP32 source alive until all casts finish.
     const auto report = prepare_bf16_weights(
-        named_parameters(), (impl_->blocks.size() - excluded.size()) * 3U,
-        device(), [&excluded](const std::string& name) {
+        named_parameters(), (impl_->blocks.size() - excluded.size()) * projections,
+        device(), [&excluded, &selected_projection](const std::string& name) {
             if (name.find(".feed_forward.") == std::string::npos) return false;
             for (const auto layer : excluded) {
                 if (name.starts_with(
@@ -3142,7 +3175,7 @@ Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference(
                     return false;
                 }
             }
-            return true;
+            return selected_projection(name);
         });
     impl_->bf16_ffn_prepared = true;
     return report;

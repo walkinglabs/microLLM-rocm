@@ -101,6 +101,21 @@ def forced_decode(binary: Path, fixture: Path, output: Path) -> None:
     assert rejected.returncode != 0
     assert "must contain in-vocabulary IDs" in rejected.stderr
 
+    scoped_output = output.with_name("forced-gate-only-logits.bin")
+    scoped_base = list(base)
+    scoped_base[scoped_base.index(str(output))] = str(scoped_output)
+    scoped = subprocess.run(
+        scoped_base + [
+            "--forced-decode-inputs", "3,4", "--bf16-ffn", "true",
+            "--bf16-ffn-weight-scope", "gate-only",
+        ], text=True, capture_output=True, check=False)
+    if scoped.returncode != 0:
+        raise AssertionError(scoped.stdout + scoped.stderr)
+    scoped_record = json.loads(scoped.stdout.splitlines()[-1])
+    assert scoped_record["bf16_ffn_weight_scope"] == "gate-only"
+    assert scoped_record["bf16_ffn_converted_tensors"] == 1
+    assert len(floats(scoped_output)) == 16
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()

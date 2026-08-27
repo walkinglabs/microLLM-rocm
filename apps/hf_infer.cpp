@@ -56,6 +56,7 @@ struct Options {
     std::string chat_user;
     bool bf16_ffn = false;
     std::string bf16_ffn_fp32_layers;
+    std::string bf16_ffn_weight_scope = "all";
     bool bf16_ffn_arena = false;
     std::int64_t bf16_ffn_arena_minimum_rows = 1;
     bool bf16_ffn_norm_fusion = false;
@@ -177,6 +178,8 @@ Options options(int argc, char** argv) {
             result.bf16_ffn = value == "true";
         } else if (name == "--bf16-ffn-fp32-layers") {
             result.bf16_ffn_fp32_layers = argv[index + 1];
+        } else if (name == "--bf16-ffn-weight-scope") {
+            result.bf16_ffn_weight_scope = argv[index + 1];
         } else if (name == "--bf16-ffn-arena") {
             const std::string value = argv[index + 1];
             if (value != "true" && value != "false") {
@@ -658,6 +661,20 @@ Options options(int argc, char** argv) {
     if (!result.bf16_ffn_fp32_layers.empty() && !result.bf16_ffn) {
         throw std::invalid_argument(
             "--bf16-ffn-fp32-layers requires --bf16-ffn true");
+    }
+    if (result.bf16_ffn_weight_scope != "all" &&
+        result.bf16_ffn_weight_scope != "gate-only" &&
+        result.bf16_ffn_weight_scope != "up-only" &&
+        result.bf16_ffn_weight_scope != "down-only" &&
+        result.bf16_ffn_weight_scope != "gate-up" &&
+        result.bf16_ffn_weight_scope != "gate-down" &&
+        result.bf16_ffn_weight_scope != "up-down") {
+        throw std::invalid_argument(
+            "--bf16-ffn-weight-scope must be all, gate-only, up-only, down-only, gate-up, gate-down, or up-down");
+    }
+    if (result.bf16_ffn_weight_scope != "all" && !result.bf16_ffn) {
+        throw std::invalid_argument(
+            "--bf16-ffn-weight-scope requires --bf16-ffn true");
     }
     const auto continuous_arguments = result.continuous_slots > 0 ||
                                       !result.continuous_prompt_lengths.empty() ||
@@ -1274,6 +1291,19 @@ std::vector<std::int64_t> layer_indices(std::int64_t layers,
     return result;
 }
 
+microllm::model::Bf16FfnWeightScope bf16_ffn_weight_scope(
+    std::string_view value) {
+    using Scope = microllm::model::Bf16FfnWeightScope;
+    if (value == "all") return Scope::All;
+    if (value == "gate-only") return Scope::GateOnly;
+    if (value == "up-only") return Scope::UpOnly;
+    if (value == "down-only") return Scope::DownOnly;
+    if (value == "gate-up") return Scope::GateUp;
+    if (value == "gate-down") return Scope::GateDown;
+    if (value == "up-down") return Scope::UpDown;
+    throw std::invalid_argument("unknown BF16 FFN weight scope");
+}
+
 std::string json_indices(const std::vector<std::int64_t>& values) {
     std::string output = "[";
     for (std::size_t index = 0; index < values.size(); ++index) {
@@ -1618,7 +1648,8 @@ int main(int argc, char** argv) {
         const auto preparation_start = std::chrono::steady_clock::now();
         if (command.bf16_ffn) {
             bf16_report = model.prepare_bf16_ffn_inference(
-                bf16_ffn_fp32_layers);
+                bf16_ffn_fp32_layers,
+                bf16_ffn_weight_scope(command.bf16_ffn_weight_scope));
         }
         if (command.bf16_ffn_arena) {
             model.set_bf16_ffn_arena_enabled(
@@ -2707,6 +2738,8 @@ int main(int argc, char** argv) {
                   << bf16_report.converted_tensors
                   << ",\"bf16_ffn_fp32_layers\":"
                   << json_indices(bf16_ffn_fp32_layers)
+                  << ",\"bf16_ffn_weight_scope\":\""
+                  << command.bf16_ffn_weight_scope << "\""
                   << ",\"bf16_ffn_arena_enabled\":"
                   << (model.bf16_ffn_arena_enabled() ? "true" : "false")
                   << ",\"bf16_ffn_norm_fusion_enabled\":"

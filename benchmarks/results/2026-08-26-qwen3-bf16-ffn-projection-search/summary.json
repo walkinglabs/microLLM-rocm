@@ -1,0 +1,150 @@
+{
+  "batch": 2,
+  "boundary": "fixed two layer sets and one forced T128/B2 state; this does not prove all contexts need three projections",
+  "capture_step": 8,
+  "case_count": 2,
+  "cases": [
+    {
+      "active_layers": [
+        0,
+        1,
+        2
+      ],
+      "all_projection_argmax": 25,
+      "all_projection_margin": 0.022505760192871094,
+      "name": "layers-0-1-2",
+      "scope_rows": [
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-gate-bf16-fp32",
+          "top1_top2_margin": 0.05311393737792969,
+          "versus_oracle_maximum_error": 0.06006765365600586,
+          "versus_oracle_rms_error": 0.013129508869535728,
+          "within_batch_maximum_error": 0.007048904895782471
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-up-bf16-fp32",
+          "top1_top2_margin": 0.07403278350830078,
+          "versus_oracle_maximum_error": 0.054481685161590576,
+          "versus_oracle_rms_error": 0.010396947133232094,
+          "within_batch_maximum_error": 0.003330051898956299
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-down-bf16-fp32",
+          "top1_top2_margin": 0.11753177642822266,
+          "versus_oracle_maximum_error": 0.22428929805755615,
+          "versus_oracle_rms_error": 0.0492517772171849,
+          "within_batch_maximum_error": 0.04671835899353027
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-gate-up-bf16-fp32",
+          "top1_top2_margin": 0.06273746490478516,
+          "versus_oracle_maximum_error": 0.11546967923641205,
+          "versus_oracle_rms_error": 0.02231636664870279,
+          "within_batch_maximum_error": 0.006417363882064819
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-gate-down-bf16-fp32",
+          "top1_top2_margin": 0.070281982421875,
+          "versus_oracle_maximum_error": 0.02623249590396881,
+          "versus_oracle_rms_error": 0.005442373166118533,
+          "within_batch_maximum_error": 0.0961298942565918
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-up-down-bf16-fp32",
+          "top1_top2_margin": 0.09359931945800781,
+          "versus_oracle_maximum_error": 0.09076976776123047,
+          "versus_oracle_rms_error": 0.018062260956444417,
+          "within_batch_maximum_error": 0.101448655128479
+        }
+      ]
+    },
+    {
+      "active_layers": [
+        3,
+        4
+      ],
+      "all_projection_argmax": 25,
+      "all_projection_margin": 0.0011873245239257812,
+      "name": "layers-3-4",
+      "scope_rows": [
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-gate-bf16-fp32",
+          "top1_top2_margin": 0.03430461883544922,
+          "versus_oracle_maximum_error": 0.07684814929962158,
+          "versus_oracle_rms_error": 0.016053611588151193,
+          "within_batch_maximum_error": 0.005227625370025635
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-up-bf16-fp32",
+          "top1_top2_margin": 0.1117849349975586,
+          "versus_oracle_maximum_error": 0.11467385292053223,
+          "versus_oracle_rms_error": 0.024143334156753106,
+          "within_batch_maximum_error": 0.0016214847564697266
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-down-bf16-fp32",
+          "top1_top2_margin": 0.07235240936279297,
+          "versus_oracle_maximum_error": 0.061797142028808594,
+          "versus_oracle_rms_error": 0.0114363069660693,
+          "within_batch_maximum_error": 0.04241645336151123
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-gate-up-bf16-fp32",
+          "top1_top2_margin": 0.0723419189453125,
+          "versus_oracle_maximum_error": 0.018122553825378418,
+          "versus_oracle_rms_error": 0.0036538018154198167,
+          "within_batch_maximum_error": 0.004058659076690674
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-gate-down-bf16-fp32",
+          "top1_top2_margin": 0.047799110412597656,
+          "versus_oracle_maximum_error": 0.07307004928588867,
+          "versus_oracle_rms_error": 0.014782827164826613,
+          "within_batch_maximum_error": 0.017340660095214844
+        },
+        {
+          "argmax_token": 320,
+          "policy": "micro-ffn-up-down-bf16-fp32",
+          "top1_top2_margin": 0.09918880462646484,
+          "versus_oracle_maximum_error": 0.05453658103942871,
+          "versus_oracle_rms_error": 0.011394158890632916,
+          "within_batch_maximum_error": 0.013421416282653809
+        }
+      ]
+    }
+  ],
+  "conclusion": "gate, up, or down alone and every two-projection scope keep FP32 argmax; all three BF16 projections are required in both tested minimal layer sets",
+  "context": 128,
+  "forced_inputs": [
+    14582,
+    1,
+    374,
+    264,
+    3491,
+    429,
+    374,
+    537,
+    264
+  ],
+  "gates": {
+    "all_partial_projection_cases_keep_oracle": true,
+    "both_all_projection_cases_flip": true,
+    "every_single_and_pair_scope_covered": true
+  },
+  "model": "Qwen/Qwen3-0.6B",
+  "record_type": "qwen3_bf16_ffn_projection_search",
+  "schema_version": 1,
+  "scope_rows": 12,
+  "status": "pass_all_three_projections_required"
+}

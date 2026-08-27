@@ -258,3 +258,5 @@ T128反例的FFN/Attention/Cache三分归因见
 [Experiment 367](../optimization-log/experiments/367-qwen3-bf16-t128-weight-islands.md)。
 FFN分组、single、pair与repeat搜索见
 [Experiment 368](../optimization-log/experiments/368-qwen3-bf16-ffn-layer-search.md)。
+FFN gate/up/down七种scope和两个最小层集合见
+[Experiment 369](../optimization-log/experiments/369-qwen3-bf16-ffn-projection-search.md)。

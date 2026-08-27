@@ -675,6 +675,59 @@ TEST(TransformerModelTest, Bf16FfnPreparationCanKeepExplicitBlocksFp32) {
     EXPECT_FALSE(outside.bf16_ffn_inference_prepared());
 }
 
+TEST(TransformerModelTest, Bf16FfnPreparationSupportsProjectionScopes) {
+    const std::vector<Bf16FfnWeightScope> scopes{
+        Bf16FfnWeightScope::All,
+        Bf16FfnWeightScope::GateOnly,
+        Bf16FfnWeightScope::UpOnly,
+        Bf16FfnWeightScope::DownOnly,
+        Bf16FfnWeightScope::GateUp,
+        Bf16FfnWeightScope::GateDown,
+        Bf16FfnWeightScope::UpDown,
+    };
+    const auto selected = [](Bf16FfnWeightScope scope, const std::string& name) {
+        const auto gate = name.ends_with(".gate_proj.weight");
+        const auto up = name.ends_with(".up_proj.weight");
+        const auto down = name.ends_with(".down_proj.weight");
+        switch (scope) {
+            case Bf16FfnWeightScope::All: return gate || up || down;
+            case Bf16FfnWeightScope::GateOnly: return gate;
+            case Bf16FfnWeightScope::UpOnly: return up;
+            case Bf16FfnWeightScope::DownOnly: return down;
+            case Bf16FfnWeightScope::GateUp: return gate || up;
+            case Bf16FfnWeightScope::GateDown: return gate || down;
+            case Bf16FfnWeightScope::UpDown: return up || down;
+        }
+        return false;
+    };
+    const auto input = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    for (std::size_t index = 0; index < scopes.size(); ++index) {
+        TransformerModel model(tiny_config(), 100 + index);
+        const auto before = model.forward_inference(input).to_vector();
+        const auto report = model.prepare_bf16_ffn_inference({}, scopes[index]);
+        std::size_t expected = 0;
+        for (const auto& [name, parameter] : model.named_parameters()) {
+            if (name.find(".feed_forward.") == std::string::npos ||
+                !name.ends_with(".weight")) {
+                continue;
+            }
+            const auto is_selected = selected(scopes[index], name);
+            EXPECT_EQ(parameter->data().dtype(),
+                      is_selected ? DType::BFloat16 : DType::Float32) << name;
+            expected += static_cast<std::size_t>(is_selected);
+        }
+        EXPECT_EQ(report.converted_tensors, expected);
+        expect_near(model.forward_inference(input).to_vector(), before, 5.0e-2F);
+    }
+
+    TransformerModel invalid(tiny_config(), 200);
+    EXPECT_THROW(
+        (void)invalid.prepare_bf16_ffn_inference(
+            {}, static_cast<Bf16FfnWeightScope>(99)),
+        std::invalid_argument);
+    EXPECT_FALSE(invalid.bf16_ffn_inference_prepared());
+}
+
 TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights) {
     auto config = tiny_config();
     config.attention_bias = true;

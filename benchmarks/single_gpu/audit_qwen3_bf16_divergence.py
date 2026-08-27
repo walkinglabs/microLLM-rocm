@@ -22,16 +22,25 @@ assert MATRIX_SPEC.loader is not None
 MATRIX_SPEC.loader.exec_module(MATRIX)
 
 MICRO_POLICIES = {
-    "micro-fp32-fp32": (False, False, "fp32"),
-    "micro-fp32-bf16": (False, False, "bf16"),
-    "micro-bf16-fp32": (True, True, "fp32"),
-    "micro-bf16-bf16": (True, True, "bf16"),
-    "micro-ffn-bf16-fp32": (True, False, "fp32"),
-    "micro-attention-bf16-fp32": (False, True, "fp32"),
-    "micro-ffn-bf16-bf16": (True, False, "bf16"),
-    "micro-attention-bf16-bf16": (False, True, "bf16"),
+    "micro-fp32-fp32": (False, False, "fp32", "all"),
+    "micro-fp32-bf16": (False, False, "bf16", "all"),
+    "micro-bf16-fp32": (True, True, "fp32", "all"),
+    "micro-bf16-bf16": (True, True, "bf16", "all"),
+    "micro-ffn-bf16-fp32": (True, False, "fp32", "all"),
+    "micro-attention-bf16-fp32": (False, True, "fp32", "all"),
+    "micro-ffn-bf16-bf16": (True, False, "bf16", "all"),
+    "micro-attention-bf16-bf16": (False, True, "bf16", "all"),
+    "micro-ffn-gate-bf16-fp32": (True, False, "fp32", "gate-only"),
+    "micro-ffn-up-bf16-fp32": (True, False, "fp32", "up-only"),
+    "micro-ffn-down-bf16-fp32": (True, False, "fp32", "down-only"),
+    "micro-ffn-gate-up-bf16-fp32": (True, False, "fp32", "gate-up"),
+    "micro-ffn-gate-down-bf16-fp32": (True, False, "fp32", "gate-down"),
+    "micro-ffn-up-down-bf16-fp32": (True, False, "fp32", "up-down"),
 }
 TORCH_POLICIES = ("torch-fp32", "torch-bf16")
+DEFAULT_MICRO_POLICIES = (
+    "micro-fp32-fp32", "micro-fp32-bf16",
+    "micro-bf16-fp32", "micro-bf16-bf16")
 
 
 def options() -> argparse.Namespace:
@@ -48,7 +57,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--forced-inputs", default="")
     parser.add_argument("--timeout-seconds", type=int, default=900)
     parser.add_argument("--allow-amdsmi-fallback", action="store_true")
-    parser.add_argument("--micro-policies", default=",".join(MICRO_POLICIES))
+    parser.add_argument("--micro-policies", default=",".join(DEFAULT_MICRO_POLICIES))
+    parser.add_argument("--micro-ffn-fp32-layers", default="")
     parser.add_argument("--worker-dtype", choices=("fp32", "bf16"))
     parser.add_argument("--worker-output", type=Path)
     args = parser.parse_args()
@@ -73,11 +83,23 @@ def options() -> argparse.Namespace:
             args.forced_inputs and len(args.forced_inputs) != args.decode_tokens):
         parser.error("forced inputs need one nonnegative ID per decode token")
     args.micro_policies = args.micro_policies.split(",")
+    try:
+        args.micro_ffn_fp32_layers = (
+            [int(value) for value in args.micro_ffn_fp32_layers.split(",")]
+            if args.micro_ffn_fp32_layers else [])
+    except ValueError:
+        parser.error("micro FFN FP32 layers must be comma-separated indices")
+    if (len(args.micro_ffn_fp32_layers) !=
+            len(set(args.micro_ffn_fp32_layers)) or
+            any(layer < 0 for layer in args.micro_ffn_fp32_layers)):
+        parser.error("micro FFN FP32 layers must be unique nonnegative indices")
     if (len(args.micro_policies) != len(set(args.micro_policies)) or
             any(policy not in MICRO_POLICIES for policy in args.micro_policies) or
-            not {"micro-fp32-fp32", "micro-bf16-bf16"} <=
-                set(args.micro_policies)):
-        parser.error("micro policies must be unique known names and include FP32/current")
+            "micro-fp32-fp32" not in args.micro_policies or
+            not ({"micro-bf16-bf16", "micro-ffn-bf16-fp32"} &
+                 set(args.micro_policies))):
+        parser.error(
+            "micro policies must be unique known names and include FP32 plus a current policy")
     return args
 
 
@@ -116,7 +138,7 @@ def top_tokens(values: list[float], count: int = 3) -> list[int]:
 
 def micro_command(args: argparse.Namespace, model: dict, policy: str,
                   output: Path) -> list[str]:
-    bf16_ffn, bf16_attention, cache_dtype = MICRO_POLICIES[policy]
+    bf16_ffn, bf16_attention, cache_dtype, ffn_scope = MICRO_POLICIES[policy]
     tokens = ",".join(str(token) for token in MATRIX.expanded_tokens(
         model["inference"]["token_ids"], args.context))
     command = [
@@ -139,6 +161,13 @@ def micro_command(args: argparse.Namespace, model: dict, policy: str,
             "--forced-decode-inputs",
             ",".join(str(token) for token in args.forced_inputs),
         ])
+    if bf16_ffn:
+        command.extend(["--bf16-ffn-weight-scope", ffn_scope])
+        if args.micro_ffn_fp32_layers:
+            command.extend([
+                "--bf16-ffn-fp32-layers",
+                ",".join(str(layer) for layer in args.micro_ffn_fp32_layers),
+            ])
     return command
 
 
@@ -150,7 +179,7 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
     record = last_json(completed.stdout)
-    bf16_ffn, bf16_attention, cache_dtype = MICRO_POLICIES[policy]
+    bf16_ffn, bf16_attention, cache_dtype, ffn_scope = MICRO_POLICIES[policy]
     required = {
         "status": "pass", "parameter_count": model["parameter_count"],
         "token_count": args.context, "batch": args.batch,
@@ -158,6 +187,9 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
         "kv_cache_dtype": cache_dtype,
         "forced_decode_inputs": bool(args.forced_inputs),
         "forced_decode_input_count": len(args.forced_inputs),
+        "bf16_ffn_weight_scope": ffn_scope,
+        "bf16_ffn_fp32_layers":
+            args.micro_ffn_fp32_layers if bf16_ffn else [],
     }
     if any(record.get(name) != wanted for name, wanted in required.items()):
         raise RuntimeError(f"{policy} changed the decode capture contract")
@@ -171,6 +203,7 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
         "framework_policy": policy, "precision_family": "microllm",
         "bf16_ffn_weights": bf16_ffn,
         "bf16_attention_weights": bf16_attention,
+        "bf16_ffn_weight_scope": ffn_scope,
         "captured_rows_bitwise_equal": all(item[2] for item in within),
         "captured_rows_maximum_error": max(
             (item[0] for item in within), default=0.0),
@@ -323,8 +356,9 @@ def summarize(samples: dict[str, tuple[dict, list[float]]], vocabulary: int,
     fp32_alignment = comparison("micro-fp32-fp32", "torch-fp32")
     torch_top = by_name["torch-bf16"]["top3"]
     oracle_token = by_name["torch-fp32"]["argmax_token"]
-    micro_matches_oracle = \
-        by_name["micro-bf16-bf16"]["argmax_token"] == oracle_token
+    current_micro = ("micro-bf16-bf16" if "micro-bf16-bf16" in by_name
+                     else "micro-ffn-bf16-fp32")
+    micro_matches_oracle = by_name[current_micro]["argmax_token"] == oracle_token
     torch_matches_oracle = by_name["torch-bf16"]["argmax_token"] == oracle_token
     gates = {
         "shared_inputs_before_capture": bool(forced_inputs) or len({
@@ -369,7 +403,8 @@ def summarize(samples: dict[str, tuple[dict, list[float]]], vocabulary: int,
         },
         "attribution": attribution,
         "oracle_matching_low_precision_policy":
-            "micro-bf16-bf16" if micro_matches_oracle else "torch-bf16",
+            current_micro if micro_matches_oracle else "torch-bf16",
+        "micro_current_policy": current_micro,
         "conclusion": (
             "the two low-precision policies choose different low-margin tokens; "
             "the recorded oracle-matching policy is selected by FP32 argmax, not by name"),

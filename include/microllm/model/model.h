@@ -86,6 +86,16 @@ enum class Int8WeightScope {
 
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 
+enum class Bf16FfnWeightScope {
+    All,
+    GateOnly,
+    UpOnly,
+    DownOnly,
+    GateUp,
+    GateDown,
+    UpDown,
+};
+
 struct Bf16FfnArenaStats {
     std::size_t entries = 0;
     std::size_t hits = 0;
@@ -180,6 +190,11 @@ public:
     // Indices must be unique and in range. The operation remains one-way.
     [[nodiscard]] Bf16FfnPreparationReport prepare_bf16_ffn_inference(
         const std::vector<std::int64_t>& fp32_layers);
+    // Projection-scoped research policy. A partially prepared block uses the
+    // readable per-Linear path; the fused FFN path remains all-BF16 only.
+    [[nodiscard]] Bf16FfnPreparationReport prepare_bf16_ffn_inference(
+        const std::vector<std::int64_t>& fp32_layers,
+        Bf16FfnWeightScope scope);
     [[nodiscard]] bool bf16_ffn_inference_prepared() const noexcept;
     // Opt-in graph-free inference workspace. One stable backing allocation is
     // cached per (device, flattened row count) and reused across all blocks.

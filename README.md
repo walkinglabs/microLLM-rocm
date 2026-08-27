@@ -321,6 +321,8 @@ If “Config package” is unfamiliar, read the beginner-facing
 > Attention-only keeps 320 and changing Cache dtype does not restore the answer.
 > No single early FFN layer flips it. Tested-minimal sets `{0,1,2}` and `{3,4}`
 > each repeat 3/3; near pair `{4,6}` stays correct with only 0.000316 margin.
+> Both minimal sets require gate+up+down to be BF16 together: all 12 single/pair
+> projection scopes keep FP32 token 320. Full shape/performance policy gates remain open.
 
 </details>
 
@@ -1052,10 +1054,10 @@ Current `main` gates:
 
 | Gate | Result | Scope |
 |---|---:|---|
-| CPU Debug | 431/431 | host code, Qwen3 FP32/BF16 evidence, QK-Norm graph and package gates |
-| ASan/UBSan CPU | 428/428 | host lifetime, Qwen3 BF16/QK-Norm state and package linking |
+| CPU Debug | 432/432 | host code, projection-scoped BF16 FFN, Qwen3 evidence, QK-Norm graph and package gates |
+| ASan/UBSan CPU | 429/429 | host lifetime, mixed FFN projection fallback, Qwen3 state and package linking |
 | MI300X/gfx942 HIP label | 214/214 | allocator/arena/Stream/Graph, Qwen3 BF16 plus FP32 QK-Norm and strict streaming |
-| PyTorch-enabled CPU build | 433/433 | dispatcher parity, Qwen3 FP32/BF16 evidence and 53/53 QK-Norm alignment |
+| PyTorch-enabled CPU build | 434/434 | dispatcher parity, projection-scoped Qwen3 evidence and 53/53 QK-Norm alignment |
 | Multi-GPU/RCCL | 55/55 | ranked overlap/checkpoint ownership/uneven-input equivalence/failure, bindings and package gates |
 | Registered test files | 158 | machine-audited native/Python test sources; package consumers run inside the integration gate |
 | CMake Config package | CPU + HIP + RCCL pass | build tree, relocated install tree and public example; external `find_package`, components, compile, link and run |
@@ -1324,6 +1326,9 @@ BF16 Cache reduces global error but does not restore the wrong FFN argmax.
 [Experiment 368](docs/optimization-log/experiments/368-qwen3-bf16-ffn-layer-search.md) rejects a
 single bad-layer explanation. No layer 0–6 flips alone; tested-minimal `{0,1,2}` and `{3,4}`
 combinations flip in 3/3 processes, while `{4,6}` is a stable near-boundary counterexample.
+[Experiment 369](docs/optimization-log/experiments/369-qwen3-bf16-ffn-projection-search.md) adds
+projection-scoped preparation. In both minimal sets, every single/two-projection BF16 scope keeps
+320; only gate+up+down together flip25. A complete policy/performance gate is still required.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.
