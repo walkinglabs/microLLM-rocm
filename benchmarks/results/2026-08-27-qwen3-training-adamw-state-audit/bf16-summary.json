@@ -1,0 +1,213 @@
+{
+  "batch": 1,
+  "boundary": "all first/second moments after one AdamW step; parameters and gradients are covered by Experiment 383",
+  "comparison": {
+    "compared_elements": 1192099840,
+    "groups": [
+      {
+        "all_finite": true,
+        "compared_elements": 28672,
+        "family": "attention_norm",
+        "maximum_absolute_difference": 0.008596599102020264,
+        "moment": "first_moment",
+        "rms_difference": 0.0002567339585118498,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.5.attention_norm.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 28672,
+        "family": "attention_norm",
+        "maximum_absolute_difference": 0.00017656921409070492,
+        "moment": "second_moment",
+        "rms_difference": 1.4553305008211688e-06,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.5.attention_norm.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 58720256,
+        "family": "attention_output",
+        "maximum_absolute_difference": 0.005162559449672699,
+        "moment": "first_moment",
+        "rms_difference": 4.2318740493735696e-05,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.14.attention.o_proj.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 58720256,
+        "family": "attention_output",
+        "maximum_absolute_difference": 9.662768570706248e-05,
+        "moment": "second_moment",
+        "rms_difference": 4.044413983935403e-08,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.14.attention.o_proj.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 7168,
+        "family": "attention_qk_norm",
+        "maximum_absolute_difference": 0.022459179162979126,
+        "moment": "first_moment",
+        "rms_difference": 0.0003974688970386294,
+        "tensor_count": 56,
+        "worst_tensor": "blocks.0.attention.q_norm.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 7168,
+        "family": "attention_qk_norm",
+        "maximum_absolute_difference": 0.0021067745983600616,
+        "moment": "second_moment",
+        "rms_difference": 2.6152021894029368e-05,
+        "tensor_count": 56,
+        "worst_tensor": "blocks.0.attention.q_norm.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 117440512,
+        "family": "attention_qkv",
+        "maximum_absolute_difference": 0.026454735547304153,
+        "moment": "first_moment",
+        "rms_difference": 5.049723357606432e-05,
+        "tensor_count": 84,
+        "worst_tensor": "blocks.4.attention.k_proj.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 117440512,
+        "family": "attention_qkv",
+        "maximum_absolute_difference": 0.0005983291193842888,
+        "moment": "second_moment",
+        "rms_difference": 2.3409770014504754e-07,
+        "tensor_count": 84,
+        "worst_tensor": "blocks.2.attention.k_proj.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 155582464,
+        "family": "embedding",
+        "maximum_absolute_difference": 0.03640749678015709,
+        "moment": "first_moment",
+        "rms_difference": 1.7015877170176208e-05,
+        "tensor_count": 1,
+        "worst_tensor": "token_embedding.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 155582464,
+        "family": "embedding",
+        "maximum_absolute_difference": 0.0025378409773111343,
+        "moment": "second_moment",
+        "rms_difference": 3.74830303053191e-07,
+        "tensor_count": 1,
+        "worst_tensor": "token_embedding.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 88080384,
+        "family": "ffn_down",
+        "maximum_absolute_difference": 0.030429810285568237,
+        "moment": "first_moment",
+        "rms_difference": 5.904020980640421e-05,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.2.feed_forward.down_proj.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 88080384,
+        "family": "ffn_down",
+        "maximum_absolute_difference": 0.0027305930852890015,
+        "moment": "second_moment",
+        "rms_difference": 1.4035136409320254e-06,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.2.feed_forward.down_proj.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 176160768,
+        "family": "ffn_gate_up",
+        "maximum_absolute_difference": 0.02535567432641983,
+        "moment": "first_moment",
+        "rms_difference": 3.5972438205398394e-05,
+        "tensor_count": 56,
+        "worst_tensor": "blocks.6.feed_forward.up_proj.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 176160768,
+        "family": "ffn_gate_up",
+        "maximum_absolute_difference": 0.00085478276014328,
+        "moment": "second_moment",
+        "rms_difference": 2.272081674111596e-07,
+        "tensor_count": 56,
+        "worst_tensor": "blocks.27.feed_forward.up_proj.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 28672,
+        "family": "ffn_norm",
+        "maximum_absolute_difference": 0.0021512601524591446,
+        "moment": "first_moment",
+        "rms_difference": 8.130095149348308e-05,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.0.ffn_norm.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 28672,
+        "family": "ffn_norm",
+        "maximum_absolute_difference": 1.182145206257701e-05,
+        "moment": "second_moment",
+        "rms_difference": 1.0727075568726646e-07,
+        "tensor_count": 28,
+        "worst_tensor": "blocks.0.ffn_norm.weight.adamw.second_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 1024,
+        "family": "final_norm",
+        "maximum_absolute_difference": 0.0002746991813182831,
+        "moment": "first_moment",
+        "rms_difference": 1.3008221881293452e-05,
+        "tensor_count": 1,
+        "worst_tensor": "final_norm.weight.adamw.first_moment"
+      },
+      {
+        "all_finite": true,
+        "compared_elements": 1024,
+        "family": "final_norm",
+        "maximum_absolute_difference": 1.0394614946562797e-06,
+        "moment": "second_moment",
+        "rms_difference": 4.2795395359065734e-08,
+        "tensor_count": 1,
+        "worst_tensor": "final_norm.weight.adamw.second_moment"
+      }
+    ],
+    "maximum_absolute_difference": 0.03640749678015709,
+    "rms_difference": 2.8789968179248763e-05,
+    "tensor_count": 620,
+    "worst_tensor": "token_embedding.weight.adamw.first_moment"
+  },
+  "context": 32,
+  "gates": {
+    "maximum": false,
+    "rms": true,
+    "step": true
+  },
+  "limits": {
+    "maximum": 0.01,
+    "rms": 0.0001
+  },
+  "model": "qwen3-0.6b",
+  "moment_storage": "fp32",
+  "precision": "bf16",
+  "record_type": "qwen3_training_adamw_state_audit",
+  "revision": "c916fa4defd319b7d4e4da17604ca7338f4d99f5",
+  "schema_version": 1,
+  "status": "precision_mismatch",
+  "step": 1,
+  "temporary_export_bytes": 9536957448,
+  "temporary_exports_removed": true
+}

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img">
+<rect width="1400" height="760" fill="#f7f9fc"/>
+<text x="700" y="48" text-anchor="middle" font-family="Inter,Arial" font-size="30" font-weight="700" fill="#172033">Qwen3 AdamW State: FP32 Pass · BF16 Rejected</text>
+<text x="700" y="80" text-anchor="middle" font-family="Inter,Arial" font-size="16" fill="#5b6474">620 moment Tensors · 1,192,099,840 values · strict step=1</text>
+<rect x="60" y="115" width="620" height="210" rx="18" fill="#fff" stroke="#dbe1ea"/>
+<text x="90" y="158" font-family="Inter,Arial" font-size="22" font-weight="700" fill="#198754">FP32 · PASS</text>
+<text x="90" y="205" font-family="Inter,Arial" font-size="17" fill="#172033">Max  5.743e-05  /  1.0e-03</text>
+<text x="90" y="245" font-family="Inter,Arial" font-size="17" fill="#172033">RMS  3.552e-08  /  1.0e-06</text>
+<text x="90" y="285" font-family="Inter,Arial" font-size="14" fill="#5b6474">worst: token_embedding.weight.adamw.first_moment</text>
+<rect x="720" y="115" width="620" height="210" rx="18" fill="#fff" stroke="#dbe1ea"/>
+<text x="750" y="158" font-family="Inter,Arial" font-size="22" font-weight="700" fill="#c0392b">BF16 · REJECT</text>
+<text x="750" y="205" font-family="Inter,Arial" font-size="17" fill="#172033">Max  3.641e-02  /  1.0e-02</text>
+<text x="750" y="245" font-family="Inter,Arial" font-size="17" fill="#172033">RMS  2.879e-05  /  1.0e-04</text>
+<text x="750" y="285" font-family="Inter,Arial" font-size="14" fill="#5b6474">worst: token_embedding.weight.adamw.first_moment</text>
+<rect x="60" y="360" width="1280" height="320" rx="18" fill="#fff" stroke="#dbe1ea"/>
+<text x="90" y="402" font-family="Inter,Arial" font-size="21" font-weight="700" fill="#172033">BF16 Max difference by family and moment</text>
+<text x="90" y="435.0" font-family="Inter,Arial" font-size="11" fill="#172033">attention_norm · m</text>
+<rect x="285" y="425.0" width="200.7" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="435.0" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">8.597e-03</text>
+<text x="90" y="448.2" font-family="Inter,Arial" font-size="11" fill="#172033">attention_norm · v</text>
+<rect x="285" y="438.2" width="4.1" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="448.2" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">1.766e-04</text>
+<text x="90" y="461.4" font-family="Inter,Arial" font-size="11" fill="#172033">attention_output · m</text>
+<rect x="285" y="451.4" width="120.5" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="461.4" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">5.163e-03</text>
+<text x="90" y="474.6" font-family="Inter,Arial" font-size="11" fill="#172033">attention_output · v</text>
+<rect x="285" y="464.6" width="2.3" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="474.6" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">9.663e-05</text>
+<text x="90" y="487.8" font-family="Inter,Arial" font-size="11" fill="#172033">attention_qk_norm · m</text>
+<rect x="285" y="477.8" width="524.4" height="10" rx="3" fill="#c0392b"/>
+<text x="1280" y="487.8" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">2.246e-02</text>
+<text x="90" y="501.0" font-family="Inter,Arial" font-size="11" fill="#172033">attention_qk_norm · v</text>
+<rect x="285" y="491.0" width="49.2" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="501.0" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">2.107e-03</text>
+<text x="90" y="514.2" font-family="Inter,Arial" font-size="11" fill="#172033">attention_qkv · m</text>
+<rect x="285" y="504.2" width="617.6" height="10" rx="3" fill="#c0392b"/>
+<text x="1280" y="514.2" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">2.645e-02</text>
+<text x="90" y="527.4" font-family="Inter,Arial" font-size="11" fill="#172033">attention_qkv · v</text>
+<rect x="285" y="517.4" width="14.0" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="527.4" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">5.983e-04</text>
+<text x="90" y="540.6" font-family="Inter,Arial" font-size="11" fill="#172033">embedding · m</text>
+<rect x="285" y="530.6" width="850.0" height="10" rx="3" fill="#c0392b"/>
+<text x="1280" y="540.6" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">3.641e-02</text>
+<text x="90" y="553.8" font-family="Inter,Arial" font-size="11" fill="#172033">embedding · v</text>
+<rect x="285" y="543.8" width="59.3" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="553.8" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">2.538e-03</text>
+<text x="90" y="567.0" font-family="Inter,Arial" font-size="11" fill="#172033">ffn_down · m</text>
+<rect x="285" y="557.0" width="710.4" height="10" rx="3" fill="#c0392b"/>
+<text x="1280" y="567.0" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">3.043e-02</text>
+<text x="90" y="580.2" font-family="Inter,Arial" font-size="11" fill="#172033">ffn_down · v</text>
+<rect x="285" y="570.2" width="63.8" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="580.2" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">2.731e-03</text>
+<text x="90" y="593.4" font-family="Inter,Arial" font-size="11" fill="#172033">ffn_gate_up · m</text>
+<rect x="285" y="583.4" width="592.0" height="10" rx="3" fill="#c0392b"/>
+<text x="1280" y="593.4" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">2.536e-02</text>
+<text x="90" y="606.6" font-family="Inter,Arial" font-size="11" fill="#172033">ffn_gate_up · v</text>
+<rect x="285" y="596.6" width="20.0" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="606.6" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">8.548e-04</text>
+<text x="90" y="619.8" font-family="Inter,Arial" font-size="11" fill="#172033">ffn_norm · m</text>
+<rect x="285" y="609.8" width="50.2" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="619.8" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">2.151e-03</text>
+<text x="90" y="633.0" font-family="Inter,Arial" font-size="11" fill="#172033">ffn_norm · v</text>
+<rect x="285" y="623.0" width="0.3" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="633.0" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">1.182e-05</text>
+<text x="90" y="646.2" font-family="Inter,Arial" font-size="11" fill="#172033">final_norm · m</text>
+<rect x="285" y="636.2" width="6.4" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="646.2" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">2.747e-04</text>
+<text x="90" y="659.4" font-family="Inter,Arial" font-size="11" fill="#172033">final_norm · v</text>
+<rect x="285" y="649.4" width="0.0" height="10" rx="3" fill="#4776c5"/>
+<text x="1280" y="659.4" text-anchor="end" font-family="monospace" font-size="11" fill="#172033">1.039e-06</text>
+<text x="700" y="725" text-anchor="middle" font-family="Inter,Arial" font-size="15" fill="#5b6474">canonical FP32 moments · temporary 9.54 GB exports removed · serialization excluded from timing</text>
+</svg>

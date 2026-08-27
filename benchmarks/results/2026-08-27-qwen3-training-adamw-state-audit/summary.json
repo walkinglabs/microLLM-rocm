@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "pass_fp32_reject_bf16_adamw_state",
+  "model": "Qwen/Qwen3-0.6B",
+  "scope": {"parameter_tensors": 310, "moment_tensors": 620, "compared_values": 1192099840, "step": 1, "moment_storage": "fp32"},
+  "fp32": {"status": "pass", "maximum_absolute_difference": 0.00005742907524108887, "rms_difference": 3.551921035224357e-8, "worst_tensor": "token_embedding.weight.adamw.first_moment"},
+  "bf16": {"status": "precision_mismatch", "maximum_absolute_difference": 0.03640749678015709, "rms_difference": 0.000028789968179248763, "worst_tensor": "token_embedding.weight.adamw.first_moment", "failed_gates": ["maximum"]},
+  "limits": {"fp32_maximum": 0.001, "fp32_rms": 0.000001, "bf16_maximum": 0.01, "bf16_rms": 0.0001},
+  "temporary_export_bytes_per_precision": 9536957448,
+  "temporary_exports_removed": true,
+  "decision": "keep complete FP32 AdamW state alignment; reject BF16-forward optimizer-state alignment with FP32 moments",
+  "boundary": "BF16 moment storage and multi-step state trajectories remain separate"
+}

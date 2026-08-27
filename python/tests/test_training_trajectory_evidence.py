@@ -14,6 +14,7 @@ MAPPING = ROOT / "benchmarks/single_gpu/hf_internal_parameter_mapping.py"
 ALL_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_all_parameter_audit.py"
 ALL_RENDER = (ROOT / "docs/optimization-log/scripts" /
               "render_qwen3_training_all_parameter_audit.py")
+MOMENT_AUDIT = ROOT / "benchmarks/single_gpu/qwen3_training_adamw_state_audit.py"
 
 
 def main() -> int:
@@ -23,6 +24,7 @@ def main() -> int:
     mapping_text = MAPPING.read_text(encoding="utf-8")
     all_audit = ALL_AUDIT.read_text(encoding="utf-8")
     all_render = ALL_RENDER.read_text(encoding="utf-8")
+    moment_audit = MOMENT_AUDIT.read_text(encoding="utf-8")
     for token in (
         "--loss-trajectory-output", "--gate-up-parameters-output",
         "--gate-up-gradients-output", "gate_up_gradient_tensors",
@@ -31,7 +33,9 @@ def main() -> int:
         "gate_up_parameter_elements", "--all-parameters-output",
         "--all-gradients-output", "all_gradient_tensors",
         "all_gradient_elements", "all_parameter_tensors",
-        "all_parameter_elements", "all_state", "save_safetensors",
+        "all_parameter_elements", "--all-moments-output",
+        "all_moment_tensors", "all_moment_elements", "all_moment_step",
+        "all_state", "save_safetensors",
     ):
         assert token in train
     assert "--bf16-gate-up-weight-gradient" not in train
@@ -44,6 +48,7 @@ def main() -> int:
     for token in (
         "--gate-up-parameters-output", "--gate-up-gradients-output",
         "--all-parameters-output", "--all-gradients-output",
+        "--all-moments-output", "save_all_moments", "exp_avg_sq",
         "internal_parameter", "internal_state", "save_gate_up", "save_all",
         "gate_up_gradient_tensors", "all_gradient_tensors",
     ):
@@ -107,6 +112,12 @@ def main() -> int:
         "gradient_families", "fixed 5e-2 gate", "temporary 9.54 GB exports removed",
     ):
         assert token in all_render
+    for token in (
+        "EXPECTED_TENSORS = 620", "EXPECTED_ELEMENTS = 1_192_099_840",
+        "first_moment", "second_moment", "all_moment_step",
+        "moment_storage", "temporary_exports_removed",
+    ):
+        assert token in moment_audit
     print("training trajectory evidence contract: pass")
     return 0
 

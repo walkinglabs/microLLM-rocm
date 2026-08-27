@@ -1422,6 +1422,10 @@ parameters after the tied lm_head alias, so each precision compares 596,049,920 
 same number of updated values. FP32 passes the fixed aggregate Max/RMS gates; BF16 fails Gradient
 Max at `0.3641` and Parameter RMS at `2.253e-6`. Per-Tensor RMS remains an explicitly separate
 diagnostic, while AdamW moments and multi-step trajectories remain open.
+[Experiment 384](docs/optimization-log/experiments/384-qwen3-training-adamw-state-audit.md) then
+compares all 620 first/second-moment Tensors and strict step state. FP32 passes at
+`5.743e-5/3.552e-8` Max/RMS; BF16 forward with FP32 moments fails Max at `0.03641`, proving the
+gradient split reaches optimizer state. BF16 moment storage and multi-step trajectories remain open.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

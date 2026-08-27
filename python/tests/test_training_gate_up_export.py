@@ -32,6 +32,11 @@ ALL_SHAPES = {
     "blocks.0.feed_forward.down_proj.weight": [16, 8],
     "final_norm.weight": [8],
 }
+MOMENT_SHAPES = {
+    f"{name}.adamw.{moment}": shape
+    for name, shape in ALL_SHAPES.items()
+    for moment in ("first_moment", "second_moment")
+}
 
 
 def header(path: Path, expected: dict[str, list[int]]) -> dict:
@@ -112,6 +117,17 @@ def main() -> int:
         assert record["all_parameter_elements"] == 680
         header(all_gradients, ALL_SHAPES)
         header(all_parameters, ALL_SHAPES)
+
+        moments = root / "moments.safetensors"
+        completed = subprocess.run(base + [
+            "--steps", "2", "--all-moments-output", str(moments),
+        ], check=True, capture_output=True, text=True)
+        record = json.loads(completed.stdout)
+        assert record["measurement_profile"] == "diagnostic"
+        assert record["all_moment_tensors"] == 28
+        assert record["all_moment_elements"] == 1360
+        assert record["all_moment_step"] == 2
+        header(moments, MOMENT_SHAPES)
 
         rejected = subprocess.run(base + [
             "--warmup", "1", "--gate-up-gradients-output",

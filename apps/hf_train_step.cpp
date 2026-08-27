@@ -210,6 +210,7 @@ int main(int argc, char** argv) {
         std::filesystem::path gate_up_gradients_output;
         std::filesystem::path all_parameters_output;
         std::filesystem::path all_gradients_output;
+        std::filesystem::path all_moments_output;
         bool bf16_weight_mirrors = true;
         bool tied_embedding_sparse_add = true;
         bool unique_gradient_inplace_add = false;
@@ -268,6 +269,9 @@ int main(int argc, char** argv) {
             }
             else if (name == "--all-gradients-output") {
                 all_gradients_output = argv[index + 1];
+            }
+            else if (name == "--all-moments-output") {
+                all_moments_output = argv[index + 1];
             }
             else if (name == "--tied-embedding-sparse-add") {
                 const std::string value = argv[index + 1];
@@ -655,6 +659,9 @@ int main(int argc, char** argv) {
         std::uint64_t all_parameter_elements = 0;
         std::size_t all_gradient_tensors = 0;
         std::uint64_t all_gradient_elements = 0;
+        std::size_t all_moment_tensors = 0;
+        std::uint64_t all_moment_elements = 0;
+        std::uint64_t all_moment_step = 0;
         if (!gate_up_gradients_output.empty()) {
             const auto selected = gate_up_state(true);
             gate_up_gradient_tensors = selected.size();
@@ -696,6 +703,31 @@ int main(int argc, char** argv) {
             }
             microllm::io::save_safetensors(
                 all_parameters_output, selected,
+                {.dtype = microllm::io::WeightFileDType::Float32,
+                 .atomic_replace = true});
+        }
+        if (!all_moments_output.empty()) {
+            const auto state = optimizer.state();
+            if (state.first_moments.size() != named.size() ||
+                state.second_moments.size() != named.size()) {
+                throw std::logic_error(
+                    "AdamW state does not match named parameters");
+            }
+            microllm::io::StateDict selected;
+            for (std::size_t index = 0; index < named.size(); ++index) {
+                const auto& name = named[index].first;
+                selected.emplace(name + ".adamw.first_moment",
+                                 state.first_moments[index]);
+                selected.emplace(name + ".adamw.second_moment",
+                                 state.second_moments[index]);
+                all_moment_elements += static_cast<std::uint64_t>(
+                    state.first_moments[index].numel() +
+                    state.second_moments[index].numel());
+            }
+            all_moment_tensors = selected.size();
+            all_moment_step = state.step;
+            microllm::io::save_safetensors(
+                all_moments_output, selected,
                 {.dtype = microllm::io::WeightFileDType::Float32,
                  .atomic_replace = true});
         }
@@ -763,6 +795,11 @@ int main(int argc, char** argv) {
                   << (!all_gradients_output.empty() ? "true" : "false")
                   << ",\"all_gradient_tensors\":" << all_gradient_tensors
                   << ",\"all_gradient_elements\":" << all_gradient_elements
+                  << ",\"all_moments_output_written\":"
+                  << (!all_moments_output.empty() ? "true" : "false")
+                  << ",\"all_moment_tensors\":" << all_moment_tensors
+                  << ",\"all_moment_elements\":" << all_moment_elements
+                  << ",\"all_moment_step\":" << all_moment_step
                   << ",\"gate_up_parameter_tensors\":"
                   << gate_up_parameter_tensors
                   << ",\"gate_up_parameter_elements\":"
@@ -793,7 +830,8 @@ int main(int argc, char** argv) {
                   << (attention_gqa_forward_value_broadcast ? "true" : "false")
                   << ",\"measurement_profile\":\""
                   << (!gate_up_gradients_output.empty() ||
-                              !all_gradients_output.empty()
+                              !all_gradients_output.empty() ||
+                              !all_moments_output.empty()
                           ? "diagnostic"
                           : warmup > 0 || steps > 1 ? "comparison" : "smoke")
                   << "\""

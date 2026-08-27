@@ -768,3 +768,5 @@ the next gate. Records are append-only except for factual corrections.
   compares all gate/up gradients and updated parameters, passing FP32 and rejecting BF16.
 - [2026-08-27-qwen3-training-all-parameter-audit.md](2026-08-27-qwen3-training-all-parameter-audit.md):
   compares all 310 independent gradients and updated parameters, passing FP32 aggregate gates and rejecting BF16.
+- [2026-08-27-qwen3-training-adamw-state-audit.md](2026-08-27-qwen3-training-adamw-state-audit.md):
+  compares all 620 AdamW moment Tensors and strict step state.

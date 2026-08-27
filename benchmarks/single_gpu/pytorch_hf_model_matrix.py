@@ -48,6 +48,7 @@ def options() -> argparse.Namespace:
     parser.add_argument("--gate-up-gradients-output", type=Path)
     parser.add_argument("--all-parameters-output", type=Path)
     parser.add_argument("--all-gradients-output", type=Path)
+    parser.add_argument("--all-moments-output", type=Path)
     parser.add_argument("--allow-unavailable", action="store_true")
     parser.add_argument("--allow-amdsmi-fallback", action="store_true")
     parser.add_argument("--worker-model", help=argparse.SUPPRESS)
@@ -303,11 +304,41 @@ def save_all(path: Path, loaded, gradients: bool) -> tuple[int, int]:
     return len(state), sum(tensor.numel() for tensor in state.values())
 
 
+def save_all_moments(path: Path, loaded,
+                     optimizer: torch.optim.Optimizer) -> tuple[int, int, int]:
+    from safetensors.torch import save_file
+    result = {}
+    steps = set()
+    for name, parameter in loaded.named_parameters():
+        mapped = internal_parameter(name)
+        if mapped is None:
+            raise RuntimeError(f"unmapped PyTorch parameter: {name}")
+        internal, transpose = mapped
+        state = optimizer.state.get(parameter, {})
+        if "exp_avg" not in state or "exp_avg_sq" not in state or "step" not in state:
+            raise RuntimeError(f"missing AdamW state: {name}")
+        step_value = state["step"]
+        steps.add(int(step_value.item() if torch.is_tensor(step_value) else step_value))
+        for suffix, field in (("first_moment", "exp_avg"),
+                              ("second_moment", "exp_avg_sq")):
+            tensor = state[field].detach().float()
+            if transpose:
+                tensor = tensor.T
+            result[f"{internal}.adamw.{suffix}"] = tensor.contiguous().cpu()
+    if len(steps) != 1 or not result:
+        raise RuntimeError("AdamW state has inconsistent steps or no Tensors")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    save_file(result, path)
+    return (len(result), sum(tensor.numel() for tensor in result.values()),
+            next(iter(steps)))
+
+
 def train(model: dict, loaded, device: torch.device, base: dict,
           parameter_output: Path | None = None,
           gradient_output: Path | None = None,
           all_parameter_output: Path | None = None,
-          all_gradient_output: Path | None = None) -> dict:
+          all_gradient_output: Path | None = None,
+          all_moment_output: Path | None = None) -> dict:
     training = model["training"]
     all_tokens = [int(value) for value in training["tokens"].split(",")]
     batch = int(training.get("batch", 1))
@@ -336,6 +367,9 @@ def train(model: dict, loaded, device: torch.device, base: dict,
     all_gradient_elements = 0
     all_parameter_count = 0
     all_parameter_elements = 0
+    all_moment_count = 0
+    all_moment_elements = 0
+    all_moment_step = 0
 
     def train_once(capture: bool = False):
         nonlocal gradient_count, gradient_elements
@@ -383,6 +417,9 @@ def train(model: dict, loaded, device: torch.device, base: dict,
     if all_parameter_output is not None:
         all_parameter_count, all_parameter_elements = save_all(
             all_parameter_output, loaded, False)
+    if all_moment_output is not None:
+        all_moment_count, all_moment_elements, all_moment_step = \
+            save_all_moments(all_moment_output, loaded, optimizer)
     after = float(observed[0].detach())
     step_ms = (finish - start) * 1000.0
     trained_tokens = inputs.numel() * steps
@@ -392,7 +429,8 @@ def train(model: dict, loaded, device: torch.device, base: dict,
         "mode": "train",
         "measurement_profile": (
             "diagnostic" if gradient_output is not None or
-                            all_gradient_output is not None else
+                            all_gradient_output is not None or
+                            all_moment_output is not None else
             "comparison" if warmup > 0 or steps > 1 else "smoke"),
         "gate_up_parameters_output_written": parameter_output is not None,
         "gate_up_parameter_tensors": parameter_count_output,
@@ -406,6 +444,10 @@ def train(model: dict, loaded, device: torch.device, base: dict,
         "all_gradients_output_written": all_gradient_output is not None,
         "all_gradient_tensors": all_gradient_count,
         "all_gradient_elements": all_gradient_elements,
+        "all_moments_output_written": all_moment_output is not None,
+        "all_moment_tensors": all_moment_count,
+        "all_moment_elements": all_moment_elements,
+        "all_moment_step": all_moment_step,
         "warmup": warmup,
         "steps": steps,
         "batch": batch,
@@ -434,14 +476,15 @@ def run_worker(model: dict, mode: str, device_name: str, allow_fallback: bool,
                dtype_name: str, parameter_output: Path | None = None,
                gradient_output: Path | None = None,
                all_parameter_output: Path | None = None,
-               all_gradient_output: Path | None = None) -> dict:
+               all_gradient_output: Path | None = None,
+               all_moment_output: Path | None = None) -> dict:
     device, workaround = prepare_device(device_name, allow_fallback)
     loaded, load_ms, parameter_count, tensor_count = load_model(model, device, dtype_name)
     base = common(model, loaded, device, workaround, load_ms, parameter_count, tensor_count,
                   dtype_name)
     return infer(model, loaded, device, base) if mode == "infer" else train(
         model, loaded, device, base, parameter_output, gradient_output,
-        all_parameter_output, all_gradient_output
+        all_parameter_output, all_gradient_output, all_moment_output
     )
 
 
@@ -467,7 +510,8 @@ def main() -> int:
     if (args.gate_up_parameters_output is not None or
             args.gate_up_gradients_output is not None or
             args.all_parameters_output is not None or
-            args.all_gradients_output is not None) and \
+            args.all_gradients_output is not None or
+            args.all_moments_output is not None) and \
             args.worker_mode != "train":
         raise RuntimeError("Tensor outputs require train worker mode")
     if ((args.gate_up_parameters_output is not None or
@@ -484,7 +528,8 @@ def main() -> int:
                                     args.gate_up_parameters_output,
                                     args.gate_up_gradients_output,
                                     args.all_parameters_output,
-                                    args.all_gradients_output), sort_keys=True))
+                                    args.all_gradients_output,
+                                    args.all_moments_output), sort_keys=True))
         return 0
 
     records: list[dict] = []
