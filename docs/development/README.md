@@ -739,3 +739,5 @@ the next gate. Records are append-only except for factual corrections.
   finds two minimal tested early-layer combinations and rejects a single-layer story.
 - [2026-08-26-qwen3-bf16-ffn-projection-search.md](2026-08-26-qwen3-bf16-ffn-projection-search.md):
   shows that both minimal layer sets require gate, up and down to be BF16 together.
+- [2026-08-26-qwen3-ffn0-4-fp32-reject.md](2026-08-26-qwen3-ffn0-4-fp32-reject.md):
+  rejects an early-layer FP32 candidate on trajectory and batch invariants before timing.

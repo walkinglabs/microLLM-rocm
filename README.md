@@ -323,6 +323,8 @@ If “Config package” is unfamiliar, read the beginner-facing
 > each repeat 3/3; near pair `{4,6}` stays correct with only 0.000316 margin.
 > Both minimal sets require gate+up+down to be BF16 together: all 12 single/pair
 > projection scopes keep FP32 token 320. Full shape/performance policy gates remain open.
+> The first deployable candidate (FFN layers0–4 FP32) is rejected before timing: T128
+> diverges again at token23 and T512/B2 identical rows fail in 3/3 fresh processes.
 
 </details>
 
@@ -1329,6 +1331,9 @@ combinations flip in 3/3 processes, while `{4,6}` is a stable near-boundary coun
 [Experiment 369](docs/optimization-log/experiments/369-qwen3-bf16-ffn-projection-search.md) adds
 projection-scoped preparation. In both minimal sets, every single/two-projection BF16 scope keeps
 320; only gate+up+down together flip25. A complete policy/performance gate is still required.
+[Experiment 370](docs/optimization-log/experiments/370-qwen3-ffn0-4-fp32-reject.md) runs that
+complete gate for early layers0–4 FP32. It improves the T128 prefix but later diverges and makes
+T512/B2 identical rows fail 3/3, so the candidate is removed before performance measurement.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

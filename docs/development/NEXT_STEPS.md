@@ -56,9 +56,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   `{4,6}` keeps oracle 320 at a 0.000316 margin;
 - [x] split gate/up/down precision inside `{0,1,2}` and `{3,4}`: all 12 single/pair
   projection scopes keep oracle 320; only all three BF16 projections flip to25;
-- [ ] compare keeping gate, up or down FP32 in layers0–4 across the complete Qwen3
-  shape/token matrix, resident bytes and repeated speed; partial Linear fallback may erase
-  the precision policy's performance benefit, so no default change is allowed yet;
+- [x] test the smaller deployable candidate with FFN layers0–4 wholly FP32 and all other
+  FFN/Attention BF16: T128 prefix improves 8→22, but T512/B2 identical rows fail 3/3;
+  reject before speed despite the exact +94,371,840-byte resident cost;
+- [ ] restart Qwen3 precision-policy work only with calibration/QAT or a policy justified by
+  the complete mismatch matrix; do not continue ad-hoc early-layer FP32 combinations;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

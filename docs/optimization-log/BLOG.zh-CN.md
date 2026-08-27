@@ -5435,3 +5435,13 @@ Attention-only仍选320，margin 0.07367。batch内Max分别0.1443/0.0325。
 可能改变。下一步必须做完整shape/速度/常驻门，不能从一个top-2 margin直接改默认。
 
 ![Qwen3 BF16 FFN projection search](assets/qwen3-bf16-ffn-projection-search.svg)
+
+## 386. Experiment 370：局部修复不能代替完整矩阵
+
+保留FFN layers0–4为FP32、其余融合BF16。T128/B2共同前缀从8延长到22，第9个token恢复320；
+但第23个token再次分叉。T512/B2/N32还让相同batch row生成不同token，3/3独立复现。
+
+候选常驻准确增加94,371,840字节，却从当前24 pass/8 mismatch变为23 pass/8 mismatch/1 limited。
+正确性先失败，所以性能runner删除，默认不改。
+
+![Qwen3 early FFN FP32 rejection](assets/qwen3-ffn0-4-fp32-reject.svg)

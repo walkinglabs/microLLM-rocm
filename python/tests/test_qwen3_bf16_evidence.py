@@ -16,6 +16,8 @@ LAYER_ROOT = (ROOT / "benchmarks/results" /
               "2026-08-26-qwen3-bf16-ffn-layer-search")
 PROJECTION_ROOT = (ROOT / "benchmarks/results" /
                    "2026-08-26-qwen3-bf16-ffn-projection-search")
+CANDIDATE_ROOT = (ROOT / "benchmarks/results" /
+                  "2026-08-26-qwen3-ffn0-4-fp32-reject")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -173,6 +175,31 @@ def main():
             item["bf16_ffn_weight_scope"] != "all"
         }
         assert raw_scopes == expected_scopes
+    candidate = json.loads((CANDIDATE_ROOT / "summary.json").read_text())
+    candidate_matrix = json.loads(
+        (CANDIDATE_ROOT / "matrix-summary.json").read_text())
+    candidate_raw = [json.loads(line) for line in
+                     (CANDIDATE_ROOT / "raw.jsonl").read_text().splitlines()
+                     if line]
+    assert candidate["status"] == "reject_precision_and_batch_invariance"
+    assert candidate["resident_weight_delta_bytes"] == 94_371_840
+    assert candidate["performance_gate_run"] is False
+    assert candidate["t128_b2_n32"]["current_matching_prefix_tokens"] == 8
+    assert candidate["t128_b2_n32"]["candidate_matching_prefix_tokens"] == 22
+    assert candidate["t512_b2_n32"]["repeated_failures"] == 3
+    assert candidate_matrix["status"] == "complete_with_recorded_limits"
+    assert len(candidate_matrix["rows"]) == 32
+    assert sum(row["status"] == "pass" for row in candidate_matrix["rows"]) == 23
+    assert sum(row["status"] == "precision_mismatch"
+               for row in candidate_matrix["rows"]) == 8
+    assert sum(row["status"] == "limited" for row in candidate_matrix["rows"]) == 1
+    assert len(candidate_raw) == 64
+    failures = [row for row in candidate_raw if row["status"] != "pass"]
+    assert len(failures) == 1
+    assert failures[0]["context"] == 512 and failures[0]["batch"] == 2
+    assert "identical batch rows" in failures[0]["error"]
+    assert "ffn_fp32_layers=0,1,2,3,4" in \
+        candidate_matrix["precision_boundary"]["microllm"]
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

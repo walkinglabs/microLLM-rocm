@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+  <rect width="1500" height="760" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 candidate · FFN layers 0–4 stay FP32</text>
+  <text x="60" y="103" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Complete 32-row shape gate before performance</text>
+
+  <rect x="55" y="145" width="430" height="385" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="270" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">What improved</text>
+  <text x="270" y="275" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">T128/B2 common prefix</text>
+  <text x="270" y="345" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="52" font-weight="700" fill="#166534">8 → 22</text>
+  <text x="270" y="405" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#166534">token9 restores oracle 320</text>
+  <text x="270" y="465" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">69 FFN + 112 Attention BF16 tensors</text>
+
+  <rect x="535" y="145" width="430" height="385" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="750" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#b42335">What still failed</text>
+  <text x="750" y="275" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033">T128 diverges again at token23</text>
+  <text x="750" y="345" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="27" font-weight="700" fill="#b42335">T512/B2/N32</text>
+  <text x="750" y="390" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b42335">identical batch rows disagree</text>
+  <text x="750" y="445" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#b42335">3 / 3 repeats</text>
+  <text x="750" y="490" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">stable correctness failure</text>
+
+  <rect x="1015" y="145" width="430" height="385" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+  <text x="1230" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#b45309">Resource tradeoff</text>
+  <text x="1230" y="285" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="47" font-weight="700" fill="#b45309">+90 MiB</text>
+  <text x="1230" y="335" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">+94,371,840 resident bytes</text>
+  <text x="1230" y="405" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700" fill="#b42335">performance not run</text>
+  <text x="1230" y="455" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">correctness gate stops first</text>
+
+  <rect x="55" y="585" width="1390" height="110" rx="18" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+  <text x="90" y="630" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="700" fill="#b42335">Reject</text>
+  <text x="205" y="630" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033">23 pass · 8 precision mismatch · 1 limited</text>
+  <text x="205" y="670" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">partial repair is not a complete policy; keep current explicit BF16 route unchanged</text>
+</svg>

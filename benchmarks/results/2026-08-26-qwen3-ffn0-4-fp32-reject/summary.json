@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "reject_precision_and_batch_invariance",
+  "model": "Qwen/Qwen3-0.6B",
+  "candidate": "FFN layers 0-4 FP32; other FFN and all Attention BF16; BF16 Cache",
+  "candidate_ffn_bf16_tensors": 69,
+  "candidate_attention_bf16_tensors": 112,
+  "current_resident_weight_bytes": 1503395840,
+  "candidate_resident_weight_bytes": 1597767680,
+  "resident_weight_delta_bytes": 94371840,
+  "framework_worker_rows": 64,
+  "framework_worker_passes": 63,
+  "candidate_shape_rows": 32,
+  "candidate_pass_rows": 23,
+  "candidate_precision_mismatch_rows": 8,
+  "candidate_limited_rows": 1,
+  "current_pass_rows": 24,
+  "current_precision_mismatch_rows": 8,
+  "t128_b2_n32": {
+    "current_matching_prefix_tokens": 8,
+    "candidate_matching_prefix_tokens": 22,
+    "candidate_first_difference": 22,
+    "candidate_tokens_first_12": [1, 374, 264, 3491, 429, 374, 537, 264, 320, 606, 11, 2265],
+    "pytorch_tokens_first_12": [1, 374, 264, 3491, 429, 374, 537, 264, 320, 606, 11, 2265]
+  },
+  "t512_b2_n32": {
+    "matrix_status": "limited",
+    "microllm_status": "failed",
+    "failure": "cached identical batch rows produced invalid or different tokens",
+    "independent_repetitions": 3,
+    "repeated_failures": 3
+  },
+  "performance_gate_run": false,
+  "decision": "reject before performance measurement",
+  "boundary": "the candidate improves one known divergence but fails complete trajectory and identical-batch invariants"
+}

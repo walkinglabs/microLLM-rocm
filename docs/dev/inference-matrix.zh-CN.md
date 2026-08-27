@@ -260,3 +260,5 @@ FFN分组、single、pair与repeat搜索见
 [Experiment 368](../optimization-log/experiments/368-qwen3-bf16-ffn-layer-search.md)。
 FFN gate/up/down七种scope和两个最小层集合见
 [Experiment 369](../optimization-log/experiments/369-qwen3-bf16-ffn-projection-search.md)。
+layers0–4 FP32候选的完整shape拒绝见
+[Experiment 370](../optimization-log/experiments/370-qwen3-ffn0-4-fp32-reject.md)。

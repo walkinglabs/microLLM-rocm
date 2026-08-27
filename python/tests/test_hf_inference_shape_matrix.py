@@ -2147,6 +2147,27 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "unique positive"):
             MATRIX.positive_int_list("1,1", "batches")
 
+    def test_micro_command_carries_selective_ffn_policy(self):
+        args = type("Args", (), {
+            "micro_binary": Path("/micro"), "decode_tokens": 4,
+            "micro_batch_argmax_mode": "device", "prefill_logits_mode": "last",
+            "micro_kv_cache_dtype": "bf16", "warmup": 1, "steps": 2,
+            "micro_cache_capacity": "exact", "decode_lengths": [4],
+            "micro_kv_cache_fp32_layers": "",
+            "micro_bf16_ffn_fp32_layers": "0,1,2,3,4",
+            "micro_bf16_ffn_weight_scope": "up-down",
+        })()
+        model = {
+            "config": "/config", "weights": "/weights",
+            "inference": {"token_ids": [1]},
+        }
+        command = MATRIX.micro_command(
+            args, model, 8, 2, "decode", "cached", 4)
+        self.assertEqual(command[command.index("--bf16-ffn-fp32-layers") + 1],
+                         "0,1,2,3,4")
+        self.assertEqual(command[command.index("--bf16-ffn-weight-scope") + 1],
+                         "up-down")
+
     def test_validator_rejects_silent_batch_fallback(self):
         model = {"name": "qwen", "parameter_count": 10}
         record = {
