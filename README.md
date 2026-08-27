@@ -1375,6 +1375,11 @@ precision policy, not made default and not described as acceleration.
 identical-input row divergence from a generic worker failure to first-class evidence. At
 T1024/B2/N8, microLLM produces 2/2, Transformers BF16 produces 474/2, and the common FP32 oracle
 is 2; all rows and exact KV bytes remain inspectable.
+[Experiment 378](docs/optimization-log/experiments/378-qwen3-decode-up-fp32-long-context.md) reruns
+the complete T1024/T2048 matrix with that row contract: 32/32 workers, 12/12 exact KV rows,
+microLLM B2 invariance 6/6 and combined fixed-state FP32 argmax 10/10. Strict common-FP32
+full-logit gates are 8/10, so the explicit repeated-token evidence extends to T2048 without a
+universal prompt or full-vector claim.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

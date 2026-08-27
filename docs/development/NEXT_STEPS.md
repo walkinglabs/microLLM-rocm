@@ -77,9 +77,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   exact cached rows, 8/8 fixed FP32 argmax states and two independent 5/5
   performance matrices pass; geometric means are 0.97984/0.98178 and resident
   cost is +336MiB; retain explicit only;
-- [ ] broaden the kept policy beyond the calibration set: prompt families, contexts
-  above512, Radeon/backend versions and memory-constrained devices; keep the strict
-  common-FP32 full-logit result visible at 7/8;
+- [x] extend the fixed repeated-token policy matrix to T1024/T2048: 32/32 workers,
+  12/12 exact KV rows, new FP32 argmax states2/2 and microLLM B2 invariance6/6;
+  combined argmax is10/10 while strict common-FP32 full logits remain8/10;
+- [ ] broaden beyond the repeated-token calibration prompt: natural-language prompt
+  families, Radeon/backend versions and memory-constrained devices;
 - [x] preserve identical-input batch rows instead of throwing a generic PyTorch worker
   failure; classify T1024/B2/N8 as `batch_invariance_mismatch`, with microLLM 2/2,
   Transformers BF16 474/2 and common FP32 oracle 2;

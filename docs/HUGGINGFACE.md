@@ -59,6 +59,10 @@ CPU/HIP/sanitizer均通过。它只进入完整测量，尚未成为默认或速
 microLLM两行都是FP32 oracle的2。runner保存全部行并分类`batch_invariance_mismatch`，不再把它
 压成一个没有数值的`failed`。
 
+修复后T1024/T2048矩阵32/32 worker完成，12/12 KV精确；新增T1024 token2与T2048 token16都
+匹配FP32。合并fixed-state为argmax10/10、strict full-logit8/10。显式策略的重复token边界扩到
+T2048，但自然语言prompt、训练和其他硬件仍未由此证明。
+
 ### 一条命令准备固定 fixture
 
 仓库不会提交数GB权重，但会固定来源、revision、许可和结构预期：

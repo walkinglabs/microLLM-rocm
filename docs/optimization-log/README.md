@@ -1154,6 +1154,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 phase policy gate SVG](assets/qwen3-decode-up-fp32-gate.svg) | 8/8 argmax、7/8 strict、5/5性能与336MiB代价 |
 | [experiments/377-hf-batch-invariance-contract.md](experiments/377-hf-batch-invariance-contract.md) | 相同输入batch逐行证据合同 |
 | [HF batch invariance SVG](assets/hf-batch-invariance-contract.svg) | micro 2/2、Torch 474/2与FP32 oracle |
+| [experiments/378-qwen3-decode-up-fp32-long-context.md](experiments/378-qwen3-decode-up-fp32-long-context.md) | phase策略T1024/T2048完整矩阵 |
+| [Qwen3 long-context SVG](assets/qwen3-decode-up-fp32-long-context.svg) | 10/10 argmax、8/10 strict、batch与显存 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

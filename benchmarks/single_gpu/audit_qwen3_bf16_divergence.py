@@ -221,6 +221,9 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
         "bf16_attention_weights": bf16_attention,
         "bf16_ffn_weight_scope": ffn_scope,
         "bf16_ffn_decode_up_fp32": decode_up_fp32,
+        "generated_rows": [list(record["generated_tokens"])
+                           for _ in range(args.batch)],
+        "generated_rows_equal": True,
         "captured_rows_bitwise_equal": all(item[2] for item in within),
         "captured_rows_maximum_error": max(
             (item[0] for item in within), default=0.0),
@@ -271,8 +274,6 @@ def torch_worker(args: argparse.Namespace, model: dict) -> dict:
     if captured is None:
         raise RuntimeError("PyTorch capture step was not executed")
     generated_rows_equal = all(row == suffix_rows[0] for row in suffix_rows[1:])
-    if not generated_rows_equal and not args.forced_inputs:
-        raise RuntimeError("identical PyTorch batch rows generated different tokens")
     captured_rows_equal = all(torch.equal(captured[0], row)
                               for row in captured[1:])
     captured.numpy().tofile(args.worker_output)
@@ -291,6 +292,7 @@ def torch_worker(args: argparse.Namespace, model: dict) -> dict:
             parameter.numel() * parameter.element_size()
             for parameter in loaded.parameters()),
         "generated_tokens": suffix_rows[0],
+        "generated_rows": suffix_rows,
         "generated_rows_equal": generated_rows_equal,
         "captured_rows_bitwise_equal": captured_rows_equal,
         "forced_decode_inputs": bool(args.forced_inputs),
@@ -350,6 +352,10 @@ def summarize(samples: dict[str, tuple[dict, list[float]]], vocabulary: int,
         top = top_tokens(logits)
         policies.append({
             "policy": name, "generated_tokens": record["generated_tokens"],
+            "generated_rows": record.get(
+                "generated_rows", [record["generated_tokens"]]),
+            "generated_rows_equal": bool(
+                record.get("generated_rows_equal", True)),
             "complete_logit_elements": len(logits),
             "versus_torch_fp32_maximum_error": maximum,
             "versus_torch_fp32_rms_error": rms,

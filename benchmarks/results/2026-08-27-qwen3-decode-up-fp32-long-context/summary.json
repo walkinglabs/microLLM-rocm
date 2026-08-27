@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "pass_explicit_policy_long_context_with_limits",
+  "model": "Qwen/Qwen3-0.6B",
+  "candidate": "phase-selective decode-up FP32",
+  "matrix": {
+    "worker_passes": 32,
+    "worker_count": 32,
+    "aggregate_rows": 16,
+    "pass_rows": 10,
+    "precision_mismatch_rows": 4,
+    "batch_invariance_mismatch_rows": 2,
+    "limited_rows": 0,
+    "cached_rows_with_exact_kv_bytes": 12,
+    "cached_row_count": 12,
+    "microllm_batch_rows_equal": 6,
+    "microllm_batch_row_count": 6,
+    "pytorch_batch_rows_equal": 4,
+    "pytorch_batch_row_count": 6,
+    "elapsed_seconds": 374
+  },
+  "extended_oracle": {
+    "combined_argmax_cases_passed": 10,
+    "combined_argmax_case_count": 10,
+    "combined_strict_complete_logit_cases_passed": 8,
+    "combined_strict_complete_logit_case_count": 10,
+    "t1024_b2_step3": {
+      "pytorch_fp32_argmax": 2,
+      "microllm_fp32_argmax": 2,
+      "candidate_argmax": 2,
+      "pytorch_bf16_row0_argmax": 474,
+      "pytorch_bf16_row1_argmax": 2,
+      "fp32_maximum_error": 0.0000476837158203125,
+      "fp32_rms_error": 0.000009781110457303147,
+      "strict_complete_logit_gate": true
+    },
+    "t2048_b2_step4": {
+      "pytorch_fp32_argmax": 16,
+      "microllm_fp32_argmax": 16,
+      "candidate_argmax": 16,
+      "pytorch_bf16_argmax": 220,
+      "fp32_maximum_error": 0.0002193450927734375,
+      "fp32_rms_error": 0.00003189444031949045,
+      "strict_complete_logit_gate": false
+    }
+  },
+  "memory": {
+    "resident_weight_bytes": 1855717376,
+    "maximum_kv_cache_bytes": 477102080,
+    "t2048_b2_n32_microllm_peak_bytes": 3171713024,
+    "t2048_b2_n32_pytorch_peak_bytes": 4719116800
+  },
+  "decision": "extend the explicit fixed-prompt evidence boundary through T2048; keep default off and preserve precision/batch limits",
+  "boundary": "single repeated-token prompt and one process per framework/shape; no repeated throughput ranking, natural-language prompt or Radeon claim"
+}

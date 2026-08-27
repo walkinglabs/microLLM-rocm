@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+  <rect width="1500" height="760" fill="#f7f8fc"/>
+  <text x="60" y="62" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 phase policy · T1024 / T2048</text>
+  <text x="60" y="99" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">32 workers · row-level batch evidence · common FP32 first-split oracles</text>
+
+  <rect x="55" y="135" width="420" height="260" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="265" y="183" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#1d4ed8">Long shape matrix</text>
+  <text x="265" y="245" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="46" font-weight="700" fill="#166534">32 / 32</text>
+  <text x="265" y="280" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">workers complete</text>
+  <text x="265" y="325" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="21" fill="#172033">10 pass · 4 precision · 2 batch</text>
+  <text x="265" y="362" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#166534">12 / 12 KV exact</text>
+
+  <rect x="540" y="135" width="420" height="260" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="750" y="183" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">Combined oracle</text>
+  <text x="750" y="245" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="46" font-weight="700" fill="#166534">10 / 10</text>
+  <text x="750" y="280" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">FP32 argmax states</text>
+  <text x="750" y="325" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="28" font-weight="700" fill="#b45309">strict 8 / 10</text>
+  <text x="750" y="362" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">T128/B1 + T2048/B2 boundaries</text>
+
+  <rect x="1025" y="135" width="420" height="260" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="1235" y="183" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#b42335">Identical B2 rows</text>
+  <text x="1235" y="245" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="39" font-weight="700" fill="#166534">micro 6 / 6</text>
+  <text x="1235" y="300" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#b42335">Torch 4 / 6</text>
+  <text x="1235" y="345" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#172033">T1024 row0 / row1 = 474 / 2</text>
+  <text x="1235" y="372" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">FP32 oracle = 2</text>
+
+  <rect x="55" y="445" width="1390" height="190" rx="20" fill="#ffffff" stroke="#d8deea" stroke-width="2"/>
+  <text x="85" y="490" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#172033">T2048 / B2 / N32 memory</text>
+  <text x="120" y="550" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">microLLM peak</text>
+  <rect x="320" y="528" width="670" height="30" rx="12" fill="#2563eb"/>
+  <text x="1010" y="551" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">3.172 GB</text>
+  <text x="120" y="602" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">PyTorch peak</text>
+  <rect x="320" y="580" width="1000" height="30" rx="12" fill="#94a3b8"/>
+  <text x="1340" y="603" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#475569">4.719 GB</text>
+  <text x="750" y="625" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">KV is identical: 477,102,080 bytes · one process, not a speed ranking</text>
+
+  <rect x="55" y="680" width="1390" height="55" rx="18" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>
+  <text x="750" y="715" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#166534">Extend explicit fixed-prompt evidence to T2048 · default off · next scale changes prompt content</text>
+</svg>

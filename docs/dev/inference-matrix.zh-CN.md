@@ -291,3 +291,6 @@ up-FP32的64-worker、八个唯一oracle和五场景性能拒绝见
 `batch_invariance_mismatch`；首行跨框架比较仍保留，但不能覆盖框架内部失败。官方
 T1024/B2/N8合同见
 [Experiment 377](../optimization-log/experiments/377-hf-batch-invariance-contract.md)。
+修复后的T1024/T2048完整结果见
+[Experiment 378](../optimization-log/experiments/378-qwen3-decode-up-fp32-long-context.md)。长上下文报告
+必须同时统计`precision_mismatch`与`batch_invariance_mismatch`，不能只报一个pass总数。

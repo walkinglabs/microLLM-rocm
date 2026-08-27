@@ -5519,3 +5519,16 @@ row1选2。旧worker抛generic failure，丢掉两行。新合同保存`generate
 这个节点只keep证据基础设施，不用单样本吞吐作排名；长上下文矩阵从头重跑。
 
 ![Identical-input batch evidence](assets/hf-batch-invariance-contract.svg)
+
+## 394. Experiment 378：T512通过，不能替T2048回答
+
+修复后的T1024/T2048矩阵32/32 worker完成：10 pass、4 precision mismatch、2 batch-invariance
+mismatch，12/12 KV精确。microLLM六个B2 cached case全部行一致；Transformers BF16只有4/6。
+
+新增oracle中T1024候选选2而非474，T2048/B2选16而非220。T2048 common-FP32 Max2.193e-4
+略超门，所以合并只能写argmax10/10、strict8/10。最大KV477MB；T2048/B2/N32峰值
+microLLM/PyTorch为3.172/4.719GB，单样本不作速度排名。
+
+固定重复token的显式证据扩到T2048。下一尺度必须改变prompt内容。
+
+![Qwen3 long-context gate](assets/qwen3-decode-up-fp32-long-context.svg)

@@ -165,6 +165,10 @@ FFN；partial scope故意回到三个Linear的可读路径，因此必须单独�
 0.97984；T512/B2 prefill为1.0011。严格common-FP32完整向量为7/8，T128/B1保留既有边界。
 所以该API/CLI作为显式精度策略保留，仍不自动启用，也不称为低精度加速。
 
+固定重复token矩阵继续扩到T1024/T2048：新增两个argmax oracle都支持phase候选，合并10/10；
+strict common-FP32完整向量为8/10。microLLM六个长上下文B2 cached case全部保持行一致，
+Transformers BF16为4/6。该结果仍不能代替不同自然语言prompt或Radeon验证。
+
 KV Cache的形状、字节公式、API和精度失败见
 [KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 

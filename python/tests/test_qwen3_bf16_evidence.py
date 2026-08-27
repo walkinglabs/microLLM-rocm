@@ -32,6 +32,8 @@ PHASE_GATE_ROOT = (ROOT / "benchmarks/results" /
                    "2026-08-27-qwen3-decode-up-fp32-gate")
 BATCH_CONTRACT_ROOT = (ROOT / "benchmarks/results" /
                        "2026-08-27-hf-batch-invariance-contract")
+LONG_CONTEXT_ROOT = (ROOT / "benchmarks/results" /
+                     "2026-08-27-qwen3-decode-up-fp32-long-context")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -578,6 +580,62 @@ def main():
     assert batch_oracle_rows["micro-fp32-fp32"]["argmax_token"] == 2
     assert batch_oracle_rows["micro-phase-decode-up-fp32"]["argmax_token"] == 2
     assert batch_oracle_rows["torch-bf16"]["argmax_token"] == 474
+    long_result = json.loads((LONG_CONTEXT_ROOT / "summary.json").read_text())
+    long_matrix = json.loads(
+        (LONG_CONTEXT_ROOT / "shape-summary.json").read_text())
+    long_raw = [json.loads(line) for line in
+                (LONG_CONTEXT_ROOT / "shape-raw.jsonl").read_text().splitlines()
+                if line]
+    long_t1024 = json.loads(
+        (LONG_CONTEXT_ROOT / "t1024-b2-step3-oracle-summary.json").read_text())
+    long_t2048 = json.loads(
+        (LONG_CONTEXT_ROOT / "t2048-b2-step4-oracle-summary.json").read_text())
+    assert long_result["status"] == "pass_explicit_policy_long_context_with_limits"
+    assert long_result["matrix"]["worker_passes"] == 32
+    assert long_result["matrix"]["pass_rows"] == 10
+    assert long_result["matrix"]["precision_mismatch_rows"] == 4
+    assert long_result["matrix"]["batch_invariance_mismatch_rows"] == 2
+    assert long_result["matrix"]["microllm_batch_rows_equal"] == 6
+    assert long_result["matrix"]["pytorch_batch_rows_equal"] == 4
+    assert long_result["extended_oracle"]["combined_argmax_cases_passed"] == 10
+    assert long_result["extended_oracle"][
+        "combined_strict_complete_logit_cases_passed"] == 8
+    assert len(long_matrix["rows"]) == 16 and len(long_raw) == 32
+    assert all(item["status"] == "pass" for item in long_raw)
+    assert sum(item["status"] == "pass" for item in long_matrix["rows"]) == 10
+    assert sum(item["status"] == "precision_mismatch"
+               for item in long_matrix["rows"]) == 4
+    assert sum(item["status"] == "batch_invariance_mismatch"
+               for item in long_matrix["rows"]) == 2
+    long_cached = [item for item in long_matrix["rows"]
+                   if item["workload"] == "decode"]
+    assert len(long_cached) == 12
+    assert all(item["microllm_kv_cache_actual_bytes"] ==
+               item["microllm_kv_cache_theoretical_bytes"] ==
+               item["pytorch_kv_cache_actual_bytes"] ==
+               item["pytorch_kv_cache_theoretical_bytes"]
+               for item in long_cached)
+    long_b2 = [item for item in long_cached if item["batch"] == 2]
+    assert len(long_b2) == 6
+    assert sum(item["microllm_generated_rows_equal"] for item in long_b2) == 6
+    assert sum(item["pytorch_generated_rows_equal"] for item in long_b2) == 4
+    for oracle, candidate_token, torch_token, strict in (
+            (long_t1024, 2, 474, True),
+            (long_t2048, 16, 220, False)):
+        rows = {item["policy"]: item for item in oracle["policy_rows"]}
+        assert rows["torch-fp32"]["argmax_token"] == candidate_token
+        assert rows["micro-fp32-fp32"]["argmax_token"] == candidate_token
+        assert rows["micro-phase-decode-up-fp32"]["argmax_token"] == \
+            candidate_token
+        assert rows["torch-bf16"]["argmax_token"] == torch_token
+        assert oracle["gates"]["fp32_implementations_aligned"] is strict
+    long_t1024_rows = {item["policy"]: item
+                       for item in long_t1024["policy_rows"]}
+    assert long_t1024_rows["micro-phase-decode-up-fp32"][
+        "generated_rows_equal"] is True
+    assert long_t1024_rows["torch-bf16"]["generated_rows_equal"] is False
+    assert long_t1024_rows["torch-bf16"]["generated_rows"][0][-1] == 474
+    assert long_t1024_rows["torch-bf16"]["generated_rows"][1][-1] == 2
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":
