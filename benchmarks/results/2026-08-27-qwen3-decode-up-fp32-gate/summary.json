@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "status": "pass_explicit_precision_policy",
+  "model": "Qwen/Qwen3-0.6B",
+  "candidate": "BF16 fused prefill; BF16 gate/down plus FP32 up cached decode; BF16 Attention and Cache",
+  "shape_gate": {
+    "worker_passes": 64,
+    "worker_count": 64,
+    "aggregate_rows": 32,
+    "direct_cross_framework_pass_rows": 23,
+    "precision_mismatch_rows": 9,
+    "limited_rows": 0,
+    "cached_rows_with_exact_kv_bytes": 24,
+    "cached_row_count": 24,
+    "elapsed_seconds": 621
+  },
+  "oracle_gate": {
+    "argmax_cases_passed": 8,
+    "argmax_case_count": 8,
+    "strict_complete_logit_cases_passed": 7,
+    "strict_complete_logit_case_count": 8,
+    "strict_complete_logit_gate": false,
+    "recorded_limit": {
+      "case": "t128-b1-step8",
+      "microllm_fp32_vs_pytorch_fp32_maximum_error": 0.0002346038818359375,
+      "microllm_fp32_vs_pytorch_fp32_rms_error": 0.000046282316518803505,
+      "maximum_gate": 0.0002,
+      "rms_gate": 0.00004,
+      "fp32_argmax": 320,
+      "candidate_argmax": 320,
+      "torch_bf16_argmax": 320
+    }
+  },
+  "performance_gate": {
+    "status": "pass_performance",
+    "independent_matrix_count": 2,
+    "total_process_records": 60,
+    "total_case_gates_passed": 10,
+    "total_case_gate_count": 10,
+    "runs_per_policy_per_case": 3,
+    "warmup": 2,
+    "steps": 5,
+    "case_count": 5,
+    "cases_passed": 5,
+    "candidate_over_current_throughput_geometric_mean": 0.9798368531091577,
+    "repeat_candidate_over_current_throughput_geometric_mean": 0.9817802090318543,
+    "geometric_mean_gate": 0.97,
+    "throughput_ratios": {
+      "cached_T1_B1_N1": 0.9712419007833915,
+      "cached_T32_B1_N4": 0.9707407015780809,
+      "cached_T128_B2_N32": 0.978968906631323,
+      "prefill_T512_B2": 1.001116392904702,
+      "cached_T512_B2_N32": 0.9774278939941212
+    },
+    "repeat_throughput_ratios": {
+      "cached_T1_B1_N1": 0.9825570754066206,
+      "cached_T32_B1_N4": 0.9723219488554129,
+      "cached_T128_B2_N32": 0.9747133312651592,
+      "prefill_T512_B2": 1.0006645310635065,
+      "cached_T512_B2_N32": 0.9788994331638218
+    },
+    "all_incremental_peak_gates_passed": true,
+    "all_policy_outputs_deterministic": true
+  },
+  "memory_gate": {
+    "resident_weight_bytes": 1855717376,
+    "current_resident_weight_bytes": 1503395840,
+    "resident_delta_bytes": 352321536,
+    "resident_delta_mib": 336,
+    "preparation_peak_bytes": 2912681984
+  },
+  "decision": "keep as an explicit default-off precision policy; do not promote to the default or call it an acceleration",
+  "boundary": "eight fixed first-split states and five fixed MI300X cases do not prove unseen prompts, Radeon behavior, training suitability or universal full-logit alignment"
+}

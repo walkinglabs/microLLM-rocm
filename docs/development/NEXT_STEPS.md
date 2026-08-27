@@ -73,8 +73,13 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] implement the explicit phase-selective route: BF16 up mirror for fused prefill,
   FP32 up parameter for every cached-decode path, no T==1 inference, default off;
   Qwen3 smoke reports the exact +352,321,536-byte resident cost over all-BF16;
-- [ ] run that dual representation through eight oracles, 64-worker shape/batch
-  invariants and the same five-case repeated performance/memory gate;
+- [x] run the dual representation through complete gates: 64/64 workers, 24/24
+  exact cached rows, 8/8 fixed FP32 argmax states and two independent 5/5
+  performance matrices pass; geometric means are 0.97984/0.98178 and resident
+  cost is +336MiB; retain explicit only;
+- [ ] broaden the kept policy beyond the calibration set: prompt families, contexts
+  above512, Radeon/backend versions and memory-constrained devices; keep the strict
+  common-FP32 full-logit result visible at 7/8;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

@@ -22,23 +22,24 @@ assert MATRIX_SPEC.loader is not None
 MATRIX_SPEC.loader.exec_module(MATRIX)
 
 MICRO_POLICIES = {
-    "micro-fp32-fp32": (False, False, "fp32", "all"),
-    "micro-fp32-bf16": (False, False, "bf16", "all"),
-    "micro-bf16-fp32": (True, True, "fp32", "all"),
-    "micro-bf16-bf16": (True, True, "bf16", "all"),
-    "micro-ffn-bf16-fp32": (True, False, "fp32", "all"),
-    "micro-attention-bf16-fp32": (False, True, "fp32", "all"),
-    "micro-ffn-bf16-bf16": (True, False, "bf16", "all"),
-    "micro-attention-bf16-bf16": (False, True, "bf16", "all"),
-    "micro-ffn-gate-bf16-fp32": (True, False, "fp32", "gate-only"),
-    "micro-ffn-up-bf16-fp32": (True, False, "fp32", "up-only"),
-    "micro-ffn-down-bf16-fp32": (True, False, "fp32", "down-only"),
-    "micro-ffn-gate-up-bf16-fp32": (True, False, "fp32", "gate-up"),
-    "micro-ffn-gate-down-bf16-fp32": (True, False, "fp32", "gate-down"),
-    "micro-ffn-up-down-bf16-fp32": (True, False, "fp32", "up-down"),
-    "micro-mixed-up-down-bf16": (True, True, "bf16", "up-down"),
-    "micro-mixed-gate-down-bf16": (True, True, "bf16", "gate-down"),
-    "micro-mixed-gate-up-bf16": (True, True, "bf16", "gate-up"),
+    "micro-fp32-fp32": (False, False, "fp32", "all", False),
+    "micro-fp32-bf16": (False, False, "bf16", "all", False),
+    "micro-bf16-fp32": (True, True, "fp32", "all", False),
+    "micro-bf16-bf16": (True, True, "bf16", "all", False),
+    "micro-ffn-bf16-fp32": (True, False, "fp32", "all", False),
+    "micro-attention-bf16-fp32": (False, True, "fp32", "all", False),
+    "micro-ffn-bf16-bf16": (True, False, "bf16", "all", False),
+    "micro-attention-bf16-bf16": (False, True, "bf16", "all", False),
+    "micro-ffn-gate-bf16-fp32": (True, False, "fp32", "gate-only", False),
+    "micro-ffn-up-bf16-fp32": (True, False, "fp32", "up-only", False),
+    "micro-ffn-down-bf16-fp32": (True, False, "fp32", "down-only", False),
+    "micro-ffn-gate-up-bf16-fp32": (True, False, "fp32", "gate-up", False),
+    "micro-ffn-gate-down-bf16-fp32": (True, False, "fp32", "gate-down", False),
+    "micro-ffn-up-down-bf16-fp32": (True, False, "fp32", "up-down", False),
+    "micro-mixed-up-down-bf16": (True, True, "bf16", "up-down", False),
+    "micro-mixed-gate-down-bf16": (True, True, "bf16", "gate-down", False),
+    "micro-mixed-gate-up-bf16": (True, True, "bf16", "gate-up", False),
+    "micro-phase-decode-up-fp32": (True, True, "bf16", "all", True),
 }
 TORCH_POLICIES = ("torch-fp32", "torch-bf16")
 DEFAULT_MICRO_POLICIES = (
@@ -148,7 +149,8 @@ def top_tokens(values: list[float], count: int = 3) -> list[int]:
 
 def micro_command(args: argparse.Namespace, model: dict, policy: str,
                   output: Path) -> list[str]:
-    bf16_ffn, bf16_attention, cache_dtype, ffn_scope = MICRO_POLICIES[policy]
+    bf16_ffn, bf16_attention, cache_dtype, ffn_scope, decode_up_fp32 = \
+        MICRO_POLICIES[policy]
     tokens = ",".join(str(token) for token in MATRIX.expanded_tokens(
         model["inference"]["token_ids"], args.context))
     command = [
@@ -173,6 +175,8 @@ def micro_command(args: argparse.Namespace, model: dict, policy: str,
         ])
     if bf16_ffn:
         command.extend(["--bf16-ffn-weight-scope", ffn_scope])
+        if decode_up_fp32:
+            command.extend(["--bf16-ffn-decode-up-fp32", "true"])
         if args.micro_ffn_fp32_layers:
             command.extend([
                 "--bf16-ffn-fp32-layers",
@@ -189,7 +193,8 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
     record = last_json(completed.stdout)
-    bf16_ffn, bf16_attention, cache_dtype, ffn_scope = MICRO_POLICIES[policy]
+    bf16_ffn, bf16_attention, cache_dtype, ffn_scope, decode_up_fp32 = \
+        MICRO_POLICIES[policy]
     required = {
         "status": "pass", "parameter_count": model["parameter_count"],
         "token_count": args.context, "batch": args.batch,
@@ -198,6 +203,7 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
         "forced_decode_inputs": bool(args.forced_inputs),
         "forced_decode_input_count": len(args.forced_inputs),
         "bf16_ffn_weight_scope": ffn_scope,
+        "bf16_ffn_decode_up_fp32": decode_up_fp32,
         "bf16_ffn_fp32_layers":
             args.micro_ffn_fp32_layers if bf16_ffn else [],
     }
@@ -214,6 +220,7 @@ def run_micro(args: argparse.Namespace, model: dict, vocabulary: int,
         "bf16_ffn_weights": bf16_ffn,
         "bf16_attention_weights": bf16_attention,
         "bf16_ffn_weight_scope": ffn_scope,
+        "bf16_ffn_decode_up_fp32": decode_up_fp32,
         "captured_rows_bitwise_equal": all(item[2] for item in within),
         "captured_rows_maximum_error": max(
             (item[0] for item in within), default=0.0),

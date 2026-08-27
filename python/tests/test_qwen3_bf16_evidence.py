@@ -28,6 +28,8 @@ UP_REJECT_ROOT = (ROOT / "benchmarks/results" /
                   "2026-08-27-qwen3-up-fp32-reject")
 PHASE_ROUTE_ROOT = (ROOT / "benchmarks/results" /
                     "2026-08-27-qwen3-decode-up-fp32-route")
+PHASE_GATE_ROOT = (ROOT / "benchmarks/results" /
+                   "2026-08-27-qwen3-decode-up-fp32-gate")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -52,8 +54,58 @@ UP_PERF_SPEC = importlib.util.spec_from_file_location(
 UP_PERF = importlib.util.module_from_spec(UP_PERF_SPEC)
 assert UP_PERF_SPEC.loader is not None
 UP_PERF_SPEC.loader.exec_module(UP_PERF)
+PHASE_PERF_SPEC = importlib.util.spec_from_file_location(
+    "compare_qwen3_decode_up_fp32_matrix",
+    ROOT / "benchmarks/single_gpu/compare_qwen3_decode_up_fp32_matrix.py")
+PHASE_PERF = importlib.util.module_from_spec(PHASE_PERF_SPEC)
+assert PHASE_PERF_SPEC.loader is not None
+PHASE_PERF_SPEC.loader.exec_module(PHASE_PERF)
+PHASE_ORACLE_SPEC = importlib.util.spec_from_file_location(
+    "qwen3_decode_up_fp32_oracle_sweep",
+    ROOT / "benchmarks/single_gpu/qwen3_decode_up_fp32_oracle_sweep.py")
+PHASE_ORACLE = importlib.util.module_from_spec(PHASE_ORACLE_SPEC)
+assert PHASE_ORACLE_SPEC.loader is not None
+PHASE_ORACLE_SPEC.loader.exec_module(PHASE_ORACLE)
 
 def main():
+    assert len(PHASE_ORACLE.CASES) == 8
+    assert PHASE_ORACLE.CANDIDATE == "micro-phase-decode-up-fp32"
+    assert len(PHASE_PERF.CASES) == 5
+    assert PHASE_PERF.RESIDENT_DELTA_BYTES == 352_321_536
+    phase_synthetic = []
+    for case in PHASE_PERF.CASES:
+        for process_run in range(1, PHASE_PERF.RUNS + 1):
+            for policy in PHASE_PERF.POLICIES:
+                candidate = policy == "decode-up-fp32"
+                resident = 1_503_395_840 + (
+                    PHASE_PERF.RESIDENT_DELTA_BYTES if candidate else 0)
+                phase_synthetic.append({
+                    "case": case["name"], "policy": policy,
+                    "throughput_tokens_per_second": 99.0 if candidate else 100.0,
+                    "latency_ms": 101.0 if candidate else 100.0,
+                    "resident_weight_bytes": resident,
+                    "engine_peak_bytes": resident + 4_194_304,
+                    "engine_incremental_peak_bytes": 4_194_304,
+                    "preparation_peak_bytes": 2_912_681_984,
+                    "output_signature": [
+                        99 if candidate else 1, case["decode_tokens"]],
+                    "process_run": process_run,
+                })
+    phase_synthetic_summary = PHASE_PERF.summarize(
+        phase_synthetic, {"name": "qwen3-0.6b", "revision": "fixture"})
+    assert phase_synthetic_summary["status"] == "pass_performance"
+    assert math.isclose(
+        phase_synthetic_summary[
+            "candidate_over_current_throughput_geometric_mean"], 0.99)
+    assert all(not case["outputs_equal_across_policies"]
+               for case in phase_synthetic_summary["cases"])
+    for row in phase_synthetic:
+        if row["case"] == "prefill_T512_B2" and \
+                row["policy"] == "decode-up-fp32":
+            row["throughput_tokens_per_second"] = 90.0
+    assert PHASE_PERF.summarize(
+        phase_synthetic, {"name": "qwen3-0.6b", "revision": "fixture"})[
+            "status"] == "reject_performance"
     assert len(UP_PERF.CASES) == 5
     assert {(case["context"], case["batch"], case["decode_tokens"])
             for case in UP_PERF.CASES} == {
@@ -420,6 +472,81 @@ def main():
         "bf16_ffn_bf16_prefill_mirror_bytes_retained"] == 176_160_768
     assert phase_smoke["resident_weight_bytes"] == 1_855_717_376
     assert phase_smoke["generated_tokens"] == [25]
+    phase_gate = json.loads((PHASE_GATE_ROOT / "summary.json").read_text())
+    phase_shape = json.loads((PHASE_GATE_ROOT / "shape-summary.json").read_text())
+    phase_shape_raw = [json.loads(line) for line in
+                       (PHASE_GATE_ROOT / "shape-raw.jsonl").read_text().splitlines()
+                       if line]
+    phase_oracle = json.loads((PHASE_GATE_ROOT / "oracle-summary.json").read_text())
+    phase_oracle_raw = [json.loads(line) for line in
+                        (PHASE_GATE_ROOT / "oracle-raw.jsonl").read_text().splitlines()
+                        if line]
+    phase_performance = json.loads(
+        (PHASE_GATE_ROOT / "performance-summary.json").read_text())
+    phase_performance_raw = [json.loads(line) for line in
+                             (PHASE_GATE_ROOT / "performance-raw.jsonl").read_text().splitlines()
+                             if line]
+    phase_performance_repeat = json.loads(
+        (PHASE_GATE_ROOT / "performance-repeat-summary.json").read_text())
+    phase_performance_repeat_raw = [json.loads(line) for line in
+        (PHASE_GATE_ROOT / "performance-repeat-raw.jsonl").read_text().splitlines()
+        if line]
+    assert phase_gate["status"] == "pass_explicit_precision_policy"
+    assert phase_gate["shape_gate"]["worker_passes"] == 64
+    assert phase_gate["oracle_gate"]["argmax_cases_passed"] == 8
+    assert phase_gate["oracle_gate"]["strict_complete_logit_cases_passed"] == 7
+    assert phase_gate["performance_gate"]["cases_passed"] == 5
+    assert phase_gate["performance_gate"]["independent_matrix_count"] == 2
+    assert phase_gate["performance_gate"]["total_process_records"] == 60
+    assert phase_gate["performance_gate"]["total_case_gates_passed"] == 10
+    assert phase_gate["memory_gate"]["resident_delta_bytes"] == 352_321_536
+    assert len(phase_shape["rows"]) == 32 and len(phase_shape_raw) == 64
+    assert all(item["status"] == "pass" for item in phase_shape_raw)
+    assert sum(item["status"] == "pass" for item in phase_shape["rows"]) == 23
+    assert sum(item["status"] == "precision_mismatch"
+               for item in phase_shape["rows"]) == 9
+    assert "decode_up_fp32=true" in phase_shape[
+        "precision_boundary"]["microllm"]
+    phase_cached = [item for item in phase_shape["rows"]
+                    if item["workload"] == "decode"]
+    assert len(phase_cached) == 24
+    assert all(item["microllm_kv_cache_actual_bytes"] ==
+               item["microllm_kv_cache_theoretical_bytes"] ==
+               item["pytorch_kv_cache_actual_bytes"] ==
+               item["pytorch_kv_cache_theoretical_bytes"]
+               for item in phase_cached)
+    assert phase_oracle["status"] == \
+        "pass_all_argmax_with_recorded_fp32_alignment_limit"
+    assert phase_oracle["oracle_cases_passed"] == len(PHASE_ORACLE.CASES) == 8
+    assert phase_oracle["strict_complete_logit_cases_passed"] == 7
+    assert phase_oracle["strict_complete_logit_gate"] is False
+    assert len(phase_oracle_raw) == 32
+    assert all(item["candidate_matches_oracle"] for item in phase_oracle["rows"])
+    limited = [item for item in phase_oracle["rows"]
+               if not item["fp32_complete_logit_alignment_gate"]]
+    assert len(limited) == 1 and limited[0]["name"] == "t128-b1-step8"
+    assert limited[0]["micro_fp32_argmax"] == \
+        limited[0]["oracle_argmax"] == limited[0]["candidate_argmax"] == 320
+    assert len(list((PHASE_GATE_ROOT / "oracle-cases").glob("*.json"))) == 8
+    assert phase_performance["status"] == "pass_performance"
+    assert len(phase_performance_raw) == 30
+    assert all(item["status"] == "pass" for item in phase_performance_raw)
+    assert 0.979 < phase_performance[
+        "candidate_over_current_throughput_geometric_mean"] < 0.981
+    phase_perf_cases = {item["name"]: item
+                        for item in phase_performance["cases"]}
+    assert all(item["status"] == "pass" for item in phase_perf_cases.values())
+    assert phase_perf_cases["prefill_T512_B2"][
+        "candidate_over_current_throughput"] > 1.0
+    assert all(item["gates"]["incremental_peak_within_tolerance"]
+               for item in phase_perf_cases.values())
+    assert phase_performance_repeat["status"] == "pass_performance"
+    assert len(phase_performance_repeat_raw) == 30
+    assert all(item["status"] == "pass" for item in phase_performance_repeat_raw)
+    assert 0.981 < phase_performance_repeat[
+        "candidate_over_current_throughput_geometric_mean"] < 0.983
+    assert all(item["status"] == "pass"
+               for item in phase_performance_repeat["cases"])
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

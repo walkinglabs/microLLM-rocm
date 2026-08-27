@@ -1,0 +1,205 @@
+{
+  "boundary": "performance-only gate; each policy must be deterministic, while cross-policy output changes require separate FP32-oracle attribution",
+  "candidate": "BF16 gate/down parameters; FP32 up for cached decode; BF16 up mirror for fused prefill; BF16 Attention and Cache",
+  "candidate_over_current_throughput_geometric_mean": 0.9817802090318543,
+  "cases": [
+    {
+      "batch": 1,
+      "candidate_over_current_latency": 1.017752581537974,
+      "candidate_over_current_throughput": 0.9825570754066206,
+      "context": 1,
+      "current": {
+        "engine_incremental_peak_bytes": 1448972,
+        "engine_peak_bytes": 1504844812,
+        "latency_ms": 4.5544362,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1503395840,
+        "throughput_tokens_per_second": 219.566145201
+      },
+      "decode_tokens": 1,
+      "decode_up_fp32": {
+        "engine_incremental_peak_bytes": 1448972,
+        "engine_peak_bytes": 1857166348,
+        "latency_ms": 4.6352892,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1855717376,
+        "throughput_tokens_per_second": 215.736269487
+      },
+      "gates": {
+        "candidate_output_deterministic": true,
+        "current_output_deterministic": true,
+        "incremental_peak_within_tolerance": true,
+        "latency_at_most_1_05": true,
+        "resident_delta_exact": true,
+        "throughput_at_least_point95": true
+      },
+      "incremental_peak_tolerance_bytes": 8388608,
+      "name": "cached_T1_B1_N1",
+      "outputs_equal_across_policies": true,
+      "runs": 3,
+      "status": "pass",
+      "workload": "decode"
+    },
+    {
+      "batch": 1,
+      "candidate_over_current_latency": 1.028465932685527,
+      "candidate_over_current_throughput": 0.9723219488554129,
+      "context": 32,
+      "current": {
+        "engine_incremental_peak_bytes": 5964032,
+        "engine_peak_bytes": 1509359872,
+        "latency_ms": 17.831975,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1503395840,
+        "throughput_tokens_per_second": 224.316151183
+      },
+      "decode_tokens": 4,
+      "decode_up_fp32": {
+        "engine_incremental_peak_bytes": 5964032,
+        "engine_peak_bytes": 1861681408,
+        "latency_ms": 18.3395788,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1855717376,
+        "throughput_tokens_per_second": 218.107517278
+      },
+      "gates": {
+        "candidate_output_deterministic": true,
+        "current_output_deterministic": true,
+        "incremental_peak_within_tolerance": true,
+        "latency_at_most_1_05": true,
+        "resident_delta_exact": true,
+        "throughput_at_least_point95": true
+      },
+      "incremental_peak_tolerance_bytes": 8388608,
+      "name": "cached_T32_B1_N4",
+      "outputs_equal_across_policies": true,
+      "runs": 3,
+      "status": "pass",
+      "workload": "decode"
+    },
+    {
+      "batch": 2,
+      "candidate_over_current_latency": 1.0259426725002065,
+      "candidate_over_current_throughput": 0.9747133312651592,
+      "context": 128,
+      "current": {
+        "engine_incremental_peak_bytes": 51382272,
+        "engine_peak_bytes": 1554778112,
+        "latency_ms": 157.4646868,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1503395840,
+        "throughput_tokens_per_second": 406.440334659
+      },
+      "decode_tokens": 32,
+      "decode_up_fp32": {
+        "engine_incremental_peak_bytes": 51382272,
+        "engine_peak_bytes": 1907099648,
+        "latency_ms": 161.5497416,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1855717376,
+        "throughput_tokens_per_second": 396.162812556
+      },
+      "gates": {
+        "candidate_output_deterministic": true,
+        "current_output_deterministic": true,
+        "incremental_peak_within_tolerance": true,
+        "latency_at_most_1_05": true,
+        "resident_delta_exact": true,
+        "throughput_at_least_point95": true
+      },
+      "incremental_peak_tolerance_bytes": 8388608,
+      "name": "cached_T128_B2_N32",
+      "outputs_equal_across_policies": false,
+      "runs": 3,
+      "status": "pass",
+      "workload": "decode"
+    },
+    {
+      "batch": 2,
+      "candidate_over_current_latency": 0.9993359102447584,
+      "candidate_over_current_throughput": 1.0006645310635065,
+      "context": 512,
+      "current": {
+        "engine_incremental_peak_bytes": 110271488,
+        "engine_peak_bytes": 1613667328,
+        "latency_ms": 11.8652636,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1503395840,
+        "throughput_tokens_per_second": 86302.338870921
+      },
+      "decode_tokens": 0,
+      "decode_up_fp32": {
+        "engine_incremental_peak_bytes": 110271488,
+        "engine_peak_bytes": 1965988864,
+        "latency_ms": 11.857384,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1855717376,
+        "throughput_tokens_per_second": 86359.689455954
+      },
+      "gates": {
+        "candidate_output_deterministic": true,
+        "current_output_deterministic": true,
+        "incremental_peak_within_tolerance": true,
+        "latency_at_most_1_05": true,
+        "resident_delta_exact": true,
+        "throughput_at_least_point95": true
+      },
+      "incremental_peak_tolerance_bytes": 8388608,
+      "name": "prefill_T512_B2",
+      "outputs_equal_across_policies": true,
+      "runs": 3,
+      "status": "pass",
+      "workload": "prefill"
+    },
+    {
+      "batch": 2,
+      "candidate_over_current_latency": 1.021555397951858,
+      "candidate_over_current_throughput": 0.9788994331638218,
+      "context": 512,
+      "current": {
+        "engine_incremental_peak_bytes": 233840640,
+        "engine_peak_bytes": 1737236480,
+        "latency_ms": 219.470316,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1503395840,
+        "throughput_tokens_per_second": 291.611189916
+      },
+      "decode_tokens": 32,
+      "decode_up_fp32": {
+        "engine_incremental_peak_bytes": 233840640,
+        "engine_peak_bytes": 2089558016,
+        "latency_ms": 224.201086,
+        "preparation_peak_bytes": 2912681984,
+        "resident_weight_bytes": 1855717376,
+        "throughput_tokens_per_second": 285.458028513
+      },
+      "gates": {
+        "candidate_output_deterministic": true,
+        "current_output_deterministic": true,
+        "incremental_peak_within_tolerance": true,
+        "latency_at_most_1_05": true,
+        "resident_delta_exact": true,
+        "throughput_at_least_point95": true
+      },
+      "incremental_peak_tolerance_bytes": 11692032.0,
+      "name": "cached_T512_B2_N32",
+      "outputs_equal_across_policies": false,
+      "runs": 3,
+      "status": "pass",
+      "workload": "decode"
+    }
+  ],
+  "gates": {
+    "all_case_gates_pass": true,
+    "throughput_geometric_mean_at_least_point97": true
+  },
+  "model": "qwen3-0.6b",
+  "pairing": "fresh processes; policy order alternates by process run",
+  "record_type": "qwen3_decode_up_fp32_performance_gate",
+  "revision": "c916fa4defd319b7d4e4da17604ca7338f4d99f5",
+  "runs": 3,
+  "schema_version": 1,
+  "status": "pass_performance",
+  "steps": 5,
+  "warmup": 2
+}

@@ -5493,3 +5493,19 @@ CPU 433/433、sanitizer430/430、HIP215/215通过。这个节点只keep可测机
 五场景性能仍是下一道门。
 
 ![Qwen3 decode-up FP32 route](assets/qwen3-decode-up-fp32-route.svg)
+
+## 392. Experiment 376：恢复prefill不等于免费
+
+双表示完成64/64 worker、24/24精确KV和8/8固定FP32 argmax。严格common-FP32完整向量只有7/8：
+T128/B1略超固定门，必须单列，不能说“完全精度对齐”。
+
+五场景吞吐比0.9712、0.9707、0.9790、1.0011、0.9774，几何均值0.97984。原失败T512/B2
+prefill从0.8875恢复到1.0011；增量峰值不变。代价是固定+336MiB常驻。
+
+首轮T128有一次慢样本，另一张VF完整复测30进程后仍5/5，几何均值0.98178。最终保留两套
+60进程和10/10 case-gates，不用三点中位数隐藏波动。
+
+因此keep显式精度策略，默认不变，也不称为加速。简单投影规则搜索关闭，下一尺度是更多prompt、
+更长上下文、Radeon/backend版本或训练。
+
+![Qwen3 phase policy complete gate](assets/qwen3-decode-up-fp32-gate.svg)

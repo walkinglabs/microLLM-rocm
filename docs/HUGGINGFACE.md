@@ -52,6 +52,8 @@ FP32。全局up-FP32最终完成64/64 worker，新增T128/B2 step22和T512/B2 st
 该双表示路径现已实现：`--bf16-ffn-decode-up-fp32 true`让prefill读取BF16 up mirror并保持fused
 FFN，cached decode读取FP32 up参数。Qwen3 smoke常驻1,855,717,376字节，比全BF16多336MiB；
 CPU/HIP/sanitizer均通过。它只进入完整测量，尚未成为默认或速度结论。
+完整门随后通过8/8固定FP32 argmax和5/5性能case，几何均值0.97984；T512/B2 prefill恢复到
+1.0011。common-FP32完整向量严格门为7/8，因此保留显式策略与边界，不替换默认all-BF16。
 
 ### 一条命令准备固定 fixture
 

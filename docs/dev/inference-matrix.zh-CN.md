@@ -279,3 +279,7 @@ up-FP32的64-worker、八个唯一oracle和五场景性能拒绝见
 
 这只改变microLLM权重路由；PyTorch仍是独立BF16比较路径。summary的precision boundary会回显
 `decode_up_fp32=true`，避免把双表示结果混入普通all-scope数据。
+完整结果见
+[Experiment 376](../optimization-log/experiments/376-qwen3-decode-up-fp32-gate.md)：64/64 worker、
+8/8 argmax oracle和5/5性能通过；strict full-logit common-oracle为7/8。这里必须把“候选argmax
+通过”与“两个FP32实现完整向量过阈值”写成两项。

@@ -161,6 +161,10 @@ FFN；partial scope故意回到三个Linear的可读路径，因此必须单独�
 调用路径传入，不能用`T==1`猜。Qwen3的双表示相对全BF16准确增加352,321,536字节；当前只有
 机制与smoke证据，完整shape和性能未验收，因此默认关闭。
 
+完整Qwen3门现已完成：八个固定首分叉argmax全部匹配FP32，五个性能case全部通过，几何均值
+0.97984；T512/B2 prefill为1.0011。严格common-FP32完整向量为7/8，T128/B1保留既有边界。
+所以该API/CLI作为显式精度策略保留，仍不自动启用，也不称为低精度加速。
+
 KV Cache的形状、字节公式、API和精度失败见
 [KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 

@@ -334,7 +334,9 @@ If “Config package” is unfamiliar, read the beginner-facing
 > T512/B2 prefill falls to 0.8875× and the five-case geometric mean is only 0.9578×.
 > The default-off counterfactual is now implemented: prefill reads a BF16 up mirror and cached
 > decode reads the FP32 up parameter. CPU 433/433, sanitizer 430/430, HIP 215/215 and a Qwen3
-> memory smoke pass at +336 MiB resident. Full accuracy/performance remains pending.
+> memory smoke pass at +336 MiB resident. Its complete gate now passes 8/8 fixed FP32 argmax
+> states and two independent 5/5 performance matrices (geometric means 0.97984×/0.98178×); strict common-FP32 full-logit
+> alignment remains 7/8. The route stays explicit and default-off.
 
 </details>
 
@@ -1361,6 +1363,11 @@ The global candidate is rejected; its phase-selective counterfactual was still u
 that explicit phase route without using `T==1` as a heuristic. Qwen3 reports 28 FP32 decode-up
 parameters, 28 BF16 prefill mirrors and exactly +336 MiB over all-BF16. It is admitted only to the
 next complete gate; no phase-selective speedup is claimed yet.
+[Experiment 376](docs/optimization-log/experiments/376-qwen3-decode-up-fp32-gate.md) completes the
+decision: 64/64 workers, 8/8 fixed FP32 argmax states and 5/5 performance cases pass; T512/B2
+prefill recovers to 1.0011×; two independent geometric means are 0.97984×/0.98178×. One pre-existing common-FP32
+full-logit boundary keeps the strict count at 7/8. The +336 MiB route is retained as an explicit
+precision policy, not made default and not described as acceleration.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.
