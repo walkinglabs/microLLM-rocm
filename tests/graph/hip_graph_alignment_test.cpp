@@ -489,6 +489,61 @@ TEST(HipGraphAlignmentTest, Bf16LinearInferenceMatchesCpuAndStaysDeviceNative) {
 }
 
 TEST(HipGraphAlignmentTest,
+     DecodeUpFp32PhasePolicyMovesMirrorAndStaysDeviceNative) {
+    require_graph_gpu();
+    const model::ModelConfig config{.vocabulary_size = 16,
+                                    .dimension = 128,
+                                    .layers = 1,
+                                    .heads = 4,
+                                    .kv_heads = 2,
+                                    .ffn_dimension = 256,
+                                    .max_sequence_length = 8,
+                                    .rope_base = 10000.0F,
+                                    .tie_embeddings = false};
+    const auto prefix = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    const auto token = Tensor::from_int32_vector({5}, {1, 1});
+
+    model::TransformerModel cpu_prefill(config, 223);
+    (void)cpu_prefill.prepare_bf16_ffn_inference();
+    const auto expected_prefill = cpu_prefill.forward_inference(prefix).to_vector();
+    model::TransformerModel cpu_decode(config, 223);
+    (void)cpu_decode.prepare_bf16_ffn_inference(
+        {}, model::Bf16FfnWeightScope::GateDown);
+    inference::KVCache cpu_cache(config.layers, config.max_sequence_length);
+    const auto expected_decode =
+        cpu_decode.forward_cached(token, cpu_cache).to_vector();
+
+    const auto gpu = Device::hip(0);
+    model::TransformerModel hip(config, 223);
+    hip.to(gpu);
+    const auto report = hip.prepare_bf16_ffn_decode_up_fp32_inference();
+    EXPECT_EQ(report.weights.converted_tensors, 2U);
+    EXPECT_EQ(report.fp32_decode_tensors_retained, 1U);
+    EXPECT_EQ(report.bf16_prefill_mirror_tensors, 1U);
+    const auto device_prefix = prefix.to(gpu);
+    const auto device_token = token.to(gpu);
+    inference::KVCache hip_cache(config.layers, config.max_sequence_length);
+    runtime::reset_transfer_stats();
+    const auto actual_prefill = hip.forward_inference(device_prefix);
+    const auto actual_decode = hip.forward_cached(device_token, hip_cache);
+    runtime::synchronize(gpu);
+    const auto transfers = runtime::transfer_stats();
+    EXPECT_EQ(transfers.host_to_device_calls, 0U);
+    EXPECT_EQ(transfers.device_to_host_calls, 0U);
+    EXPECT_EQ(actual_prefill.device(), gpu);
+    EXPECT_EQ(actual_decode.device(), gpu);
+    expect_graph_near(actual_prefill.to_vector(), expected_prefill, 5.0e-2F);
+    expect_graph_near(actual_decode.to_vector(), expected_decode, 5.0e-2F);
+
+    hip.to(Device::cpu());
+    inference::KVCache moved_cache(config.layers, config.max_sequence_length);
+    expect_graph_near(hip.forward_inference(prefix).to_vector(),
+                      expected_prefill, 5.0e-2F);
+    expect_graph_near(hip.forward_cached(token, moved_cache).to_vector(),
+                      expected_decode, 5.0e-2F);
+}
+
+TEST(HipGraphAlignmentTest,
      ExplicitGradientBufferPreservesHipAddressAndMatchesCpu) {
     require_graph_gpu();
     const auto gpu = Device::hip(0);

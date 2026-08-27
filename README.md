@@ -332,7 +332,9 @@ If “Config package” is unfamiliar, read the beginner-facing
 > new T128/B1 FP32 oracle. Global up-FP32 then completes 64/64 workers and matches all
 > eight first-split FP32 oracles, but is also rejected: four decode cases pass while
 > T512/B2 prefill falls to 0.8875× and the five-case geometric mean is only 0.9578×.
-> A decode-phase-only dual-representation counterfactual is next; no speedup is claimed yet.
+> The default-off counterfactual is now implemented: prefill reads a BF16 up mirror and cached
+> decode reads the FP32 up parameter. CPU 433/433, sanitizer 430/430, HIP 215/215 and a Qwen3
+> memory smoke pass at +336 MiB resident. Full accuracy/performance remains pending.
 
 </details>
 
@@ -1354,7 +1356,11 @@ The symmetric up-FP32 control passes the added state and advances only to the ne
 [Experiment 374](docs/optimization-log/experiments/374-qwen3-up-fp32-reject.md) completes that gate.
 up-FP32 is correct in all eight unique first-split FP32 oracles and all 64 workers execute, but
 global use regresses T512/B2 prefill to 0.8875× and misses the 0.97 geometric-mean performance gate.
-The global candidate is rejected; a phase-selective dual representation remains unmeasured.
+The global candidate is rejected; its phase-selective counterfactual was still unmeasured at that node.
+[Experiment 375](docs/optimization-log/experiments/375-qwen3-decode-up-fp32-route.md) implements
+that explicit phase route without using `T==1` as a heuristic. Qwen3 reports 28 FP32 decode-up
+parameters, 28 BF16 prefill mirrors and exactly +336 MiB over all-BF16. It is admitted only to the
+next complete gate; no phase-selective speedup is claimed yet.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

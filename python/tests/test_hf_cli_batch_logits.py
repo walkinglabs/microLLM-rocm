@@ -116,6 +116,29 @@ def forced_decode(binary: Path, fixture: Path, output: Path) -> None:
     assert scoped_record["bf16_ffn_converted_tensors"] == 1
     assert len(floats(scoped_output)) == 16
 
+    phase_output = output.with_name("forced-decode-up-fp32-logits.bin")
+    phase_base = list(base)
+    phase_base[phase_base.index(str(output))] = str(phase_output)
+    phase = subprocess.run(
+        phase_base + [
+            "--forced-decode-inputs", "3,4", "--bf16-ffn", "true",
+            "--bf16-ffn-decode-up-fp32", "true",
+        ], text=True, capture_output=True, check=False)
+    if phase.returncode != 0:
+        raise AssertionError(phase.stdout + phase.stderr)
+    phase_record = json.loads(phase.stdout.splitlines()[-1])
+    assert phase_record["bf16_ffn_weight_scope"] == "all"
+    assert phase_record["bf16_ffn_decode_up_fp32"] is True
+    assert phase_record["bf16_ffn_converted_tensors"] == 2
+    assert phase_record["bf16_ffn_fp32_decode_tensors_retained"] == 1
+    assert phase_record["bf16_ffn_fp32_decode_bytes_retained"] == 512
+    assert phase_record["bf16_ffn_bf16_prefill_mirror_tensors"] == 1
+    assert phase_record["bf16_ffn_bf16_prefill_mirror_bytes_retained"] == 256
+    assert phase_record["bf16_weight_bytes_retained"] == 768
+    assert phase_record["inference_weight_policy"] == \
+        "dual_representation_bf16_prefill_decode_up_fp32"
+    assert len(floats(phase_output)) == 16
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()

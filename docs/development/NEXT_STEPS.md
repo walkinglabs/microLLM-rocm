@@ -70,8 +70,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] run global up-FP32 through complete shape/oracle/performance: 64/64 workers,
   24/24 exact cached rows and 8/8 unique FP32 oracles pass, but T512/B2 prefill is
   0.8875x and the five-case geometric mean is 0.9578x, so reject the global rule;
-- [ ] test one phase-selective counterfactual: retain fused all-BF16 prefill and use
-  up-FP32 only for decode, including the required dual-representation memory gate;
+- [x] implement the explicit phase-selective route: BF16 up mirror for fused prefill,
+  FP32 up parameter for every cached-decode path, no T==1 inference, default off;
+  Qwen3 smoke reports the exact +352,321,536-byte resident cost over all-BF16;
+- [ ] run that dual representation through eight oracles, 64-worker shape/batch
+  invariants and the same five-case repeated performance/memory gate;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;

@@ -92,6 +92,9 @@ def options() -> argparse.Namespace:
         choices=("all", "gate-only", "up-only", "down-only",
                  "gate-up", "gate-down", "up-down"), default="all")
     parser.add_argument(
+        "--micro-bf16-ffn-decode-up-fp32", action="store_true",
+        help="retain FP32 up for cached decode and a BF16 up mirror for fused prefill")
+    parser.add_argument(
         "--micro-cache-capacity", choices=("exact", "sweep-max"),
         default="sweep-max",
         help="reserve each measured prefix exactly or reuse the longest decode capacity")
@@ -144,6 +147,11 @@ def options() -> argparse.Namespace:
             len(set(result.micro_bf16_ffn_fp32_layer_indices)) or
             any(layer < 0 for layer in result.micro_bf16_ffn_fp32_layer_indices)):
         parser.error("micro BF16 FFN FP32 layers must be unique nonnegative indices")
+    if result.micro_bf16_ffn_decode_up_fp32 and (
+            result.micro_bf16_ffn_weight_scope != "all" or
+            result.micro_bf16_ffn_fp32_layer_indices):
+        parser.error(
+            "decode-up FP32 requires all scope and no per-layer FFN exclusions")
     return result
 
 
@@ -344,6 +352,8 @@ def micro_command(args: argparse.Namespace, model: dict, context: int, batch: in
     ffn_scope = getattr(args, "micro_bf16_ffn_weight_scope", "all")
     if ffn_scope != "all":
         command.extend(["--bf16-ffn-weight-scope", ffn_scope])
+    if getattr(args, "micro_bf16_ffn_decode_up_fp32", False):
+        command.extend(["--bf16-ffn-decode-up-fp32", "true"])
     return command
 
 
@@ -370,8 +380,11 @@ def normalize_micro(raw: dict, model: dict, context: int, batch: int,
     expected_ffn_layers = getattr(
         args, "micro_bf16_ffn_fp32_layer_indices", [])
     expected_ffn_scope = getattr(args, "micro_bf16_ffn_weight_scope", "all")
+    expected_decode_up = getattr(
+        args, "micro_bf16_ffn_decode_up_fp32", False)
     if (raw.get("bf16_ffn_fp32_layers", []) != expected_ffn_layers or
-            raw.get("bf16_ffn_weight_scope", "all") != expected_ffn_scope):
+            raw.get("bf16_ffn_weight_scope", "all") != expected_ffn_scope or
+            raw.get("bf16_ffn_decode_up_fp32", False) != expected_decode_up):
         raise RuntimeError("microLLM changed the requested BF16 FFN policy")
     return {
         **raw, "schema_version": 1, "record_type": "official_inference_shape_measurement",
@@ -620,7 +633,8 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
               decode_lengths: list[int] | tuple[int, ...] = (16,),
               micro_cache_capacity: str = "exact",
               micro_bf16_ffn_fp32_layers: str = "",
-              micro_bf16_ffn_weight_scope: str = "all") -> dict:
+              micro_bf16_ffn_weight_scope: str = "all",
+              micro_bf16_ffn_decode_up_fp32: bool = False) -> dict:
     rows = []
     case_pairs = {
         "prefill": ("prefill", "uncached"),
@@ -877,7 +891,8 @@ def summarize(records: list[dict], models: list[dict], contexts: list[int],
                          micro_kv_cache_dtype + "; fp32_layers=" +
                          micro_kv_cache_fp32_layers + "; ffn_fp32_layers=" +
                          micro_bf16_ffn_fp32_layers + "; ffn_scope=" +
-                         micro_bf16_ffn_weight_scope,
+                         micro_bf16_ffn_weight_scope + "; decode_up_fp32=" +
+                         str(micro_bf16_ffn_decode_up_fp32).lower(),
             "pytorch": "full_bf16_model"
         }, "runs_per_framework": runs,
         "pairing": "fresh processes; framework order alternates by run",
@@ -1006,7 +1021,8 @@ def main() -> int:
                                     args.prefill_logits_mode, args.decode_lengths,
                                     args.micro_cache_capacity,
                                     args.micro_bf16_ffn_fp32_layers,
-                                    args.micro_bf16_ffn_weight_scope)
+                                    args.micro_bf16_ffn_weight_scope,
+                                    args.micro_bf16_ffn_decode_up_fp32)
                                 summary["status"] = "invalid_environment"
                                 summary["environment_failure"] = (
                                     "both framework workers could not see a GPU; "
@@ -1021,7 +1037,8 @@ def main() -> int:
                         args.prefill_logits_mode, args.decode_lengths,
                         args.micro_cache_capacity,
                         args.micro_bf16_ffn_fp32_layers,
-                        args.micro_bf16_ffn_weight_scope)
+                        args.micro_bf16_ffn_weight_scope,
+                        args.micro_bf16_ffn_decode_up_fp32)
     (args.output_directory / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0

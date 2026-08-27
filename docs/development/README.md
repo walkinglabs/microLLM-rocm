@@ -749,3 +749,5 @@ the next gate. Records are append-only except for factual corrections.
   rejects down-FP32 on a new T128 oracle despite passing short performance.
 - [2026-08-27-qwen3-up-fp32-reject.md](2026-08-27-qwen3-up-fp32-reject.md):
   passes eight FP32 oracles but rejects global up-FP32 on the T512/B2 prefill gate.
+- [2026-08-27-qwen3-decode-up-fp32-route.md](2026-08-27-qwen3-decode-up-fp32-route.md):
+  builds the default-off dual representation and proves its phase, lifetime and memory contract.

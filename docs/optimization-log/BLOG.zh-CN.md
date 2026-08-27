@@ -5481,3 +5481,15 @@ down候选拒绝。对称up-FP32在新增状态选320，累计6/6 oracle，只�
 decode使用FP32 up；双表示的额外内存必须重新测。
 
 ![Qwen3 up-FP32 rejection](assets/qwen3-up-fp32-reject.svg)
+
+## 391. Experiment 375：阶段不能靠`T==1`猜
+
+反驳实验现在有了真实路径：gate/down主参数BF16；up主参数FP32供cached decode读取，同时保留
+BF16 up mirror给prefill融合。普通prefill、cached prefill、uniform/positions-aware decode都由
+Block调用点显式选阶段；单token prefill不会被错当decode。
+
+Qwen3 smoke保留28份FP32 up和28份BF16 mirror，常驻1,855,717,376字节，相对全BF16增加336MiB。
+CPU 433/433、sanitizer430/430、HIP215/215通过。这个节点只keep可测机制；八oracle、64-worker和
+五场景性能仍是下一道门。
+
+![Qwen3 decode-up FP32 route](assets/qwen3-decode-up-fp32-route.svg)

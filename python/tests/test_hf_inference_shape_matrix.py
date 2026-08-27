@@ -2382,6 +2382,46 @@ class HfInferenceShapeMatrixTest(unittest.TestCase):
         capacity = command.index("--cache-capacity")
         self.assertEqual(command[capacity + 1], "12")
 
+    def test_micro_command_and_normalizer_preserve_decode_up_fp32_policy(self):
+        args = type("Args", (), {
+            "micro_binary": Path("micro"), "decode_tokens": 4,
+            "warmup": 1, "steps": 2, "micro_batch_argmax_mode": "device",
+            "micro_kv_cache_dtype": "bf16", "micro_kv_cache_fp32_layers": "",
+            "micro_bf16_ffn_fp32_layers": "",
+            "micro_bf16_ffn_fp32_layer_indices": [],
+            "micro_bf16_ffn_weight_scope": "all",
+            "micro_bf16_ffn_decode_up_fp32": True,
+            "prefill_logits_mode": "last"})()
+        model = {"name": "tiny", "revision": "fixed",
+                 "config": "config.json", "weights": "weights.bin",
+                 "inference": {"token_ids": [1, 2]}}
+        command = MATRIX.micro_command(
+            args, model, context=8, batch=1, workload="decode", cache="cached")
+        phase = command.index("--bf16-ffn-decode-up-fp32")
+        self.assertEqual(command[phase + 1], "true")
+        raw = {
+            "decode_tokens_per_second": 50.0, "mean_generation_ms": 8.0,
+            "engine_peak_bytes": 2000, "measured_tokens": 8,
+            "device_total_bytes": 10000, "engine_peak_share_of_device": 0.2,
+            "resident_weight_bytes": 1200,
+            "inference_weight_policy":
+                "dual_representation_bf16_prefill_decode_up_fp32",
+            "bf16_ffn_fp32_layers": [], "bf16_ffn_weight_scope": "all",
+            "bf16_ffn_decode_up_fp32": True,
+            "kv_cache_actual_bytes": 192, "kv_cache_active_bytes": 192,
+            "kv_cache_capacity_tokens": 12, "kv_cache_active_tokens": 12,
+            "kv_cache_layers": 1, "kv_cache_heads": 1,
+            "kv_cache_head_dimension": 4, "kv_cache_element_bytes": 2,
+            "kv_cache_utilization": 1.0,
+        }
+        record = MATRIX.normalize_micro(
+            raw, model, 8, 1, "decode", "cached", args)
+        self.assertTrue(record["bf16_ffn_decode_up_fp32"])
+        raw["bf16_ffn_decode_up_fp32"] = False
+        with self.assertRaisesRegex(RuntimeError, "BF16 FFN policy"):
+            MATRIX.normalize_micro(
+                raw, model, 8, 1, "decode", "cached", args)
+
     def test_mixed_layer_cache_theoretical_bytes_sum_each_dtype(self):
         args = type("Args", (), {"warmup": 1, "steps": 1,
                                   "decode_tokens": 4,

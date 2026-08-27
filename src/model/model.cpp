@@ -1883,6 +1883,8 @@ private:
     std::uint64_t capacity_bytes_ = 0;
 };
 
+enum class FfnInferencePhase { Prefill, CachedDecode };
+
 class FeedForward {
 public:
     FeedForward(const ModelConfig& config, std::mt19937_64& generator,
@@ -1909,7 +1911,8 @@ public:
 
     Tensor forward_tensor(const Tensor& input,
                           const std::string& trace_prefix = {},
-                          bool prefill_trace_rows = false) {
+                          bool prefill_trace_rows = false,
+                          FfnInferencePhase phase = FfnInferencePhase::Prefill) {
         if (input.ndim() != 3) throw std::invalid_argument("FFN input must be BxTxD");
         const auto batch = input.shape()[0];
         const auto sequence = input.shape()[1];
@@ -1923,9 +1926,14 @@ public:
             }
         };
         Tensor output;
+        const auto& effective_up_weight =
+            phase == FfnInferencePhase::Prefill &&
+                    bf16_prefill_up_weight_.defined()
+                ? bf16_prefill_up_weight_
+                : up_.weight_data();
         const auto all_bf16 =
             gate_.weight_data().dtype() == DType::BFloat16 &&
-            up_.weight_data().dtype() == DType::BFloat16 &&
+            effective_up_weight.dtype() == DType::BFloat16 &&
             down_.weight_data().dtype() == DType::BFloat16;
         if (all_bf16) {
             if (trace_prefix.empty()) {
@@ -1936,22 +1944,22 @@ public:
                     if (entry != nullptr) {
                         ops::bf16_ffn_out_(
                             entry->output, entry->workspace, flat,
-                            gate_.weight_data(), up_.weight_data(),
+                            gate_.weight_data(), effective_up_weight,
                             down_.weight_data());
                         output = entry->output;
                     } else {
                         output = ops::bf16_ffn(
-                            flat, gate_.weight_data(), up_.weight_data(),
+                            flat, gate_.weight_data(), effective_up_weight,
                             down_.weight_data());
                     }
                 } else {
                     output = ops::bf16_ffn(
-                        flat, gate_.weight_data(), up_.weight_data(),
+                        flat, gate_.weight_data(), effective_up_weight,
                         down_.weight_data());
                 }
             } else {
                 const auto diagnostics = ops::bf16_ffn_diagnostics(
-                    flat, gate_.weight_data(), up_.weight_data(),
+                    flat, gate_.weight_data(), effective_up_weight,
                     down_.weight_data());
                 trace_stage("input_bf16", diagnostics.input_bf16);
                 trace_stage("gate", diagnostics.gate);
@@ -1994,8 +2002,11 @@ public:
     }
 
     Tensor forward_normalized_bf16_tensor(const Tensor& input, Norm& norm) {
+        const auto& effective_up_weight = bf16_prefill_up_weight_.defined()
+                                              ? bf16_prefill_up_weight_
+                                              : up_.weight_data();
         if (input.ndim() != 3 || gate_.weight_data().dtype() != DType::BFloat16 ||
-            up_.weight_data().dtype() != DType::BFloat16 ||
+            effective_up_weight.dtype() != DType::BFloat16 ||
             down_.weight_data().dtype() != DType::BFloat16 ||
             arena_cache_ == nullptr) {
             return forward_tensor(norm.forward_tensor(input));
@@ -2021,7 +2032,7 @@ public:
         norm.forward_bf16_out(entry->workspace.input_bf16, flat);
         ops::bf16_ffn_precast_out_(
             entry->output, entry->workspace, gate_.weight_data(),
-            up_.weight_data(), down_.weight_data());
+            effective_up_weight, down_.weight_data());
         return entry->output.reshape({batch, sequence, config_.dimension});
     }
 
@@ -2032,6 +2043,27 @@ public:
     }
     void set_bf16_ffn_arena_cache(Bf16FfnArenaCache* cache) noexcept {
         arena_cache_ = cache;
+    }
+
+    [[nodiscard]] Tensor prepare_bf16_prefill_up_candidate() const {
+        if (up_.weight_data().dtype() != DType::Float32 ||
+            !up_.weight_data().is_contiguous() ||
+            bf16_prefill_up_weight_.defined()) {
+            throw std::logic_error(
+                "decode-up FP32 preparation requires one contiguous FP32 up weight");
+        }
+        return ops::cast(up_.weight_data(), DType::BFloat16);
+    }
+    void commit_bf16_prefill_up_candidate(Tensor candidate) noexcept {
+        bf16_prefill_up_weight_ = std::move(candidate);
+    }
+    void move_bf16_prefill_up_weight(Device device) {
+        if (bf16_prefill_up_weight_.defined()) {
+            bf16_prefill_up_weight_ = bf16_prefill_up_weight_.to(device);
+        }
+    }
+    [[nodiscard]] const Tensor& up_weight_data() const noexcept {
+        return up_.weight_data();
     }
 
     void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
@@ -2068,6 +2100,7 @@ private:
     Linear gate_;
     Linear up_;
     Linear down_;
+    Tensor bf16_prefill_up_weight_;
     Bf16FfnArenaCache* arena_cache_ = nullptr;
 };
 
@@ -2200,7 +2233,8 @@ public:
         trace_detail(trace_prefix, "ffn_norm", residual_and_norm.second);
         auto ffn = feed_forward_.forward_tensor(
             residual_and_norm.second,
-            trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn");
+            trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn",
+            false, FfnInferencePhase::CachedDecode);
         auto output = ops::add(residual_and_norm.first, ffn);
         trace_detail(trace_prefix, "output", output);
         return output;
@@ -2217,7 +2251,9 @@ public:
             host_positions, cache_batches, cache_capacity, cache_dtype);
         auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
         return ops::add(residual_and_norm.first,
-                        feed_forward_.forward_tensor(residual_and_norm.second));
+                        feed_forward_.forward_tensor(
+                            residual_and_norm.second, {}, false,
+                            FfnInferencePhase::CachedDecode));
     }
 
     void append_named(const std::string& prefix, NamedValues& values) {
@@ -2231,6 +2267,18 @@ public:
     }
     void set_bf16_ffn_norm_fusion_enabled(bool enabled) noexcept {
         bf16_ffn_norm_fusion_enabled_ = enabled;
+    }
+    [[nodiscard]] Tensor prepare_bf16_prefill_up_candidate() const {
+        return feed_forward_.prepare_bf16_prefill_up_candidate();
+    }
+    void commit_bf16_prefill_up_candidate(Tensor candidate) noexcept {
+        feed_forward_.commit_bf16_prefill_up_candidate(std::move(candidate));
+    }
+    void move_bf16_prefill_up_weight(Device device) {
+        feed_forward_.move_bf16_prefill_up_weight(device);
+    }
+    [[nodiscard]] const Tensor& ffn_up_weight_data() const noexcept {
+        return feed_forward_.up_weight_data();
     }
     void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
         attention_.set_bf16_qkv_arena_cache(cache);
@@ -2347,6 +2395,7 @@ struct TransformerModel::Impl {
     AttentionCoreArenaCache attention_core_arena;
     std::set<std::int64_t> bf16_grouped_qkv_prewarmed_rows;
     bool bf16_ffn_prepared = false;
+    bool bf16_ffn_decode_up_fp32_prepared = false;
     bool bf16_ffn_arena_enabled = false;
     bool bf16_ffn_norm_fusion_enabled = false;
     bool bf16_qkv_arena_enabled = false;
@@ -2396,6 +2445,11 @@ void TransformerModel::to(Device target) {
     if (impl_->bf16_training_mirrors_prepared) {
         for (auto& block : impl_->blocks) block->move_bf16_training_mirrors(target);
         if (impl_->output_head) impl_->output_head->move_bf16_training_mirror(target);
+    }
+    if (impl_->bf16_ffn_decode_up_fp32_prepared) {
+        for (auto& block : impl_->blocks) {
+            block->move_bf16_prefill_up_weight(target);
+        }
     }
     if (impl_->fp8_inference_prepared) {
         for (auto& block : impl_->blocks) block->move_fp8_inference_scales(target);
@@ -3181,8 +3235,57 @@ Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference(
     return report;
 }
 
+Bf16FfnDecodeUpPreparationReport
+TransformerModel::prepare_bf16_ffn_decode_up_fp32_inference() {
+    if (impl_->bf16_ffn_prepared) {
+        throw std::logic_error(
+            "BF16 FFN inference preparation is one-way and already complete");
+    }
+    if (impl_->config.linear_precision != LinearPrecision::Float32) {
+        throw std::logic_error(
+            "decode-up FP32 preparation requires FP32 Linear policy");
+    }
+    std::vector<Tensor> prefill_up_candidates;
+    prefill_up_candidates.reserve(impl_->blocks.size());
+    std::uint64_t fp32_decode_bytes = 0;
+    std::uint64_t bf16_prefill_bytes = 0;
+    for (const auto& block : impl_->blocks) {
+        const auto& up = block->ffn_up_weight_data();
+        const auto elements = static_cast<std::uint64_t>(up.numel());
+        fp32_decode_bytes += elements * sizeof(float);
+        bf16_prefill_bytes += elements * sizeof(std::uint16_t);
+        prefill_up_candidates.push_back(
+            block->prepare_bf16_prefill_up_candidate());
+    }
+    auto weights = prepare_bf16_weights(
+        named_parameters(), impl_->blocks.size() * 2U, device(),
+        [](const std::string& name) {
+            return name.find(".feed_forward.") != std::string::npos &&
+                   (name.ends_with(".gate_proj.weight") ||
+                    name.ends_with(".down_proj.weight"));
+        });
+    for (std::size_t layer = 0; layer < impl_->blocks.size(); ++layer) {
+        impl_->blocks[layer]->commit_bf16_prefill_up_candidate(
+            std::move(prefill_up_candidates[layer]));
+    }
+    weights.bf16_bytes_retained += bf16_prefill_bytes;
+    impl_->bf16_ffn_prepared = true;
+    impl_->bf16_ffn_decode_up_fp32_prepared = true;
+    return {
+        .weights = weights,
+        .fp32_decode_tensors_retained = impl_->blocks.size(),
+        .fp32_decode_bytes_retained = fp32_decode_bytes,
+        .bf16_prefill_mirror_tensors = impl_->blocks.size(),
+        .bf16_prefill_mirror_bytes_retained = bf16_prefill_bytes,
+    };
+}
+
 bool TransformerModel::bf16_ffn_inference_prepared() const noexcept {
     return impl_->bf16_ffn_prepared;
+}
+
+bool TransformerModel::bf16_ffn_decode_up_fp32_prepared() const noexcept {
+    return impl_->bf16_ffn_decode_up_fp32_prepared;
 }
 
 void TransformerModel::set_bf16_ffn_arena_enabled(

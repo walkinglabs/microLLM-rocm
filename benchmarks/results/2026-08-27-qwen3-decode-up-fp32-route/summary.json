@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "pass_route_smoke_unmeasured",
+  "model": "Qwen/Qwen3-0.6B",
+  "policy": "BF16 gate/down parameters; FP32 up parameter for cached decode; derived BF16 up mirror for prefill",
+  "route": {
+    "explicit_phase_from_call_path": true,
+    "sequence_length_inference_used": false,
+    "prefill_fused_bf16": true,
+    "cached_decode_mixed_bf16_fp32_bf16": true,
+    "mirror_is_parameter": false,
+    "mirror_is_checkpointed": false,
+    "default_enabled": false
+  },
+  "official_smoke": {
+    "status": "pass",
+    "ffn_parameter_tensors_converted_to_bf16": 56,
+    "fp32_decode_tensors_retained": 28,
+    "fp32_decode_bytes_retained": 352321536,
+    "bf16_prefill_mirror_tensors": 28,
+    "bf16_prefill_mirror_bytes_retained": 176160768,
+    "resident_weight_bytes": 1855717376,
+    "resident_delta_over_all_bf16_bytes": 352321536,
+    "resident_delta_over_global_up_fp32_bytes": 176160768,
+    "preparation_peak_bytes": 2912681984,
+    "engine_peak_bytes": 1857166348,
+    "generated_tokens": [25]
+  },
+  "tests": {
+    "cpu_passed": 433,
+    "cpu_total": 433,
+    "sanitizer_passed": 430,
+    "sanitizer_total": 430,
+    "hip_passed": 215,
+    "hip_total": 215,
+    "shape_runner_contract_passed": 82,
+    "shape_runner_contract_total": 82
+  },
+  "decision": "admit the explicit route only to complete precision and performance measurement",
+  "boundary": "no complete-shape precision, throughput, latency or default-policy claim is made by this implementation smoke"
+}

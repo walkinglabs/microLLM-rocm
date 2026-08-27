@@ -728,6 +728,80 @@ TEST(TransformerModelTest, Bf16FfnPreparationSupportsProjectionScopes) {
     EXPECT_FALSE(invalid.bf16_ffn_inference_prepared());
 }
 
+TEST(TransformerModelTest, DecodeUpFp32KeepsFusedBf16PrefillAndMixedDecode) {
+    const auto config = tiny_config();
+    TransformerModel all_bf16(config, 211);
+    TransformerModel global_up_fp32(config, 211);
+    TransformerModel phase_selective(config, 211);
+
+    (void)all_bf16.prepare_bf16_ffn_inference();
+    (void)global_up_fp32.prepare_bf16_ffn_inference(
+        {}, Bf16FfnWeightScope::GateDown);
+    const auto report =
+        phase_selective.prepare_bf16_ffn_decode_up_fp32_inference();
+    EXPECT_TRUE(phase_selective.bf16_ffn_inference_prepared());
+    EXPECT_TRUE(phase_selective.bf16_ffn_decode_up_fp32_prepared());
+    EXPECT_EQ(report.weights.converted_tensors, 2U);
+    EXPECT_EQ(report.weights.fp32_bytes_released,
+              2U * 8U * 16U * sizeof(float));
+    EXPECT_EQ(report.weights.bf16_bytes_retained,
+              3U * 8U * 16U * sizeof(std::uint16_t));
+    EXPECT_EQ(report.fp32_decode_tensors_retained, 1U);
+    EXPECT_EQ(report.fp32_decode_bytes_retained,
+              8U * 16U * sizeof(float));
+    EXPECT_EQ(report.bf16_prefill_mirror_tensors, 1U);
+    EXPECT_EQ(report.bf16_prefill_mirror_bytes_retained,
+              8U * 16U * sizeof(std::uint16_t));
+
+    std::size_t phase_ffn_parameters = 0;
+    for (const auto& [name, parameter] : phase_selective.named_parameters()) {
+        if (name.find(".feed_forward.") == std::string::npos ||
+            !name.ends_with(".weight")) {
+            continue;
+        }
+        ++phase_ffn_parameters;
+        EXPECT_EQ(parameter->data().dtype(),
+                  name.ends_with(".up_proj.weight")
+                      ? DType::Float32
+                      : DType::BFloat16) << name;
+    }
+    EXPECT_EQ(phase_ffn_parameters, 3U);
+    EXPECT_EQ(phase_selective.parameter_count(), config.parameter_count());
+
+    const auto prefix = Tensor::from_int32_vector({1, 2, 3, 4}, {1, 4});
+    EXPECT_EQ(phase_selective.forward_inference(prefix).to_vector(),
+              all_bf16.forward_inference(prefix).to_vector());
+    inference::KVCache all_prefill_cache(config.layers, 8);
+    inference::KVCache phase_prefill_cache(config.layers, 8);
+    EXPECT_EQ(phase_selective.forward_prefill_cached(
+                  prefix, phase_prefill_cache).to_vector(),
+              all_bf16.forward_prefill_cached(
+                  prefix, all_prefill_cache).to_vector());
+
+    const auto token = Tensor::from_int32_vector({5}, {1, 1});
+    inference::KVCache global_decode_cache(config.layers, 8);
+    inference::KVCache phase_decode_cache(config.layers, 8);
+    EXPECT_EQ(phase_selective.forward_cached(
+                  token, phase_decode_cache).to_vector(),
+              global_up_fp32.forward_cached(
+                  token, global_decode_cache).to_vector());
+
+    phase_selective.to(Device::cpu());
+    inference::KVCache moved_cache(config.layers, 8);
+    EXPECT_NO_THROW((void)phase_selective.forward_cached(token, moved_cache));
+    EXPECT_THROW(
+        (void)phase_selective.prepare_bf16_ffn_decode_up_fp32_inference(),
+        std::logic_error);
+    EXPECT_THROW((void)phase_selective.prepare_bf16_ffn_inference(),
+                 std::logic_error);
+
+    TransformerModel already(config, 212);
+    (void)already.prepare_bf16_ffn_inference();
+    EXPECT_THROW(
+        (void)already.prepare_bf16_ffn_decode_up_fp32_inference(),
+        std::logic_error);
+}
+
 TEST(TransformerModelTest, Bf16AttentionPreparationConvertsOnlyProjectionWeights) {
     auto config = tiny_config();
     config.attention_bias = true;

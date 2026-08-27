@@ -57,6 +57,7 @@ struct Options {
     bool bf16_ffn = false;
     std::string bf16_ffn_fp32_layers;
     std::string bf16_ffn_weight_scope = "all";
+    bool bf16_ffn_decode_up_fp32 = false;
     bool bf16_ffn_arena = false;
     std::int64_t bf16_ffn_arena_minimum_rows = 1;
     bool bf16_ffn_norm_fusion = false;
@@ -180,6 +181,13 @@ Options options(int argc, char** argv) {
             result.bf16_ffn_fp32_layers = argv[index + 1];
         } else if (name == "--bf16-ffn-weight-scope") {
             result.bf16_ffn_weight_scope = argv[index + 1];
+        } else if (name == "--bf16-ffn-decode-up-fp32") {
+            const std::string value = argv[index + 1];
+            if (value != "true" && value != "false") {
+                throw std::invalid_argument(
+                    "--bf16-ffn-decode-up-fp32 must be true or false");
+            }
+            result.bf16_ffn_decode_up_fp32 = value == "true";
         } else if (name == "--bf16-ffn-arena") {
             const std::string value = argv[index + 1];
             if (value != "true" && value != "false") {
@@ -675,6 +683,14 @@ Options options(int argc, char** argv) {
     if (result.bf16_ffn_weight_scope != "all" && !result.bf16_ffn) {
         throw std::invalid_argument(
             "--bf16-ffn-weight-scope requires --bf16-ffn true");
+    }
+    if (result.bf16_ffn_decode_up_fp32 &&
+        (!result.bf16_ffn || result.bf16_ffn_weight_scope != "all" ||
+         !result.bf16_ffn_fp32_layers.empty() ||
+         (result.workload != "prefill" &&
+          (!result.use_cache || result.cache_prefill_mode != "full")))) {
+        throw std::invalid_argument(
+            "--bf16-ffn-decode-up-fp32 requires BF16 FFN all-scope, no FP32 layers, and full prefill for cached workloads");
     }
     const auto continuous_arguments = result.continuous_slots > 0 ||
                                       !result.continuous_prompt_lengths.empty() ||
@@ -1640,6 +1656,8 @@ int main(int argc, char** argv) {
         const auto report = model.load_safetensors(command.weights, load_options);
         const auto load_finish = std::chrono::steady_clock::now();
         microllm::model::Bf16FfnPreparationReport bf16_report;
+        microllm::model::Bf16FfnDecodeUpPreparationReport
+            bf16_decode_up_report;
         microllm::model::Bf16WeightPreparationReport bf16_attention_report;
         microllm::model::Fp8WeightPreparationReport fp8_report;
         microllm::model::Int8WeightPreparationReport int8_report;
@@ -1647,9 +1665,15 @@ int main(int argc, char** argv) {
         microllm::runtime::reset_allocation_peak(device);
         const auto preparation_start = std::chrono::steady_clock::now();
         if (command.bf16_ffn) {
-            bf16_report = model.prepare_bf16_ffn_inference(
-                bf16_ffn_fp32_layers,
-                bf16_ffn_weight_scope(command.bf16_ffn_weight_scope));
+            if (command.bf16_ffn_decode_up_fp32) {
+                bf16_decode_up_report =
+                    model.prepare_bf16_ffn_decode_up_fp32_inference();
+                bf16_report = bf16_decode_up_report.weights;
+            } else {
+                bf16_report = model.prepare_bf16_ffn_inference(
+                    bf16_ffn_fp32_layers,
+                    bf16_ffn_weight_scope(command.bf16_ffn_weight_scope));
+            }
         }
         if (command.bf16_ffn_arena) {
             model.set_bf16_ffn_arena_enabled(
@@ -2038,11 +2062,23 @@ int main(int argc, char** argv) {
                               ? "int8_weight_only_explicit"
                               : command.fp8_linear
                               ? fp8_compute_policy(command)
+                              : command.bf16_ffn_decode_up_fp32
+                              ? "bf16_prefill_decode_up_fp32"
                                              : command.bf16_attention
                                                    ? "bf16_ffn_attention"
                                                    : command.bf16_ffn ? "bf16_ffn"
                                                                       : "fp32")
                       << "\""
+                      << ",\"bf16_ffn_decode_up_fp32\":"
+                      << (command.bf16_ffn_decode_up_fp32 ? "true" : "false")
+                      << ",\"bf16_ffn_fp32_decode_tensors_retained\":"
+                      << bf16_decode_up_report.fp32_decode_tensors_retained
+                      << ",\"bf16_ffn_fp32_decode_bytes_retained\":"
+                      << bf16_decode_up_report.fp32_decode_bytes_retained
+                      << ",\"bf16_ffn_bf16_prefill_mirror_tensors\":"
+                      << bf16_decode_up_report.bf16_prefill_mirror_tensors
+                      << ",\"bf16_ffn_bf16_prefill_mirror_bytes_retained\":"
+                      << bf16_decode_up_report.bf16_prefill_mirror_bytes_retained
                       << ",\"int8_linear\":"
                       << (command.int8_linear ? "true" : "false")
                       << ",\"int8_weight_scale_mode\":\""
@@ -2729,6 +2765,8 @@ int main(int argc, char** argv) {
                           ? "single_representation_int8_linear_explicit"
                           : command.fp8_linear
                           ? fp8_storage_policy(command)
+                          : command.bf16_ffn_decode_up_fp32
+                          ? "dual_representation_bf16_prefill_decode_up_fp32"
                           : command.bf16_attention
                           ? "single_representation_bf16_ffn_attention"
                           : command.bf16_ffn ? "single_representation_bf16_ffn" : "float32")
@@ -2740,6 +2778,16 @@ int main(int argc, char** argv) {
                   << json_indices(bf16_ffn_fp32_layers)
                   << ",\"bf16_ffn_weight_scope\":\""
                   << command.bf16_ffn_weight_scope << "\""
+                  << ",\"bf16_ffn_decode_up_fp32\":"
+                  << (command.bf16_ffn_decode_up_fp32 ? "true" : "false")
+                  << ",\"bf16_ffn_fp32_decode_tensors_retained\":"
+                  << bf16_decode_up_report.fp32_decode_tensors_retained
+                  << ",\"bf16_ffn_fp32_decode_bytes_retained\":"
+                  << bf16_decode_up_report.fp32_decode_bytes_retained
+                  << ",\"bf16_ffn_bf16_prefill_mirror_tensors\":"
+                  << bf16_decode_up_report.bf16_prefill_mirror_tensors
+                  << ",\"bf16_ffn_bf16_prefill_mirror_bytes_retained\":"
+                  << bf16_decode_up_report.bf16_prefill_mirror_bytes_retained
                   << ",\"bf16_ffn_arena_enabled\":"
                   << (model.bf16_ffn_arena_enabled() ? "true" : "false")
                   << ",\"bf16_ffn_norm_fusion_enabled\":"

@@ -86,6 +86,14 @@ enum class Int8WeightScope {
 
 using Bf16FfnPreparationReport = Bf16WeightPreparationReport;
 
+struct Bf16FfnDecodeUpPreparationReport {
+    Bf16FfnPreparationReport weights;
+    std::size_t fp32_decode_tensors_retained = 0;
+    std::uint64_t fp32_decode_bytes_retained = 0;
+    std::size_t bf16_prefill_mirror_tensors = 0;
+    std::uint64_t bf16_prefill_mirror_bytes_retained = 0;
+};
+
 enum class Bf16FfnWeightScope {
     All,
     GateOnly,
@@ -195,7 +203,14 @@ public:
     [[nodiscard]] Bf16FfnPreparationReport prepare_bf16_ffn_inference(
         const std::vector<std::int64_t>& fp32_layers,
         Bf16FfnWeightScope scope);
+    // Phase-selective research policy. Gate/down parameters become BF16; each
+    // up parameter stays FP32 for cached decode and receives a derived BF16
+    // prefill mirror so the fused all-BF16 prefill path remains available.
+    // Mirrors are not parameters or checkpoint entries.
+    [[nodiscard]] Bf16FfnDecodeUpPreparationReport
+    prepare_bf16_ffn_decode_up_fp32_inference();
     [[nodiscard]] bool bf16_ffn_inference_prepared() const noexcept;
+    [[nodiscard]] bool bf16_ffn_decode_up_fp32_prepared() const noexcept;
     // Opt-in graph-free inference workspace. One stable backing allocation is
     // cached per (device, flattened row count) and reused across all blocks.
     // A model instance requires external synchronization while this is enabled.

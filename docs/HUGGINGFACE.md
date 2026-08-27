@@ -49,6 +49,9 @@ payload 各保存了一份。Qwen3 strict loader 会先逐字节验证两份来�
 FP32。全局up-FP32最终完成64/64 worker，新增T128/B2 step22和T512/B2 step2也匹配FP32，
 唯一oracle累计8/8；但T512/B2 prefill仅0.8875x，五场景几何均值0.9578x，未过0.97门。
 因此简单全局投影规则全部关闭；下一次只能单独验证decode-phase双表示，不能沿用本节点速度。
+该双表示路径现已实现：`--bf16-ffn-decode-up-fp32 true`让prefill读取BF16 up mirror并保持fused
+FFN，cached decode读取FP32 up参数。Qwen3 smoke常驻1,855,717,376字节，比全BF16多336MiB；
+CPU/HIP/sanitizer均通过。它只进入完整测量，尚未成为默认或速度结论。
 
 ### 一条命令准备固定 fixture
 

@@ -26,6 +26,8 @@ DOWN_REJECT_ROOT = (ROOT / "benchmarks/results" /
                     "2026-08-26-qwen3-down-fp32-reject")
 UP_REJECT_ROOT = (ROOT / "benchmarks/results" /
                   "2026-08-27-qwen3-up-fp32-reject")
+PHASE_ROUTE_ROOT = (ROOT / "benchmarks/results" /
+                    "2026-08-27-qwen3-decode-up-fp32-route")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -390,6 +392,34 @@ def main():
         assert rows["micro-fp32-fp32"]["argmax_token"] == token
         assert rows["micro-mixed-gate-down-bf16"]["argmax_token"] == token
         assert rows["torch-bf16"]["argmax_token"] == torch_bf16
+    phase_route = json.loads((PHASE_ROUTE_ROOT / "summary.json").read_text())
+    phase_smoke = json.loads((PHASE_ROUTE_ROOT / "smoke.json").read_text())
+    assert phase_route["status"] == "pass_route_smoke_unmeasured"
+    assert phase_route["route"]["explicit_phase_from_call_path"] is True
+    assert phase_route["route"]["sequence_length_inference_used"] is False
+    assert phase_route["route"]["mirror_is_parameter"] is False
+    assert phase_route["route"]["mirror_is_checkpointed"] is False
+    assert phase_route["route"]["default_enabled"] is False
+    assert phase_route["official_smoke"][
+        "resident_delta_over_all_bf16_bytes"] == 352_321_536
+    assert phase_route["tests"] == {
+        "cpu_passed": 433, "cpu_total": 433,
+        "sanitizer_passed": 430, "sanitizer_total": 430,
+        "hip_passed": 215, "hip_total": 215,
+        "shape_runner_contract_passed": 82,
+        "shape_runner_contract_total": 82,
+    }
+    assert phase_smoke["status"] == "pass"
+    assert phase_smoke["inference_weight_policy"] == \
+        "dual_representation_bf16_prefill_decode_up_fp32"
+    assert phase_smoke["bf16_ffn_converted_tensors"] == 56
+    assert phase_smoke["bf16_ffn_fp32_decode_tensors_retained"] == 28
+    assert phase_smoke["bf16_ffn_fp32_decode_bytes_retained"] == 352_321_536
+    assert phase_smoke["bf16_ffn_bf16_prefill_mirror_tensors"] == 28
+    assert phase_smoke[
+        "bf16_ffn_bf16_prefill_mirror_bytes_retained"] == 176_160_768
+    assert phase_smoke["resident_weight_bytes"] == 1_855_717_376
+    assert phase_smoke["generated_tokens"] == [25]
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

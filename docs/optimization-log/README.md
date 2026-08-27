@@ -1148,6 +1148,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 down-FP32 reject SVG](assets/qwen3-down-fp32-reject.svg) | 性能通过、新T128失败与up控制 |
 | [experiments/374-qwen3-up-fp32-reject.md](experiments/374-qwen3-up-fp32-reject.md) | up-FP32八oracle通过、全局性能拒绝 |
 | [Qwen3 up-FP32 reject SVG](assets/qwen3-up-fp32-reject.svg) | 四个decode通过与T512 prefill反例 |
+| [experiments/375-qwen3-decode-up-fp32-route.md](experiments/375-qwen3-decode-up-fp32-route.md) | 显式phase双表示实现与smoke |
+| [Qwen3 decode-up FP32 SVG](assets/qwen3-decode-up-fp32-route.svg) | prefill mirror、decode主权重与内存门 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

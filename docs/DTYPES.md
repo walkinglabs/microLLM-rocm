@@ -155,6 +155,12 @@ FP32，其余Block只留BF16。这样可以用实际converted count和完整logi
 `up-only`、`down-only`、`gate-up`、`gate-down`、`up-down`和`all`。只有`all`能进入连续融合
 FFN；partial scope故意回到三个Linear的可读路径，因此必须单独测速度，不能把它当成免费精度修复。
 
+阶段选择实验使用`prepare_bf16_ffn_decode_up_fp32_inference()`，HF CLI对应
+`--bf16-ffn-decode-up-fp32 true`。gate/down参数变为BF16；up参数保留FP32供cached decode读取，
+另有一份不进入参数表和checkpoint的BF16 up mirror供prefill融合。阶段由明确的prefill/decode
+调用路径传入，不能用`T==1`猜。Qwen3的双表示相对全BF16准确增加352,321,536字节；当前只有
+机制与smoke证据，完整shape和性能未验收，因此默认关闭。
+
 KV Cache的形状、字节公式、API和精度失败见
 [KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 

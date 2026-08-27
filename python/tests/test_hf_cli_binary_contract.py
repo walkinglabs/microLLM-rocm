@@ -35,6 +35,9 @@ def main() -> int:
         b"bf16_ffn_arena_capacity_bytes",
         b"--bf16-ffn-fp32-layers",
         b"bf16_ffn_fp32_layers",
+        b"--bf16-ffn-decode-up-fp32",
+        b"bf16_ffn_bf16_prefill_mirror_bytes_retained",
+        b"dual_representation_bf16_prefill_decode_up_fp32",
         b"--bf16-decode-algorithm-index",
         b"bf16_decode_algorithm_index",
         b"bf16_registered_algorithm_count",
@@ -216,6 +219,40 @@ def main() -> int:
                 "requires --bf16-ffn true" not in \
                 rejected_scope_without_ffn.stderr:
             raise RuntimeError("hf_infer accepted a BF16 scope without BF16 FFN")
+        rejected_phase_without_ffn = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--workload", "decode", "--new-tokens", "1",
+            "--bf16-ffn-decode-up-fp32", "true",
+        ], text=True, capture_output=True, check=False)
+        if rejected_phase_without_ffn.returncode == 0 or \
+                "requires BF16 FFN all-scope" not in \
+                rejected_phase_without_ffn.stderr:
+            raise RuntimeError(
+                "hf_infer accepted decode-up FP32 without BF16 FFN")
+        rejected_phase_scope = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--workload", "decode", "--new-tokens", "1",
+            "--bf16-ffn", "true", "--bf16-ffn-weight-scope", "gate-down",
+            "--bf16-ffn-decode-up-fp32", "true",
+        ], text=True, capture_output=True, check=False)
+        if rejected_phase_scope.returncode == 0 or \
+                "requires BF16 FFN all-scope" not in rejected_phase_scope.stderr:
+            raise RuntimeError(
+                "hf_infer accepted two conflicting BF16 FFN policies")
+        rejected_phase_token_prefill = subprocess.run([
+            str(args.binary), "--config", str(missing),
+            "--weights", str(missing), "--tokens", "1", "--device", "cpu",
+            "--workload", "decode", "--new-tokens", "1",
+            "--cache-prefill-mode", "token",
+            "--bf16-ffn", "true", "--bf16-ffn-decode-up-fp32", "true",
+        ], text=True, capture_output=True, check=False)
+        if rejected_phase_token_prefill.returncode == 0 or \
+                "requires BF16 FFN all-scope" not in \
+                rejected_phase_token_prefill.stderr:
+            raise RuntimeError(
+                "hf_infer accepted token-at-a-time prefill for a phase policy")
         rejected_decode_algorithm = subprocess.run([
             str(args.binary), "--config", str(missing),
             "--weights", str(missing), "--tokens", "1", "--device", "cpu",

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+  <rect width="1500" height="760" fill="#f7f8fc"/>
+  <text x="60" y="62" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 decode-up FP32 · explicit phase route</text>
+  <text x="60" y="99" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">One parameter set · one derived mirror · no sequence-length guessing</text>
+
+  <rect x="55" y="135" width="390" height="350" rx="20" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+  <text x="250" y="182" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#172033">Stored per FFN layer</text>
+  <rect x="105" y="220" width="290" height="55" rx="12" fill="#dbeafe"/>
+  <text x="250" y="255" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">gate · BF16 parameter</text>
+  <rect x="105" y="295" width="290" height="75" rx="12" fill="#fef3c7"/>
+  <text x="250" y="325" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#92400e">up · FP32 parameter</text>
+  <text x="250" y="352" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#92400e">+ BF16 prefill mirror</text>
+  <rect x="105" y="390" width="290" height="55" rx="12" fill="#dbeafe"/>
+  <text x="250" y="425" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">down · BF16 parameter</text>
+
+  <path d="M445 285 C520 285 520 240 585 240" fill="none" stroke="#16a34a" stroke-width="4" marker-end="url(#arrowGreen)"/>
+  <path d="M445 365 C520 365 520 430 585 430" fill="none" stroke="#2563eb" stroke-width="4" marker-end="url(#arrowBlue)"/>
+
+  <rect x="585" y="135" width="390" height="250" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="780" y="182" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">Prefill call path</text>
+  <text x="780" y="235" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033">BF16 · BF16 mirror · BF16</text>
+  <text x="780" y="290" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="38" font-weight="700" fill="#166534">fused FFN</text>
+  <text x="780" y="334" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">ordinary, cached and T1 prefill</text>
+
+  <rect x="585" y="405" width="390" height="250" rx="20" fill="#ffffff" stroke="#2563eb" stroke-width="3"/>
+  <text x="780" y="452" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#1d4ed8">Cached decode call path</text>
+  <text x="780" y="505" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" fill="#172033">BF16 · FP32 · BF16</text>
+  <text x="780" y="560" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="32" font-weight="700" fill="#1d4ed8">readable mixed path</text>
+  <text x="780" y="604" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">uniform and positions-aware decode</text>
+
+  <rect x="1030" y="135" width="415" height="520" rx="20" fill="#ffffff" stroke="#d8deea" stroke-width="2"/>
+  <text x="1237" y="182" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#172033">Measured implementation gate</text>
+  <text x="1237" y="252" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="43" font-weight="700" fill="#166534">433 / 433</text>
+  <text x="1237" y="282" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">CPU</text>
+  <text x="1237" y="342" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="38" font-weight="700" fill="#166534">430 / 430</text>
+  <text x="1237" y="372" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">ASan / UBSan</text>
+  <text x="1237" y="432" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="38" font-weight="700" fill="#166534">215 / 215</text>
+  <text x="1237" y="462" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">HIP</text>
+  <text x="1237" y="530" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#172033">+336 MiB resident</text>
+  <text x="1237" y="572" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">28 FP32 up + 28 BF16 mirrors</text>
+  <text x="1237" y="612" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b45309">complete performance pending</text>
+
+  <rect x="55" y="690" width="1390" height="45" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+  <text x="750" y="719" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#92400e">Keep the route for measurement · do not promote the policy before the 64-worker and five-case gates</text>
+
+  <defs>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#16a34a"/></marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker>
+  </defs>
+</svg>

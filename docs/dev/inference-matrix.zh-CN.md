@@ -270,3 +270,12 @@ down-FP32完整shape、新oracle和短性能拒绝见
 [Experiment 373](../optimization-log/experiments/373-qwen3-down-fp32-reject.md)。
 up-FP32的64-worker、八个唯一oracle和五场景性能拒绝见
 [Experiment 374](../optimization-log/experiments/374-qwen3-up-fp32-reject.md)。
+显式prefill/decode阶段、双表示内存和smoke见
+[Experiment 375](../optimization-log/experiments/375-qwen3-decode-up-fp32-route.md)。矩阵中启用：
+
+```bash
+--micro-bf16-ffn-decode-up-fp32
+```
+
+这只改变microLLM权重路由；PyTorch仍是独立BF16比较路径。summary的precision boundary会回显
+`decode_up_fp32=true`，避免把双表示结果混入普通all-scope数据。
