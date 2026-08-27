@@ -80,8 +80,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] extend the fixed repeated-token policy matrix to T1024/T2048: 32/32 workers,
   12/12 exact KV rows, new FP32 argmax states2/2 and microLLM B2 invariance6/6;
   combined argmax is10/10 while strict common-FP32 full logits remain8/10;
-- [ ] broaden beyond the repeated-token calibration prompt: natural-language prompt
-  families, Radeon/backend versions and memory-constrained devices;
+- [x] change prompt content with fixed shapes: alternating, ascending and historical
+  sensitive seeds pass24/24 directly; only constant keeps three known oracle splits;
+  all64 workers,16 KV rows and both-framework B2 invariants pass;
+- [ ] move beyond synthetic token seeds to tokenizer-generated natural-language and
+  structured prompt families; Radeon/backend and memory-constrained devices remain open;
 - [x] preserve identical-input batch rows instead of throwing a generic PyTorch worker
   failure; classify T1024/B2/N8 as `batch_invariance_mismatch`, with microLLM 2/2,
   Transformers BF16 474/2 and common FP32 oracle 2;

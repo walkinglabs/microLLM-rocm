@@ -63,6 +63,10 @@ microLLM两行都是FP32 oracle的2。runner保存全部行并分类`batch_invar
 匹配FP32。合并fixed-state为argmax10/10、strict full-logit8/10。显式策略的重复token边界扩到
 T2048，但自然语言prompt、训练和其他硬件仍未由此证明。
 
+合成内容矩阵使用constant/alternating/ascending/sensitive四seed。后三种24/24直接一致；三处分叉
+全部属于constant且已有FP32 oracle。双方B2行8/8一致，KV16/16精确。可复现manifest由
+`make_qwen3_prompt_pattern_manifest.py`从本地fixture生成。
+
 ### 一条命令准备固定 fixture
 
 仓库不会提交数GB权重，但会固定来源、revision、许可和结构预期：

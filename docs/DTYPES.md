@@ -169,6 +169,10 @@ FFN；partial scope故意回到三个Linear的可读路径，因此必须单独�
 strict common-FP32完整向量为8/10。microLLM六个长上下文B2 cached case全部保持行一致，
 Transformers BF16为4/6。该结果仍不能代替不同自然语言prompt或Radeon验证。
 
+四seed内容矩阵进一步固定shape并改变token模式：alternating、ascending、historical-sensitive
+合计24/24直接一致，只有constant保留3个已归因分叉；64/64 worker、16/16 KV和双方B2行不变量
+全部通过。它扩展合成内容证据，不等于自然语言鲁棒性。
+
 KV Cache的形状、字节公式、API和精度失败见
 [KV Cache数据类型设计](dev/kv-cache-dtypes.zh-CN.md)。
 

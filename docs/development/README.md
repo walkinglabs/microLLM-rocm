@@ -757,3 +757,5 @@ the next gate. Records are append-only except for factual corrections.
   preserves every identical-input batch row and separates invariance from worker failure.
 - [2026-08-27-qwen3-decode-up-fp32-long-context.md](2026-08-27-qwen3-decode-up-fp32-long-context.md):
   extends fixed-prompt row/oracle/KV evidence through T2048 with strict limits intact.
+- [2026-08-27-qwen3-phase-prompt-patterns.md](2026-08-27-qwen3-phase-prompt-patterns.md):
+  changes four synthetic prompt seeds while fixing model, shape and phase policy.

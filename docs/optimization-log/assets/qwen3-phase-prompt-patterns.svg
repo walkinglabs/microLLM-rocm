@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760">
+  <rect width="1500" height="760" fill="#f7f8fc"/>
+  <text x="60" y="62" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 phase policy · prompt content patterns</text>
+  <text x="60" y="99" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Same weights and shapes · four fixed token seeds · T512 / T2048 · B1 / B2</text>
+
+  <rect x="55" y="145" width="320" height="300" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+  <text x="215" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#92400e">constant</text>
+  <text x="215" y="275" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="#b45309">5 / 8</text>
+  <text x="215" y="315" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#5b6474">direct pass</text>
+  <text x="215" y="370" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#166534">3 / 3 oracle</text>
+  <text x="215" y="410" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">known limits, no new split</text>
+
+  <rect x="405" y="145" width="320" height="300" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="565" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">alternating</text>
+  <text x="565" y="290" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="700" fill="#166534">8 / 8</text>
+  <text x="565" y="340" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">direct pass</text>
+  <text x="565" y="400" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534">B2 rows equal</text>
+
+  <rect x="755" y="145" width="320" height="300" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="915" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">ascending</text>
+  <text x="915" y="290" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="700" fill="#166534">8 / 8</text>
+  <text x="915" y="340" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">direct pass</text>
+  <text x="915" y="400" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534">B2 rows equal</text>
+
+  <rect x="1105" y="145" width="340" height="300" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="1275" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#166534">historical sensitive</text>
+  <text x="1275" y="290" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="700" fill="#166534">8 / 8</text>
+  <text x="1275" y="340" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">direct pass</text>
+  <text x="1275" y="400" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#166534">B2 rows equal</text>
+
+  <rect x="55" y="500" width="1390" height="140" rx="20" fill="#ffffff" stroke="#d8deea" stroke-width="2"/>
+  <text x="120" y="550" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#172033">Shared evidence</text>
+  <text x="360" y="550" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534">64 / 64 workers</text>
+  <text x="620" y="550" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534">16 / 16 KV exact</text>
+  <text x="880" y="550" font-family="Inter,Arial,sans-serif" font-size="19" fill="#166534">B2 invariance 8 / 8 both</text>
+  <text x="120" y="600" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">max KV 471.6 MB</text>
+  <text x="420" y="600" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">micro peak 3.166 GB</text>
+  <text x="760" y="600" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">PyTorch peak 4.714 GB</text>
+  <text x="1110" y="600" font-family="Inter,Arial,sans-serif" font-size="18" fill="#b45309">one process · no speed rank</text>
+
+  <rect x="55" y="685" width="1390" height="50" rx="18" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>
+  <text x="750" y="718" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700" fill="#166534">No new split in 3 changed-content seeds · next scale uses tokenizer-generated real prompts</text>
+</svg>

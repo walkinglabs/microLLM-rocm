@@ -1380,6 +1380,11 @@ the complete T1024/T2048 matrix with that row contract: 32/32 workers, 12/12 exa
 microLLM B2 invariance 6/6 and combined fixed-state FP32 argmax 10/10. Strict common-FP32
 full-logit gates are 8/10, so the explicit repeated-token evidence extends to T2048 without a
 universal prompt or full-vector claim.
+[Experiment 379](docs/optimization-log/experiments/379-qwen3-phase-prompt-patterns.md) changes prompt
+content while holding shapes fixed. Alternating, ascending and historical-sensitive seeds pass
+24/24 rows directly; only the constant seed retains three already-attributed splits. All 64 workers,
+16 KV rows and both-framework B2 invariants pass. This is synthetic content evidence, not yet a
+natural-language prompt claim.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

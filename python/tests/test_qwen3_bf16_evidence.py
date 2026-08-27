@@ -34,6 +34,8 @@ BATCH_CONTRACT_ROOT = (ROOT / "benchmarks/results" /
                        "2026-08-27-hf-batch-invariance-contract")
 LONG_CONTEXT_ROOT = (ROOT / "benchmarks/results" /
                      "2026-08-27-qwen3-decode-up-fp32-long-context")
+PROMPT_PATTERN_ROOT = (ROOT / "benchmarks/results" /
+                       "2026-08-27-qwen3-phase-prompt-patterns")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -70,8 +72,26 @@ PHASE_ORACLE_SPEC = importlib.util.spec_from_file_location(
 PHASE_ORACLE = importlib.util.module_from_spec(PHASE_ORACLE_SPEC)
 assert PHASE_ORACLE_SPEC.loader is not None
 PHASE_ORACLE_SPEC.loader.exec_module(PHASE_ORACLE)
+PROMPT_MANIFEST_SPEC = importlib.util.spec_from_file_location(
+    "make_qwen3_prompt_pattern_manifest",
+    ROOT / "benchmarks/single_gpu/make_qwen3_prompt_pattern_manifest.py")
+PROMPT_MANIFEST = importlib.util.module_from_spec(PROMPT_MANIFEST_SPEC)
+assert PROMPT_MANIFEST_SPEC.loader is not None
+PROMPT_MANIFEST_SPEC.loader.exec_module(PROMPT_MANIFEST)
 
 def main():
+    prompt_manifest = PROMPT_MANIFEST.build_manifest({
+        "schema_version": 1,
+        "models": [{"name": "qwen3-0.6b", "inference": {"token_ids": [9]},
+                    "marker": "preserved"}],
+    })
+    assert [model["name"] for model in prompt_manifest["models"]] == [
+        "qwen3-constant", "qwen3-alternating", "qwen3-ascending",
+        "qwen3-sensitive"]
+    assert {model["inference"]["prompt_pattern"]: model["inference"]["token_ids"]
+            for model in prompt_manifest["models"]} == PROMPT_MANIFEST.PATTERNS
+    assert all(model["marker"] == "preserved"
+               for model in prompt_manifest["models"])
     assert len(PHASE_ORACLE.CASES) == 8
     assert PHASE_ORACLE.CANDIDATE == "micro-phase-decode-up-fp32"
     assert len(PHASE_PERF.CASES) == 5
@@ -636,6 +656,65 @@ def main():
     assert long_t1024_rows["torch-bf16"]["generated_rows_equal"] is False
     assert long_t1024_rows["torch-bf16"]["generated_rows"][0][-1] == 474
     assert long_t1024_rows["torch-bf16"]["generated_rows"][1][-1] == 2
+    pattern_result = json.loads(
+        (PROMPT_PATTERN_ROOT / "summary.json").read_text())
+    pattern_matrix = json.loads(
+        (PROMPT_PATTERN_ROOT / "matrix-summary.json").read_text())
+    pattern_raw = [json.loads(line) for line in
+                   (PROMPT_PATTERN_ROOT / "matrix-raw.jsonl").read_text().splitlines()
+                   if line]
+    pattern_seeds = json.loads(
+        (PROMPT_PATTERN_ROOT / "prompt-seeds.json").read_text())
+    assert pattern_result["status"] == \
+        "pass_prompt_pattern_matrix_with_constant_limits"
+    assert pattern_result["matrix"]["worker_passes"] == 64
+    assert pattern_result["matrix"]["pass_rows"] == 29
+    assert pattern_result["matrix"]["precision_mismatch_rows"] == 3
+    assert pattern_result["matrix"]["batch_invariance_mismatch_rows"] == 0
+    assert pattern_result["matrix"]["microllm_b2_rows_equal"] == 8
+    assert pattern_result["matrix"]["pytorch_b2_rows_equal"] == 8
+    assert pattern_result["patterns"] == {
+        "constant": {"pass_rows": 5, "precision_mismatch_rows": 3},
+        "alternating": {"pass_rows": 8, "precision_mismatch_rows": 0},
+        "ascending": {"pass_rows": 8, "precision_mismatch_rows": 0},
+        "sensitive": {"pass_rows": 8, "precision_mismatch_rows": 0},
+    }
+    assert pattern_seeds["patterns"] == PROMPT_MANIFEST.PATTERNS
+    assert len(pattern_matrix["rows"]) == 32 and len(pattern_raw) == 64
+    assert all(item["status"] == "pass" for item in pattern_raw)
+    assert sum(item["status"] == "pass" for item in pattern_matrix["rows"]) == 29
+    assert sum(item["status"] == "precision_mismatch"
+               for item in pattern_matrix["rows"]) == 3
+    pattern_cached = [item for item in pattern_matrix["rows"]
+                      if item["workload"] == "decode"]
+    assert len(pattern_cached) == 16
+    assert all(item["microllm_kv_cache_actual_bytes"] ==
+               item["microllm_kv_cache_theoretical_bytes"] ==
+               item["pytorch_kv_cache_actual_bytes"] ==
+               item["pytorch_kv_cache_theoretical_bytes"]
+               for item in pattern_cached)
+    pattern_b2 = [item for item in pattern_cached if item["batch"] == 2]
+    assert len(pattern_b2) == 8
+    assert all(item["microllm_generated_rows_equal"] and
+               item["pytorch_generated_rows_equal"] for item in pattern_b2)
+    mismatches = [item for item in pattern_matrix["rows"]
+                  if item["status"] == "precision_mismatch"]
+    assert all(item["model"] == "qwen3-constant" for item in mismatches)
+    assert {item["model"] for item in pattern_matrix["rows"]
+            if item["status"] != "pass"} == {"qwen3-constant"}
+    for path, token, torch_token in (
+            ("t512-b1-step2.json", 2955, 1096),
+            ("t512-b2-step2.json", 2955, 1096),
+            ("t2048-b2-step4.json", 16, 220)):
+        oracle = json.loads(
+            (PROMPT_PATTERN_ROOT / "oracles" / path).read_text())
+        rows = {item["policy"]: item for item in oracle["policy_rows"]}
+        candidate_name = ("micro-phase-decode-up-fp32"
+                          if "micro-phase-decode-up-fp32" in rows
+                          else "micro-mixed-gate-down-bf16")
+        assert rows["torch-fp32"]["argmax_token"] == token
+        assert rows[candidate_name]["argmax_token"] == token
+        assert rows["torch-bf16"]["argmax_token"] == torch_token
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

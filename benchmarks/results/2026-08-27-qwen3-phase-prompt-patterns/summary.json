@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "status": "pass_prompt_pattern_matrix_with_constant_limits",
+  "model": "Qwen/Qwen3-0.6B",
+  "candidate": "phase-selective decode-up FP32",
+  "matrix": {
+    "worker_passes": 64,
+    "worker_count": 64,
+    "aggregate_rows": 32,
+    "pass_rows": 29,
+    "precision_mismatch_rows": 3,
+    "batch_invariance_mismatch_rows": 0,
+    "limited_rows": 0,
+    "cached_rows_with_exact_kv_bytes": 16,
+    "cached_row_count": 16,
+    "microllm_b2_rows_equal": 8,
+    "microllm_b2_row_count": 8,
+    "pytorch_b2_rows_equal": 8,
+    "pytorch_b2_row_count": 8,
+    "elapsed_seconds": 617
+  },
+  "patterns": {
+    "constant": {"pass_rows": 5, "precision_mismatch_rows": 3},
+    "alternating": {"pass_rows": 8, "precision_mismatch_rows": 0},
+    "ascending": {"pass_rows": 8, "precision_mismatch_rows": 0},
+    "sensitive": {"pass_rows": 8, "precision_mismatch_rows": 0}
+  },
+  "constant_oracles": {
+    "argmax_cases_passed": 3,
+    "argmax_case_count": 3,
+    "strict_complete_logit_cases_passed": 2,
+    "strict_complete_logit_case_count": 3,
+    "states": [
+      {"name": "t512-b1-step2", "candidate": 2955, "pytorch_bf16": 1096,
+       "fp32": 2955, "strict": true},
+      {"name": "t512-b2-step2", "candidate": 2955, "pytorch_bf16": 1096,
+       "fp32": 2955, "strict": true},
+      {"name": "t2048-b2-step4", "candidate": 16, "pytorch_bf16": 220,
+       "fp32": 16, "strict": false}
+    ]
+  },
+  "memory": {
+    "resident_weight_bytes": 1855717376,
+    "maximum_kv_cache_bytes": 471597056,
+    "maximum_microllm_peak_bytes": 3166208000,
+    "maximum_pytorch_peak_bytes": 4713611776
+  },
+  "decision": "extend explicit fixed-pattern evidence to alternating, ascending and sensitive seeds; preserve constant-seed oracle limits",
+  "boundary": "four synthetic token patterns and one process per framework/shape; no natural-language, repeated-performance, Radeon or training claim"
+}

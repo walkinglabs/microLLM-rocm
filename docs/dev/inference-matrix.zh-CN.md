@@ -294,3 +294,7 @@ T1024/B2/N8合同见
 修复后的T1024/T2048完整结果见
 [Experiment 378](../optimization-log/experiments/378-qwen3-decode-up-fp32-long-context.md)。长上下文报告
 必须同时统计`precision_mismatch`与`batch_invariance_mismatch`，不能只报一个pass总数。
+改变内容而不换权重的四seed矩阵见
+[Experiment 379](../optimization-log/experiments/379-qwen3-phase-prompt-patterns.md)。先用
+`make_qwen3_prompt_pattern_manifest.py`复制本地fixture并替换`inference.token_ids`，不要提交
+带本机绝对路径的manifest。

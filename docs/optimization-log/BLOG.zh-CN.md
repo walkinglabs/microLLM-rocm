@@ -5532,3 +5532,15 @@ microLLM/PyTorch为3.172/4.719GB，单样本不作速度排名。
 固定重复token的显式证据扩到T2048。下一尺度必须改变prompt内容。
 
 ![Qwen3 long-context gate](assets/qwen3-decode-up-fp32-long-context.svg)
+
+## 395. Experiment 379：分叉跟shape走，还是跟内容走
+
+固定权重、phase策略和T512/T2048 B1/B2，只把seed改成constant、alternating、ascending、
+sensitive。64/64 worker完成：29 pass、3 precision mismatch。
+
+三处分叉全属于constant且已有FP32 oracle；另外三seed合计24/24直接一致。双方B2行8/8一致，
+KV16/16精确。最大峰值microLLM/PyTorch为3.166/4.714GB，单进程不作速度排名。
+
+keep三种合成内容变化，constant边界保留。下一尺度必须使用tokenizer生成真实prompt。
+
+![Qwen3 prompt pattern matrix](assets/qwen3-phase-prompt-patterns.svg)
