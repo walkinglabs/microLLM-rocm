@@ -1389,6 +1389,10 @@ natural-language prompt claim.
 tokenizer-generated prompts (English, Chinese, C++ and Qwen chat): 32/32 workers, 14 direct rows,
 two FP32-attributed splits, 4/4 strict B1/B2 oracles and 8/8 exact KV rows. It extends the explicit
 policy to these short prompts without making a language-quality or default-policy claim.
+[Experiment 381](docs/optimization-log/experiments/381-qwen3-training-smoke.md) moves official
+Qwen3 into training: FP32 B1/T32 completes forward/backward/AdamW with a `2.38e-7` loss difference
+and a `2.57e-10` observed-parameter difference. BF16 executes but is slower and has a `0.00996`
+loss gap, so complete gradients and multi-step trajectories remain required.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

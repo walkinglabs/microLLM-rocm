@@ -5554,3 +5554,13 @@ keep三种合成内容变化，constant边界保留。下一尺度必须使用to
 代码/chat 8/8直接一致，KV8/8、B2行4/4通过。单进程不作速度或语言质量结论。
 
 ![Qwen3 exact natural prompts](assets/qwen3-natural-prompts.svg)
+
+## 397. Experiment 381：能训练一步，不等于训练对齐
+
+官方Qwen3 B1/T32一步完成forward/loss/backward/AdamW。FP32 loss差2.38e-7，观测参数差2.57e-10，
+峰值micro/PyTorch 9.78/12.10GB。单样本1.119×不作跑分。
+
+BF16也执行，但loss差0.00996；196份mirror占880.8MB，吞吐只有PyTorch0.5969×和micro FP32
+0.7900×，峰值反而1.0901×。BF16不是速度路径。下一步必须输出完整参数/梯度签名并跑多步。
+
+![Qwen3 training smoke](assets/qwen3-training-smoke.svg)

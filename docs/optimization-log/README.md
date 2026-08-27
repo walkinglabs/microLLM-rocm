@@ -1160,6 +1160,8 @@ gate/up weight gradient快`1.077×/1.133×`，并精确命中144/168次；模型
 | [Qwen3 prompt pattern SVG](assets/qwen3-phase-prompt-patterns.svg) | constant边界与三seed 24/24 |
 | [experiments/380-qwen3-natural-prompts.md](experiments/380-qwen3-natural-prompts.md) | 四条exact tokenizer prompt |
 | [Qwen3 natural prompt SVG](assets/qwen3-natural-prompts.svg) | 英中代码chat与四份strict oracle |
+| [experiments/381-qwen3-training-smoke.md](experiments/381-qwen3-training-smoke.md) | 官方Qwen3 FP32/BF16首个训练step |
+| [Qwen3 training smoke SVG](assets/qwen3-training-smoke.svg) | FP32局部对齐与BF16速度/显存反例 |
 | [scripts/render_progress.py](scripts/render_progress.py) | 无第三方依赖的 SVG 生成器 |
 | [scripts/validate_log.py](scripts/validate_log.py) | 日志、分数、链接和生成图一致性检查 |
 

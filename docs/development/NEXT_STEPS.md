@@ -87,6 +87,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   complete32/32, direct14/16, strict B1/B2 oracles4/4, KV8/8 and B2 rows4/4;
 - [ ] expand beyond four short prompts to a versioned prompt suite, longer documents,
   sampling and quality evaluation; Radeon/backend and memory-constrained devices remain open;
+- [x] execute official Qwen3 B1/T32 training once in FP32 and BF16: FP32 loss/one
+  parameter align at2.38e-7/2.57e-10; BF16 executes but has0.00996 loss gap,
+  0.5969x PyTorch throughput and no memory win;
+- [ ] add complete Qwen3 parameter/gradient signatures, then run multi-step FP32/BF16
+  trajectories before any official training or SFT readiness claim;
 - [x] preserve identical-input batch rows instead of throwing a generic PyTorch worker
   failure; classify T1024/B2/N8 as `batch_invariance_mismatch`, with microLLM 2/2,
   Transformers BF16 474/2 and common FP32 oracle 2;

@@ -39,6 +39,8 @@ PROMPT_PATTERN_ROOT = (ROOT / "benchmarks/results" /
                        "2026-08-27-qwen3-phase-prompt-patterns")
 NATURAL_PROMPT_ROOT = (ROOT / "benchmarks/results" /
                        "2026-08-27-qwen3-natural-prompts")
+TRAINING_SMOKE_ROOT = (ROOT / "benchmarks/results" /
+                       "2026-08-27-qwen3-training-smoke")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -818,6 +820,34 @@ def main():
             assert rows["micro-fp32-fp32"]["argmax_token"] == token
             assert rows["micro-phase-decode-up-fp32"]["argmax_token"] == token
             assert rows["torch-bf16"]["argmax_token"] == torch_by_batch[batch]
+    training_smoke = json.loads(
+        (TRAINING_SMOKE_ROOT / "summary.json").read_text())
+    fp32_training = json.loads(
+        (TRAINING_SMOKE_ROOT / "fp32-summary.json").read_text())
+    bf16_training = json.loads(
+        (TRAINING_SMOKE_ROOT / "bf16-summary.json").read_text())
+    fp32_training_raw = [json.loads(line) for line in
+        (TRAINING_SMOKE_ROOT / "fp32-raw.jsonl").read_text().splitlines() if line]
+    bf16_training_raw = [json.loads(line) for line in
+        (TRAINING_SMOKE_ROOT / "bf16-raw.jsonl").read_text().splitlines() if line]
+    assert training_smoke["status"] == "pass_fp32_alignment_bf16_execution_smoke"
+    assert training_smoke["shape"] == {
+        "batch": 1, "context": 32, "warmup": 0, "steps": 1}
+    assert training_smoke["fp32"]["absolute_loss_difference"] < 2.4e-7
+    assert training_smoke["fp32"]["observed_parameter_after_difference"] < 3e-10
+    assert training_smoke["bf16"]["absolute_loss_difference"] > 0.0099
+    assert training_smoke["bf16"]["single_process_throughput_ratio"] < 0.60
+    assert training_smoke["bf16"]["microllm_over_microllm_fp32_throughput"] < 0.80
+    assert training_smoke["bf16"]["bf16_training_mirror_tensors"] == 196
+    assert training_smoke["bf16"]["bf16_training_mirror_bytes"] == 880_803_840
+    assert fp32_training["status"] == bf16_training["status"] == "pass"
+    assert len(fp32_training_raw) == len(bf16_training_raw) == 2
+    assert {item["framework"] for item in fp32_training_raw} == \
+        {"microllm", "pytorch"}
+    assert {item["framework"] for item in bf16_training_raw} == \
+        {"microllm", "pytorch"}
+    assert all(item["status"] == "pass" and item["parameter_changed"]
+               for item in fp32_training_raw + bf16_training_raw)
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

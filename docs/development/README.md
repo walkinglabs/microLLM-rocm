@@ -761,3 +761,5 @@ the next gate. Records are append-only except for factual corrections.
   changes four synthetic prompt seeds while fixing model, shape and phase policy.
 - [2026-08-27-qwen3-natural-prompts.md](2026-08-27-qwen3-natural-prompts.md):
   runs four exact tokenizer-generated prompts and attributes both batch-dependent splits.
+- [2026-08-27-qwen3-training-smoke.md](2026-08-27-qwen3-training-smoke.md):
+  executes the first official FP32/BF16 training step and preserves the BF16 gap.

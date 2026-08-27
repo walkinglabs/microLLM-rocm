@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" viewBox="0 0 1500 700">
+  <rect width="1500" height="700" fill="#f7f8fc"/>
+  <text x="60" y="62" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Official Qwen3-0.6B · first training step</text>
+  <text x="60" y="99" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">B1 / T32 · forward · loss · backward · AdamW · fresh processes</text>
+
+  <rect x="55" y="145" width="650" height="390" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="380" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700" fill="#166534">FP32 alignment smoke</text>
+  <text x="130" y="275" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">loss absolute difference</text>
+  <text x="625" y="275" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#166534">2.38e-7</text>
+  <text x="130" y="345" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">observed parameter difference</text>
+  <text x="625" y="345" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#166534">2.57e-10</text>
+  <text x="130" y="415" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">peak micro / PyTorch</text>
+  <text x="625" y="415" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="28" font-weight="700" fill="#172033">9.78 / 12.10 GB</text>
+  <text x="380" y="485" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b45309">one process · throughput 1.119× is not a ranking</text>
+
+  <rect x="795" y="145" width="650" height="390" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="1120" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700" fill="#b42335">BF16 execution boundary</text>
+  <text x="870" y="270" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">loss absolute difference</text>
+  <text x="1370" y="270" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#b42335">0.00996</text>
+  <text x="870" y="335" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">throughput vs PyTorch</text>
+  <text x="1370" y="335" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#b42335">0.5969×</text>
+  <text x="870" y="400" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">vs micro FP32</text>
+  <text x="1370" y="400" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#b42335">0.7900×</text>
+  <text x="870" y="465" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">196 mirrors</text>
+  <text x="1370" y="465" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700" fill="#172033">880.8 MB</text>
+  <text x="1120" y="505" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="17" fill="#b42335">not a speed path</text>
+
+  <rect x="55" y="590" width="1390" height="60" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+  <text x="750" y="628" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#92400e">Next: complete parameter/gradient signatures and multi-step trajectory · no full-training claim yet</text>
+</svg>
