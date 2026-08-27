@@ -74,6 +74,10 @@ exact自然prompt使用`make_qwen3_natural_prompt_manifest.py`从同一tokenizer
 官方Qwen3训练step也已进入smoke：FP32 B1/T32 loss差2.38e-7，观测参数更新差2.57e-10；BF16
 执行成功但loss差0.00996且没有加速。完整参数/梯度与多步轨迹仍是单独门，不能由一个参数代替。
 
+训练诊断可传`--gate-up-gradients-output`和`--gate-up-parameters-output`。梯度在AdamW前、参数在
+更新后保存；worker标记`diagnostic`。官方Qwen3 FP32比较56个Tensor与3.52亿个值通过，BF16因
+Gradient Max0.25356和Parameter RMS2.626e-6失败。临时大文件不进入仓库。
+
 ### 一条命令准备固定 fixture
 
 仓库不会提交数GB权重，但会固定来源、revision、许可和结构预期：

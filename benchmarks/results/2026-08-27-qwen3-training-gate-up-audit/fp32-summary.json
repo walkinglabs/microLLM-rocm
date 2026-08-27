@@ -1,0 +1,42 @@
+{
+  "absolute_loss_difference": 2.3799682624670027e-07,
+  "batch": 1,
+  "boundary": "all 56 gate/up gradients before AdamW and parameters after one step; remaining parameter families and multi-step trajectory are separate",
+  "context": 32,
+  "gates": {
+    "gradient_maximum": true,
+    "gradient_rms": true,
+    "loss_finite": true,
+    "parameter_maximum": true,
+    "parameter_rms": true
+  },
+  "gradients": {
+    "compared_elements": 176160768,
+    "maximum_absolute_difference": 0.0003108978271484375,
+    "rms_difference": 4.376718731480183e-07,
+    "tensor_count": 56
+  },
+  "learning_rate": 1e-05,
+  "limits": {
+    "gradient_max": 0.005,
+    "gradient_rms": 5e-05,
+    "parameter_max": 0.0001,
+    "parameter_rms": 1e-06
+  },
+  "microllm_loss": 2.37676549,
+  "microllm_peak_bytes": 9778200840,
+  "model": "qwen3-0.6b",
+  "parameters": {
+    "compared_elements": 176160768,
+    "maximum_absolute_difference": 1.9960105419158936e-05,
+    "rms_difference": 5.645089653208129e-08,
+    "tensor_count": 56
+  },
+  "precision": "fp32",
+  "pytorch_loss": 2.376765727996826,
+  "pytorch_peak_bytes": 12102453248,
+  "record_type": "qwen3_training_gate_up_audit",
+  "revision": "c916fa4defd319b7d4e4da17604ca7338f4d99f5",
+  "schema_version": 1,
+  "status": "pass"
+}

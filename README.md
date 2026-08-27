@@ -1393,6 +1393,10 @@ policy to these short prompts without making a language-quality or default-polic
 Qwen3 into training: FP32 B1/T32 completes forward/backward/AdamW with a `2.38e-7` loss difference
 and a `2.57e-10` observed-parameter difference. BF16 executes but is slower and has a `0.00996`
 loss gap, so complete gradients and multi-step trajectories remain required.
+[Experiment 382](docs/optimization-log/experiments/382-qwen3-training-gate-up-audit.md) replaces the
+single observed parameter with 56 gate/up tensors: FP32 compares 176,160,768 gradients and the same
+number of updated parameters within fixed Max/RMS gates; BF16 fails Gradient Max and Parameter RMS.
+The diagnostic export stays out of performance timing, and remaining parameter families stay open.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

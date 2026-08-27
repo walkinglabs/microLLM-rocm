@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="720" viewBox="0 0 1500 720">
+  <rect width="1500" height="720" fill="#f7f8fc"/>
+  <text x="60" y="62" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 training · gate/up full-tensor audit</text>
+  <text x="60" y="99" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">56 gradients + 56 updated parameters · 352,321,536 compared values per precision</text>
+
+  <rect x="55" y="145" width="650" height="390" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="3"/>
+  <text x="380" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="27" font-weight="700" fill="#166534">FP32 · PASS</text>
+  <text x="125" y="270" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">Gradient Max / RMS</text>
+  <text x="635" y="270" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="29" font-weight="700" fill="#166534">3.109e-4 / 4.377e-7</text>
+  <text x="125" y="350" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">Parameter Max / RMS</text>
+  <text x="635" y="350" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="29" font-weight="700" fill="#166534">1.996e-5 / 5.645e-8</text>
+  <text x="125" y="430" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">Worst gradient</text>
+  <text x="635" y="430" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">block 1 · up</text>
+  <text x="380" y="495" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#166534">5 / 5 gates pass</text>
+
+  <rect x="795" y="145" width="650" height="390" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="1120" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="27" font-weight="700" fill="#b42335">BF16 · REJECT</text>
+  <text x="865" y="270" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">Gradient Max / RMS</text>
+  <text x="1380" y="270" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="29" font-weight="700" fill="#b42335">0.25356 / 3.597e-4</text>
+  <text x="865" y="350" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">Parameter Max / RMS</text>
+  <text x="1380" y="350" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="29" font-weight="700" fill="#b42335">2.003e-5 / 2.626e-6</text>
+  <text x="865" y="430" font-family="Inter,Arial,sans-serif" font-size="20" fill="#5b6474">Worst gradient</text>
+  <text x="1380" y="430" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" fill="#172033">block 6 · up</text>
+  <text x="1120" y="495" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#b42335">Gradient Max + Parameter RMS fail</text>
+
+  <rect x="55" y="590" width="1390" height="75" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+  <text x="750" y="625" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#92400e">Keep diagnostic export · next expand attention/down/norm/embedding/output</text>
+  <text x="750" y="650" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="15" fill="#5b6474">safetensors payloads are temporary and excluded from performance timing</text>
+</svg>

@@ -207,6 +207,7 @@ int main(int argc, char** argv) {
         std::filesystem::path diagnostics_output;
         std::filesystem::path loss_trajectory_output;
         std::filesystem::path gate_up_parameters_output;
+        std::filesystem::path gate_up_gradients_output;
         bool bf16_weight_mirrors = true;
         bool tied_embedding_sparse_add = true;
         bool unique_gradient_inplace_add = false;
@@ -256,6 +257,9 @@ int main(int argc, char** argv) {
             }
             else if (name == "--gate-up-parameters-output") {
                 gate_up_parameters_output = argv[index + 1];
+            }
+            else if (name == "--gate-up-gradients-output") {
+                gate_up_gradients_output = argv[index + 1];
             }
             else if (name == "--tied-embedding-sparse-add") {
                 const std::string value = argv[index + 1];
@@ -345,6 +349,11 @@ int main(int argc, char** argv) {
         if (warmup < 0 || steps <= 0 || batch_size <= 0) {
             throw std::invalid_argument(
                 "--warmup must be nonnegative; --steps and --batch must be positive");
+        }
+        if (!gate_up_gradients_output.empty() &&
+            (warmup != 0 || steps != 1)) {
+            throw std::invalid_argument(
+                "--gate-up-gradients-output requires warmup 0 and steps 1");
         }
         if (linear_precision != "fp32" && linear_precision != "bf16") {
             throw std::invalid_argument("--linear-precision must be fp32 or bf16");
@@ -486,6 +495,28 @@ int main(int argc, char** argv) {
             batched_targets, {batch_size, static_cast<std::int64_t>(target_ids.size())});
         if (device.is_hip()) { inputs = inputs.to(device); targets = targets.to(device); }
         auto named = model.named_parameters();
+        const auto gate_up_state = [&](bool gradients) {
+            microllm::io::StateDict selected;
+            for (const auto& [name, parameter] : named) {
+                if (!name.ends_with(".gate_proj.weight") &&
+                    !name.ends_with(".up_proj.weight")) {
+                    continue;
+                }
+                if (gradients) {
+                    if (!parameter->has_grad()) {
+                        throw std::logic_error(
+                            "gate/up gradient output encountered a missing gradient");
+                    }
+                    selected.emplace(name, parameter->grad());
+                } else {
+                    selected.emplace(name, parameter->data());
+                }
+            }
+            if (selected.empty()) {
+                throw std::logic_error("gate/up Tensor selection is empty");
+            }
+            return selected;
+        };
         microllm::autograd::Value* observed = nullptr;
         for (const auto& [name, parameter] : named) {
             if (name == "final_norm.weight") observed = parameter;
@@ -501,6 +532,12 @@ int main(int argc, char** argv) {
             // than an arbitrary backward tail. End-to-end measured_ms still
             // spans both phases and therefore keeps the real step cost.
             microllm::runtime::synchronize(device);
+            if (!gate_up_gradients_output.empty()) {
+                microllm::io::save_safetensors(
+                    gate_up_gradients_output, gate_up_state(true),
+                    {.dtype = microllm::io::WeightFileDType::Float32,
+                     .atomic_replace = true});
+            }
             microllm::runtime::reset_transfer_stats();
             const auto optimizer_start = std::chrono::steady_clock::now();
             optimizer.step();
@@ -571,21 +608,25 @@ int main(int argc, char** argv) {
         }
         std::size_t gate_up_parameter_tensors = 0;
         std::uint64_t gate_up_parameter_elements = 0;
+        std::size_t gate_up_gradient_tensors = 0;
+        std::uint64_t gate_up_gradient_elements = 0;
+        if (!gate_up_gradients_output.empty()) {
+            const auto selected = gate_up_state(true);
+            gate_up_gradient_tensors = selected.size();
+            for (const auto& [name, tensor] : selected) {
+                (void)name;
+                gate_up_gradient_elements +=
+                    static_cast<std::uint64_t>(tensor.numel());
+            }
+        }
         if (!gate_up_parameters_output.empty()) {
-            microllm::io::StateDict selected;
-            for (const auto& [name, parameter] : named) {
-                if (!name.ends_with(".gate_proj.weight") &&
-                    !name.ends_with(".up_proj.weight")) {
-                    continue;
-                }
-                gate_up_parameter_elements += static_cast<std::uint64_t>(
-                    parameter->data().numel());
-                selected.emplace(name, parameter->data());
+            auto selected = gate_up_state(false);
+            for (const auto& [name, tensor] : selected) {
+                (void)name;
+                gate_up_parameter_elements +=
+                    static_cast<std::uint64_t>(tensor.numel());
             }
             gate_up_parameter_tensors = selected.size();
-            if (gate_up_parameter_tensors == 0) {
-                throw std::logic_error("gate/up parameter selection is empty");
-            }
             microllm::io::save_safetensors(
                 gate_up_parameters_output, selected,
                 {.dtype = microllm::io::WeightFileDType::Float32,
@@ -641,6 +682,12 @@ int main(int argc, char** argv) {
                   << ",\"loss_trajectory_steps\":" << loss_trajectory.size()
                   << ",\"gate_up_parameters_output_written\":"
                   << (!gate_up_parameters_output.empty() ? "true" : "false")
+                  << ",\"gate_up_gradients_output_written\":"
+                  << (!gate_up_gradients_output.empty() ? "true" : "false")
+                  << ",\"gate_up_gradient_tensors\":"
+                  << gate_up_gradient_tensors
+                  << ",\"gate_up_gradient_elements\":"
+                  << gate_up_gradient_elements
                   << ",\"gate_up_parameter_tensors\":"
                   << gate_up_parameter_tensors
                   << ",\"gate_up_parameter_elements\":"
@@ -670,7 +717,10 @@ int main(int argc, char** argv) {
                   << ",\"attention_gqa_forward_value_broadcast\":"
                   << (attention_gqa_forward_value_broadcast ? "true" : "false")
                   << ",\"measurement_profile\":\""
-                  << (warmup > 0 || steps > 1 ? "comparison" : "smoke") << "\""
+                  << (!gate_up_gradients_output.empty()
+                          ? "diagnostic"
+                          : warmup > 0 || steps > 1 ? "comparison" : "smoke")
+                  << "\""
                   << ",\"loaded_tensors\":" << report.loaded.size()
                   << ",\"load_ms\":" << load_ms
                   << ",\"load_current_engine_bytes\":" << load_allocation.current_bytes

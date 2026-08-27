@@ -90,8 +90,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
 - [x] execute official Qwen3 B1/T32 training once in FP32 and BF16: FP32 loss/one
   parameter align at2.38e-7/2.57e-10; BF16 executes but has0.00996 loss gap,
   0.5969x PyTorch throughput and no memory win;
-- [ ] add complete Qwen3 parameter/gradient signatures, then run multi-step FP32/BF16
-  trajectories before any official training or SFT readiness claim;
+- [x] export all56 Qwen3 gate/up gradients before AdamW and updated parameters after
+  one step: FP32 Max/RMS gates pass over352,321,536 values; BF16 fails Gradient Max
+  0.25356 and Parameter RMS2.626e-6;
+- [ ] expand Qwen3 training audit to attention/down/norm/embedding/output and optimizer
+  moments, then run multi-step FP32/BF16 trajectories before readiness/SFT claims;
 - [x] preserve identical-input batch rows instead of throwing a generic PyTorch worker
   failure; classify T1024/B2/N8 as `batch_invariance_mismatch`, with microLLM 2/2,
   Transformers BF16 474/2 and common FP32 oracle 2;

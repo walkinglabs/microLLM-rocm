@@ -5564,3 +5564,15 @@ BF16也执行，但loss差0.00996；196份mirror占880.8MB，吞吐只有PyTorch
 0.7900×，峰值反而1.0901×。BF16不是速度路径。下一步必须输出完整参数/梯度签名并跑多步。
 
 ![Qwen3 training smoke](assets/qwen3-training-smoke.svg)
+
+## 398. Experiment 382：从一个参数到3.52亿个值
+
+训练worker在AdamW前导出56个gate/up梯度，一步后导出56个参数；PyTorch转成相同内部名字和
+`[K,N]`。每种precision比较176,160,768梯度元素与同量参数。
+
+FP32 Gradient Max/RMS 3.109e-4/4.377e-7，Parameter 1.996e-5/5.645e-8，全部过门。
+BF16 Gradient 0.25356/3.597e-4，Parameter 2.003e-5/2.626e-6，Max和Parameter RMS失败。
+
+keep诊断API与FP32证据，拒绝当前BF16训练对齐。remaining families和多步仍未完成。
+
+![Qwen3 gate/up training audit](assets/qwen3-training-gate-up-audit.svg)

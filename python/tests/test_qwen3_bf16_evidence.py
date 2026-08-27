@@ -41,6 +41,8 @@ NATURAL_PROMPT_ROOT = (ROOT / "benchmarks/results" /
                        "2026-08-27-qwen3-natural-prompts")
 TRAINING_SMOKE_ROOT = (ROOT / "benchmarks/results" /
                        "2026-08-27-qwen3-training-smoke")
+TRAINING_GATE_UP_ROOT = (ROOT / "benchmarks/results" /
+                         "2026-08-27-qwen3-training-gate-up-audit")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -848,6 +850,48 @@ def main():
         {"microllm", "pytorch"}
     assert all(item["status"] == "pass" and item["parameter_changed"]
                for item in fp32_training_raw + bf16_training_raw)
+    gate_up_result = json.loads(
+        (TRAINING_GATE_UP_ROOT / "summary.json").read_text())
+    gate_up_fp32 = json.loads(
+        (TRAINING_GATE_UP_ROOT / "fp32-summary.json").read_text())
+    gate_up_bf16 = json.loads(
+        (TRAINING_GATE_UP_ROOT / "bf16-summary.json").read_text())
+    gate_up_fp32_raw = [json.loads(line) for line in
+        (TRAINING_GATE_UP_ROOT / "fp32-raw.jsonl").read_text().splitlines() if line]
+    gate_up_bf16_raw = [json.loads(line) for line in
+        (TRAINING_GATE_UP_ROOT / "bf16-raw.jsonl").read_text().splitlines() if line]
+    assert gate_up_result["status"] == "pass_fp32_reject_bf16_gate_up_alignment"
+    assert gate_up_result["scope"]["gradient_tensors"] == 56
+    assert gate_up_result["scope"]["gradient_elements"] == 176_160_768
+    assert gate_up_result["scope"]["updated_parameter_tensors"] == 56
+    assert gate_up_result["scope"]["updated_parameter_elements"] == 176_160_768
+    assert gate_up_result["tests"] == {
+        "cpu_passed": 434, "cpu_total": 434,
+        "sanitizer_passed": 431, "sanitizer_total": 431,
+        "coverage_tensor_ops": 199, "coverage_graph_api": 45,
+        "coverage_test_files": 159,
+    }
+    assert gate_up_fp32["status"] == "pass"
+    assert all(gate_up_fp32["gates"].values())
+    assert gate_up_fp32["gradients"]["maximum_absolute_difference"] < 3.11e-4
+    assert gate_up_fp32["gradients"]["rms_difference"] < 4.38e-7
+    assert gate_up_fp32["parameters"]["maximum_absolute_difference"] < 2.0e-5
+    assert gate_up_fp32["parameters"]["rms_difference"] < 5.65e-8
+    assert gate_up_bf16["status"] == "precision_mismatch"
+    assert gate_up_bf16["gates"]["gradient_maximum"] is False
+    assert gate_up_bf16["gates"]["parameter_rms"] is False
+    assert gate_up_bf16["gates"]["gradient_rms"] is True
+    assert gate_up_bf16["gates"]["parameter_maximum"] is True
+    assert len(gate_up_fp32_raw) == len(gate_up_bf16_raw) == 112
+    assert sum(item["kind"] == "gradient" for item in gate_up_fp32_raw) == 56
+    assert sum(item["kind"] == "parameter" for item in gate_up_fp32_raw) == 56
+    assert all(item["status"] == "pass" and item["all_finite"]
+               for item in gate_up_fp32_raw + gate_up_bf16_raw)
+    worst_bf16 = max(
+        (item for item in gate_up_bf16_raw if item["kind"] == "gradient"),
+        key=lambda item: item["maximum_absolute_difference"])
+    assert worst_bf16["name"] == "blocks.6.feed_forward.up_proj.weight"
+    assert worst_bf16["maximum_absolute_difference"] > 0.2535
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

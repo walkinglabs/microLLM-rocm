@@ -578,6 +578,15 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(Benchmark.TrainingTrajectoryEvidenceContract PROPERTIES
         LABELS "cpu;benchmark;model;training;precision;trajectory;weights;schema")
     add_test(
+        NAME Benchmark.TrainingGateUpExportContract
+        COMMAND ${Python3_EXECUTABLE}
+                ${PROJECT_SOURCE_DIR}/python/tests/test_training_gate_up_export.py
+                --binary $<TARGET_FILE:microllm_hf_train_step>
+                --fixture-helper $<TARGET_FILE:microllm_hf_cli_fixture>
+    )
+    set_tests_properties(Benchmark.TrainingGateUpExportContract PROPERTIES
+        LABELS "cpu;benchmark;model;training;gradient;weights;safetensors;schema")
+    add_test(
         NAME Benchmark.Bf16WeightGradientWorkspaceMatrixContract
         COMMAND ${Python3_EXECUTABLE}
                 ${PROJECT_SOURCE_DIR}/python/tests/test_bf16_weight_gradient_workspace_matrix.py
