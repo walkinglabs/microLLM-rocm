@@ -1,9 +1,17 @@
 cmake_minimum_required(VERSION 3.25)
 project(microLLMPackageConsumer LANGUAGES C CXX)
 
+set(microllm_required_components inference model)
+set(microllm_optional_components capi multi_gpu hip hipblaslt rccl rocwmma)
+if(MICROLLM_REQUIRED_FEATURE)
+    list(APPEND microllm_required_components "${MICROLLM_REQUIRED_FEATURE}")
+    list(REMOVE_ITEM microllm_optional_components
+        "${MICROLLM_REQUIRED_FEATURE}")
+endif()
+
 find_package(microLLM 0.1 CONFIG REQUIRED
-    COMPONENTS inference model
-    OPTIONAL_COMPONENTS capi multi_gpu)
+    COMPONENTS ${microllm_required_components}
+    OPTIONAL_COMPONENTS ${microllm_optional_components})
 
 if(NOT DEFINED microLLM_VERSION OR microLLM_VERSION VERSION_LESS 0.1)
     message(FATAL_ERROR "package Config is missing valid version metadata")
@@ -18,6 +26,23 @@ if(NOT microLLM_CXX_STANDARD EQUAL 20)
 endif()
 if(NOT DEFINED microLLM_HIP_ARCHITECTURES)
     message(FATAL_ERROR "package Config is missing HIP architecture metadata")
+endif()
+set(microllm_unique_hip_architectures ${microLLM_HIP_ARCHITECTURES})
+list(LENGTH microllm_unique_hip_architectures microllm_hip_architecture_count)
+list(REMOVE_DUPLICATES microllm_unique_hip_architectures)
+list(LENGTH microllm_unique_hip_architectures
+    microllm_unique_hip_architecture_count)
+if(NOT microllm_hip_architecture_count EQUAL
+   microllm_unique_hip_architecture_count)
+    message(FATAL_ERROR "package Config contains duplicate HIP architectures")
+endif()
+if(NOT DEFINED microLLM_AVAILABLE_FEATURE_COMPONENTS)
+    message(FATAL_ERROR "package Config is missing feature-component metadata")
+endif()
+if(MICROLLM_REQUIRED_FEATURE AND
+   NOT microLLM_${MICROLLM_REQUIRED_FEATURE}_FOUND)
+    message(FATAL_ERROR
+        "package did not satisfy required ${MICROLLM_REQUIRED_FEATURE} feature")
 endif()
 if((microLLM_WITH_RCCL AND NOT microLLM_BACKEND STREQUAL "HIP_RCCL") OR
    (microLLM_WITH_HIP AND NOT microLLM_WITH_RCCL AND
@@ -94,6 +119,28 @@ foreach(optional_component capi multi_gpu)
            TARGET microLLM::${optional_component})
         message(FATAL_ERROR
             "package exposes unavailable ${optional_component} metadata or target")
+    endif()
+endforeach()
+
+foreach(feature hip hipblaslt rccl rocwmma)
+    string(TOUPPER "${feature}" feature_upper)
+    if(feature STREQUAL "hipblaslt")
+        set(feature_flag "microLLM_WITH_HIPBLASLT")
+    elseif(feature STREQUAL "rocwmma")
+        set(feature_flag "microLLM_WITH_ROCWMMA")
+    else()
+        set(feature_flag "microLLM_WITH_${feature_upper}")
+    endif()
+    if(${feature_flag})
+        if(NOT feature IN_LIST microLLM_AVAILABLE_FEATURE_COMPONENTS OR
+           NOT microLLM_${feature}_FOUND)
+            message(FATAL_ERROR
+                "package metadata omitted enabled ${feature} feature component")
+        endif()
+    elseif(feature IN_LIST microLLM_AVAILABLE_FEATURE_COMPONENTS OR
+           microLLM_${feature}_FOUND)
+        message(FATAL_ERROR
+            "package metadata advertises disabled ${feature} feature component")
     endif()
 endforeach()
 

@@ -177,6 +177,21 @@ target_link_libraries(my_app PRIVATE microLLM::core)
 `multi_gpu`。请求一个没有编进 SDK 的必需组件会在配置阶段明确失败，不会等到链接
 阶段才出现难懂的符号错误。
 
+如果程序不仅需要某个库，还明确要求 AMD 后端能力，可以把能力也写进请求：
+
+```cmake
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference hip)
+target_link_libraries(my_gpu_app PRIVATE microLLM::inference)
+
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS multi_gpu rccl)
+target_link_libraries(my_multi_gpu_app PRIVATE microLLM::multi_gpu)
+```
+
+`hip`、`hipblaslt`、`rccl` 和 `rocwmma` 是“能力组件”，用来检查这套 SDK
+编译时是否真的启用了相应能力；它们不是链接 target。比如 CPU SDK 遇到必需的 `hip`
+会在配置阶段失败，单卡 HIP SDK 遇到必需的 `rccl` 也会失败。这样可以在机器上装有
+多套 SDK 时尽早发现选错版本，而不是运行后才发现没有 GPU 或多卡实现。
+
 纯 C 程序这样使用稳定 C ABI：
 
 ```cmake

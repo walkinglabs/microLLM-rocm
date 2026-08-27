@@ -35,6 +35,8 @@ else()
     set(microLLM_BACKEND "CPU")
 endif()
 set(microLLM_AVAILABLE_COMPONENTS "@MICROLLM_PACKAGE_COMPONENTS@")
+set(microLLM_AVAILABLE_FEATURE_COMPONENTS
+    "@MICROLLM_PACKAGE_FEATURE_COMPONENTS@")
 set(microLLM_DEFAULT_TARGET "microLLM::microLLM")
 set(microLLM_TARGETS "${microLLM_DEFAULT_TARGET}")
 foreach(_microLLM_available_component IN LISTS microLLM_AVAILABLE_COMPONENTS)
@@ -44,12 +46,16 @@ foreach(_microLLM_component IN LISTS microLLM_FIND_COMPONENTS)
     if(_microLLM_component IN_LIST microLLM_AVAILABLE_COMPONENTS AND
        TARGET microLLM::${_microLLM_component})
         set(microLLM_${_microLLM_component}_FOUND TRUE)
+    elseif(_microLLM_component IN_LIST microLLM_AVAILABLE_FEATURE_COMPONENTS)
+        set(microLLM_${_microLLM_component}_FOUND TRUE)
     else()
         set(microLLM_${_microLLM_component}_FOUND FALSE)
         if(microLLM_FIND_REQUIRED_${_microLLM_component})
             string(CONCAT microLLM_NOT_FOUND_MESSAGE
                 "Requested component '${_microLLM_component}' is unavailable. "
-                "Available components: ${microLLM_AVAILABLE_COMPONENTS}")
+                "Available linkable components: ${microLLM_AVAILABLE_COMPONENTS}. "
+                "Available feature components: "
+                "${microLLM_AVAILABLE_FEATURE_COMPONENTS}")
         endif()
     endif()
 endforeach()

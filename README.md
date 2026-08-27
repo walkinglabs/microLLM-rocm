@@ -958,6 +958,19 @@ add_executable(my_c_app main.c)
 target_link_libraries(my_c_app PRIVATE microLLM::capi)
 ```
 
+When an application requires a particular AMD backend capability, make that requirement
+part of discovery instead of checking it later in handwritten CMake logic:
+
+```cmake
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference hip)
+target_link_libraries(my_gpu_app PRIVATE microLLM::inference)
+```
+
+The feature components are `hip`, `hipblaslt`, `rccl`, and `rocwmma`. They are capability
+checks, not link targets: for example, require `rccl` and link `microLLM::multi_gpu`.
+A CPU SDK rejects a required `hip` component during configuration; a HIP SDK without
+RCCL rejects `rccl`. This prevents accidentally accepting the wrong installed SDK.
+
 The C header is `<microllm/capi/microllm.h>`. The C++ component libraries are static;
 the C ABI is installed as a versioned shared library. CMake supplies its include path
 and runtime link information through the imported target. This path works in a genuinely
@@ -1021,7 +1034,11 @@ Installed targets are:
 `microLLM_WITH_HIP`,
 `microLLM_WITH_HIPBLASLT`, `microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, `microLLM_WITH_CAPI`,
 `microLLM_WITH_SANITIZERS`, `microLLM_WITH_COVERAGE`, and
-`microLLM_AVAILABLE_COMPONENTS`, `microLLM_DEFAULT_TARGET`, and `microLLM_TARGETS`.
+`microLLM_AVAILABLE_COMPONENTS`, `microLLM_AVAILABLE_FEATURE_COMPONENTS`,
+`microLLM_DEFAULT_TARGET`, and `microLLM_TARGETS`.
+`microLLM_AVAILABLE_COMPONENTS` contains components that have matching imported targets;
+`microLLM_AVAILABLE_FEATURE_COMPONENTS` contains backend capabilities that can be required
+from `find_package` but are not targets.
 The last variable is the complete list of imported targets exposed by this exact SDK.
 The Config package resolves the backend
 dependencies recorded by the installed build; a CPU installation does not require ROCm. Mixing libraries from one
@@ -1038,6 +1055,8 @@ language is C. They check that internal
 compile flags do not leak and that ordinary builds add no link flags; an instrumented
 build may carry only its required runtime link option. Both gates also prove that a
 missing component and an incompatible pre-1.0 minor version are rejected.
+The same consumers also verify that the optional `hip`, `hipblaslt`, `rccl`, and
+`rocwmma` feature components agree exactly with the SDK's recorded backend.
 `PackageConfig.PublicExample` separately installs the SDK and builds the short public
 example shown above through `microLLM_ROOT`, keeping the beginner path under continuous
 test.

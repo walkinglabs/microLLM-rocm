@@ -29,6 +29,7 @@ execute_process(
             -S "${MICROLLM_CONSUMER_SOURCE_DIR}"
             -B "${MICROLLM_CONSUMER_BINARY_DIR}"
             "-DCMAKE_PREFIX_PATH=${MICROLLM_RELOCATED_PREFIX}"
+            "-DMICROLLM_REQUIRED_FEATURE=${MICROLLM_PACKAGE_REQUIRED_FEATURE}"
     RESULT_VARIABLE configure_status
     OUTPUT_VARIABLE configure_output
     ERROR_VARIABLE configure_error)
@@ -165,11 +166,39 @@ if(NOT missing_component_output MATCHES "microLLM_FOUND.*FALSE" AND
         "missing-component failure did not come from package component validation:\n"
         "${missing_component_output}\n${missing_component_error}")
 endif()
-if(NOT missing_component_output MATCHES "Available components:" AND
-   NOT missing_component_error MATCHES "Available components:")
+if(NOT missing_component_output MATCHES "Available linkable components:" AND
+   NOT missing_component_error MATCHES "Available linkable components:")
     message(FATAL_ERROR
         "missing-component failure omitted available components:\n"
         "${missing_component_output}\n${missing_component_error}")
+endif()
+
+if(MICROLLM_PACKAGE_MISSING_FEATURE)
+    set(missing_feature_build
+        "${MICROLLM_CONSUMER_BINARY_DIR}-missing-feature")
+    file(REMOVE_RECURSE "${missing_feature_build}")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}"
+                -S "${MICROLLM_CONSUMER_SOURCE_DIR}/../missing_component"
+                -B "${missing_feature_build}"
+                "-DCMAKE_PREFIX_PATH=${MICROLLM_RELOCATED_PREFIX}"
+                "-DMICROLLM_REQUESTED_COMPONENT=${MICROLLM_PACKAGE_MISSING_FEATURE}"
+        RESULT_VARIABLE missing_feature_status
+        OUTPUT_VARIABLE missing_feature_output
+        ERROR_VARIABLE missing_feature_error)
+    if(missing_feature_status EQUAL 0)
+        message(FATAL_ERROR
+            "installed package accepted unavailable feature "
+            "${MICROLLM_PACKAGE_MISSING_FEATURE}")
+    endif()
+    if(NOT missing_feature_output MATCHES
+           "Requested component '${MICROLLM_PACKAGE_MISSING_FEATURE}' is unavailable" AND
+       NOT missing_feature_error MATCHES
+           "Requested component '${MICROLLM_PACKAGE_MISSING_FEATURE}' is unavailable")
+        message(FATAL_ERROR
+            "installed missing-feature failure bypassed package validation:\n"
+            "${missing_feature_output}\n${missing_feature_error}")
+    endif()
 endif()
 
 # A pre-1.0 package only promises compatibility inside its current minor line.

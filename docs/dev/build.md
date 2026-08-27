@@ -257,6 +257,22 @@ find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference)
 target_link_libraries(app PRIVATE microLLM::inference)
 ```
 
+Library components and backend feature components answer different questions. A library
+component chooses an imported target. A feature component rejects an SDK that lacks a
+required backend capability:
+
+```cmake
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS inference hip)
+target_link_libraries(gpu_app PRIVATE microLLM::inference)
+
+find_package(microLLM 0.1 CONFIG REQUIRED COMPONENTS multi_gpu rccl)
+target_link_libraries(distributed_app PRIVATE microLLM::multi_gpu)
+```
+
+Available feature-component names are `hip`, `hipblaslt`, `rccl`, and `rocwmma`. They
+do not create targets with those names. The corresponding libraries remain available
+through targets such as `microLLM::ops` and `microLLM::multi_gpu`.
+
 A minimal C consumer uses:
 
 ```cmake
@@ -308,7 +324,8 @@ dependencies are propagated normally.
 
 The Config file also exposes `microLLM_VERSION`, `microLLM_BACKEND` (`CPU`, `HIP`, or
 `HIP_RCCL`), `microLLM_CXX_STANDARD`,
-`microLLM_HIP_ARCHITECTURES`, `microLLM_AVAILABLE_COMPONENTS`, and the boolean feature
+`microLLM_HIP_ARCHITECTURES`, `microLLM_AVAILABLE_COMPONENTS`,
+`microLLM_AVAILABLE_FEATURE_COMPONENTS`, and the boolean feature
 metadata `microLLM_WITH_HIP`, `microLLM_WITH_HIPBLASLT`,
 `microLLM_WITH_ROCWMMA`, `microLLM_WITH_RCCL`, and `microLLM_WITH_CAPI`, plus
 `microLLM_WITH_SANITIZERS` and

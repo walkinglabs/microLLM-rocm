@@ -51,6 +51,16 @@ target_link_libraries(microllm_int8_weight_oracle PRIVATE microllm::ops)
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
 
+set(microllm_package_required_feature "")
+set(microllm_package_missing_feature hip)
+if(MICROLLM_HAS_RCCL)
+    set(microllm_package_required_feature rccl)
+    set(microllm_package_missing_feature "")
+elseif(MICROLLM_HAS_HIP)
+    set(microllm_package_required_feature hip)
+    set(microllm_package_missing_feature rccl)
+endif()
+
 add_test(
     NAME PackageConfig.InstalledConsumer
     COMMAND ${CMAKE_COMMAND}
@@ -59,6 +69,8 @@ add_test(
         -DMICROLLM_CONSUMER_BINARY_DIR=${PROJECT_BINARY_DIR}/package-consumer-build
         -DMICROLLM_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/package-consumer-prefix
         -DMICROLLM_PACKAGE_WITH_CAPI=${MICROLLM_BUILD_CAPI}
+        -DMICROLLM_PACKAGE_REQUIRED_FEATURE=${microllm_package_required_feature}
+        -DMICROLLM_PACKAGE_MISSING_FEATURE=${microllm_package_missing_feature}
         -P ${PROJECT_SOURCE_DIR}/cmake/RunInstalledConsumer.cmake
 )
 set(microllm_package_test_labels cpu package install integration)
@@ -80,6 +92,8 @@ add_test(
         -DMICROLLM_CONSUMER_SOURCE_DIR=${PROJECT_SOURCE_DIR}/tests/package/consumer
         -DMICROLLM_CONSUMER_BINARY_DIR=${PROJECT_BINARY_DIR}/package-build-tree-consumer
         -DMICROLLM_PACKAGE_WITH_CAPI=${MICROLLM_BUILD_CAPI}
+        -DMICROLLM_PACKAGE_REQUIRED_FEATURE=${microllm_package_required_feature}
+        -DMICROLLM_PACKAGE_MISSING_FEATURE=${microllm_package_missing_feature}
         -P ${PROJECT_SOURCE_DIR}/cmake/RunBuildTreeConsumer.cmake
 )
 set_tests_properties(PackageConfig.BuildTreeConsumer PROPERTIES
