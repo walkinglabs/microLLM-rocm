@@ -1,0 +1,102 @@
+{
+  "boundary": "five first-divergence states only; complete shape, batch invariance, resident and performance gates remain required",
+  "candidate": "micro-mixed-gate-down-bf16",
+  "candidate_description": "one FFN projection FP32; remaining FFN projections and all Attention BF16; BF16 Cache",
+  "case_count": 5,
+  "gates": {
+    "all_five_cases_present": true,
+    "candidate_matches_every_fp32_argmax": true,
+    "positive_top2_margin_everywhere": true
+  },
+  "model": "Qwen/Qwen3-0.6B",
+  "record_type": "qwen3_bf16_gate_fp32_oracle",
+  "rows": [
+    {
+      "batch": 1,
+      "candidate_argmax": 374,
+      "candidate_margin": 0.036930084228515625,
+      "candidate_matches_oracle": true,
+      "candidate_oracle_maximum_error": 0.15777349472045898,
+      "candidate_oracle_rms_error": 0.03549550198127604,
+      "candidate_within_batch_maximum_error": 0.0,
+      "capture_step": 1,
+      "context": 32,
+      "forced_inputs": [],
+      "name": "t32-b1-step1",
+      "oracle_argmax": 374,
+      "torch_bf16_argmax": 323
+    },
+    {
+      "batch": 2,
+      "candidate_argmax": 374,
+      "candidate_margin": 0.03780174255371094,
+      "candidate_matches_oracle": true,
+      "candidate_oracle_maximum_error": 0.1000833511352539,
+      "candidate_oracle_rms_error": 0.020141942841137867,
+      "candidate_within_batch_maximum_error": 0.0758294016122818,
+      "capture_step": 1,
+      "context": 32,
+      "forced_inputs": [],
+      "name": "t32-b2-step1",
+      "oracle_argmax": 374,
+      "torch_bf16_argmax": 323
+    },
+    {
+      "batch": 2,
+      "candidate_argmax": 320,
+      "candidate_margin": 0.15079402923583984,
+      "candidate_matches_oracle": true,
+      "candidate_oracle_maximum_error": 0.4238170385360718,
+      "candidate_oracle_rms_error": 0.10019918238132787,
+      "candidate_within_batch_maximum_error": 0.13085073232650757,
+      "capture_step": 8,
+      "context": 128,
+      "forced_inputs": [],
+      "name": "t128-b2-step8",
+      "oracle_argmax": 320,
+      "torch_bf16_argmax": 320
+    },
+    {
+      "batch": 1,
+      "candidate_argmax": 2955,
+      "candidate_margin": 0.032210350036621094,
+      "candidate_matches_oracle": true,
+      "candidate_oracle_maximum_error": 0.1701340675354004,
+      "candidate_oracle_rms_error": 0.03426930743947722,
+      "candidate_within_batch_maximum_error": 0.0,
+      "capture_step": 2,
+      "context": 512,
+      "forced_inputs": [],
+      "name": "t512-b1-step2",
+      "oracle_argmax": 2955,
+      "torch_bf16_argmax": 1096
+    },
+    {
+      "batch": 2,
+      "candidate_argmax": 1273,
+      "candidate_margin": 0.00128936767578125,
+      "candidate_matches_oracle": true,
+      "candidate_oracle_maximum_error": 0.11766815185546875,
+      "candidate_oracle_rms_error": 0.021350197322771738,
+      "candidate_within_batch_maximum_error": 0.08086025714874268,
+      "capture_step": 8,
+      "context": 512,
+      "forced_inputs": [
+        14582,
+        198,
+        262,
+        1096,
+        374,
+        279,
+        2038,
+        374,
+        264
+      ],
+      "name": "t512-b2-step8-forced",
+      "oracle_argmax": 1273,
+      "torch_bf16_argmax": 4285
+    }
+  ],
+  "schema_version": 1,
+  "status": "pass_oracle_preflight"
+}

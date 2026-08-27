@@ -44,8 +44,8 @@ payload 各保存了一份。Qwen3 strict loader 会先逐字节验证两份来�
 12/12保留320。选择性policy仍需完整shape和性能门。
 随后完整矩阵拒绝了layers0–4 FP32候选：T128前缀虽8→22，仍再次分叉；T512/B2相同row稳定
 3/3生成不同token。当前不再继续手工拼早期FP32层。
-全模型gate-FP32简单规则也只过4/5 oracle，并在T512/B1选择1096而非FP32的2955。当前简单
-后训练BF16 policy搜索关闭，重开需要校准集、QAT或训练信号。
+全模型gate-FP32规则只过4/5；对称up/down-FP32都过5/5。两者内存相同，down-FP32最小margin
+更大，因此只选择它进入完整shape门，尚未成为默认。
 
 ### 一条命令准备固定 fixture
 

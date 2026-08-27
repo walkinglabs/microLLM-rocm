@@ -20,6 +20,8 @@ CANDIDATE_ROOT = (ROOT / "benchmarks/results" /
                   "2026-08-26-qwen3-ffn0-4-fp32-reject")
 GATE_FP32_ROOT = (ROOT / "benchmarks/results" /
                   "2026-08-26-qwen3-bf16-gate-fp32-reject")
+CALIBRATION_ROOT = (ROOT / "benchmarks/results" /
+                    "2026-08-26-qwen3-bf16-projection-calibration")
 RUNNER_SPEC = importlib.util.spec_from_file_location(
     "audit_qwen3_bf16_divergence",
     ROOT / "benchmarks/single_gpu/audit_qwen3_bf16_divergence.py")
@@ -218,6 +220,34 @@ def main():
     assert rows["t512-b1-step2"]["candidate_margin"] < 0.0033
     assert len(gate_fp32_raw) == 20
     assert all(item["status"] == "pass" for item in gate_fp32_raw)
+    calibration = json.loads((CALIBRATION_ROOT / "summary.json").read_text())
+    calibration_raw = [json.loads(line) for line in
+                       (CALIBRATION_ROOT / "raw.jsonl").read_text().splitlines()
+                       if line]
+    assert calibration["status"] == "down_fp32_selected_for_shape_gate"
+    assert calibration["selected_runner_policy"] == "micro-mixed-gate-up-bf16"
+    assert calibration["resident_weight_delta_bytes"] == 176_160_768
+    assert calibration["candidate_ffn_bf16_tensors"] == 56
+    assert calibration["candidate_attention_bf16_tensors"] == 112
+    policies = {item["name"]: item for item in calibration["policies"]}
+    assert policies["gate-fp32"]["oracle_cases_passed"] == 4
+    assert policies["up-fp32"]["oracle_cases_passed"] == 5
+    assert policies["down-fp32"]["oracle_cases_passed"] == 5
+    assert policies["down-fp32"]["minimum_top1_top2_margin"] > \
+        policies["up-fp32"]["minimum_top1_top2_margin"]
+    assert calibration["full_shape_gate_complete"] is False
+    assert calibration["performance_gate_complete"] is False
+    assert len(calibration_raw) == 40
+    for label, policy, scope in (
+            ("up-fp32", "micro-mixed-gate-down-bf16", "gate-down"),
+            ("down-fp32", "micro-mixed-gate-up-bf16", "gate-up")):
+        samples = [item for item in calibration_raw
+                   if item["calibration_policy"] == label and
+                   item["framework_policy"] == policy]
+        assert len(samples) == 5
+        assert all(item["bf16_ffn_weight_scope"] == scope and
+                   item["resident_weight_bytes"] == 1_679_556_608
+                   for item in samples)
     print("qwen3 bf16 evidence: pass")
 
 if __name__ == "__main__":

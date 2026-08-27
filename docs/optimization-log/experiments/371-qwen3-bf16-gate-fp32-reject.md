@@ -10,6 +10,5 @@ Status: `4/5 oracle cases; calibration rule rejected`
 T32/B1、T32/B2、T128/B2和强制T512/B2匹配FP32；T512/B1失败。该格FP32选2955，候选与
 Transformers BF16都选1096，候选错误margin 0.003286。4/5不满足全部case门。
 
-候选在32-row和性能前拒绝。结合Experiment 370，当前“手工早期层”与“全局保留一个投影”两类
-简单后训练BF16校准都已有反例。重新开启需要校准集搜索、QAT或训练信号，而不是再排列固定
-FP32层/投影。
+候选在32-row和性能前拒绝。这个结果只关闭gate-FP32规则；对称up/down-FP32必须使用同一
+五case门另测，不能从一个投影失败推广到另外两个。

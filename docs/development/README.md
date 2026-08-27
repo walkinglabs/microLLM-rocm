@@ -742,4 +742,6 @@ the next gate. Records are append-only except for factual corrections.
 - [2026-08-26-qwen3-ffn0-4-fp32-reject.md](2026-08-26-qwen3-ffn0-4-fp32-reject.md):
   rejects an early-layer FP32 candidate on trajectory and batch invariants before timing.
 - [2026-08-26-qwen3-bf16-gate-fp32-reject.md](2026-08-26-qwen3-bf16-gate-fp32-reject.md):
-  closes the simple global projection calibration rule on a T512 oracle counterexample.
+  rejects the gate-FP32 rule on a T512 oracle counterexample.
+- [2026-08-26-qwen3-bf16-projection-calibration.md](2026-08-26-qwen3-bf16-projection-calibration.md):
+  measures all symmetric rules and selects down-FP32 for the complete shape gate.

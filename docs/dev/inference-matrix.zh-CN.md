@@ -264,3 +264,5 @@ layers0–4 FP32候选的完整shape拒绝见
 [Experiment 370](../optimization-log/experiments/370-qwen3-ffn0-4-fp32-reject.md)。
 全模型gate-FP32五case预筛拒绝见
 [Experiment 371](../optimization-log/experiments/371-qwen3-bf16-gate-fp32-reject.md)。
+三个对称规则与down-FP32候选选择见
+[Experiment 372](../optimization-log/experiments/372-qwen3-bf16-projection-calibration.md)。

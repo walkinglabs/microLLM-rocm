@@ -37,6 +37,8 @@ MICRO_POLICIES = {
     "micro-ffn-gate-down-bf16-fp32": (True, False, "fp32", "gate-down"),
     "micro-ffn-up-down-bf16-fp32": (True, False, "fp32", "up-down"),
     "micro-mixed-up-down-bf16": (True, True, "bf16", "up-down"),
+    "micro-mixed-gate-down-bf16": (True, True, "bf16", "gate-down"),
+    "micro-mixed-gate-up-bf16": (True, True, "bf16", "gate-up"),
 }
 TORCH_POLICIES = ("torch-fp32", "torch-bf16")
 DEFAULT_MICRO_POLICIES = (

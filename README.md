@@ -326,7 +326,8 @@ If “Config package” is unfamiliar, read the beginner-facing
 > The first deployable candidate (FFN layers0–4 FP32) is rejected before timing: T128
 > diverges again at token23 and T512/B2 identical rows fail in 3/3 fresh processes.
 > A simpler global gate-FP32 rule also fails: it matches only 4/5 FP32-oracle cases and
-> selects 1096 instead of 2955 at T512/B1. Hand-designed PTQ BF16 policy search is closed.
+> selects 1096 instead of 2955 at T512/B1. Symmetric up/down-FP32 rules both pass 5/5;
+> down-FP32 is selected for the next gate by its stronger 0.009707 minimum margin.
 
 </details>
 
@@ -1337,8 +1338,11 @@ projection-scoped preparation. In both minimal sets, every single/two-projection
 complete gate for early layers0–4 FP32. It improves the T128 prefix but later diverges and makes
 T512/B2 identical rows fail 3/3, so the candidate is removed before performance measurement.
 [Experiment 371](docs/optimization-log/experiments/371-qwen3-bf16-gate-fp32-reject.md) tests the
-simple global gate-FP32 rule. It passes 4/5 common-oracle cases but fails T512/B1, closing the
-current hand-designed post-training BF16 policy line before shape or performance claims.
+simple global gate-FP32 rule. It passes 4/5 common-oracle cases but fails T512/B1, rejecting that
+rule before shape or performance claims.
+[Experiment 372](docs/optimization-log/experiments/372-qwen3-bf16-projection-calibration.md) tests
+the symmetric alternatives. up/down-FP32 both pass5/5 at equal memory cost; down-FP32 advances
+only as a candidate because its minimum top-2 margin is larger.
 [Experiment 122](docs/optimization-log/experiments/122-official-fp8-static-scale.md) runs official
 Qwen/DeepSeek with single-representation FP8 Linear weights. Residency drops sharply, but every
 static-scale precision gate fails, so FP8 remains experimental and opt-in.

@@ -5451,7 +5451,13 @@ Attention-only仍选320，margin 0.07367。batch内Max分别0.1443/0.0325。
 全模型gate FP32、up/down与Attention BF16。五个共同oracle中，T32两格、T128和强制T512/B2
 通过；T512/B1中FP32选2955，候选和full-BF16都选1096，候选margin仅0.003286。
 
-4/5不能进入完整shape或性能。结合早期层候选失败，当前手工/简单PTQ BF16 policy搜索关闭；重开
-需要校准数据、QAT或训练信号。
+4/5不能进入完整shape或性能。该规则关闭；对称up/down-FP32仍须用同一门实测。
 
 ![Qwen3 gate-FP32 rejection](assets/qwen3-bf16-gate-fp32-reject.svg)
+
+## 388. Experiment 372：对称规则不能靠一个失败代替测量
+
+up-FP32与down-FP32都通过5/5，gate-FP32只有4/5。up/down常驻相同，均增加176,160,768字节；
+最小margin分别0.001289/0.009707。因此选择down-FP32进入完整shape门，但仍不是keep/default。
+
+![Qwen3 projection calibration](assets/qwen3-bf16-projection-calibration.svg)

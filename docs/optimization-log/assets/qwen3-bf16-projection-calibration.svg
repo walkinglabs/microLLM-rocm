@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="720" viewBox="0 0 1500 720">
+  <rect width="1500" height="720" fill="#f7f8fc"/>
+  <text x="60" y="66" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#172033">Qwen3 symmetric BF16 projection calibration</text>
+  <text x="60" y="103" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">Same five FP32-oracle cases · same resident-cost basis</text>
+
+  <rect x="55" y="145" width="430" height="385" rx="20" fill="#ffffff" stroke="#ef4444" stroke-width="3"/>
+  <text x="270" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#b42335">gate FP32</text>
+  <text x="270" y="285" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="55" font-weight="700" fill="#b42335">4 / 5</text>
+  <text x="270" y="335" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#5b6474">fails T512/B1</text>
+  <text x="270" y="415" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700" fill="#b42335">reject</text>
+  <text x="270" y="470" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">up + down BF16</text>
+
+  <rect x="535" y="145" width="430" height="385" rx="20" fill="#ffffff" stroke="#f59e0b" stroke-width="3"/>
+  <text x="750" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#b45309">up FP32</text>
+  <text x="750" y="285" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="55" font-weight="700" fill="#166534">5 / 5</text>
+  <text x="750" y="350" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" fill="#b45309">minimum margin</text>
+  <text x="750" y="395" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#b45309">0.001289</text>
+  <text x="750" y="470" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">gate + down BF16</text>
+
+  <rect x="1015" y="145" width="430" height="385" rx="20" fill="#ffffff" stroke="#16a34a" stroke-width="4"/>
+  <text x="1230" y="195" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700" fill="#166534">down FP32</text>
+  <text x="1230" y="285" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="55" font-weight="700" fill="#166534">5 / 5</text>
+  <text x="1230" y="350" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" fill="#166534">minimum margin</text>
+  <text x="1230" y="395" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="700" fill="#166534">0.009707</text>
+  <text x="1230" y="445" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#166534">selected for shape gate</text>
+  <text x="1230" y="480" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="16" fill="#5b6474">gate + up BF16</text>
+
+  <rect x="55" y="575" width="1390" height="90" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="90" y="625" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">Equal cost:</text>
+  <text x="225" y="625" font-family="Inter,Arial,sans-serif" font-size="19" fill="#172033">up/down candidates each +176,160,768 resident bytes · 56 FFN BF16 tensors</text>
+</svg>

@@ -16,7 +16,11 @@ SWEEP_SPEC = importlib.util.spec_from_file_location("qwen3_oracle_sweep", SWEEP_
 SWEEP = importlib.util.module_from_spec(SWEEP_SPEC)
 assert SWEEP_SPEC.loader is not None
 SWEEP_SPEC.loader.exec_module(SWEEP)
-CANDIDATE = "micro-mixed-up-down-bf16"
+CALIBRATED_POLICIES = (
+    "micro-mixed-up-down-bf16",
+    "micro-mixed-gate-down-bf16",
+    "micro-mixed-gate-up-bf16",
+)
 
 
 def options() -> argparse.Namespace:
@@ -26,6 +30,8 @@ def options() -> argparse.Namespace:
     parser.add_argument("--pytorch-python", type=Path, required=True)
     parser.add_argument("--output-directory", type=Path, required=True)
     parser.add_argument("--allow-amdsmi-fallback", action="store_true")
+    parser.add_argument("--candidate-policy", choices=CALIBRATED_POLICIES,
+                        default=CALIBRATED_POLICIES[0])
     parser.add_argument("--timeout-seconds", type=int, default=900)
     args = parser.parse_args()
     for path in (args.manifest, args.binary, args.pytorch_python, AUDIT, SWEEP_PATH):
@@ -38,7 +44,7 @@ def options() -> argparse.Namespace:
     return args
 
 
-def aggregate(summaries: list[tuple[dict, dict]]) -> dict:
+def aggregate(summaries: list[tuple[dict, dict]], candidate_policy: str) -> dict:
     rows = []
     for case, summary in summaries:
         policies = {row["policy"]: row for row in summary["policy_rows"]}
@@ -46,11 +52,11 @@ def aggregate(summaries: list[tuple[dict, dict]]) -> dict:
         if (not required_gates.get("shared_inputs_before_capture") or
                 not required_gates.get("fp32_implementations_aligned") or
                 not required_gates.get("fp32_oracle_argmax_agrees_with_micro_fp32") or
-                summary.get("micro_current_policy") != CANDIDATE or
-                CANDIDATE not in policies):
+                summary.get("micro_current_policy") != candidate_policy or
+                candidate_policy not in policies):
             raise RuntimeError(f"candidate oracle case failed: {case['name']}")
         oracle = policies["torch-fp32"]
-        candidate = policies[CANDIDATE]
+        candidate = policies[candidate_policy]
         torch = policies["torch-bf16"]
         rows.append({
             "name": case["name"], "context": case["context"],
@@ -79,8 +85,10 @@ def aggregate(summaries: list[tuple[dict, dict]]) -> dict:
     return {
         "schema_version": 1, "record_type": "qwen3_bf16_gate_fp32_oracle",
         "status": "pass_oracle_preflight" if all(gates.values()) else "reject_oracle",
-        "model": "Qwen/Qwen3-0.6B", "candidate": CANDIDATE,
-        "candidate_description": "FFN gate FP32; FFN up/down and all Attention BF16; BF16 Cache",
+        "model": "Qwen/Qwen3-0.6B", "candidate": candidate_policy,
+        "candidate_description": (
+            "one FFN projection FP32; remaining FFN projections and all Attention BF16; "
+            "BF16 Cache"),
         "case_count": len(rows), "gates": gates, "rows": rows,
         "boundary": (
             "five first-divergence states only; complete shape, batch invariance, "
@@ -103,8 +111,8 @@ def main() -> int:
             "--batch", str(case["batch"]),
             "--decode-tokens", str(case["decode_tokens"]),
             "--capture-step", str(case["capture_step"]),
-            "--micro-policies", "micro-fp32-fp32," + CANDIDATE,
-            "--micro-current-policy", CANDIDATE,
+            "--micro-policies", "micro-fp32-fp32," + args.candidate_policy,
+            "--micro-current-policy", args.candidate_policy,
             "--timeout-seconds", str(args.timeout_seconds),
         ]
         if case["forced_inputs"]:
@@ -130,7 +138,7 @@ def main() -> int:
             "case": case["name"], "status": summary["status"],
             "matching": summary["oracle_matching_low_precision_policies"],
         }, sort_keys=True), flush=True)
-    summary = aggregate(summaries)
+    summary = aggregate(summaries, args.candidate_policy)
     (args.output_directory / "raw.jsonl").write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in combined_raw),
         encoding="utf-8")

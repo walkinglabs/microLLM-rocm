@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "down_fp32_selected_for_shape_gate",
+  "model": "Qwen/Qwen3-0.6B",
+  "selection_rule": "pass all five FP32 argmax cases, then maximize the minimum top1-top2 margin",
+  "current_resident_weight_bytes": 1503395840,
+  "candidate_resident_weight_bytes": 1679556608,
+  "resident_weight_delta_bytes": 176160768,
+  "candidate_ffn_bf16_tensors": 56,
+  "candidate_attention_bf16_tensors": 112,
+  "policies": [
+    {
+      "name": "gate-fp32",
+      "runner_policy": "micro-mixed-up-down-bf16",
+      "oracle_cases_passed": 4,
+      "oracle_case_count": 5,
+      "status": "reject_oracle"
+    },
+    {
+      "name": "up-fp32",
+      "runner_policy": "micro-mixed-gate-down-bf16",
+      "oracle_cases_passed": 5,
+      "oracle_case_count": 5,
+      "minimum_top1_top2_margin": 0.00128936767578125,
+      "status": "pass_oracle_preflight"
+    },
+    {
+      "name": "down-fp32",
+      "runner_policy": "micro-mixed-gate-up-bf16",
+      "oracle_cases_passed": 5,
+      "oracle_case_count": 5,
+      "minimum_top1_top2_margin": 0.009707450866699219,
+      "status": "pass_oracle_preflight"
+    }
+  ],
+  "selected_policy": "down-fp32",
+  "selected_runner_policy": "micro-mixed-gate-up-bf16",
+  "full_shape_gate_complete": false,
+  "performance_gate_complete": false,
+  "boundary": "selection for the next gate, not an admitted/default policy"
+}

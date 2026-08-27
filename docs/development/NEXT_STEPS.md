@@ -60,10 +60,11 @@ First target: one pinned small dense checkpoint, not every Qwen release.
   FFN/Attention BF16: T128 prefix improves 8→22, but T512/B2 identical rows fail 3/3;
   reject before speed despite the exact +94,371,840-byte resident cost;
 - [x] test one simple global calibration rule (gate FP32, up/down BF16): it passes 4/5
-  first-divergence oracles but fails T512/B1, so the current hand-designed PTQ BF16 policy
-  line is closed before shape/performance work;
-- [ ] restart Qwen3 precision-policy work only with calibration/QAT or a policy justified by
-  the complete mismatch matrix; do not continue ad-hoc early-layer FP32 combinations;
+  first-divergence oracles but fails T512/B1, so that rule is rejected;
+- [x] test the symmetric up-FP32 and down-FP32 rules: both pass5/5 at equal resident
+  cost; select down-FP32 for its stronger minimum margin 0.009707 vs0.001289;
+- [ ] run down-FP32 through complete shape/batch invariants and repeated performance;
+  it remains a candidate, not a default, until both gates pass;
 - [x] preallocate request-bounded device-native KV cache with stable Storage evidence;
 - [x] route graph-free T>=256 prefill Attention through strided-batched hipBLASLt;
 - [x] keep inference Attention in BTHD layout and remove all four per-block layout copies;
