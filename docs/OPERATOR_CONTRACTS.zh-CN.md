@@ -59,13 +59,15 @@ FP32 `[1,N]`。真实K/N完整输出、零payload传输和少一次逻辑分配�
 反量化和`FusedDecode`按列读取。CPU/HIP完整值与零传输门保留，但官方Qwen精度失败，所以该
 原语不能成为默认模型策略。
 
-## MoE 路由（CPU reference 已实现，M1；HIP 待 M2）
+## MoE 路由（CPU/HIP readable 已实现，M1/M2；ROCm 硬件门尚未跑）
 
-这三个算子的 CPU reference 已经实现，见
-[M1 CPU reference](development/2026-09-04-m1-qwen3-moe-cpu-reference.md)；契约设计过程见
-[M0 operator contracts](development/2026-09-04-m0-qwen3-moe-op-contracts.md)。HIP kernel
-仍不存在，`moe_router_top_k`/`moe_expert_ffn`/`moe_combine` 在 HIP device 上会显式抛出
-"has no HIP kernel yet"，这是 M2 的范围。
+CPU reference 见 [M1 CPU reference](development/2026-09-04-m1-qwen3-moe-cpu-reference.md)；
+readable HIP kernel 见 [M2 HIP readable kernels](development/2026-09-04-m2-qwen3-moe-hip-kernels.md)；
+契约设计过程见 [M0 operator contracts](development/2026-09-04-m0-qwen3-moe-op-contracts.md)。
+M2 的 `.hip` kernel 代码在没有 ROCm 工具链的机器上写成，**从未编译或在真实 AMD GPU 上跑过**——
+C++ dispatch 层（`ops.cpp` 里的 `device().is_hip()` 分支）已经在 `MICROLLM_ENABLE_HIP=OFF`
+下编译验证过，但 kernel 本身的三方 CPU/HIP/PyTorch oracle 门（`tests/ops/hip_ops_test.cpp`）
+要等有 AMD GPU 时才能真正跑，见 M2 记录里的说明。
 
 第一版故意选择"计算全部专家、掩码非选中"的朴素路径（O(num_experts) 而不是
 O(k) 的 gather/dispatch），把稀疏 dispatch 留给之后的性能里程碑，此处只对

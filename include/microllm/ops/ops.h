@@ -716,8 +716,8 @@ void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
 void swiglu_out_with_implementation_(
     Tensor& output, const Tensor& gate, const Tensor& up,
     SwiGLUImplementation implementation, const OpContext& context = {});
-// MoE routing (M1 CPU reference only; no HIP kernel until M2). Contract lives in
-// docs/OPERATOR_CONTRACTS.zh-CN.md, "MoE 路由（设计中，M0，尚未实现）".
+// MoE routing. Readable HIP kernels mirror the CPU reference exactly. Contract
+// lives in docs/OPERATOR_CONTRACTS.zh-CN.md, "MoE 路由".
 // Router logits [tokens, num_experts] -> softmax over the full row, then top-k.
 // indices is Int32 [tokens, k]; weights is FP32 [tokens, k]. When norm_topk_prob
 // is true, weights are renormalized to sum to one over just the k selected experts.

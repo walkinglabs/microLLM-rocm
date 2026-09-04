@@ -1055,6 +1055,147 @@ __global__ void swiglu_kernel(const float* gate, const float* up, float* output,
     if (index < elements) output[index] = gate[index] * sigmoid_device(gate[index]) * up[index];
 }
 
+// One thread per token. Selects k experts by repeatedly finding the largest
+// softmax probability strictly after the previous pick, tie-broken by ascending
+// expert index; this reproduces torch.topk's stable CPU tie order without ever
+// materializing a per-token scratch array sized by num_experts.
+__global__ void moe_router_top_k_kernel(
+    const float* logits, std::int32_t* indices, float* weights,
+    std::int64_t tokens, std::int64_t num_experts, std::int64_t k, bool norm_topk_prob) {
+    const auto token = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (token >= tokens) return;
+    const auto base = token * num_experts;
+
+    float maximum = -INFINITY;
+    for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+        maximum = fmaxf(maximum, logits[base + expert]);
+    }
+    float denominator = 0.0F;
+    for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+        denominator += expf(logits[base + expert] - maximum);
+    }
+
+    float previous_value = INFINITY;
+    std::int64_t previous_index = -1;
+    float selected_sum = 0.0F;
+    const auto out_base = token * k;
+    for (std::int64_t slot = 0; slot < k; ++slot) {
+        float best_value = -INFINITY;
+        std::int64_t best_index = -1;
+        for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+            const auto value = expf(logits[base + expert] - maximum) / denominator;
+            const auto after_previous =
+                value < previous_value ||
+                (value == previous_value && expert > previous_index);
+            if (!after_previous) continue;
+            const auto better = best_index < 0 || value > best_value ||
+                                (value == best_value && expert < best_index);
+            if (better) {
+                best_value = value;
+                best_index = expert;
+            }
+        }
+        indices[out_base + slot] = static_cast<std::int32_t>(best_index);
+        weights[out_base + slot] = best_value;
+        selected_sum += best_value;
+        previous_value = best_value;
+        previous_index = best_index;
+    }
+    if (norm_topk_prob) {
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            weights[out_base + slot] /= selected_sum;
+        }
+    }
+}
+
+// One thread per (token, expert, hidden) triple; every expert is evaluated for
+// every token regardless of routing, matching the CPU reference's deliberate
+// O(num_experts) cost. gate_weight/up_weight are [num_experts, dim, ffn_dim].
+__global__ void moe_expert_hidden_kernel(
+    const float* input, const float* gate_weight, const float* up_weight, float* hidden,
+    std::int64_t tokens, std::int64_t num_experts, std::int64_t dim, std::int64_t ffn_dim) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto total = tokens * num_experts * ffn_dim;
+    if (index >= total) return;
+    const auto hidden_index = index % ffn_dim;
+    const auto token_expert = index / ffn_dim;
+    const auto expert = token_expert % num_experts;
+    const auto token = token_expert / num_experts;
+
+    const auto input_base = token * dim;
+    const auto weight_base = expert * dim * ffn_dim;
+    float gate_sum = 0.0F;
+    float up_sum = 0.0F;
+    for (std::int64_t d = 0; d < dim; ++d) {
+        const auto x = input[input_base + d];
+        const auto weight_index = weight_base + d * ffn_dim + hidden_index;
+        gate_sum += x * gate_weight[weight_index];
+        up_sum += x * up_weight[weight_index];
+    }
+    hidden[index] = gate_sum * sigmoid_device(gate_sum) * up_sum;
+}
+
+// One thread per (token, expert, d) output element. down_weight is
+// [num_experts, ffn_dim, dim]. The down projection is computed for every expert
+// unconditionally, then zeroed for experts absent from expert_indices[token] —
+// masking, not skipping, so the compute cost stays O(num_experts) as contracted.
+__global__ void moe_expert_down_kernel(
+    const float* hidden, const std::int32_t* expert_indices, const float* down_weight,
+    float* output, std::int64_t tokens, std::int64_t num_experts, std::int64_t k,
+    std::int64_t ffn_dim, std::int64_t dim) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto total = tokens * num_experts * dim;
+    if (index >= total) return;
+    const auto d = index % dim;
+    const auto token_expert = index / dim;
+    const auto expert = token_expert % num_experts;
+    const auto token = token_expert / num_experts;
+
+    float mask = 0.0F;
+    const auto indices_base = token * k;
+    for (std::int64_t slot = 0; slot < k; ++slot) {
+        if (expert_indices[indices_base + slot] == expert) {
+            mask = 1.0F;
+            break;
+        }
+    }
+
+    const auto hidden_base = (token * num_experts + expert) * ffn_dim;
+    const auto weight_base = expert * ffn_dim * dim;
+    float sum = 0.0F;
+    for (std::int64_t h = 0; h < ffn_dim; ++h) {
+        sum += hidden[hidden_base + h] * down_weight[weight_base + h * dim + d];
+    }
+    output[index] = sum * mask;
+}
+
+// One thread per (token, d) output element. Reads only the k selected experts;
+// an out-of-range expert index (a caller bug, since moe_router_top_k never
+// produces one) yields NaN rather than an out-of-bounds device read.
+__global__ void moe_combine_kernel(
+    const float* expert_output, const std::int32_t* expert_indices,
+    const float* expert_weights, float* output, std::int64_t tokens,
+    std::int64_t num_experts, std::int64_t k, std::int64_t dim) {
+    const auto index = static_cast<std::int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const auto total = tokens * dim;
+    if (index >= total) return;
+    const auto d = index % dim;
+    const auto token = index / dim;
+    const auto indices_base = token * k;
+
+    float sum = 0.0F;
+    for (std::int64_t slot = 0; slot < k; ++slot) {
+        const auto expert = expert_indices[indices_base + slot];
+        if (expert < 0 || expert >= num_experts) {
+            output[index] = nanf("");
+            return;
+        }
+        sum += expert_weights[indices_base + slot] *
+               expert_output[(token * num_experts + expert) * dim + d];
+    }
+    output[index] = sum;
+}
+
 __global__ void rope_kernel(const float* input, float* output, std::int64_t pairs,
                             std::int64_t head_width, std::int64_t sequence_size,
                             std::int64_t sequence_stride, std::int64_t position_offset,
@@ -3617,6 +3758,50 @@ void launch_swiglu_typed(const void* gate, const void* up, void* output, DType d
     }
 #undef MICROLLM_SWIGLU_CASE
     check_launch("swiglu_typed_kernel");
+}
+
+void launch_moe_router_top_k(const float* logits, std::int32_t* indices, float* weights,
+                             std::int64_t tokens, std::int64_t num_experts,
+                             std::int64_t k, bool norm_topk_prob, void* stream) {
+    if (tokens == 0) return;
+    hipLaunchKernelGGL(moe_router_top_k_kernel, dim3(grid_size(tokens)), dim3(kBlockSize), 0,
+                       as_stream(stream), logits, indices, weights, tokens, num_experts, k,
+                       norm_topk_prob);
+    check_launch("moe_router_top_k_kernel");
+}
+
+void launch_moe_expert_ffn(const float* input, const std::int32_t* expert_indices,
+                           const float* gate_weight, const float* up_weight,
+                           const float* down_weight, float* hidden_workspace,
+                           float* output, std::int64_t tokens, std::int64_t num_experts,
+                           std::int64_t k, std::int64_t dim, std::int64_t ffn_dim,
+                           void* stream) {
+    const auto hidden_elements = tokens * num_experts * ffn_dim;
+    if (hidden_elements > 0) {
+        hipLaunchKernelGGL(moe_expert_hidden_kernel, dim3(grid_size(hidden_elements)),
+                           dim3(kBlockSize), 0, as_stream(stream), input, gate_weight,
+                           up_weight, hidden_workspace, tokens, num_experts, dim, ffn_dim);
+        check_launch("moe_expert_hidden_kernel");
+    }
+    const auto output_elements = tokens * num_experts * dim;
+    if (output_elements == 0) return;
+    hipLaunchKernelGGL(moe_expert_down_kernel, dim3(grid_size(output_elements)),
+                       dim3(kBlockSize), 0, as_stream(stream), hidden_workspace,
+                       expert_indices, down_weight, output, tokens, num_experts, k,
+                       ffn_dim, dim);
+    check_launch("moe_expert_down_kernel");
+}
+
+void launch_moe_combine(const float* expert_output, const std::int32_t* expert_indices,
+                        const float* expert_weights, float* output,
+                        std::int64_t tokens, std::int64_t num_experts,
+                        std::int64_t k, std::int64_t dim, void* stream) {
+    const auto elements = tokens * dim;
+    if (elements == 0) return;
+    hipLaunchKernelGGL(moe_combine_kernel, dim3(grid_size(elements)), dim3(kBlockSize), 0,
+                       as_stream(stream), expert_output, expert_indices, expert_weights,
+                       output, tokens, num_experts, k, dim);
+    check_launch("moe_combine_kernel");
 }
 
 template <typename Input>

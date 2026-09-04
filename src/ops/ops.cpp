@@ -2376,8 +2376,8 @@ void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
         output, gate, up, SwiGLUImplementation::Auto, context);
 }
 
-// MoE routing (M1 CPU reference). Contract: docs/OPERATOR_CONTRACTS.zh-CN.md,
-// "MoE 路由（设计中，M0，尚未实现）". No HIP kernel exists yet; that is M2.
+// MoE routing. Contract: docs/OPERATOR_CONTRACTS.zh-CN.md, "MoE 路由". HIP kernels
+// (M2) mirror this CPU reference exactly, including top-k tie-break order.
 TensorPair moe_router_top_k(const Tensor& logits, std::int64_t k, bool norm_topk_prob,
                             [[maybe_unused]] const OpContext& context) {
     require_forward_float(logits, "logits");
@@ -2394,8 +2394,17 @@ TensorPair moe_router_top_k(const Tensor& logits, std::int64_t k, bool norm_topk
     }
     if (logits.device().is_hip()) {
         require_contiguous(logits, "logits");
-        throw std::runtime_error(
-            "moe_router_top_k has no HIP kernel yet; CPU reference only until M2");
+        Tensor indices(Shape{tokens, k}, DType::Int32, logits.device());
+        Tensor weights(Shape{tokens, k}, DType::Float32, logits.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_moe_router_top_k(
+            static_cast<const float*>(logits.data()), static_cast<std::int32_t*>(indices.data()),
+            static_cast<float*>(weights.data()), tokens, num_experts, k, norm_topk_prob,
+            context.native_stream(logits.device()));
+        return {std::move(indices), std::move(weights)};
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
     }
     const auto values = logits.to_vector();
     std::vector<std::int32_t> indices(static_cast<std::size_t>(tokens * k));
@@ -2476,8 +2485,27 @@ Tensor moe_expert_ffn(const Tensor& input, const Tensor& expert_indices,
             "moe_expert_ffn down weight must be [num_experts, ffn_dim, dim]");
     }
     if (input.device().is_hip()) {
-        throw std::runtime_error(
-            "moe_expert_ffn has no HIP kernel yet; CPU reference only until M2");
+        require_contiguous(input, "input");
+        require_contiguous(expert_indices, "expert_indices");
+        require_contiguous(gate_weight, "gate_weight");
+        require_contiguous(up_weight, "up_weight");
+        require_contiguous(down_weight, "down_weight");
+        Tensor output(Shape{tokens, num_experts, dim}, DType::Float32, input.device());
+#if MICROLLM_HAS_HIP
+        Tensor hidden_workspace(Shape{tokens, num_experts, ffn_dim}, DType::Float32,
+                                input.device());
+        hip::launch_moe_expert_ffn(
+            static_cast<const float*>(input.data()),
+            static_cast<const std::int32_t*>(expert_indices.data()),
+            static_cast<const float*>(gate_weight.data()),
+            static_cast<const float*>(up_weight.data()),
+            static_cast<const float*>(down_weight.data()),
+            static_cast<float*>(hidden_workspace.data()), static_cast<float*>(output.data()),
+            tokens, num_experts, k, dim, ffn_dim, context.native_stream(input.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
     }
     const auto input_values = input.to_vector();
     const auto indices_values = expert_indices.to_int32_vector();
@@ -2565,8 +2593,20 @@ Tensor moe_combine(const Tensor& expert_output, const Tensor& expert_indices,
         throw std::invalid_argument("moe_combine requires 0 < k <= num_experts");
     }
     if (expert_output.device().is_hip()) {
-        throw std::runtime_error(
-            "moe_combine has no HIP kernel yet; CPU reference only until M2");
+        require_contiguous(expert_output, "expert_output");
+        require_contiguous(expert_indices, "expert_indices");
+        require_contiguous(expert_weights, "expert_weights");
+        Tensor output(Shape{tokens, dim}, DType::Float32, expert_output.device());
+#if MICROLLM_HAS_HIP
+        hip::launch_moe_combine(
+            static_cast<const float*>(expert_output.data()),
+            static_cast<const std::int32_t*>(expert_indices.data()),
+            static_cast<const float*>(expert_weights.data()), static_cast<float*>(output.data()),
+            tokens, num_experts, k, dim, context.native_stream(expert_output.device()));
+        return output;
+#else
+        throw std::runtime_error("microLLM was built without HIP operator support");
+#endif
     }
     const auto output_values = expert_output.to_vector();
     const auto indices_values = expert_indices.to_int32_vector();
