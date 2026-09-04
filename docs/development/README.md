@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-09-04: M0 Qwen3 MoE operator contracts](2026-09-04-m0-qwen3-moe-op-contracts.md)
 - [2026-08-27: CMake backend feature components](2026-08-27-cmake-backend-feature-components.md)
 - [2026-08-26: Autograd external gradient buffer](2026-08-26-autograd-external-gradient-buffer.md)
 - [2026-08-26: PyTorch zero-copy backward matrix](2026-08-26-pytorch-zero-copy-backward.md)

@@ -59,6 +59,28 @@ FP32 `[1,N]`。真实K/N完整输出、零payload传输和少一次逻辑分配�
 反量化和`FusedDecode`按列读取。CPU/HIP完整值与零传输门保留，但官方Qwen精度失败，所以该
 原语不能成为默认模型策略。
 
+## MoE 路由（设计中，M0，尚未实现）
+
+以下三个算子是 Qwen3 MoE 支持的第一步，只是契约草案：`ops.h`、`coverage_manifest.json`
+和 CPU/HIP 实现都还不存在。它们必须先通过这份文档的评审，再进入
+[M1 CPU reference](development/2026-09-04-m0-qwen3-moe-op-contracts.md) 实现阶段；
+在那之前不接受任何 `.cpp`/`.hip` 改动引用这三个名字。
+
+第一版故意选择"计算全部专家、掩码非选中"的朴素路径（O(num_experts) 而不是
+O(k) 的 gather/dispatch），把稀疏 dispatch 留给之后的性能里程碑，此处只对
+数值正确性负责。
+
+| microLLM（草案） | 输入和输出 shape | PyTorch oracle | FP32 阈值 | 必测非法输入 |
+|---|---|---|---|---|
+| `moe_router_top_k` | logits `[tokens,num_experts]` → indices `[tokens,k]`（Int32）、weights `[tokens,k]`（FP32） | `p=torch.softmax(logits.float(),-1); w,idx=torch.topk(p,k,-1); if norm_topk_prob: w=w/w.sum(-1,keepdim=True)` | `2e-6,2e-5` | 非二维 logits、`k<=0`、`k>num_experts`、非 FP32、HIP 非连续 |
+| `moe_expert_ffn` | input `[tokens,dim]`，expert_indices `[tokens,k]`（Int32），gate/up weight `[num_experts,dim,ffn_dim]`，down weight `[num_experts,ffn_dim,dim]` → `[tokens,num_experts,dim]` | 对每个专家 `e`：`F.silu(x@gate[e]) * (x@up[e]) @ down[e]`，再用 `expert_indices` 生成的 one-hot mask 把未选中专家的输出置零；对全部专家逐个计算（不做 gather） | `2e-6,2e-5` | input/weight `dim` 或 `ffn_dim` 不一致、`expert_indices` 越界、`k>num_experts`、非 FP32 |
+| `moe_combine` | expert_output `[tokens,num_experts,dim]`，expert_indices `[tokens,k]`，expert_weights `[tokens,k]` → `[tokens,dim]` | `sum_j expert_weights[:,j:j+1] * expert_output.gather(1, expert_indices[:,j].view(-1,1,1).expand(-1,1,dim)).squeeze(1)` | 默认 `1e-6,1e-5` | indices/weights 的 `k` 不一致、indices 越界、shape/device 不同 |
+
+反向（M3 之前不实现，先记录设计边界）：top-k 选择本身不可微；梯度按
+`embedding_backward` 的 scatter-add 语义只回传到被选中的 `(token, expert)` 行，
+未被选中的专家梯度必须严格为零，测试严格度与 `cross_entropy` 的 ignored-row
+梯度测试、`causal_softmax` 的 future-mask 梯度测试一致。
+
 ## BF16 weight gradient
 
 `bf16_weight_gradient(input_fp32, output_gradient_fp32)` 接受两个连续二维 FP32 Tensor：
