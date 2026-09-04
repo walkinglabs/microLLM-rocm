@@ -185,6 +185,39 @@ def pytorch_references(actual):
     record(refs, "rms_norm", F.rms_norm(nonlinear, (3,), tensor([1, 0.5, 2], (3,)), 1.0e-5))
     record(refs, "silu", F.silu(left))
     record(refs, "swiglu", F.silu(left) * right)
+
+    moe_router_logits = tensor([2, 1, 0, -1, -1, 0, 2, 1, 0.1, 0.4, 0.3, 0.2], (3, 4))
+    moe_router_probs = torch.softmax(moe_router_logits, dim=-1)
+    moe_router_weights, moe_router_indices = torch.topk(moe_router_probs, 2, dim=-1)
+    moe_router_weights = moe_router_weights / moe_router_weights.sum(dim=-1, keepdim=True)
+    record(refs, "moe_router_top_k_indices", moe_router_indices.float())
+    record(refs, "moe_router_top_k_weights", moe_router_weights)
+
+    moe_ffn_input = tensor([1, 0, 0, 1], (2, 2))
+    moe_ffn_indices = torch.tensor([[1], [0]], dtype=torch.long)
+    moe_gate_weight = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2))
+    moe_up_weight = tensor([1, 1, 1, 1, 2, 0, 0, 2], (2, 2, 2))
+    moe_down_weight = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2))
+    moe_expert_mask = torch.zeros(2, 2)
+    moe_expert_mask.scatter_(1, moe_ffn_indices, 1.0)
+    moe_expert_outputs = []
+    for expert in range(2):
+        gate_out = moe_ffn_input @ moe_gate_weight[expert]
+        up_out = moe_ffn_input @ moe_up_weight[expert]
+        hidden = F.silu(gate_out) * up_out
+        moe_expert_outputs.append(hidden @ moe_down_weight[expert])
+    moe_expert_output = (
+        torch.stack(moe_expert_outputs, dim=1) * moe_expert_mask.unsqueeze(-1))
+    record(refs, "moe_expert_ffn", moe_expert_output)
+
+    moe_combine_output = tensor([1, 2, 3, 4, 5, 6, 7, 8], (2, 2, 2))
+    moe_combine_indices = torch.tensor([[1], [0]], dtype=torch.long)
+    moe_combine_weights = tensor([0.5, 2.0], (2, 1))
+    moe_combine_gathered = moe_combine_output.gather(
+        1, moe_combine_indices.view(2, 1, 1).expand(-1, 1, 2))
+    record(refs, "moe_combine",
+           (moe_combine_weights.unsqueeze(-1) * moe_combine_gathered).sum(dim=1))
+
     rope_input = tensor([1, 0, 0, 1, 1, 0, 0, 1], (1, 2, 1, 4))
     record(refs, "rope", rope(rope_input))
     record(refs, "rope_split_half", rope_split_half(rope_input))
@@ -884,6 +917,9 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_add_rms_norm_shape",
             "invalid_silu_dtype",
             "invalid_swiglu_shape",
+            "invalid_moe_router_top_k_shape",
+            "invalid_moe_expert_ffn_shape",
+            "invalid_moe_combine_shape",
             "invalid_rope_width",
             "invalid_rope_split_half_width",
             "invalid_rope_split_half_bias_shape",

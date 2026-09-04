@@ -9,6 +9,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <microllm/base/low_precision.h>
@@ -2373,6 +2374,220 @@ void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
                  const OpContext& context) {
     swiglu_out_with_implementation_(
         output, gate, up, SwiGLUImplementation::Auto, context);
+}
+
+// MoE routing (M1 CPU reference). Contract: docs/OPERATOR_CONTRACTS.zh-CN.md,
+// "MoE 路由（设计中，M0，尚未实现）". No HIP kernel exists yet; that is M2.
+TensorPair moe_router_top_k(const Tensor& logits, std::int64_t k, bool norm_topk_prob,
+                            [[maybe_unused]] const OpContext& context) {
+    require_forward_float(logits, "logits");
+    if (logits.dtype() != DType::Float32) {
+        throw std::invalid_argument("moe_router_top_k logits must be float32");
+    }
+    if (logits.ndim() != 2) {
+        throw std::invalid_argument("moe_router_top_k logits must have rank two");
+    }
+    const auto tokens = logits.shape()[0];
+    const auto num_experts = logits.shape()[1];
+    if (k <= 0 || k > num_experts) {
+        throw std::invalid_argument("moe_router_top_k requires 0 < k <= num_experts");
+    }
+    if (logits.device().is_hip()) {
+        require_contiguous(logits, "logits");
+        throw std::runtime_error(
+            "moe_router_top_k has no HIP kernel yet; CPU reference only until M2");
+    }
+    const auto values = logits.to_vector();
+    std::vector<std::int32_t> indices(static_cast<std::size_t>(tokens * k));
+    std::vector<float> weights(static_cast<std::size_t>(tokens * k));
+    std::vector<std::pair<float, std::int64_t>> row(static_cast<std::size_t>(num_experts));
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        const auto base = token * num_experts;
+        auto row_max = -std::numeric_limits<float>::infinity();
+        for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+            row_max = std::max(row_max, values[static_cast<std::size_t>(base + expert)]);
+        }
+        float sum = 0.0F;
+        for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+            const auto exponential =
+                std::exp(values[static_cast<std::size_t>(base + expert)] - row_max);
+            row[static_cast<std::size_t>(expert)] = {exponential, expert};
+            sum += exponential;
+        }
+        for (auto& entry : row) entry.first /= sum;
+        // torch.topk's CPU implementation is stable: ties keep ascending index
+        // order, which is already row's construction order.
+        std::stable_sort(row.begin(), row.end(), [](const auto& left, const auto& right) {
+            return left.first > right.first;
+        });
+        float selected_sum = 0.0F;
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            selected_sum += row[static_cast<std::size_t>(slot)].first;
+        }
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            const auto& entry = row[static_cast<std::size_t>(slot)];
+            const auto out_index = static_cast<std::size_t>(token * k + slot);
+            indices[out_index] = static_cast<std::int32_t>(entry.second);
+            weights[out_index] = norm_topk_prob ? entry.first / selected_sum : entry.first;
+        }
+    }
+    return {Tensor::from_int32_vector(indices, {tokens, k}),
+           Tensor::from_vector(weights, {tokens, k})};
+}
+
+Tensor moe_expert_ffn(const Tensor& input, const Tensor& expert_indices,
+                      const Tensor& gate_weight, const Tensor& up_weight,
+                      const Tensor& down_weight,
+                      [[maybe_unused]] const OpContext& context) {
+    require_forward_float(input, "input");
+    require_forward_float(gate_weight, "gate_weight");
+    require_forward_float(up_weight, "up_weight");
+    require_forward_float(down_weight, "down_weight");
+    if (input.dtype() != DType::Float32 || gate_weight.dtype() != DType::Float32 ||
+        up_weight.dtype() != DType::Float32 || down_weight.dtype() != DType::Float32) {
+        throw std::invalid_argument("moe_expert_ffn requires float32 input and weights");
+    }
+    if (expert_indices.dtype() != DType::Int32) {
+        throw std::invalid_argument("moe_expert_ffn expert_indices must be an int32 tensor");
+    }
+    if (input.ndim() != 2 || expert_indices.ndim() != 2 || gate_weight.ndim() != 3 ||
+        up_weight.ndim() != 3 || down_weight.ndim() != 3) {
+        throw std::invalid_argument(
+            "moe_expert_ffn requires rank-2 input/expert_indices and rank-3 weights");
+    }
+    const auto tokens = input.shape()[0];
+    const auto dim = input.shape()[1];
+    const auto k = expert_indices.shape()[1];
+    const auto num_experts = gate_weight.shape()[0];
+    const auto ffn_dim = gate_weight.shape()[2];
+    if (expert_indices.shape()[0] != tokens) {
+        throw std::invalid_argument("moe_expert_ffn expert_indices tokens must match input");
+    }
+    if (k <= 0 || k > num_experts) {
+        throw std::invalid_argument("moe_expert_ffn requires 0 < k <= num_experts");
+    }
+    if (gate_weight.shape() != up_weight.shape() || gate_weight.shape()[1] != dim) {
+        throw std::invalid_argument(
+            "moe_expert_ffn gate/up weight must be [num_experts, dim, ffn_dim] matching input dim");
+    }
+    if (down_weight.shape()[0] != num_experts || down_weight.shape()[1] != ffn_dim ||
+        down_weight.shape()[2] != dim) {
+        throw std::invalid_argument(
+            "moe_expert_ffn down weight must be [num_experts, ffn_dim, dim]");
+    }
+    if (input.device().is_hip()) {
+        throw std::runtime_error(
+            "moe_expert_ffn has no HIP kernel yet; CPU reference only until M2");
+    }
+    const auto input_values = input.to_vector();
+    const auto indices_values = expert_indices.to_int32_vector();
+    const auto gate_values = gate_weight.to_vector();
+    const auto up_values = up_weight.to_vector();
+    const auto down_values = down_weight.to_vector();
+
+    std::vector<std::uint8_t> selected(static_cast<std::size_t>(tokens * num_experts), 0);
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            const auto expert = indices_values[static_cast<std::size_t>(token * k + slot)];
+            if (expert < 0 || expert >= num_experts) {
+                throw std::out_of_range("moe_expert_ffn expert index out of range");
+            }
+            selected[static_cast<std::size_t>(token * num_experts + expert)] = 1;
+        }
+    }
+
+    // Deliberately dense: every expert is evaluated for every token (O(num_experts)
+    // per token), and the mask only decides what survives into the output. Real
+    // gather/dispatch is a later, performance-scoped milestone, not this one.
+    std::vector<float> output(static_cast<std::size_t>(tokens * num_experts * dim), 0.0F);
+    std::vector<float> hidden(static_cast<std::size_t>(ffn_dim));
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        const auto input_base = token * dim;
+        for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+            const auto mask =
+                selected[static_cast<std::size_t>(token * num_experts + expert)] ? 1.0F : 0.0F;
+            const auto weight_base = expert * dim * ffn_dim;
+            for (std::int64_t hidden_index = 0; hidden_index < ffn_dim; ++hidden_index) {
+                float gate_sum = 0.0F;
+                float up_sum = 0.0F;
+                for (std::int64_t d = 0; d < dim; ++d) {
+                    const auto x = input_values[static_cast<std::size_t>(input_base + d)];
+                    const auto weight_index =
+                        static_cast<std::size_t>(weight_base + d * ffn_dim + hidden_index);
+                    gate_sum += x * gate_values[weight_index];
+                    up_sum += x * up_values[weight_index];
+                }
+                hidden[static_cast<std::size_t>(hidden_index)] =
+                    gate_sum * sigmoid(gate_sum) * up_sum;
+            }
+            const auto down_base = expert * ffn_dim * dim;
+            const auto out_base = (token * num_experts + expert) * dim;
+            for (std::int64_t d = 0; d < dim; ++d) {
+                float sum = 0.0F;
+                for (std::int64_t hidden_index = 0; hidden_index < ffn_dim; ++hidden_index) {
+                    sum += hidden[static_cast<std::size_t>(hidden_index)] *
+                           down_values[static_cast<std::size_t>(down_base + hidden_index * dim + d)];
+                }
+                output[static_cast<std::size_t>(out_base + d)] = sum * mask;
+            }
+        }
+    }
+    return from_values(std::move(output), {tokens, num_experts, dim});
+}
+
+Tensor moe_combine(const Tensor& expert_output, const Tensor& expert_indices,
+                   const Tensor& expert_weights,
+                   [[maybe_unused]] const OpContext& context) {
+    require_forward_float(expert_output, "expert_output");
+    require_forward_float(expert_weights, "expert_weights");
+    if (expert_output.dtype() != DType::Float32 || expert_weights.dtype() != DType::Float32) {
+        throw std::invalid_argument(
+            "moe_combine requires float32 expert_output and expert_weights");
+    }
+    if (expert_indices.dtype() != DType::Int32) {
+        throw std::invalid_argument("moe_combine expert_indices must be an int32 tensor");
+    }
+    if (expert_output.ndim() != 3 || expert_indices.ndim() != 2 || expert_weights.ndim() != 2) {
+        throw std::invalid_argument(
+            "moe_combine requires rank-3 expert_output and rank-2 expert_indices/expert_weights");
+    }
+    require_same_device(expert_output, expert_indices);
+    require_same_device(expert_output, expert_weights);
+    const auto tokens = expert_output.shape()[0];
+    const auto num_experts = expert_output.shape()[1];
+    const auto dim = expert_output.shape()[2];
+    const auto k = expert_indices.shape()[1];
+    if (expert_indices.shape()[0] != tokens || expert_weights.shape() != expert_indices.shape()) {
+        throw std::invalid_argument(
+            "moe_combine expert_indices and expert_weights must share [tokens, k] shape");
+    }
+    if (k <= 0 || k > num_experts) {
+        throw std::invalid_argument("moe_combine requires 0 < k <= num_experts");
+    }
+    if (expert_output.device().is_hip()) {
+        throw std::runtime_error(
+            "moe_combine has no HIP kernel yet; CPU reference only until M2");
+    }
+    const auto output_values = expert_output.to_vector();
+    const auto indices_values = expert_indices.to_int32_vector();
+    const auto weights_values = expert_weights.to_vector();
+    std::vector<float> result(static_cast<std::size_t>(tokens * dim), 0.0F);
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            const auto expert = indices_values[static_cast<std::size_t>(token * k + slot)];
+            if (expert < 0 || expert >= num_experts) {
+                throw std::out_of_range("moe_combine expert index out of range");
+            }
+            const auto weight = weights_values[static_cast<std::size_t>(token * k + slot)];
+            const auto expert_base = (token * num_experts + expert) * dim;
+            const auto result_base = token * dim;
+            for (std::int64_t d = 0; d < dim; ++d) {
+                result[static_cast<std::size_t>(result_base + d)] +=
+                    weight * output_values[static_cast<std::size_t>(expert_base + d)];
+            }
+        }
+    }
+    return from_values(std::move(result), {tokens, dim});
 }
 
 Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t position_offset,

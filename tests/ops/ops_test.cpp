@@ -181,6 +181,74 @@ TEST(CpuOpsTest, BiasBroadcastAndReductionMatchHandValues) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, MoeRouterTopKMatchesHandValuesAndRejectsIllegalInputs) {
+    const auto logits = Tensor::from_vector({0, 1, 2}, {1, 3});
+    // softmax([0,1,2]) top-2 are experts {2,1}; the two-value renormalization
+    // collapses to sigmoid(+-1), which is exact to compute by hand.
+    const auto normalized = moe_router_top_k(logits, 2, /*norm_topk_prob=*/true);
+    EXPECT_EQ(normalized.first.to_int32_vector(), (std::vector<std::int32_t>{2, 1}));
+    expect_near(normalized.second.to_vector(), {0.7310585786F, 0.2689414214F}, 1.0e-6F);
+
+    const auto unnormalized = moe_router_top_k(logits, 2, /*norm_topk_prob=*/false);
+    EXPECT_EQ(unnormalized.first.to_int32_vector(), (std::vector<std::int32_t>{2, 1}));
+    expect_near(unnormalized.second.to_vector(), {0.6652409557F, 0.2447284711F}, 1.0e-6F);
+
+    EXPECT_THROW((void)moe_router_top_k(Tensor::from_vector({1, 2, 3}, {3}), 2, true),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_router_top_k(logits, 0, true), std::invalid_argument);
+    EXPECT_THROW((void)moe_router_top_k(logits, 4, true), std::invalid_argument);
+    EXPECT_THROW((void)moe_router_top_k(logits.cast(DType::BFloat16), 2, true),
+                 std::invalid_argument);
+}
+
+TEST(CpuOpsTest, MoeExpertFfnMatchesHandValuesAndMasksNonSelectedExperts) {
+    const auto input = Tensor::from_vector({1, 2}, {1, 2});
+    const auto expert_indices = Tensor::from_int32_vector({0}, {1, 1});
+    const auto gate_weight = Tensor::from_vector(
+        {1, 0, 0, 1, 1, 1, 1, 1}, {2, 2, 2});
+    const auto up_weight = Tensor::from_vector(
+        {1, 0, 0, 1, 2, 2, 2, 2}, {2, 2, 2});
+    const auto down_weight = Tensor::from_vector(
+        {1, 0, 0, 1, 1, 1, 1, 1}, {2, 2, 2});
+    const auto output = moe_expert_ffn(input, expert_indices, gate_weight, up_weight, down_weight);
+    EXPECT_EQ(output.shape(), (Shape{1, 2, 2}));
+    // Expert 0 is identity gate/up/down: silu([1,2]) * [1,2], matmul'd through identity.
+    expect_near(output.to_vector(), {0.7310585786F, 3.5231883120F, 0.0F, 0.0F}, 1.0e-5F);
+
+    EXPECT_THROW((void)moe_expert_ffn(input.reshape({2}), expert_indices, gate_weight,
+                                      up_weight, down_weight),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_expert_ffn(input, expert_indices, gate_weight,
+                                      Tensor::from_vector({1, 0, 0, 1}, {1, 2, 2}), down_weight),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_expert_ffn(input, expert_indices, gate_weight, up_weight,
+                                      Tensor::from_vector({1, 0, 0, 1}, {1, 2, 2})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_expert_ffn(input, Tensor::from_int32_vector({5}, {1, 1}), gate_weight,
+                                      up_weight, down_weight),
+                 std::out_of_range);
+    EXPECT_THROW((void)moe_expert_ffn(input, Tensor::from_vector({0}, {1, 1}), gate_weight,
+                                      up_weight, down_weight),
+                 std::invalid_argument);
+}
+
+TEST(CpuOpsTest, MoeCombineMatchesHandValuesAndRejectsIllegalInputs) {
+    const auto expert_output = Tensor::from_vector({1, 2, 3, 4}, {1, 2, 2});
+    const auto expert_indices = Tensor::from_int32_vector({1}, {1, 1});
+    const auto expert_weights = Tensor::from_vector({0.5F}, {1, 1});
+    expect_near(moe_combine(expert_output, expert_indices, expert_weights).to_vector(),
+                {1.5F, 2.0F});
+
+    EXPECT_THROW((void)moe_combine(expert_output, expert_indices,
+                                   Tensor::from_vector({0.5F, 1.0F, 1.5F}, {1, 3})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_combine(expert_output, Tensor::from_int32_vector({5}, {1, 1}),
+                                   expert_weights),
+                 std::out_of_range);
+    EXPECT_THROW((void)moe_combine(expert_output.reshape({2, 2}), expert_indices, expert_weights),
+                 std::invalid_argument);
+}
+
 TEST(CpuOpsTest, FusedSplitHalfRopeBiasMatchesComposedProjectionPath) {
     const auto flat = Tensor::from_vector(
         {1, 2, 3, 4, 5, 6, 7, 8,

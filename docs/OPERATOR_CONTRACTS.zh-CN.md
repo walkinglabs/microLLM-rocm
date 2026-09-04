@@ -59,12 +59,13 @@ FP32 `[1,N]`。真实K/N完整输出、零payload传输和少一次逻辑分配�
 反量化和`FusedDecode`按列读取。CPU/HIP完整值与零传输门保留，但官方Qwen精度失败，所以该
 原语不能成为默认模型策略。
 
-## MoE 路由（设计中，M0，尚未实现）
+## MoE 路由（CPU reference 已实现，M1；HIP 待 M2）
 
-以下三个算子是 Qwen3 MoE 支持的第一步，只是契约草案：`ops.h`、`coverage_manifest.json`
-和 CPU/HIP 实现都还不存在。它们必须先通过这份文档的评审，再进入
-[M1 CPU reference](development/2026-09-04-m0-qwen3-moe-op-contracts.md) 实现阶段；
-在那之前不接受任何 `.cpp`/`.hip` 改动引用这三个名字。
+这三个算子的 CPU reference 已经实现，见
+[M1 CPU reference](development/2026-09-04-m1-qwen3-moe-cpu-reference.md)；契约设计过程见
+[M0 operator contracts](development/2026-09-04-m0-qwen3-moe-op-contracts.md)。HIP kernel
+仍不存在，`moe_router_top_k`/`moe_expert_ffn`/`moe_combine` 在 HIP device 上会显式抛出
+"has no HIP kernel yet"，这是 M2 的范围。
 
 第一版故意选择"计算全部专家、掩码非选中"的朴素路径（O(num_experts) 而不是
 O(k) 的 gather/dispatch），把稀疏 dispatch 留给之后的性能里程碑，此处只对

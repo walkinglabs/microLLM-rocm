@@ -6,8 +6,11 @@ This is the paper-only milestone from the Qwen3 MoE plan: define the public shap
 dtype, and PyTorch-oracle contract for three new operators before touching `ops.h`,
 `coverage_manifest.json`, or any `.cpp`/`.hip` file. No code lands in this change.
 The full contract text lives in
-[`docs/OPERATOR_CONTRACTS.zh-CN.md`](../OPERATOR_CONTRACTS.zh-CN.md#moe-路由设计中m0尚未实现);
-this record captures the decision context and the next-milestone boundary.
+[`docs/OPERATOR_CONTRACTS.zh-CN.md`](../OPERATOR_CONTRACTS.zh-CN.md), under the "MoE
+路由" heading; this record captures the decision context and the next-milestone
+boundary. (As of M1, that heading and its implementation status have moved on from
+this record's "M0, not implemented" framing — see
+[the M1 CPU reference record](2026-09-04-m1-qwen3-moe-cpu-reference.md).)
 
 ## Observed state before this change
 

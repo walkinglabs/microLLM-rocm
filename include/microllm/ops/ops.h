@@ -716,6 +716,28 @@ void swiglu_out_(Tensor& output, const Tensor& gate, const Tensor& up,
 void swiglu_out_with_implementation_(
     Tensor& output, const Tensor& gate, const Tensor& up,
     SwiGLUImplementation implementation, const OpContext& context = {});
+// MoE routing (M1 CPU reference only; no HIP kernel until M2). Contract lives in
+// docs/OPERATOR_CONTRACTS.zh-CN.md, "MoE 路由（设计中，M0，尚未实现）".
+// Router logits [tokens, num_experts] -> softmax over the full row, then top-k.
+// indices is Int32 [tokens, k]; weights is FP32 [tokens, k]. When norm_topk_prob
+// is true, weights are renormalized to sum to one over just the k selected experts.
+[[nodiscard]] TensorPair moe_router_top_k(const Tensor& logits, std::int64_t k,
+                                          bool norm_topk_prob,
+                                          const OpContext& context = {});
+// Computes the SwiGLU FFN for every expert against every token and masks out
+// experts not present in expert_indices for that token. No gather/dispatch:
+// deliberately O(num_experts) per token, not O(k), until a dispatch primitive
+// is added. gate_weight/up_weight are [num_experts, dim, ffn_dim]; down_weight
+// is [num_experts, ffn_dim, dim]. Output is [tokens, num_experts, dim].
+[[nodiscard]] Tensor moe_expert_ffn(const Tensor& input, const Tensor& expert_indices,
+                                    const Tensor& gate_weight, const Tensor& up_weight,
+                                    const Tensor& down_weight,
+                                    const OpContext& context = {});
+// Weighted sum of the k selected expert outputs back to [tokens, dim], using the
+// router weights from moe_router_top_k. Non-selected experts are never read.
+[[nodiscard]] Tensor moe_combine(const Tensor& expert_output, const Tensor& expert_indices,
+                                 const Tensor& expert_weights,
+                                 const OpContext& context = {});
 [[nodiscard]] Tensor rope(const Tensor& input, std::int64_t sequence_dim = 1,
                           std::int64_t position_offset = 0, float base = 10000.0F,
                           const OpContext& context = {});

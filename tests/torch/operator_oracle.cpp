@@ -52,6 +52,14 @@ Tensor f32(std::vector<float> values, Shape shape) {
     return Tensor::from_vector(values, std::move(shape));
 }
 
+// emit() only accepts floating tensors; router indices are small enough
+// that the exact int->float conversion loses nothing.
+Tensor int32_as_float(const Tensor& indices) {
+    const auto values = indices.to_int32_vector();
+    return Tensor::from_vector(std::vector<float>(values.begin(), values.end()),
+                               indices.shape());
+}
+
 void emit_forward_cases() {
     using namespace microllm::ops;
     Tensor filled({2, 3});
@@ -150,6 +158,26 @@ void emit_forward_cases() {
     emit("rms_norm", rms_norm(nonlinear, f32({1, 0.5F, 2}, {3})));
     emit("silu", silu(left));
     emit("swiglu", swiglu(left, right));
+
+    const auto moe_router_logits = f32(
+        {2, 1, 0, -1, -1, 0, 2, 1, 0.1F, 0.4F, 0.3F, 0.2F}, {3, 4});
+    const auto moe_router_result = moe_router_top_k(moe_router_logits, 2, true);
+    emit("moe_router_top_k_indices", int32_as_float(moe_router_result.first));
+    emit("moe_router_top_k_weights", moe_router_result.second);
+
+    const auto moe_ffn_input = f32({1, 0, 0, 1}, {2, 2});
+    const auto moe_ffn_indices = Tensor::from_int32_vector({1, 0}, {2, 1});
+    const auto moe_gate_weight = f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2});
+    const auto moe_up_weight = f32({1, 1, 1, 1, 2, 0, 0, 2}, {2, 2, 2});
+    const auto moe_down_weight = f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2});
+    emit("moe_expert_ffn", moe_expert_ffn(
+        moe_ffn_input, moe_ffn_indices, moe_gate_weight, moe_up_weight, moe_down_weight));
+
+    const auto moe_combine_output = f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2});
+    const auto moe_combine_indices = Tensor::from_int32_vector({1, 0}, {2, 1});
+    const auto moe_combine_weights = f32({0.5F, 2.0F}, {2, 1});
+    emit("moe_combine", moe_combine(
+        moe_combine_output, moe_combine_indices, moe_combine_weights));
 
     const auto rope_input = f32({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});
     emit("rope", rope(rope_input));
@@ -627,6 +655,22 @@ void emit_invalid_shape_cases() {
                   (void)silu(Tensor::from_int32_vector({1, 2}, {2}));
               }));
     emit_bool("invalid_swiglu_shape", rejected([&] { (void)swiglu(matrix, vector); }));
+    emit_bool("invalid_moe_router_top_k_shape", rejected([&] {
+                  (void)moe_router_top_k(f32({1, 2, 3}, {3}), 2, true);
+              }));
+    emit_bool("invalid_moe_expert_ffn_shape", rejected([&] {
+                  (void)moe_expert_ffn(
+                      f32({1, 0, 0, 1}, {2, 2}), Tensor::from_int32_vector({1, 0}, {2, 1}),
+                      f32({1, 2, 3, 4}, {2, 2}),
+                      f32({1, 1, 1, 1, 2, 0, 0, 2}, {2, 2, 2}),
+                      f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}));
+              }));
+    emit_bool("invalid_moe_combine_shape", rejected([&] {
+                  (void)moe_combine(
+                      f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}),
+                      Tensor::from_int32_vector({1, 0}, {2, 1}),
+                      f32({0.5F, 2.0F, 1.0F}, {3}));
+              }));
     emit_bool("invalid_rope_width", rejected([&] { (void)rope(f32({1, 2, 3}, {1, 1, 3})); }));
     emit_bool("invalid_rope_split_half_width", rejected([&] {
                   (void)rope_split_half(f32({1, 2, 3}, {1, 1, 3}));
