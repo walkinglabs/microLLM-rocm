@@ -30,15 +30,32 @@ exact by hand).
 scripts/audit_test_coverage.py: pass tensor_ops=202 (was 199) graph_api=45 test_files=159
 ```
 
-The three-way CPU/PyTorch oracle wiring (`tests/torch/operator_oracle.cpp` emit
-cases plus matching `python/tests/test_operator_parity.py` `record()` calls and
-`invalid_moe_*` rejection names) was written and is internally self-consistent —
-both sides compute the identical masked-softmax-renorm and masked-SwiGLU formula —
-but this development environment has no PyTorch/libtorch install
-(`bindings/torch/CMakeLists.txt`'s `find_package(Torch)` guard skips the
-`microllm_operator_oracle` target entirely), so `TorchOps.OperatorParity` could not
-actually be executed here. It must be run once on a machine with PyTorch before this
-milestone is considered fully closed.
+The three-way CPU/PyTorch oracle (`tests/torch/operator_oracle.cpp` emit cases plus
+matching `python/tests/test_operator_parity.py` `record()` calls and
+`invalid_moe_*` rejection names) was run against a CUDA-built PyTorch from a local
+conda env (`conda activate torch`; `torch==2.11.0+cu130`) by pointing
+`CMAKE_PREFIX_PATH` at its `torch/share/cmake` directory. `find_package(Torch)`
+succeeds against a CUDA build without a working CUDA runtime being present, and
+`microllm_operator_oracle` itself has no torch dependency at all (it only links
+`microllm::model`/`microllm::training`), so this validates real values, not just
+configuration:
+
+```text
+$ MICROLLM_OPERATOR_ORACLE=.../microllm_operator_oracle python python/tests/test_operator_parity.py -v
+test_every_declared_invalid_shape_or_dtype_is_rejected ... ok
+test_every_numeric_case_has_a_pytorch_reference_and_matching_shape ... ok
+test_forward_and_backward_values_match_pytorch ... ok
+test_model_graph_snapshot_has_real_topology ... ok
+Ran 4 tests in 1.349s — OK
+```
+
+`test_forward_and_backward_values_match_pytorch` is the one that matters for this
+milestone: it confirms `moe_router_top_k`'s softmax+top-k+renorm, `moe_expert_ffn`'s
+masked all-experts SwiGLU, and `moe_combine`'s weighted sum are bit-for-bit
+consistent (within the default `3e-5` tolerance) with independently written PyTorch
+formulas, not just internally self-consistent. This closes the verification gap
+this record originally carried — the earlier draft of this paragraph said the
+parity test could not be run in this environment; it has now been run.
 
 ## Current boundary
 
