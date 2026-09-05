@@ -2104,63 +2104,80 @@ private:
     Bf16FfnArenaCache* arena_cache_ = nullptr;
 };
 
-// M5: weight loading only. Per-expert Linear parameters are real named
-// parameters (state_dict/load_state_dict work end to end), but forward and
-// every one-way inference preparation (BF16/FP8/INT8, the BF16 FFN Arena) are
-// deliberately unimplemented -- each throws explicitly rather than silently
-// running a wrong or partial computation. See docs/development/
-// 2026-09-04-m5-qwen3-moe-weight-loading.md for the exact boundary and why.
+// M5 gave this real named parameters; M6 gives it a real forward. Internal
+// storage deliberately matches Hugging Face's Qwen3MoeExperts layout exactly
+// (gate_up_proj [num_experts, 2*ffn_dim, dim] fused, down_proj
+// [num_experts, dim, ffn_dim], both nn.Linear-style output-dim-first) rather
+// than this repo's usual [input,output] Linear convention, so weight loading
+// stays a plain Identity copy with no per-expert split/transpose. The
+// split+transpose into what ops::moe_expert_ffn expects happens every forward
+// call instead, via autograd::moe_split_gate_up and autograd::transpose. See
+// docs/development/2026-09-04-m6-qwen3-moe-model-forward.md for why (a real
+// Qwen3-MoE checkpoint was checked via the transformers package before this
+// was written; M5's original per-expert-Linear internal layout, written
+// without that check, did not match it).
 class MoeFeedForward {
 public:
     MoeFeedForward(const ModelConfig& config, std::mt19937_64& generator,
                    ParameterInitialization initialization)
         : config_(config),
           router_(config.dimension, config.moe_num_experts, generator, config,
-                  initialization) {
-        experts_gate_.reserve(static_cast<std::size_t>(config.moe_num_experts));
-        experts_up_.reserve(static_cast<std::size_t>(config.moe_num_experts));
-        experts_down_.reserve(static_cast<std::size_t>(config.moe_num_experts));
-        for (std::int64_t expert = 0; expert < config.moe_num_experts; ++expert) {
-            experts_gate_.emplace_back(config.dimension, config.moe_intermediate_size,
-                                       generator, config, initialization, false, true);
-            experts_up_.emplace_back(config.dimension, config.moe_intermediate_size,
-                                     generator, config, initialization, false, true);
-            experts_down_.emplace_back(config.moe_intermediate_size, config.dimension,
-                                       generator, config, initialization, false, true);
-        }
-    }
+                  initialization),
+          gate_up_proj_(parameter(
+              {config.moe_num_experts, 2 * config.moe_intermediate_size, config.dimension},
+              generator, 1.0F / std::sqrt(static_cast<float>(config.dimension)),
+              initialization)),
+          down_proj_(parameter(
+              {config.moe_num_experts, config.dimension, config.moe_intermediate_size},
+              generator, 1.0F / std::sqrt(static_cast<float>(config.moe_intermediate_size)),
+              initialization)) {}
 
-    Value forward([[maybe_unused]] const Value& input) {
-        throw std::logic_error(
-            "MoE forward is not implemented yet (see M6: model-level full-graph gate)");
+    Value forward(const Value& input) {
+        require_fp32_moe();
+        const auto batch = input.data().shape()[0];
+        const auto sequence = input.data().shape()[1];
+        const auto flat = autograd::reshape(input, {batch * sequence, config_.dimension});
+        auto logits = router_.forward(flat);
+        auto routed = autograd::moe_router_top_k(
+            logits, config_.moe_num_experts_per_tok, config_.moe_norm_topk_prob);
+        auto split = autograd::moe_split_gate_up(gate_up_proj_);
+        auto down = autograd::transpose(down_proj_, 1, 2);
+        auto expert_output = autograd::moe_expert_ffn(
+            flat, routed.indices, split.first, split.second, down);
+        auto combined = autograd::moe_combine(expert_output, routed.indices, routed.weights);
+        return autograd::reshape(combined, {batch, sequence, config_.dimension});
     }
-    Tensor forward_tensor([[maybe_unused]] const Tensor& input,
+    Tensor forward_tensor(const Tensor& input,
                           [[maybe_unused]] const std::string& trace_prefix = {},
                           [[maybe_unused]] bool prefill_trace_rows = false,
                           [[maybe_unused]] FfnInferencePhase phase =
                               FfnInferencePhase::Prefill) {
-        throw std::logic_error(
-            "MoE forward is not implemented yet (see M6: model-level full-graph gate)");
+        // No per-stage tracing yet (dense FeedForward's trace_stage calls have
+        // no MoE equivalent) and no cached-decode-specific behavior (unlike
+        // dense FFN, there is no BF16 prefill/decode split for MoE).
+        require_fp32_moe();
+        if (input.ndim() != 3) throw std::invalid_argument("FFN input must be BxTxD");
+        const auto batch = input.shape()[0];
+        const auto sequence = input.shape()[1];
+        const auto flat = input.reshape({batch * sequence, config_.dimension});
+        const auto logits = router_.forward_tensor(flat);
+        const auto routed = ops::moe_router_top_k(
+            logits, config_.moe_num_experts_per_tok, config_.moe_norm_topk_prob);
+        const auto split = ops::moe_split_gate_up(gate_up_proj_.data());
+        const auto down = down_proj_.data().transpose(1, 2);
+        const auto expert_output = ops::moe_expert_ffn(
+            flat, routed.first, split.first, split.second, down);
+        const auto combined = ops::moe_combine(expert_output, routed.first, routed.second);
+        return combined.reshape({batch, sequence, config_.dimension});
     }
-    Tensor forward_normalized_bf16_tensor([[maybe_unused]] const Tensor& input,
-                                          [[maybe_unused]] Norm& norm) {
-        throw std::logic_error(
-            "MoE forward is not implemented yet (see M6: model-level full-graph gate)");
+    Tensor forward_normalized_bf16_tensor(const Tensor& input, Norm& norm) {
+        return forward_tensor(norm.forward_tensor(input));
     }
 
     void append_named(const std::string& prefix, NamedValues& values) {
         values.emplace_back(prefix + ".router.weight", &router_.weight());
-        for (std::int64_t expert = 0; expert < config_.moe_num_experts; ++expert) {
-            const auto expert_prefix =
-                prefix + ".experts." + std::to_string(expert);
-            const auto index = static_cast<std::size_t>(expert);
-            values.emplace_back(expert_prefix + ".gate_proj.weight",
-                                &experts_gate_[index].weight());
-            values.emplace_back(expert_prefix + ".up_proj.weight",
-                                &experts_up_[index].weight());
-            values.emplace_back(expert_prefix + ".down_proj.weight",
-                                &experts_down_[index].weight());
-        }
+        values.emplace_back(prefix + ".gate_up_proj", &gate_up_proj_);
+        values.emplace_back(prefix + ".down_proj", &down_proj_);
     }
     // Harmless: the arena is an opt-in performance path with no MoE support
     // yet, and disabling it (nullptr) is always safe.
@@ -2177,7 +2194,7 @@ public:
     void move_bf16_prefill_up_weight([[maybe_unused]] Device device) {}
     [[nodiscard]] const Tensor& up_weight_data() const {
         throw std::logic_error(
-            "MoE FFN has no single up weight; each expert has its own");
+            "MoE FFN has no single up weight; gate and up share one fused parameter");
     }
     void append_bf16_training_mirrors([[maybe_unused]] Bf16TrainingMirrors& mirrors) {
         throw std::logic_error("MoE BF16 training mirrors are not implemented yet");
@@ -2193,11 +2210,18 @@ public:
     void move_int8_inference_scales([[maybe_unused]] Device device) {}
 
 private:
+    void require_fp32_moe() const {
+        if (config_.linear_precision != LinearPrecision::Float32) {
+            throw std::logic_error(
+                "MoE forward only supports FP32 linear precision; "
+                "BF16/FP8 MoE experts are not implemented yet");
+        }
+    }
+
     ModelConfig config_;
     Linear router_;
-    std::vector<Linear> experts_gate_;
-    std::vector<Linear> experts_up_;
-    std::vector<Linear> experts_down_;
+    Value gate_up_proj_;
+    Value down_proj_;
 };
 
 class Block {
@@ -4309,28 +4333,28 @@ WeightMapping qwen_style_weight_mapping(const ModelConfig& config) {
                         WeightSource{source + ".post_attention_layernorm.weight",
                                      WeightTransform::Identity});
         if (config.moe_num_experts > 0) {
-            // Assumed to follow Hugging Face's Qwen2Moe/Mixtral-style naming
-            // (router as "mlp.gate", experts as "mlp.experts.E.*_proj"); not
-            // yet verified against a real Qwen3-MoE checkpoint -- see
-            // docs/development/2026-09-04-m5-qwen3-moe-weight-loading.md.
+            // Verified against transformers 5.8.0's actual
+            // Qwen3MoeExperts/Qwen3MoeTopKRouter source (M6): the router is a
+            // plain nn.Linear-style ".mlp.gate.weight" (Transpose2D, like every
+            // other Linear here), but the experts are NOT per-expert Linears --
+            // Qwen3MoeExperts stores exactly two packed parameters per layer,
+            // "mlp.experts.gate_up_proj" (gate and up fused,
+            // [num_experts, 2*moe_intermediate_size, hidden_size]) and
+            // "mlp.experts.down_proj" ([num_experts, hidden_size,
+            // moe_intermediate_size]). Internal storage matches this layout
+            // exactly (see MoeFeedForward), so both map with Identity; M5's
+            // original per-expert-Linear assumption was wrong and has been
+            // replaced -- see docs/development/
+            // 2026-09-04-m6-qwen3-moe-model-forward.md.
             mapping.emplace(target + ".moe.router.weight",
                             WeightSource{source + ".mlp.gate.weight",
                                          WeightTransform::Transpose2D});
-            for (std::int64_t expert = 0; expert < config.moe_num_experts; ++expert) {
-                const auto expert_target =
-                    target + ".moe.experts." + std::to_string(expert);
-                const auto expert_source =
-                    source + ".mlp.experts." + std::to_string(expert);
-                mapping.emplace(expert_target + ".gate_proj.weight",
-                                WeightSource{expert_source + ".gate_proj.weight",
-                                             WeightTransform::Transpose2D});
-                mapping.emplace(expert_target + ".up_proj.weight",
-                                WeightSource{expert_source + ".up_proj.weight",
-                                             WeightTransform::Transpose2D});
-                mapping.emplace(expert_target + ".down_proj.weight",
-                                WeightSource{expert_source + ".down_proj.weight",
-                                             WeightTransform::Transpose2D});
-            }
+            mapping.emplace(target + ".moe.gate_up_proj",
+                            WeightSource{source + ".mlp.experts.gate_up_proj",
+                                         WeightTransform::Identity});
+            mapping.emplace(target + ".moe.down_proj",
+                            WeightSource{source + ".mlp.experts.down_proj",
+                                         WeightTransform::Identity});
         } else {
             mapping.emplace(target + ".feed_forward.gate_proj.weight",
                             WeightSource{source + ".mlp.gate_proj.weight",

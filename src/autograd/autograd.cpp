@@ -1031,6 +1031,37 @@ Value moe_combine(const Value& expert_output, const Tensor& expert_indices,
         });
 }
 
+std::pair<Value, Value> moe_split_gate_up(const Value& gate_up_proj) {
+    require_value(gate_up_proj, "gate_up_proj");
+    auto gate_up_node = gate_up_proj.node_;
+    profiling::TraceTimer timer(
+        profiling::TraceKind::Operator, "moe_split_gate_up", gate_up_proj.data().device());
+    auto outputs = ops::moe_split_gate_up(gate_up_proj.data());
+    timer.finish(outputs.second);
+    const auto gate_shape = outputs.first.shape();
+    const auto up_shape = outputs.second.shape();
+    // gate and up share one parent (gate_up_proj); each side's backward fills
+    // in only its own half of the reconstructed gradient (the two halves never
+    // overlap) and relies on accumulate()'s existing summing behavior to
+    // combine both contributions into gate_up_proj's full gradient -- no joint
+    // two-input backward closure is needed.
+    auto gate = operation(
+        "moe_split_gate_up_gate", std::move(outputs.first), {gate_up_node},
+        [gate_up_node, up_shape](const Tensor& gradient) {
+            Tensor zero_up(up_shape, DType::Float32, gradient.device());
+            ops::fill_(zero_up, 0.0F);
+            accumulate(gate_up_node, ops::moe_split_gate_up_backward(gradient, zero_up));
+        });
+    auto up = operation(
+        "moe_split_gate_up_up", std::move(outputs.second), {gate_up_node},
+        [gate_up_node, gate_shape](const Tensor& gradient) {
+            Tensor zero_gate(gate_shape, DType::Float32, gradient.device());
+            ops::fill_(zero_gate, 0.0F);
+            accumulate(gate_up_node, ops::moe_split_gate_up_backward(zero_gate, gradient));
+        });
+    return {std::move(gate), std::move(up)};
+}
+
 Value contiguous(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;

@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -303,15 +304,20 @@ TEST(ModelWeightsTest, RejectsUnknownMappingTargetsAndNonFloatSources) {
     EXPECT_THROW((void)model.load_state_dict(state, options), std::invalid_argument);
 }
 
-TEST(ModelWeightsTest, MoeStateDictHasExactPerExpertTensorCountAndMatchesMapping) {
+TEST(ModelWeightsTest, MoeStateDictHasExactTensorCountAndMatchesMapping) {
+    // M6 revised internal MoE storage after checking a real Qwen3-MoE
+    // checkpoint (transformers 5.8.0's Qwen3MoeExperts): gate/up are fused
+    // into one packed "gate_up_proj" and down into "down_proj", so a layer's
+    // tensor count no longer scales with num_experts -- exactly 3 MoE
+    // tensors per layer regardless of expert count. See docs/development/
+    // 2026-09-04-m6-qwen3-moe-model-forward.md for why this differs from
+    // M5's original per-expert-Linear count.
     const auto config = moe_weight_config(/*layers=*/2, /*num_experts=*/3);
     TransformerModel model(config, 401);
     // Per layer: attention_norm(1) + attention q/k/v/o(4, no bias/qk_norm) +
-    // ffn_norm(1) + moe.router(1) + 3 experts * 3 projections(9) = 16.
+    // ffn_norm(1) + moe.router(1) + moe.gate_up_proj(1) + moe.down_proj(1) = 9.
     // Tied embeddings: + token_embedding(1) + final_norm(1), no output_head.
-    // A silently-dropped expert would show up here as an off-by-3 mismatch,
-    // not a vague "fewer tensors than expected."
-    constexpr std::size_t per_layer = 1 + 4 + 1 + 1 + 3 * 3;
+    constexpr std::size_t per_layer = 1 + 4 + 1 + 1 + 1 + 1;
     const std::size_t expected = per_layer * 2 + 2;
     EXPECT_EQ(model.named_parameters().size(), expected);
     EXPECT_EQ(model.state_dict().size(), expected);
@@ -319,23 +325,24 @@ TEST(ModelWeightsTest, MoeStateDictHasExactPerExpertTensorCountAndMatchesMapping
     const auto mapping = qwen_style_weight_mapping(config);
     EXPECT_EQ(mapping.size(), expected);
     EXPECT_TRUE(mapping.contains("blocks.0.moe.router.weight"));
-    EXPECT_TRUE(mapping.contains("blocks.1.moe.experts.2.down_proj.weight"));
-    EXPECT_FALSE(mapping.contains("blocks.0.moe.experts.3.gate_proj.weight"));
+    EXPECT_TRUE(mapping.contains("blocks.1.moe.gate_up_proj"));
+    EXPECT_TRUE(mapping.contains("blocks.1.moe.down_proj"));
+    EXPECT_FALSE(mapping.contains("blocks.0.moe.experts.0.gate_proj.weight"));
     EXPECT_FALSE(mapping.contains("blocks.0.feed_forward.gate_proj.weight"));
 }
 
-TEST(ModelWeightsTest, MoeStrictLoadRejectsMissingUnexpectedAndIncompatibleExpertTensors) {
+TEST(ModelWeightsTest, MoeStrictLoadRejectsMissingUnexpectedAndIncompatibleTensors) {
     const auto config = moe_weight_config(/*layers=*/1, /*num_experts=*/3);
     TransformerModel source(config, 403);
     TransformerModel target(config, 409);
     auto broken = source.state_dict();
-    // Missing: a silently-dropped expert tensor is exactly the failure mode
-    // this milestone's exact-count assertion exists to catch.
-    broken.erase("blocks.0.moe.experts.1.down_proj.weight");
+    // Missing: dropping the whole packed expert tensor is this format's
+    // analogue of a silently-dropped expert.
+    broken.erase("blocks.0.moe.down_proj");
     // Incompatible: right name, wrong shape.
-    broken["blocks.0.moe.experts.2.up_proj.weight"] = Tensor::from_vector({1}, {1});
-    // Unexpected: a fourth expert nobody asked for.
-    broken.emplace("blocks.0.moe.experts.3.gate_proj.weight", Tensor::from_vector({1}, {1}));
+    broken["blocks.0.moe.gate_up_proj"] = Tensor::from_vector({1}, {1});
+    // Unexpected: a tensor nobody asked for.
+    broken.emplace("blocks.0.moe.extra_tensor", Tensor::from_vector({1}, {1}));
     const auto before = target.state_dict();
 
     EXPECT_THROW((void)target.load_state_dict(broken), std::invalid_argument);
@@ -350,18 +357,38 @@ TEST(ModelWeightsTest, MoeStrictLoadRejectsMissingUnexpectedAndIncompatibleExper
     EXPECT_EQ(report.loaded.size(), target.named_parameters().size() - 2U);
 }
 
-TEST(ModelWeightsTest, MoeForwardAndAdvancedInferencePreparationAreExplicitlyUnimplemented) {
-    // M5 is weight loading only; forward integration (and every one-way
-    // inference preparation built on it) is explicit M6 scope. Each must fail
-    // loudly rather than silently computing a wrong or partial result.
-    TransformerModel model(moe_weight_config(/*layers=*/1, /*num_experts=*/2), 419);
-    EXPECT_THROW((void)model.forward(tokens()), std::logic_error);
-    EXPECT_THROW((void)model.forward_inference(tokens()), std::logic_error);
+TEST(ModelWeightsTest, MoeForwardProducesFiniteLogitsAndTrainsEveryParameter) {
+    // M6: forward is real now. Checks the whole graph runs end to end
+    // (embedding -> attention -> MoE router/expert_ffn/combine -> logits ->
+    // loss -> backward) and every MoE parameter -- router, the fused
+    // gate_up_proj, and down_proj -- receives a gradient.
+    const auto config = moe_weight_config(/*layers=*/1, /*num_experts=*/2);
+    TransformerModel model(config, 419);
+    const auto logits_value = model.forward(tokens());
+    EXPECT_EQ(logits_value.data().shape(), (Shape{1, 4, config.vocabulary_size}));
+    for (const auto value : logits_value.data().to_vector()) {
+        EXPECT_TRUE(std::isfinite(value));
+    }
+    const auto inference_logits = model.forward_inference(tokens());
+    EXPECT_EQ(inference_logits.shape(), logits_value.data().shape());
+
+    const auto targets = Tensor::from_int32_vector({1, 2, 3, 0}, {1, 4});
+    model.loss(tokens(), targets).backward();
+    for (const auto& [name, parameter] : model.named_parameters()) {
+        EXPECT_TRUE(parameter->has_grad()) << name;
+    }
+}
+
+TEST(ModelWeightsTest, MoeAdvancedInferencePreparationIsStillExplicitlyUnimplemented) {
+    // Forward is implemented (M6), but BF16/FP8/INT8 MoE support is not --
+    // each must still fail loudly rather than silently computing a wrong or
+    // partial result.
+    TransformerModel model(moe_weight_config(/*layers=*/1, /*num_experts=*/2), 423);
     EXPECT_THROW((void)model.prepare_bf16_ffn_inference(), std::logic_error);
 
     auto fp8_config = moe_weight_config(/*layers=*/1, /*num_experts=*/2);
     fp8_config.linear_precision = LinearPrecision::Float8E4M3FNUZ;
-    TransformerModel fp8_model(fp8_config, 421);
+    TransformerModel fp8_model(fp8_config, 429);
     EXPECT_THROW((void)fp8_model.prepare_fp8_inference_weights(), std::logic_error);
 }
 

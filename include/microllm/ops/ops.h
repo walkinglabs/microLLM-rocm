@@ -745,6 +745,18 @@ void swiglu_out_with_implementation_(
 [[nodiscard]] Tensor moe_combine(const Tensor& expert_output, const Tensor& expert_indices,
                                  const Tensor& expert_weights,
                                  const OpContext& context = {});
+// Checkpoint-format adapter (M6), not a routing primitive: Hugging Face's
+// Qwen3MoeExperts stores gate and up fused as one nn.Linear-style parameter
+// per expert, `gate_up_proj` [num_experts, 2*ffn_dim, dim] (output-dim first).
+// This splits it into the two [num_experts, dim, ffn_dim] tensors
+// moe_expert_ffn expects, transposing each half from HF's [out,in] layout to
+// this repo's [in,out] convention in the same step. down_proj needs only a
+// plain transpose(1,2) (no split), so it has no dedicated op.
+[[nodiscard]] TensorPair moe_split_gate_up(const Tensor& gate_up_proj,
+                                           const OpContext& context = {});
+[[nodiscard]] Tensor moe_split_gate_up_backward(
+    const Tensor& gate_gradient, const Tensor& up_gradient,
+    const OpContext& context = {});
 [[nodiscard]] Tensor rope(const Tensor& input, std::int64_t sequence_dim = 1,
                           std::int64_t position_offset = 0, float base = 10000.0F,
                           const OpContext& context = {});

@@ -59,19 +59,30 @@ FP32 `[1,N]`。真实K/N完整输出、零payload传输和少一次逻辑分配�
 反量化和`FusedDecode`按列读取。CPU/HIP完整值与零传输门保留，但官方Qwen精度失败，所以该
 原语不能成为默认模型策略。
 
-## MoE 路由（CPU/HIP readable 前向 + CPU backward 已实现；ROCm 硬件门尚未跑）
+## MoE 路由（CPU/HIP readable 前向 + CPU backward + 真实 model forward 已实现；ROCm 硬件门尚未跑）
 
 CPU reference 见 [M1 CPU reference](development/2026-09-04-m1-qwen3-moe-cpu-reference.md)；
 readable HIP kernel 见 [M2 HIP readable kernels](development/2026-09-04-m2-qwen3-moe-hip-kernels.md)；
 CPU backward + autograd 见 [M3 autograd backward nodes](development/2026-09-04-m3-qwen3-moe-autograd-backward.md)；
 config parsing 见 [M4 config parsing](development/2026-09-04-m4-qwen3-moe-config-parsing.md)；
 weight loading 见 [M5 weight loading](development/2026-09-04-m5-qwen3-moe-weight-loading.md)；
+model-level full-graph gate 见 [M6 model forward](development/2026-09-04-m6-qwen3-moe-model-forward.md)；
 契约设计过程见 [M0 operator contracts](development/2026-09-04-m0-qwen3-moe-op-contracts.md)。
 M2 的 `.hip` kernel 代码在没有 ROCm 工具链的机器上写成，**从未编译或在真实 AMD GPU 上跑过**——
 C++ dispatch 层（`ops.cpp` 里的 `device().is_hip()` 分支）已经在 `MICROLLM_ENABLE_HIP=OFF`
 下编译验证过，但 kernel 本身的三方 CPU/HIP/PyTorch oracle 门（`tests/ops/hip_ops_test.cpp`）
-要等有 AMD GPU 时才能真正跑，见 M2 记录里的说明。M3 的 backward 目前也是 CPU-only（HIP backward
-显式 `throw`），已经用 conda 环境的 CUDA 版 PyTorch 跑过真实的 `TorchOps.OperatorParity` 三方门。
+要等有 AMD GPU 时才能真正跑，见 M2 记录里的说明。M3/M6 新增的 backward 目前也都是 CPU-only
+（HIP 分支显式 `throw`），已经用 conda 环境的 PyTorch（transformers 5.8.0 也在同一环境）跑过真实的
+`TorchOps.OperatorParity` 三方门，M6 的门直接对照未修改的 `Qwen3MoeSparseMoeBlock.forward()`。
+
+**M5→M6 修正**：M5 最初假设专家权重按 per-expert 独立 `gate_proj`/`up_proj`/`down_proj`
+命名（模仿旧式 ModuleList 实现），写 M6 之前用 transformers 5.8.0 实际检查后发现这是错的——
+真实 `Qwen3MoeExperts` 每层只有两个打包 tensor：`gate_up_proj`（gate/up 融合，
+`[num_experts,2*ffn_dim,dim]`，nn.Linear 风格 output-dim 在前）和 `down_proj`
+（`[num_experts,dim,ffn_dim]`），与专家数量无关，一层固定 3 个 MoE tensor（含 router）。
+M5 的内部表示已改为逐字节匹配这个真实布局（`WeightMapping` 因此保持纯 `Identity`，
+不需要新的"按专家切片"能力），拆分+转置成 `moe_expert_ffn` 需要的 `[num_experts,dim,ffn_dim]`
+分开-gate/up 布局的工作挪到了每次 forward 调用时做，见下面的 `moe_split_gate_up`。
 
 第一版故意选择"计算全部专家、掩码非选中"的朴素路径（O(num_experts) 而不是
 O(k) 的 gather/dispatch），把稀疏 dispatch 留给之后的性能里程碑，此处只对
@@ -82,6 +93,7 @@ O(k) 的 gather/dispatch），把稀疏 dispatch 留给之后的性能里程碑�
 | `moe_router_top_k` | logits `[tokens,num_experts]` → indices `[tokens,k]`（Int32）、weights `[tokens,k]`（FP32） | `p=torch.softmax(logits.float(),-1); w,idx=torch.topk(p,k,-1); if norm_topk_prob: w=w/w.sum(-1,keepdim=True)` | `2e-6,2e-5` | 非二维 logits、`k<=0`、`k>num_experts`、非 FP32、HIP 非连续 |
 | `moe_expert_ffn` | input `[tokens,dim]`，expert_indices `[tokens,k]`（Int32），gate/up weight `[num_experts,dim,ffn_dim]`，down weight `[num_experts,ffn_dim,dim]` → `[tokens,num_experts,dim]` | 对每个专家 `e`：`F.silu(x@gate[e]) * (x@up[e]) @ down[e]`，再用 `expert_indices` 生成的 one-hot mask 把未选中专家的输出置零；对全部专家逐个计算（不做 gather） | `2e-6,2e-5` | input/weight `dim` 或 `ffn_dim` 不一致、`expert_indices` 越界、`k>num_experts`、非 FP32 |
 | `moe_combine` | expert_output `[tokens,num_experts,dim]`，expert_indices `[tokens,k]`，expert_weights `[tokens,k]` → `[tokens,dim]` | `sum_j expert_weights[:,j:j+1] * expert_output.gather(1, expert_indices[:,j].view(-1,1,1).expand(-1,1,dim)).squeeze(1)` | 默认 `1e-6,1e-5` | indices/weights 的 `k` 不一致、indices 越界、shape/device 不同 |
+| `moe_split_gate_up`（M6，checkpoint 格式适配器，不是路由原语） | gate_up_proj `[num_experts,2*ffn_dim,dim]`（HF 原生 nn.Linear 布局）→ gate、up 各 `[num_experts,dim,ffn_dim]` | `g,u=gate_up.chunk(2,dim=1); g=g.transpose(1,2); u=u.transpose(1,2)` | 精确（纯 gather/transpose，无浮点运算） | 非三维、`2*ffn_dim` 维度不是偶数、非 FP32 |
 
 ## MoE 路由反向（M3，CPU only；HIP backward 显式 throw）
 
@@ -90,6 +102,7 @@ O(k) 的 gather/dispatch），把稀疏 dispatch 留给之后的性能里程碑�
 | `moe_router_top_k_backward` | logits 梯度 `[tokens,num_experts]` | `p=softmax(logits); w=p.gather(-1,idx); (renorm); (w*seed).sum().backward()` | indices 不可微，只作为常量；由于 softmax 分母耦合全部专家，**每个 logit 都会收到非零梯度**，不是稀疏的——这是正确的稠密 softmax Jacobian，不是 bug。内部复用 `softmax`/`softmax_backward`，不是独立公式 |
 | `moe_expert_ffn_backward` | `{input, gate_weight, up_weight, down_weight}` 四个梯度 | 对每个专家的 dense SwiGLU FFN 反向，`torch.autograd` 直接对 forward 求导 | 前向对未选中 `(token,expert)` 输出恒为零，其局部 Jacobian 对该专家权重也恒为零，因此专家权重梯度只由选中过该专家的 token 贡献——效果等价于 `embedding_backward` 的 scatter-add，但这里是 mask-multiply 的自然结果，不是手写 scatter |
 | `moe_combine_backward` | `{expert_output, expert_weights}` 两个梯度 | 对 `moe_combine` 公式直接求导 | `expert_output` 梯度是真正的 scatter-add：只有被 `moe_combine` 前向实际读取过的 `(token,expert)` 位置才非零 |
+| `moe_split_gate_up_backward` | gate_up_proj 梯度 `[num_experts,2*ffn_dim,dim]` | PyTorch 对 `chunk`+`transpose` 组合执行 autograd | 是前向 gather 的精确逆 scatter；`autograd::moe_split_gate_up` 让 gate/up 各自的 backward 只填自己那一半（不重叠），靠现有 `accumulate()` 的求和行为拼回完整梯度，不需要一个联合的双输入 backward |
 
 `autograd::moe_router_top_k`（返回 `MoeRouterResult{Tensor indices; Value weights;}`）、
 `autograd::moe_expert_ffn`、`autograd::moe_combine` 是对应的 Value 级别封装，`indices`

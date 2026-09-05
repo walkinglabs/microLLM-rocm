@@ -98,6 +98,7 @@ private:
     friend Value moe_expert_ffn(const Value&, const Tensor&, const Value&,
                                 const Value&, const Value&);
     friend Value moe_combine(const Value&, const Tensor&, const Value&);
+    friend std::pair<Value, Value> moe_split_gate_up(const Value&);
     friend Value contiguous(const Value&);
     friend Value causal_softmax(const Value&);
     friend Value causal_gqa_attention(const Value&, const Value&, const Value&,
@@ -184,6 +185,11 @@ struct MoeRouterResult {
                                    const Value& down_weight);
 [[nodiscard]] Value moe_combine(const Value& expert_output, const Tensor& expert_indices,
                                 const Value& expert_weights);
+// Checkpoint-format adapter (M6): splits Hugging Face Qwen3MoeExperts'
+// fused gate_up_proj [num_experts, 2*ffn_dim, dim] into the two
+// [num_experts, dim, ffn_dim] Values moe_expert_ffn expects. Not a routing
+// primitive -- see ops.h's moe_split_gate_up for the exact layout contract.
+[[nodiscard]] std::pair<Value, Value> moe_split_gate_up(const Value& gate_up_proj);
 [[nodiscard]] Value contiguous(const Value& input);
 [[nodiscard]] Value causal_softmax(const Value& scores);
 [[nodiscard]] Value causal_gqa_attention(const Value& query, const Value& key,

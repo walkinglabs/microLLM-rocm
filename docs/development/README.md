@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-09-04: M6 Qwen3 MoE model-level full-graph gate](2026-09-04-m6-qwen3-moe-model-forward.md)
 - [2026-09-04: M5 Qwen3 MoE weight loading](2026-09-04-m5-qwen3-moe-weight-loading.md)
 - [2026-09-04: M4 Qwen3 MoE config parsing](2026-09-04-m4-qwen3-moe-config-parsing.md)
 - [2026-09-04: M3 Qwen3 MoE autograd backward nodes](2026-09-04-m3-qwen3-moe-autograd-backward.md)
