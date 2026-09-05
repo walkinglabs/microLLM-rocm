@@ -181,6 +181,269 @@ TEST(CpuOpsTest, BiasBroadcastAndReductionMatchHandValues) {
                  std::invalid_argument);
 }
 
+TEST(CpuOpsTest, MoeRouterTopKMatchesHandValuesAndRejectsIllegalInputs) {
+    const auto logits = Tensor::from_vector({0, 1, 2}, {1, 3});
+    // softmax([0,1,2]) top-2 are experts {2,1}; the two-value renormalization
+    // collapses to sigmoid(+-1), which is exact to compute by hand.
+    const auto normalized = moe_router_top_k(logits, 2, /*norm_topk_prob=*/true);
+    EXPECT_EQ(normalized.first.to_int32_vector(), (std::vector<std::int32_t>{2, 1}));
+    expect_near(normalized.second.to_vector(), {0.7310585786F, 0.2689414214F}, 1.0e-6F);
+
+    const auto unnormalized = moe_router_top_k(logits, 2, /*norm_topk_prob=*/false);
+    EXPECT_EQ(unnormalized.first.to_int32_vector(), (std::vector<std::int32_t>{2, 1}));
+    expect_near(unnormalized.second.to_vector(), {0.6652409557F, 0.2447284711F}, 1.0e-6F);
+
+    EXPECT_THROW((void)moe_router_top_k(Tensor::from_vector({1, 2, 3}, {3}), 2, true),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_router_top_k(logits, 0, true), std::invalid_argument);
+    EXPECT_THROW((void)moe_router_top_k(logits, 4, true), std::invalid_argument);
+    EXPECT_THROW((void)moe_router_top_k(logits.cast(DType::BFloat16), 2, true),
+                 std::invalid_argument);
+}
+
+TEST(CpuOpsTest, MoeExpertFfnMatchesHandValuesAndMasksNonSelectedExperts) {
+    const auto input = Tensor::from_vector({1, 2}, {1, 2});
+    const auto expert_indices = Tensor::from_int32_vector({0}, {1, 1});
+    const auto gate_weight = Tensor::from_vector(
+        {1, 0, 0, 1, 1, 1, 1, 1}, {2, 2, 2});
+    const auto up_weight = Tensor::from_vector(
+        {1, 0, 0, 1, 2, 2, 2, 2}, {2, 2, 2});
+    const auto down_weight = Tensor::from_vector(
+        {1, 0, 0, 1, 1, 1, 1, 1}, {2, 2, 2});
+    const auto output = moe_expert_ffn(input, expert_indices, gate_weight, up_weight, down_weight);
+    EXPECT_EQ(output.shape(), (Shape{1, 2, 2}));
+    // Expert 0 is identity gate/up/down: silu([1,2]) * [1,2], matmul'd through identity.
+    expect_near(output.to_vector(), {0.7310585786F, 3.5231883120F, 0.0F, 0.0F}, 1.0e-5F);
+
+    EXPECT_THROW((void)moe_expert_ffn(input.reshape({2}), expert_indices, gate_weight,
+                                      up_weight, down_weight),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_expert_ffn(input, expert_indices, gate_weight,
+                                      Tensor::from_vector({1, 0, 0, 1}, {1, 2, 2}), down_weight),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_expert_ffn(input, expert_indices, gate_weight, up_weight,
+                                      Tensor::from_vector({1, 0, 0, 1}, {1, 2, 2})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_expert_ffn(input, Tensor::from_int32_vector({5}, {1, 1}), gate_weight,
+                                      up_weight, down_weight),
+                 std::out_of_range);
+    EXPECT_THROW((void)moe_expert_ffn(input, Tensor::from_vector({0}, {1, 1}), gate_weight,
+                                      up_weight, down_weight),
+                 std::invalid_argument);
+}
+
+TEST(CpuOpsTest, MoeCombineMatchesHandValuesAndRejectsIllegalInputs) {
+    const auto expert_output = Tensor::from_vector({1, 2, 3, 4}, {1, 2, 2});
+    const auto expert_indices = Tensor::from_int32_vector({1}, {1, 1});
+    const auto expert_weights = Tensor::from_vector({0.5F}, {1, 1});
+    expect_near(moe_combine(expert_output, expert_indices, expert_weights).to_vector(),
+                {1.5F, 2.0F});
+
+    EXPECT_THROW((void)moe_combine(expert_output, expert_indices,
+                                   Tensor::from_vector({0.5F, 1.0F, 1.5F}, {1, 3})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_combine(expert_output, Tensor::from_int32_vector({5}, {1, 1}),
+                                   expert_weights),
+                 std::out_of_range);
+    EXPECT_THROW((void)moe_combine(expert_output.reshape({2, 2}), expert_indices, expert_weights),
+                 std::invalid_argument);
+}
+
+TEST(CpuOpsTest, MoeRouterTopKBackwardMatchesFiniteDifferenceAndRejectsIllegalInputs) {
+    const auto logits = Tensor::from_vector({0.2F, 1.1F, -0.5F, 0.7F}, {1, 4});
+    constexpr std::int64_t k = 2;
+    constexpr bool norm_topk_prob = true;
+    const auto forward = moe_router_top_k(logits, k, norm_topk_prob);
+    const auto seed = Tensor::from_vector({0.6F, -0.3F}, {1, k});
+    const auto analytic = moe_router_top_k_backward(logits, forward.first, norm_topk_prob, seed)
+                              .to_vector();
+    const auto seed_values = seed.to_vector();
+    const auto index_values = forward.first.to_int32_vector();
+
+    // Top-k selection itself is not differentiable, so the finite-difference
+    // check holds the selected indices fixed and only perturbs the continuous
+    // softmax + optional renormalization path -- exactly what PyTorch autograd
+    // does when it treats torch.topk's indices as constant.
+    const auto weighted_loss = [&](const Tensor& perturbed_logits) {
+        const auto probabilities = softmax(perturbed_logits, -1).to_vector();
+        std::vector<float> raw(static_cast<std::size_t>(k));
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            raw[static_cast<std::size_t>(slot)] =
+                probabilities[static_cast<std::size_t>(index_values[static_cast<std::size_t>(slot)])];
+        }
+        if (norm_topk_prob) {
+            float sum = 0.0F;
+            for (const auto value : raw) sum += value;
+            for (auto& value : raw) value /= sum;
+        }
+        float total = 0.0F;
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            total += seed_values[static_cast<std::size_t>(slot)] * raw[static_cast<std::size_t>(slot)];
+        }
+        return total;
+    };
+    constexpr float epsilon = 1.0e-3F;
+    auto logits_values = logits.to_vector();
+    for (std::size_t index = 0; index < logits_values.size(); ++index) {
+        auto plus = logits_values;
+        auto minus = logits_values;
+        plus[index] += epsilon;
+        minus[index] -= epsilon;
+        const auto numerical =
+            (weighted_loss(Tensor::from_vector(plus, logits.shape())) -
+             weighted_loss(Tensor::from_vector(minus, logits.shape()))) /
+            (2.0F * epsilon);
+        EXPECT_NEAR(analytic[index], numerical, 5.0e-3F) << "index=" << index;
+    }
+
+    EXPECT_THROW((void)moe_router_top_k_backward(
+                     logits.reshape({4}), forward.first, norm_topk_prob, seed),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_router_top_k_backward(
+                     logits, forward.first, norm_topk_prob, Tensor::from_vector({1}, {1, 1})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_router_top_k_backward(
+                     logits, Tensor::from_int32_vector({5, 1}, {1, 2}), norm_topk_prob, seed),
+                 std::out_of_range);
+}
+
+TEST(CpuOpsTest, MoeExpertFfnBackwardMatchesFiniteDifferenceAndZerosNonSelectedExperts) {
+    const auto input = Tensor::from_vector({1, 2}, {1, 2});
+    const auto expert_indices = Tensor::from_int32_vector({0}, {1, 1});
+    const auto gate_weight = Tensor::from_vector({1, 0, 0, 1, 1, 1, 1, 1}, {2, 2, 2});
+    const auto up_weight = Tensor::from_vector({1, 0, 0, 1, 2, 2, 2, 2}, {2, 2, 2});
+    const auto down_weight = Tensor::from_vector({1, 0, 0, 1, 1, 1, 1, 1}, {2, 2, 2});
+    const auto seed = Tensor::from_vector({0.5F, -1.0F, 0.25F, 2.0F}, {1, 2, 2});
+    const auto gradients = moe_expert_ffn_backward(
+        input, expert_indices, gate_weight, up_weight, down_weight, seed);
+
+    // Expert 1 was never selected: forward output for it is identically zero
+    // regardless of its own weights (masked, not merely small), so its weight
+    // rows -- the second half of each flattened [num_experts,...] gradient --
+    // must be exact zero, the same strictness as embedding_backward's untouched
+    // vocabulary rows.
+    const auto gate_grad = gradients.second.to_vector();
+    const auto up_grad = gradients.third.to_vector();
+    const auto down_grad = gradients.fourth.to_vector();
+    for (std::size_t index = 4; index < 8; ++index) {
+        EXPECT_EQ(gate_grad[index], 0.0F);
+        EXPECT_EQ(up_grad[index], 0.0F);
+        EXPECT_EQ(down_grad[index], 0.0F);
+    }
+
+    const auto seed_values = seed.to_vector();
+    const auto loss_of = [&](const Tensor& in, const Tensor& gw, const Tensor& uw,
+                             const Tensor& dw) {
+        const auto output = moe_expert_ffn(in, expert_indices, gw, uw, dw).to_vector();
+        float total = 0.0F;
+        for (std::size_t index = 0; index < output.size(); ++index) {
+            total += output[index] * seed_values[index];
+        }
+        return total;
+    };
+    constexpr float epsilon = 1.0e-3F;
+    const auto finite_difference = [&](const std::vector<float>& values, const Shape& shape,
+                                       int which, const std::vector<float>& analytic) {
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            auto plus = values;
+            auto minus = values;
+            plus[index] += epsilon;
+            minus[index] -= epsilon;
+            const auto plus_tensor = Tensor::from_vector(plus, shape);
+            const auto minus_tensor = Tensor::from_vector(minus, shape);
+            float loss_plus = 0.0F;
+            float loss_minus = 0.0F;
+            switch (which) {
+                case 0:
+                    loss_plus = loss_of(plus_tensor, gate_weight, up_weight, down_weight);
+                    loss_minus = loss_of(minus_tensor, gate_weight, up_weight, down_weight);
+                    break;
+                case 1:
+                    loss_plus = loss_of(input, plus_tensor, up_weight, down_weight);
+                    loss_minus = loss_of(input, minus_tensor, up_weight, down_weight);
+                    break;
+                case 2:
+                    loss_plus = loss_of(input, gate_weight, plus_tensor, down_weight);
+                    loss_minus = loss_of(input, gate_weight, minus_tensor, down_weight);
+                    break;
+                default:
+                    loss_plus = loss_of(input, gate_weight, up_weight, plus_tensor);
+                    loss_minus = loss_of(input, gate_weight, up_weight, minus_tensor);
+                    break;
+            }
+            const auto numerical = (loss_plus - loss_minus) / (2.0F * epsilon);
+            EXPECT_NEAR(analytic[index], numerical, 5.0e-3F)
+                << "which=" << which << " index=" << index;
+        }
+    };
+    finite_difference(input.to_vector(), input.shape(), 0, gradients.first.to_vector());
+    finite_difference(gate_weight.to_vector(), gate_weight.shape(), 1, gate_grad);
+    finite_difference(up_weight.to_vector(), up_weight.shape(), 2, up_grad);
+    finite_difference(down_weight.to_vector(), down_weight.shape(), 3, down_grad);
+
+    EXPECT_THROW((void)moe_expert_ffn_backward(input.reshape({2}), expert_indices, gate_weight,
+                                               up_weight, down_weight, seed),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_expert_ffn_backward(input, expert_indices, gate_weight, up_weight,
+                                               down_weight, Tensor::from_vector({1, 2}, {1, 2})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_expert_ffn_backward(input, Tensor::from_int32_vector({5}, {1, 1}),
+                                               gate_weight, up_weight, down_weight, seed),
+                 std::out_of_range);
+}
+
+TEST(CpuOpsTest, MoeCombineBackwardScattersOnlyIntoSelectedExpertRows) {
+    const auto expert_output = Tensor::from_vector({1, 2, 3, 4}, {1, 2, 2});
+    const auto expert_indices = Tensor::from_int32_vector({1}, {1, 1});
+    const auto expert_weights = Tensor::from_vector({0.5F}, {1, 1});
+    const auto seed = Tensor::from_vector({0.3F, -0.7F}, {1, 2});
+    const auto gradients =
+        moe_combine_backward(expert_output, expert_indices, expert_weights, seed);
+
+    // Expert 0 was never read by combine's forward: its output-gradient row
+    // must be exact zero, not merely small (the same scatter-add strictness as
+    // embedding_backward's untouched vocabulary rows).
+    const auto output_gradient = gradients.first.to_vector();
+    EXPECT_EQ(output_gradient[0], 0.0F);
+    EXPECT_EQ(output_gradient[1], 0.0F);
+    expect_near({output_gradient[2], output_gradient[3]}, {0.5F * 0.3F, 0.5F * -0.7F});
+    // weight gradient is dot(expert_output[selected expert row], seed).
+    expect_near(gradients.second.to_vector(), {3.0F * 0.3F + 4.0F * -0.7F});
+
+    EXPECT_THROW((void)moe_combine_backward(expert_output, expert_indices, expert_weights,
+                                            Tensor::from_vector({1, 2, 3}, {1, 3})),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_combine_backward(expert_output.reshape({2, 2}), expert_indices,
+                                            expert_weights, seed),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_combine_backward(expert_output, Tensor::from_int32_vector({5}, {1, 1}),
+                                            expert_weights, seed),
+                 std::out_of_range);
+}
+
+TEST(CpuOpsTest, MoeStackExpertsMatchesHandValuesAndRoundTripsThroughBackward) {
+    // Real Qwen3-MoE checkpoints store each expert's projection as its own
+    // separate tensor (confirmed against a downloaded checkpoint and the
+    // official Qwen/Qwen3-30B-A3B's safetensors index -- M6 briefly assumed a
+    // fused layout after reading only transformers' in-memory module source).
+    // moe_stack_experts assembles those separate tensors into the packed
+    // [num_experts,rows,cols] shape moe_expert_ffn expects.
+    const auto expert0 = Tensor::from_vector({1, 2, 3, 4}, {2, 2});
+    const auto expert1 = Tensor::from_vector({5, 6, 7, 8}, {2, 2});
+    const auto stacked = moe_stack_experts({expert0, expert1});
+    EXPECT_EQ(stacked.shape(), (Shape{2, 2, 2}));
+    expect_near(stacked.to_vector(), {1, 2, 3, 4, 5, 6, 7, 8});
+
+    expect_near(moe_stack_experts_backward_one(stacked, 0).to_vector(), {1, 2, 3, 4});
+    expect_near(moe_stack_experts_backward_one(stacked, 1).to_vector(), {5, 6, 7, 8});
+
+    EXPECT_THROW((void)moe_stack_experts({}), std::invalid_argument);
+    EXPECT_THROW((void)moe_stack_experts({expert0, Tensor::from_vector({1, 2, 3}, {3})}),
+                 std::invalid_argument);
+    EXPECT_THROW((void)moe_stack_experts_backward_one(expert0, 0), std::invalid_argument);
+    EXPECT_THROW((void)moe_stack_experts_backward_one(stacked, 2), std::out_of_range);
+}
+
 TEST(CpuOpsTest, FusedSplitHalfRopeBiasMatchesComposedProjectionPath) {
     const auto flat = Tensor::from_vector(
         {1, 2, 3, 4, 5, 6, 7, 8,

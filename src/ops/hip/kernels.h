@@ -109,6 +109,23 @@ void launch_silu_typed(const void* input, void* output, DType dtype,
 void launch_swiglu_typed(const void* gate, const void* up, void* output, DType dtype,
                          std::int64_t elements, void* stream = nullptr,
                          bool vectorized = false);
+// MoE routing readable kernels. Contract: docs/OPERATOR_CONTRACTS.zh-CN.md, "MoE
+// 路由"; math mirrors the CPU reference in ops.cpp exactly (same tie-break order
+// for top-k, same compute-all-experts-then-mask FFN).
+void launch_moe_router_top_k(const float* logits, std::int32_t* indices, float* weights,
+                             std::int64_t tokens, std::int64_t num_experts,
+                             std::int64_t k, bool norm_topk_prob, void* stream = nullptr);
+// hidden_workspace is caller-allocated [tokens, num_experts, ffn_dim] FP32 scratch.
+void launch_moe_expert_ffn(const float* input, const std::int32_t* expert_indices,
+                           const float* gate_weight, const float* up_weight,
+                           const float* down_weight, float* hidden_workspace,
+                           float* output, std::int64_t tokens, std::int64_t num_experts,
+                           std::int64_t k, std::int64_t dim, std::int64_t ffn_dim,
+                           void* stream = nullptr);
+void launch_moe_combine(const float* expert_output, const std::int32_t* expert_indices,
+                        const float* expert_weights, float* output,
+                        std::int64_t tokens, std::int64_t num_experts,
+                        std::int64_t k, std::int64_t dim, void* stream = nullptr);
 void launch_quantize_fp8(const void* input, DType input_dtype, void* output,
                          DType fp8_dtype, std::int64_t elements, float inverse_scale,
                          void* stream = nullptr);

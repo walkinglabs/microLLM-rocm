@@ -1650,11 +1650,41 @@ int main(int argc, char** argv) {
         model.to(device);
         microllm::model::LoadWeightsOptions load_options;
         load_options.mapping = microllm::model::qwen_style_weight_mapping(external.model);
-        load_options.aliases =
-            microllm::model::qwen3_tied_weight_aliases(external.model);
+        // qwen3_tied_weight_aliases declares "lm_head.weight" as a mandatory
+        // redundant tensor whenever qk_norm+tie_embeddings hold, matching
+        // checkpoints observed for dense Qwen3 -- but not every real tied
+        // checkpoint actually serializes that redundant tensor (a Qwen3-MoE
+        // fixture prepared for M7 does not). Only apply the alias when the
+        // weight file genuinely contains it, so a legitimately absent
+        // redundant tensor doesn't get strict-mode-reported as "missing".
+        const auto declared_aliases = microllm::model::qwen3_tied_weight_aliases(external.model);
+        if (!declared_aliases.empty()) {
+            const auto weights_path = std::filesystem::path(command.weights);
+            const auto has_tensor = [&](const std::string& name) {
+                if (weights_path.extension() == ".json") {
+                    const auto index = microllm::io::inspect_safetensors_index(weights_path);
+                    return index.contains(name);
+                }
+                const auto tensors = microllm::io::inspect_safetensors(weights_path);
+                return std::any_of(tensors.begin(), tensors.end(),
+                                   [&](const auto& info) { return info.name == name; });
+            };
+            for (const auto& [source_alias, target] : declared_aliases) {
+                if (has_tensor(source_alias)) load_options.aliases[source_alias] = target;
+            }
+        }
         const auto load_start = std::chrono::steady_clock::now();
         const auto report = model.load_safetensors(command.weights, load_options);
         const auto load_finish = std::chrono::steady_clock::now();
+        // external.model.weight_bytes() throws for MoE configs (the exact
+        // per-expert layout is a weight-loading concern, not a config-formula
+        // one -- see ModelConfig::parameter_count()). model.parameter_count()
+        // sums the model's own live named_parameters(), which already
+        // reflects the real loaded weights for both dense and MoE models, so
+        // it is used as the FP32-resident-bytes basis for every model rather
+        // than only working around MoE here.
+        const auto stored_weight_bytes =
+            static_cast<std::uint64_t>(model.parameter_count()) * sizeof(float);
         microllm::model::Bf16FfnPreparationReport bf16_report;
         microllm::model::Bf16FfnDecodeUpPreparationReport
             bf16_decode_up_report;
@@ -2036,7 +2066,7 @@ int main(int argc, char** argv) {
                                         device, "host CPU", "host"}
                                   : microllm::runtime::device_info(device);
             const auto resident_weight_bytes =
-                external.model.weight_bytes(sizeof(float)) -
+                stored_weight_bytes -
                 bf16_report.fp32_bytes_released +
                 bf16_report.bf16_bytes_retained -
                 bf16_attention_report.fp32_bytes_released +
@@ -2948,7 +2978,7 @@ int main(int argc, char** argv) {
                   << ",\"int8_device_amax_tensors\":"
                   << int8_report.device_amax_tensors
                   << ",\"resident_weight_bytes\":"
-                  << external.model.weight_bytes(sizeof(float)) -
+                  << stored_weight_bytes -
                          bf16_report.fp32_bytes_released +
                          bf16_report.bf16_bytes_retained -
                          bf16_attention_report.fp32_bytes_released +
@@ -2966,7 +2996,7 @@ int main(int argc, char** argv) {
                   << "\""
                   << ",\"parameter_count\":" << model.parameter_count()
                   << ",\"fp32_weight_bytes\":"
-                  << external.model.weight_bytes(sizeof(float))
+                  << stored_weight_bytes
                   << ",\"loaded_tensors\":" << report.loaded.size()
                   << ",\"token_count\":" << ids.size()
                   << ",\"batch\":" << command.batch

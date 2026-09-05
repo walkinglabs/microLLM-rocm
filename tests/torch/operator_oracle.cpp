@@ -52,6 +52,28 @@ Tensor f32(std::vector<float> values, Shape shape) {
     return Tensor::from_vector(values, std::move(shape));
 }
 
+// Deterministic fixture values shared byte-for-byte with the Python side
+// (python/tests/test_operator_parity.py's det()): pure integer arithmetic on
+// the flat index, no RNG library to keep in sync across languages.
+Tensor deterministic_values(Shape shape, int offset) {
+    std::int64_t numel = 1;
+    for (const auto dimension : shape) numel *= dimension;
+    std::vector<float> values(static_cast<std::size_t>(numel));
+    for (std::int64_t index = 0; index < numel; ++index) {
+        const auto raw = (index * 37 + 11 + static_cast<std::int64_t>(offset) * 97) % 23 - 11;
+        values[static_cast<std::size_t>(index)] = static_cast<float>(raw) * 0.05F;
+    }
+    return Tensor::from_vector(std::move(values), std::move(shape));
+}
+
+// emit() only accepts floating tensors; router indices are small enough
+// that the exact int->float conversion loses nothing.
+Tensor int32_as_float(const Tensor& indices) {
+    const auto values = indices.to_int32_vector();
+    return Tensor::from_vector(std::vector<float>(values.begin(), values.end()),
+                               indices.shape());
+}
+
 void emit_forward_cases() {
     using namespace microllm::ops;
     Tensor filled({2, 3});
@@ -150,6 +172,26 @@ void emit_forward_cases() {
     emit("rms_norm", rms_norm(nonlinear, f32({1, 0.5F, 2}, {3})));
     emit("silu", silu(left));
     emit("swiglu", swiglu(left, right));
+
+    const auto moe_router_logits = f32(
+        {2, 1, 0, -1, -1, 0, 2, 1, 0.1F, 0.4F, 0.3F, 0.2F}, {3, 4});
+    const auto moe_router_result = moe_router_top_k(moe_router_logits, 2, true);
+    emit("moe_router_top_k_indices", int32_as_float(moe_router_result.first));
+    emit("moe_router_top_k_weights", moe_router_result.second);
+
+    const auto moe_ffn_input = f32({1, 0, 0, 1}, {2, 2});
+    const auto moe_ffn_indices = Tensor::from_int32_vector({1, 0}, {2, 1});
+    const auto moe_gate_weight = f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2});
+    const auto moe_up_weight = f32({1, 1, 1, 1, 2, 0, 0, 2}, {2, 2, 2});
+    const auto moe_down_weight = f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2});
+    emit("moe_expert_ffn", moe_expert_ffn(
+        moe_ffn_input, moe_ffn_indices, moe_gate_weight, moe_up_weight, moe_down_weight));
+
+    const auto moe_combine_output = f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2});
+    const auto moe_combine_indices = Tensor::from_int32_vector({1, 0}, {2, 1});
+    const auto moe_combine_weights = f32({0.5F, 2.0F}, {2, 1});
+    emit("moe_combine", moe_combine(
+        moe_combine_output, moe_combine_indices, moe_combine_weights));
 
     const auto rope_input = f32({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4});
     emit("rope", rope(rope_input));
@@ -469,6 +511,51 @@ void emit_graph_gradient_cases() {
     emit("graph_swiglu_gate_grad", gate.grad());
     emit("graph_swiglu_up_grad", up.grad());
 
+    Value moe_router_graph_logits(
+        f32({2, 1, 0, -1, -1, 0, 2, 1, 0.1F, 0.4F, 0.3F, 0.2F}, {3, 4}), true);
+    const auto moe_router_graph_result =
+        moe_router_top_k(moe_router_graph_logits, 2, true);
+    const Value moe_router_graph_seed(
+        f32({0.6F, -0.3F, 0.4F, 0.1F, -0.5F, 0.2F}, {3, 2}));
+    sum(multiply(moe_router_graph_result.weights, moe_router_graph_seed)).backward();
+    emit("graph_moe_router_top_k_logits_grad", moe_router_graph_logits.grad());
+
+    Value moe_ffn_graph_input(f32({1, 0, 0, 1}, {2, 2}), true);
+    const auto moe_ffn_graph_indices = Tensor::from_int32_vector({1, 0}, {2, 1});
+    Value moe_ffn_graph_gate(f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}), true);
+    Value moe_ffn_graph_up(f32({1, 1, 1, 1, 2, 0, 0, 2}, {2, 2, 2}), true);
+    Value moe_ffn_graph_down(f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}), true);
+    const Value moe_ffn_graph_seed(
+        f32({0.5F, -1, 0.25F, 2, 1, -0.5F, 0.75F, -0.25F}, {2, 2, 2}));
+    sum(multiply(moe_expert_ffn(moe_ffn_graph_input, moe_ffn_graph_indices, moe_ffn_graph_gate,
+                                moe_ffn_graph_up, moe_ffn_graph_down),
+                moe_ffn_graph_seed))
+        .backward();
+    emit("graph_moe_expert_ffn_input_grad", moe_ffn_graph_input.grad());
+    emit("graph_moe_expert_ffn_gate_weight_grad", moe_ffn_graph_gate.grad());
+    emit("graph_moe_expert_ffn_up_weight_grad", moe_ffn_graph_up.grad());
+    emit("graph_moe_expert_ffn_down_weight_grad", moe_ffn_graph_down.grad());
+
+    Value moe_combine_graph_output(f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}), true);
+    const auto moe_combine_graph_indices = Tensor::from_int32_vector({1, 0}, {2, 1});
+    Value moe_combine_graph_weights(f32({0.5F, 2.0F}, {2, 1}), true);
+    const Value moe_combine_graph_seed(f32({0.3F, -0.7F, 1.0F, 0.2F}, {2, 2}));
+    sum(multiply(moe_combine(moe_combine_graph_output, moe_combine_graph_indices,
+                             moe_combine_graph_weights),
+                moe_combine_graph_seed))
+        .backward();
+    emit("graph_moe_combine_output_grad", moe_combine_graph_output.grad());
+    emit("graph_moe_combine_weights_grad", moe_combine_graph_weights.grad());
+
+    Value moe_stack_graph_expert0(f32({1, 2, 3, 4}, {2, 2}), true);
+    Value moe_stack_graph_expert1(f32({5, 6, 7, 8}, {2, 2}), true);
+    auto moe_stack_graph_stacked =
+        moe_stack_experts({moe_stack_graph_expert0, moe_stack_graph_expert1});
+    const Value moe_stack_graph_seed(f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}));
+    sum(multiply(moe_stack_graph_stacked, moe_stack_graph_seed)).backward();
+    emit("graph_moe_stack_experts_expert0_grad", moe_stack_graph_expert0.grad());
+    emit("graph_moe_stack_experts_expert1_grad", moe_stack_graph_expert1.grad());
+
     Value rope_input(f32({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4}), true);
     const Value rope_seed(f32({1, 2, 3, 4, -1, -2, -3, -4}, {1, 2, 1, 4}));
     sum(multiply(rope(rope_input), rope_seed)).backward();
@@ -627,6 +714,48 @@ void emit_invalid_shape_cases() {
                   (void)silu(Tensor::from_int32_vector({1, 2}, {2}));
               }));
     emit_bool("invalid_swiglu_shape", rejected([&] { (void)swiglu(matrix, vector); }));
+    emit_bool("invalid_moe_router_top_k_shape", rejected([&] {
+                  (void)moe_router_top_k(f32({1, 2, 3}, {3}), 2, true);
+              }));
+    emit_bool("invalid_moe_expert_ffn_shape", rejected([&] {
+                  (void)moe_expert_ffn(
+                      f32({1, 0, 0, 1}, {2, 2}), Tensor::from_int32_vector({1, 0}, {2, 1}),
+                      f32({1, 2, 3, 4}, {2, 2}),
+                      f32({1, 1, 1, 1, 2, 0, 0, 2}, {2, 2, 2}),
+                      f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}));
+              }));
+    emit_bool("invalid_moe_combine_shape", rejected([&] {
+                  (void)moe_combine(
+                      f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}),
+                      Tensor::from_int32_vector({1, 0}, {2, 1}),
+                      f32({0.5F, 2.0F, 1.0F}, {3}));
+              }));
+    emit_bool("invalid_moe_router_top_k_backward_shape", rejected([&] {
+                  (void)moe_router_top_k_backward(
+                      f32({1, 2, 3}, {3}), Tensor::from_int32_vector({0}, {1, 1}), true,
+                      f32({1}, {1, 1}));
+              }));
+    emit_bool("invalid_moe_expert_ffn_backward_shape", rejected([&] {
+                  (void)moe_expert_ffn_backward(
+                      f32({1, 0, 0, 1}, {2, 2}), Tensor::from_int32_vector({1, 0}, {2, 1}),
+                      f32({1, 2, 3, 4}, {2, 2}),
+                      f32({1, 1, 1, 1, 2, 0, 0, 2}, {2, 2, 2}),
+                      f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}),
+                      f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}));
+              }));
+    emit_bool("invalid_moe_combine_backward_shape", rejected([&] {
+                  (void)moe_combine_backward(
+                      f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}),
+                      Tensor::from_int32_vector({1, 0}, {2, 1}),
+                      f32({0.5F, 2.0F, 1.0F}, {3}), f32({1, 2, 3, 4}, {2, 2}));
+              }));
+    emit_bool("invalid_moe_stack_experts_shape", rejected([&] {
+                  (void)moe_stack_experts(
+                      {f32({1, 2, 3, 4}, {2, 2}), f32({1, 2, 3}, {3})});
+              }));
+    emit_bool("invalid_moe_stack_experts_backward_shape", rejected([&] {
+                  (void)moe_stack_experts_backward_one(f32({1, 2, 3, 4}, {2, 2}), 0);
+              }));
     emit_bool("invalid_rope_width", rejected([&] { (void)rope(f32({1, 2, 3}, {1, 1, 3})); }));
     emit_bool("invalid_rope_split_half_width", rejected([&] {
                   (void)rope_split_half(f32({1, 2, 3}, {1, 1, 3}));
@@ -896,6 +1025,65 @@ void emit_optimizer_cases() {
     emit("optimizer_bf16_moment_mirror_step32", bf16_mirror);
 }
 
+// M6/M7 model-level full-graph gate for the MoE FFN specifically (not the
+// whole model): reproduces exactly the sequence of calls
+// MoeFeedForward::forward() makes -- matmul (router logits) ->
+// moe_router_top_k -> moe_stack_experts (x3: gate/up/down) -> moe_expert_ffn
+// -> moe_combine -- so the Python side can compare it against Hugging Face's
+// actual, unmodified Qwen3MoeSparseMoeBlock.forward() rather than a
+// hand-rolled equivalent, per this milestone's test standard. Per-expert
+// separate weights (not a fused gate_up_proj) because that is what a real
+// Qwen3-MoE checkpoint actually stores on disk -- confirmed by downloading
+// one and by inspecting Qwen/Qwen3-30B-A3B's safetensors index; M6 initially
+// assumed a fused layout after reading only transformers' current in-memory
+// module source. Attention/embedding are deliberately out of scope here: they
+// are unchanged by this milestone and have their own existing oracle
+// (emit_model_graph_case above); conflating the two would make a MoE-specific
+// gate fail on a pre-existing, unrelated RoPE/attention convention question
+// instead of on anything this milestone actually changed.
+void emit_moe_model_gate_case() {
+    using namespace microllm::autograd;
+    constexpr std::int64_t tokens = 3;
+    constexpr std::int64_t dim = 4;
+    constexpr std::int64_t num_experts = 4;
+    constexpr std::int64_t k = 2;
+    constexpr std::int64_t ffn_dim = 3;
+    constexpr bool norm_topk_prob = true;
+
+    Value input(deterministic_values({tokens, dim}, 0), true);
+    Value router_weight(deterministic_values({dim, num_experts}, 1), true);
+    std::vector<Value> gate_experts;
+    std::vector<Value> up_experts;
+    std::vector<Value> down_experts;
+    for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+        const auto base = static_cast<int>(10 + expert * 3);
+        gate_experts.emplace_back(deterministic_values({dim, ffn_dim}, base + 0), true);
+        up_experts.emplace_back(deterministic_values({dim, ffn_dim}, base + 1), true);
+        down_experts.emplace_back(deterministic_values({ffn_dim, dim}, base + 2), true);
+    }
+    const Value seed(deterministic_values({tokens, dim}, 100));
+
+    auto logits = matmul(input, router_weight);
+    auto routed = moe_router_top_k(logits, k, norm_topk_prob);
+    auto gate_weight = moe_stack_experts(gate_experts);
+    auto up_weight = moe_stack_experts(up_experts);
+    auto down_weight = moe_stack_experts(down_experts);
+    auto expert_output =
+        moe_expert_ffn(input, routed.indices, gate_weight, up_weight, down_weight);
+    auto output = moe_combine(expert_output, routed.indices, routed.weights);
+    emit("moe_model_output", output.data());
+    sum(multiply(output, seed)).backward();
+    emit("moe_model_input_grad", input.grad());
+    emit("moe_model_router_weight_grad", router_weight.grad());
+    for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+        const auto index = static_cast<std::size_t>(expert);
+        const auto prefix = "moe_model_expert_" + std::to_string(expert);
+        emit(prefix + "_gate_grad", gate_experts[index].grad());
+        emit(prefix + "_up_grad", up_experts[index].grad());
+        emit(prefix + "_down_grad", down_experts[index].grad());
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -904,6 +1092,7 @@ int main() {
     emit_graph_gradient_cases();
     emit_invalid_shape_cases();
     emit_model_graph_case();
+    emit_moe_model_gate_case();
     emit_optimizer_cases();
     return 0;
 }

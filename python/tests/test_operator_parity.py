@@ -185,6 +185,39 @@ def pytorch_references(actual):
     record(refs, "rms_norm", F.rms_norm(nonlinear, (3,), tensor([1, 0.5, 2], (3,)), 1.0e-5))
     record(refs, "silu", F.silu(left))
     record(refs, "swiglu", F.silu(left) * right)
+
+    moe_router_logits = tensor([2, 1, 0, -1, -1, 0, 2, 1, 0.1, 0.4, 0.3, 0.2], (3, 4))
+    moe_router_probs = torch.softmax(moe_router_logits, dim=-1)
+    moe_router_weights, moe_router_indices = torch.topk(moe_router_probs, 2, dim=-1)
+    moe_router_weights = moe_router_weights / moe_router_weights.sum(dim=-1, keepdim=True)
+    record(refs, "moe_router_top_k_indices", moe_router_indices.float())
+    record(refs, "moe_router_top_k_weights", moe_router_weights)
+
+    moe_ffn_input = tensor([1, 0, 0, 1], (2, 2))
+    moe_ffn_indices = torch.tensor([[1], [0]], dtype=torch.long)
+    moe_gate_weight = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2))
+    moe_up_weight = tensor([1, 1, 1, 1, 2, 0, 0, 2], (2, 2, 2))
+    moe_down_weight = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2))
+    moe_expert_mask = torch.zeros(2, 2)
+    moe_expert_mask.scatter_(1, moe_ffn_indices, 1.0)
+    moe_expert_outputs = []
+    for expert in range(2):
+        gate_out = moe_ffn_input @ moe_gate_weight[expert]
+        up_out = moe_ffn_input @ moe_up_weight[expert]
+        hidden = F.silu(gate_out) * up_out
+        moe_expert_outputs.append(hidden @ moe_down_weight[expert])
+    moe_expert_output = (
+        torch.stack(moe_expert_outputs, dim=1) * moe_expert_mask.unsqueeze(-1))
+    record(refs, "moe_expert_ffn", moe_expert_output)
+
+    moe_combine_output = tensor([1, 2, 3, 4, 5, 6, 7, 8], (2, 2, 2))
+    moe_combine_indices = torch.tensor([[1], [0]], dtype=torch.long)
+    moe_combine_weights = tensor([0.5, 2.0], (2, 1))
+    moe_combine_gathered = moe_combine_output.gather(
+        1, moe_combine_indices.view(2, 1, 1).expand(-1, 1, 2))
+    record(refs, "moe_combine",
+           (moe_combine_weights.unsqueeze(-1) * moe_combine_gathered).sum(dim=1))
+
     rope_input = tensor([1, 0, 0, 1, 1, 0, 0, 1], (1, 2, 1, 4))
     record(refs, "rope", rope(rope_input))
     record(refs, "rope_split_half", rope_split_half(rope_input))
@@ -527,6 +560,59 @@ def pytorch_references(actual):
     record(refs, "graph_swiglu_gate_grad", gate.grad)
     record(refs, "graph_swiglu_up_grad", up.grad)
 
+    moe_router_graph_logits = tensor(
+        [2, 1, 0, -1, -1, 0, 2, 1, 0.1, 0.4, 0.3, 0.2], (3, 4), True)
+    moe_router_graph_probs = torch.softmax(moe_router_graph_logits, dim=-1)
+    moe_router_graph_weights, _ = torch.topk(moe_router_graph_probs, 2, dim=-1)
+    moe_router_graph_weights = (
+        moe_router_graph_weights / moe_router_graph_weights.sum(dim=-1, keepdim=True))
+    moe_router_graph_seed = tensor([0.6, -0.3, 0.4, 0.1, -0.5, 0.2], (3, 2))
+    (moe_router_graph_weights * moe_router_graph_seed).sum().backward()
+    record(refs, "graph_moe_router_top_k_logits_grad", moe_router_graph_logits.grad)
+
+    moe_ffn_graph_input = tensor([1, 0, 0, 1], (2, 2), True)
+    moe_ffn_graph_indices = torch.tensor([[1], [0]], dtype=torch.long)
+    moe_ffn_graph_gate = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2), True)
+    moe_ffn_graph_up = tensor([1, 1, 1, 1, 2, 0, 0, 2], (2, 2, 2), True)
+    moe_ffn_graph_down = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2), True)
+    moe_ffn_graph_mask = torch.zeros(2, 2)
+    moe_ffn_graph_mask.scatter_(1, moe_ffn_graph_indices, 1.0)
+    moe_ffn_graph_outputs = []
+    for expert in range(2):
+        gate_out = moe_ffn_graph_input @ moe_ffn_graph_gate[expert]
+        up_out = moe_ffn_graph_input @ moe_ffn_graph_up[expert]
+        hidden = F.silu(gate_out) * up_out
+        moe_ffn_graph_outputs.append(hidden @ moe_ffn_graph_down[expert])
+    moe_ffn_graph_output = (
+        torch.stack(moe_ffn_graph_outputs, dim=1) * moe_ffn_graph_mask.unsqueeze(-1))
+    moe_ffn_graph_seed = tensor([0.5, -1, 0.25, 2, 1, -0.5, 0.75, -0.25], (2, 2, 2))
+    (moe_ffn_graph_output * moe_ffn_graph_seed).sum().backward()
+    record(refs, "graph_moe_expert_ffn_input_grad", moe_ffn_graph_input.grad)
+    record(refs, "graph_moe_expert_ffn_gate_weight_grad", moe_ffn_graph_gate.grad)
+    record(refs, "graph_moe_expert_ffn_up_weight_grad", moe_ffn_graph_up.grad)
+    record(refs, "graph_moe_expert_ffn_down_weight_grad", moe_ffn_graph_down.grad)
+
+    moe_combine_graph_output = tensor([1, 2, 3, 4, 5, 6, 7, 8], (2, 2, 2), True)
+    moe_combine_graph_indices = torch.tensor([[1], [0]], dtype=torch.long)
+    moe_combine_graph_weights = tensor([0.5, 2.0], (2, 1), True)
+    moe_combine_graph_gathered = moe_combine_graph_output.gather(
+        1, moe_combine_graph_indices.view(2, 1, 1).expand(-1, 1, 2))
+    moe_combine_graph_result = (
+        moe_combine_graph_weights.unsqueeze(-1) * moe_combine_graph_gathered).sum(dim=1)
+    moe_combine_graph_seed = tensor([0.3, -0.7, 1.0, 0.2], (2, 2))
+    (moe_combine_graph_result * moe_combine_graph_seed).sum().backward()
+    record(refs, "graph_moe_combine_output_grad", moe_combine_graph_output.grad)
+    record(refs, "graph_moe_combine_weights_grad", moe_combine_graph_weights.grad)
+
+    moe_stack_graph_expert0 = tensor([1, 2, 3, 4], (2, 2), True)
+    moe_stack_graph_expert1 = tensor([5, 6, 7, 8], (2, 2), True)
+    moe_stack_graph_stacked = torch.stack(
+        [moe_stack_graph_expert0, moe_stack_graph_expert1], dim=0)
+    moe_stack_graph_seed = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2))
+    (moe_stack_graph_stacked * moe_stack_graph_seed).sum().backward()
+    record(refs, "graph_moe_stack_experts_expert0_grad", moe_stack_graph_expert0.grad)
+    record(refs, "graph_moe_stack_experts_expert1_grad", moe_stack_graph_expert1.grad)
+
     rope_value = tensor([1, 0, 0, 1, 1, 0, 0, 1], (1, 2, 1, 4), True)
     rope_seed = tensor([1, 2, 3, 4, -1, -2, -3, -4], (1, 2, 1, 4))
     (rope(rope_value) * rope_seed).sum().backward()
@@ -727,6 +813,70 @@ def pytorch_references(actual):
     for name, parameter in bf16_train_params.items():
         record(refs, f"model_bf16_train_grad:{name}", parameter.grad)
 
+    # M6/M7 model-level full-graph gate for the MoE FFN: oracle is Hugging
+    # Face's actual, unmodified Qwen3MoeSparseMoeBlock.forward() (transformers
+    # package), not a hand-rolled equivalent, per this milestone's standard.
+    # Fixture weights are per-expert (not a fused gate_up_proj) because that
+    # is what a real Qwen3-MoE checkpoint actually stores on disk -- confirmed
+    # by downloading one and by inspecting Qwen/Qwen3-30B-A3B's safetensors
+    # index. Hugging Face's own from_pretrained() internally concatenates
+    # per-expert gate_proj/up_proj into its packed gate_up_proj parameter
+    # (verified empirically against that real checkpoint); this fixture
+    # reproduces exactly that concatenation to populate the real module.
+    from transformers.models.qwen3_moe.configuration_qwen3_moe import Qwen3MoeConfig
+    from transformers.models.qwen3_moe.modeling_qwen3_moe import Qwen3MoeSparseMoeBlock
+
+    def det(shape, offset):
+        numel = 1
+        for dimension in shape:
+            numel *= dimension
+        values = [((index * 37 + 11 + offset * 97) % 23 - 11) * 0.05 for index in range(numel)]
+        return torch.tensor(values, dtype=torch.float32).reshape(shape)
+
+    moe_tokens, moe_dim, moe_num_experts, moe_k, moe_ffn_dim = 3, 4, 4, 2, 3
+    moe_config = Qwen3MoeConfig(
+        hidden_size=moe_dim, num_experts=moe_num_experts, num_experts_per_tok=moe_k,
+        moe_intermediate_size=moe_ffn_dim, norm_topk_prob=True, hidden_act="silu")
+    moe_block = Qwen3MoeSparseMoeBlock(moe_config).float()
+    moe_input = det((moe_tokens, moe_dim), 0).requires_grad_(True)
+    # Our convention is [dim, num_experts]/[dim, ffn_dim] (input, output); HF's
+    # nn.Linear-style weights are [num_experts, dim]/[ffn_dim, dim] (output,
+    # input) per expert, so every fixture tensor is generated once in our
+    # layout and transposed only when copied into the HF module.
+    moe_router_weight_ours = det((moe_dim, moe_num_experts), 1)
+    moe_gate_experts = [det((moe_dim, moe_ffn_dim), 10 + expert * 3 + 0)
+                        for expert in range(moe_num_experts)]
+    moe_up_experts = [det((moe_dim, moe_ffn_dim), 10 + expert * 3 + 1)
+                      for expert in range(moe_num_experts)]
+    moe_down_experts = [det((moe_ffn_dim, moe_dim), 10 + expert * 3 + 2)
+                        for expert in range(moe_num_experts)]
+    moe_seed = det((moe_tokens, moe_dim), 100)
+    with torch.no_grad():
+        moe_block.gate.weight.copy_(moe_router_weight_ours.t())
+        moe_gate_up_stacked = torch.stack(
+            [torch.cat([moe_gate_experts[expert].t(), moe_up_experts[expert].t()], dim=0)
+             for expert in range(moe_num_experts)], dim=0)
+        moe_down_stacked = torch.stack(
+            [moe_down_experts[expert].t() for expert in range(moe_num_experts)], dim=0)
+        moe_block.experts.gate_up_proj.copy_(moe_gate_up_stacked)
+        moe_block.experts.down_proj.copy_(moe_down_stacked)
+    moe_block.gate.weight.requires_grad_(True)
+    moe_block.experts.gate_up_proj.requires_grad_(True)
+    moe_block.experts.down_proj.requires_grad_(True)
+    moe_output = moe_block(moe_input.unsqueeze(0)).squeeze(0)
+    record(refs, "moe_model_output", moe_output)
+    (moe_output * moe_seed).sum().backward()
+    record(refs, "moe_model_input_grad", moe_input.grad)
+    record(refs, "moe_model_router_weight_grad", moe_block.gate.weight.grad.t())
+    for expert in range(moe_num_experts):
+        moe_gate_up_grad = moe_block.experts.gate_up_proj.grad[expert]
+        record(refs, f"moe_model_expert_{expert}_gate_grad",
+               moe_gate_up_grad[:moe_ffn_dim, :].t())
+        record(refs, f"moe_model_expert_{expert}_up_grad",
+               moe_gate_up_grad[moe_ffn_dim:, :].t())
+        record(refs, f"moe_model_expert_{expert}_down_grad",
+               moe_block.experts.down_proj.grad[expert].t())
+
     sgd_parameter = tensor([1.0, -2.0], (2,), True)
     sgd = torch.optim.SGD([sgd_parameter], lr=0.1, weight_decay=0.01)
     sgd_parameter.grad = tensor([0.5, -0.25], (2,))
@@ -851,6 +1001,11 @@ class OperatorParityTest(unittest.TestCase):
             elif (name.startswith("model_grad:") or
                   name in {"model_logits", "model_loss"}):
                 tolerance = 2.0e-3
+            elif name.startswith("moe_model_"):
+                # Model-level full-graph gate threshold (M6), not the default
+                # per-op tolerance: the oracle is HF's actual, unmodified
+                # Qwen3MoeSparseMoeBlock.forward(), not a hand-rolled formula.
+                tolerance = 2.0e-3
             else:
                 tolerance = 3.0e-4 if name in looser else 3.0e-5
             torch.testing.assert_close(
@@ -884,6 +1039,14 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_add_rms_norm_shape",
             "invalid_silu_dtype",
             "invalid_swiglu_shape",
+            "invalid_moe_router_top_k_shape",
+            "invalid_moe_expert_ffn_shape",
+            "invalid_moe_combine_shape",
+            "invalid_moe_router_top_k_backward_shape",
+            "invalid_moe_expert_ffn_backward_shape",
+            "invalid_moe_combine_backward_shape",
+            "invalid_moe_stack_experts_shape",
+            "invalid_moe_stack_experts_backward_shape",
             "invalid_rope_width",
             "invalid_rope_split_half_width",
             "invalid_rope_split_half_bias_shape",

@@ -24,7 +24,7 @@ def fail(messages):
 errors = []
 declared_ops = public_names(
     "include/microllm/ops/ops.h",
-    ["TensorPair", "TensorTriple", "Tensor", "Bf16FfnDiagnostics",
+    ["TensorPair", "TensorTriple", "TensorQuad", "Tensor", "Bf16FfnDiagnostics",
      "Fp8DispatchStats", "Fp8DynamicQuantStats",
      "Bf16PlanCacheStats", "bool",
      "AttentionLayoutPlanCacheStats",
@@ -49,8 +49,8 @@ if declared_ops != covered_ops:
 
 declared_graph = public_names(
     "include/microllm/autograd/autograd.h",
-    ["Value", "ValueTriple", "std::pair<Value,\\s*Value>", "GraphSnapshot", "bool", "void",
-     "const\\s+Tensor&", "Tensor&"],
+    ["Value", "ValueTriple", "MoeRouterResult", "std::pair<Value,\\s*Value>", "GraphSnapshot",
+     "bool", "void", "const\\s+Tensor&", "Tensor&"],
 )
 covered_graph = set(MANIFEST["graph_ops"]) | set(MANIFEST["graph_infrastructure"])
 if declared_graph != covered_graph:

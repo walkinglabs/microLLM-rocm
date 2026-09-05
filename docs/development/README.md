@@ -1,5 +1,13 @@
 # Development records
 
+- [2026-09-05: M7 Qwen3 MoE real-checkpoint gate](2026-09-05-m7-qwen3-moe-real-checkpoint.md)
+- [2026-09-04: M6 Qwen3 MoE model-level full-graph gate](2026-09-04-m6-qwen3-moe-model-forward.md)
+- [2026-09-04: M5 Qwen3 MoE weight loading](2026-09-04-m5-qwen3-moe-weight-loading.md)
+- [2026-09-04: M4 Qwen3 MoE config parsing](2026-09-04-m4-qwen3-moe-config-parsing.md)
+- [2026-09-04: M3 Qwen3 MoE autograd backward nodes](2026-09-04-m3-qwen3-moe-autograd-backward.md)
+- [2026-09-04: M2 Qwen3 MoE readable HIP kernels](2026-09-04-m2-qwen3-moe-hip-kernels.md)
+- [2026-09-04: M1 Qwen3 MoE CPU reference operators](2026-09-04-m1-qwen3-moe-cpu-reference.md)
+- [2026-09-04: M0 Qwen3 MoE operator contracts](2026-09-04-m0-qwen3-moe-op-contracts.md)
 - [2026-08-27: CMake backend feature components](2026-08-27-cmake-backend-feature-components.md)
 - [2026-08-26: Autograd external gradient buffer](2026-08-26-autograd-external-gradient-buffer.md)
 - [2026-08-26: PyTorch zero-copy backward matrix](2026-08-26-pytorch-zero-copy-backward.md)

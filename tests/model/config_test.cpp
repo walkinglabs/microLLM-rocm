@@ -111,6 +111,44 @@ TEST(ModelConfigTest, Fp8Fp32LayerOverridesAreStrictlyIncreasingAndInRange) {
     EXPECT_THROW(config.validate(), std::invalid_argument);
 }
 
+TEST(ModelConfigTest, MoeFieldsAreExplicitAndConsistent) {
+    auto config = ModelConfig::model_s();
+    config.validate();
+    EXPECT_NE(config.summary().find("moe_num_experts=0"), std::string::npos);
+    EXPECT_NE(config.summary().find("moe_num_experts_per_tok=0"), std::string::npos);
+    EXPECT_NE(config.summary().find("moe_intermediate_size=0"), std::string::npos);
+    EXPECT_NE(config.summary().find("moe_norm_topk_prob=false"), std::string::npos);
+
+    config.moe_num_experts = 4;
+    config.moe_num_experts_per_tok = 2;
+    config.moe_intermediate_size = 32;
+    config.moe_norm_topk_prob = true;
+    config.validate();
+    EXPECT_NE(config.summary().find("moe_num_experts=4"), std::string::npos);
+    EXPECT_NE(config.summary().find("moe_norm_topk_prob=true"), std::string::npos);
+    // parameter_count()/weight_bytes() intentionally do not support MoE yet:
+    // the exact per-expert tensor layout is a weight-loading decision, not a
+    // parsing one, and reporting a wrong dense-only count would be worse than
+    // refusing to answer.
+    EXPECT_THROW((void)config.parameter_count(), std::invalid_argument);
+
+    auto missing_per_tok = config;
+    missing_per_tok.moe_num_experts_per_tok = 0;
+    EXPECT_THROW(missing_per_tok.validate(), std::invalid_argument);
+
+    auto too_many_per_tok = config;
+    too_many_per_tok.moe_num_experts_per_tok = 5;
+    EXPECT_THROW(too_many_per_tok.validate(), std::invalid_argument);
+
+    auto missing_intermediate = config;
+    missing_intermediate.moe_intermediate_size = 0;
+    EXPECT_THROW(missing_intermediate.validate(), std::invalid_argument);
+
+    auto dense_with_leftover_field = ModelConfig::model_s();
+    dense_with_leftover_field.moe_num_experts_per_tok = 2;
+    EXPECT_THROW(dense_with_leftover_field.validate(), std::invalid_argument);
+}
+
 TEST(ModelConfigTest, RejectsInvalidHeadAndRopeConfigurations) {
     auto config = ModelConfig::model_s();
     config.dimension = 383;
@@ -228,6 +266,85 @@ TEST(HuggingFaceConfigTest, ParsesPinnedQwen3ExplicitHeadAndQkNormContract) {
     EXPECT_EQ(mapping.size(), 11U * 28U + 2U);
     EXPECT_TRUE(mapping.contains("blocks.0.attention.q_norm.weight"));
     EXPECT_FALSE(mapping.contains("blocks.0.attention.q_proj.bias"));
+}
+
+TEST(HuggingFaceConfigTest, ParsesQwen3MoeConfigAndRejectsParameterCounting) {
+    const auto path = std::filesystem::temp_directory_path() / "microllm-qwen3-moe-config.json";
+    std::ofstream(path) << R"({
+      "bos_token_id":151643,"eos_token_id":151645,
+      "hidden_act":"silu","hidden_size":8,"intermediate_size":16,
+      "head_dim":4,"max_position_embeddings":32,"model_type":"qwen3_moe",
+      "num_attention_heads":2,"num_hidden_layers":2,"num_key_value_heads":1,
+      "rms_norm_eps":1e-6,"rope_theta":1000000.0,
+      "tie_word_embeddings":false,"torch_dtype":"bfloat16",
+      "use_mrope":false,"use_sliding_window":false,"vocab_size":32,
+      "num_experts":4,"num_experts_per_tok":2,"moe_intermediate_size":8,
+      "norm_topk_prob":true,"decoder_sparse_step":1,"mlp_only_layers":[]
+    })";
+    const auto parsed = load_huggingface_config(path);
+    EXPECT_EQ(parsed.model_type, "qwen3_moe");
+    EXPECT_TRUE(parsed.model.qk_norm);
+    EXPECT_EQ(parsed.model.attention_head_dimension, 4);
+    EXPECT_EQ(parsed.model.moe_num_experts, 4);
+    EXPECT_EQ(parsed.model.moe_num_experts_per_tok, 2);
+    EXPECT_EQ(parsed.model.moe_intermediate_size, 8);
+    EXPECT_TRUE(parsed.model.moe_norm_topk_prob);
+    EXPECT_THROW((void)parsed.model.parameter_count(), std::invalid_argument);
+    EXPECT_NE(parsed.model.summary().find("moe_num_experts=4"), std::string::npos);
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
+}
+
+TEST(HuggingFaceConfigTest, RejectsUnsupportedQwen3MoeFields) {
+    const auto path =
+        std::filesystem::temp_directory_path() / "microllm-bad-qwen3-moe-config.json";
+    const auto write = [&](const char* extra_fields) {
+        std::ofstream(path) << "{\"bos_token_id\":1,\"eos_token_id\":2,"
+            "\"hidden_act\":\"silu\",\"hidden_size\":8,\"intermediate_size\":16,"
+            "\"head_dim\":4,\"max_position_embeddings\":32,\"model_type\":\"qwen3_moe\","
+            "\"num_attention_heads\":2,\"num_hidden_layers\":2,\"num_key_value_heads\":1,"
+            "\"rms_norm_eps\":1e-6,\"rope_theta\":10000,\"tie_word_embeddings\":false,"
+            "\"torch_dtype\":\"bfloat16\",\"use_mrope\":false,\"use_sliding_window\":false,"
+            "\"vocab_size\":32,\"num_experts\":4,\"num_experts_per_tok\":2,"
+            "\"moe_intermediate_size\":8,\"norm_topk_prob\":true,"
+            << extra_fields << "}";
+    };
+    // decoder_sparse_step != 1 means some layers are dense-only: unsupported
+    // per-layer mixing.
+    write("\"decoder_sparse_step\":2,\"mlp_only_layers\":[]");
+    EXPECT_THROW((void)load_huggingface_config(path), std::invalid_argument);
+    // A non-empty mlp_only_layers is the same unsupported mixing from the other
+    // field HF uses to express it.
+    write("\"decoder_sparse_step\":1,\"mlp_only_layers\":[0]");
+    EXPECT_THROW((void)load_huggingface_config(path), std::invalid_argument);
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
+}
+
+TEST(HuggingFaceConfigTest, AcceptsRouterAuxLossCoefWithoutEffect) {
+    // M4 originally rejected router_aux_loss_coef's mere presence; M7 found
+    // every real Qwen3-MoE config (official and third-party) serializes this
+    // field with its dataclass default, so the rejection made every real
+    // checkpoint unloadable. It configures a training-time loss this repo
+    // does not implement, so accepting it has no behavior to misrepresent.
+    const auto path =
+        std::filesystem::temp_directory_path() / "microllm-qwen3-moe-aux-loss-config.json";
+    std::ofstream(path) << R"({
+      "bos_token_id":1,"eos_token_id":2,
+      "hidden_act":"silu","hidden_size":8,"intermediate_size":16,
+      "head_dim":4,"max_position_embeddings":32,"model_type":"qwen3_moe",
+      "num_attention_heads":2,"num_hidden_layers":2,"num_key_value_heads":1,
+      "rms_norm_eps":1e-6,"rope_theta":10000,"tie_word_embeddings":false,
+      "torch_dtype":"bfloat16","use_mrope":false,"use_sliding_window":false,
+      "vocab_size":32,"num_experts":4,"num_experts_per_tok":2,
+      "moe_intermediate_size":8,"norm_topk_prob":true,"decoder_sparse_step":1,
+      "mlp_only_layers":[],"router_aux_loss_coef":0.001
+    })";
+    const auto parsed = load_huggingface_config(path);
+    EXPECT_EQ(parsed.model_type, "qwen3_moe");
+    EXPECT_EQ(parsed.model.moe_num_experts, 4);
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
 }
 
 }  // namespace microllm::model
