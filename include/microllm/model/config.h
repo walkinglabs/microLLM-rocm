@@ -46,6 +46,15 @@ struct ModelConfig {
     bool attention_bias = false;
     bool qk_norm = false;
     RopeLayout rope_layout = RopeLayout::Interleaved;
+    // MoE fields. Zero/false across all four means a dense model (no MoE); a
+    // positive moe_num_experts requires the other three set consistently. This
+    // milestone is parsing only: parameter_count()/weight_bytes() explicitly
+    // reject MoE configs until weight loading defines the exact per-expert
+    // tensor layout.
+    std::int64_t moe_num_experts = 0;
+    std::int64_t moe_num_experts_per_tok = 0;
+    std::int64_t moe_intermediate_size = 0;
+    bool moe_norm_topk_prob = false;
 
     void validate() const;
     [[nodiscard]] std::int64_t head_dimension() const;

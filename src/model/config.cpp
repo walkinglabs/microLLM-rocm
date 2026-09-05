@@ -68,6 +68,20 @@ void ModelConfig::validate() const {
         }
         previous = layer;
     }
+    if (moe_num_experts == 0) {
+        if (moe_num_experts_per_tok != 0 || moe_intermediate_size != 0) {
+            throw std::invalid_argument(
+                "moe_num_experts_per_tok/moe_intermediate_size require moe_num_experts > 0");
+        }
+    } else {
+        if (moe_num_experts < 0 ||
+            moe_num_experts_per_tok <= 0 || moe_num_experts_per_tok > moe_num_experts ||
+            moe_intermediate_size <= 0) {
+            throw std::invalid_argument(
+                "MoE config requires 0 < moe_num_experts_per_tok <= moe_num_experts "
+                "and a positive moe_intermediate_size");
+        }
+    }
 }
 
 std::int64_t ModelConfig::head_dimension() const {
@@ -93,6 +107,11 @@ std::int64_t ModelConfig::query_dimension() const {
 
 std::uint64_t ModelConfig::parameter_count() const {
     validate();
+    if (moe_num_experts != 0) {
+        throw std::invalid_argument(
+            "parameter_count() does not support MoE configs yet; exact per-expert "
+            "tensor layout is defined by weight loading, not this milestone");
+    }
     const auto vocab = static_cast<std::uint64_t>(vocabulary_size);
     const auto dim = static_cast<std::uint64_t>(dimension);
     const auto layer_count = static_cast<std::uint64_t>(layers);
@@ -171,7 +190,11 @@ std::string ModelConfig::summary() const {
            << ",attention_bias=" << (attention_bias ? "true" : "false")
            << ",qk_norm=" << (qk_norm ? "true" : "false")
            << ",rope_layout=" << (rope_layout == RopeLayout::Interleaved ? "interleaved" : "split_half")
-           << ",parameters=" << parameter_count();
+           << ",moe_num_experts=" << moe_num_experts
+           << ",moe_num_experts_per_tok=" << moe_num_experts_per_tok
+           << ",moe_intermediate_size=" << moe_intermediate_size
+           << ",moe_norm_topk_prob=" << (moe_norm_topk_prob ? "true" : "false");
+    if (moe_num_experts == 0) output << ",parameters=" << parameter_count();
     return output.str();
 }
 
