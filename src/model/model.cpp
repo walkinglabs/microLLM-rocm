@@ -2104,6 +2104,102 @@ private:
     Bf16FfnArenaCache* arena_cache_ = nullptr;
 };
 
+// M5: weight loading only. Per-expert Linear parameters are real named
+// parameters (state_dict/load_state_dict work end to end), but forward and
+// every one-way inference preparation (BF16/FP8/INT8, the BF16 FFN Arena) are
+// deliberately unimplemented -- each throws explicitly rather than silently
+// running a wrong or partial computation. See docs/development/
+// 2026-09-04-m5-qwen3-moe-weight-loading.md for the exact boundary and why.
+class MoeFeedForward {
+public:
+    MoeFeedForward(const ModelConfig& config, std::mt19937_64& generator,
+                   ParameterInitialization initialization)
+        : config_(config),
+          router_(config.dimension, config.moe_num_experts, generator, config,
+                  initialization) {
+        experts_gate_.reserve(static_cast<std::size_t>(config.moe_num_experts));
+        experts_up_.reserve(static_cast<std::size_t>(config.moe_num_experts));
+        experts_down_.reserve(static_cast<std::size_t>(config.moe_num_experts));
+        for (std::int64_t expert = 0; expert < config.moe_num_experts; ++expert) {
+            experts_gate_.emplace_back(config.dimension, config.moe_intermediate_size,
+                                       generator, config, initialization, false, true);
+            experts_up_.emplace_back(config.dimension, config.moe_intermediate_size,
+                                     generator, config, initialization, false, true);
+            experts_down_.emplace_back(config.moe_intermediate_size, config.dimension,
+                                       generator, config, initialization, false, true);
+        }
+    }
+
+    Value forward([[maybe_unused]] const Value& input) {
+        throw std::logic_error(
+            "MoE forward is not implemented yet (see M6: model-level full-graph gate)");
+    }
+    Tensor forward_tensor([[maybe_unused]] const Tensor& input,
+                          [[maybe_unused]] const std::string& trace_prefix = {},
+                          [[maybe_unused]] bool prefill_trace_rows = false,
+                          [[maybe_unused]] FfnInferencePhase phase =
+                              FfnInferencePhase::Prefill) {
+        throw std::logic_error(
+            "MoE forward is not implemented yet (see M6: model-level full-graph gate)");
+    }
+    Tensor forward_normalized_bf16_tensor([[maybe_unused]] const Tensor& input,
+                                          [[maybe_unused]] Norm& norm) {
+        throw std::logic_error(
+            "MoE forward is not implemented yet (see M6: model-level full-graph gate)");
+    }
+
+    void append_named(const std::string& prefix, NamedValues& values) {
+        values.emplace_back(prefix + ".router.weight", &router_.weight());
+        for (std::int64_t expert = 0; expert < config_.moe_num_experts; ++expert) {
+            const auto expert_prefix =
+                prefix + ".experts." + std::to_string(expert);
+            const auto index = static_cast<std::size_t>(expert);
+            values.emplace_back(expert_prefix + ".gate_proj.weight",
+                                &experts_gate_[index].weight());
+            values.emplace_back(expert_prefix + ".up_proj.weight",
+                                &experts_up_[index].weight());
+            values.emplace_back(expert_prefix + ".down_proj.weight",
+                                &experts_down_[index].weight());
+        }
+    }
+    // Harmless: the arena is an opt-in performance path with no MoE support
+    // yet, and disabling it (nullptr) is always safe.
+    void set_bf16_ffn_arena_cache([[maybe_unused]] Bf16FfnArenaCache* cache) noexcept {}
+    [[nodiscard]] Tensor prepare_bf16_prefill_up_candidate() const {
+        throw std::logic_error(
+            "MoE BF16 FFN decode/up preparation is not implemented yet");
+    }
+    // Unreachable in practice: prepare_bf16_ffn_decode_up_fp32_inference() calls
+    // prepare_bf16_prefill_up_candidate() on every block first, which already
+    // throws above before any commit is attempted. A no-op keeps this method
+    // safely noexcept-compatible with Block's wrapper instead of terminating.
+    void commit_bf16_prefill_up_candidate([[maybe_unused]] Tensor candidate) noexcept {}
+    void move_bf16_prefill_up_weight([[maybe_unused]] Device device) {}
+    [[nodiscard]] const Tensor& up_weight_data() const {
+        throw std::logic_error(
+            "MoE FFN has no single up weight; each expert has its own");
+    }
+    void append_bf16_training_mirrors([[maybe_unused]] Bf16TrainingMirrors& mirrors) {
+        throw std::logic_error("MoE BF16 training mirrors are not implemented yet");
+    }
+    void move_bf16_training_mirrors([[maybe_unused]] Device device) {}
+    void append_fp8_inference_linears([[maybe_unused]] std::vector<Linear*>& linears) {
+        throw std::logic_error("MoE FP8 inference preparation is not implemented yet");
+    }
+    void move_fp8_inference_scales([[maybe_unused]] Device device) {}
+    void append_int8_inference_linears([[maybe_unused]] std::vector<Linear*>& linears) {
+        throw std::logic_error("MoE INT8 inference preparation is not implemented yet");
+    }
+    void move_int8_inference_scales([[maybe_unused]] Device device) {}
+
+private:
+    ModelConfig config_;
+    Linear router_;
+    std::vector<Linear> experts_gate_;
+    std::vector<Linear> experts_up_;
+    std::vector<Linear> experts_down_;
+};
+
 class Block {
 public:
     Block(const ModelConfig& config, std::mt19937_64& generator,
@@ -2111,11 +2207,19 @@ public:
         : attention_norm_(config.dimension, config.rms_norm_epsilon, initialization),
           attention_(config, generator, initialization),
           ffn_norm_(config.dimension, config.rms_norm_epsilon, initialization),
-          feed_forward_(config, generator, initialization) {}
+          is_moe_(config.moe_num_experts > 0) {
+        if (is_moe_) {
+            moe_feed_forward_.emplace(config, generator, initialization);
+        } else {
+            feed_forward_.emplace(config, generator, initialization);
+        }
+    }
 
     Value forward(const Value& input) {
         auto hidden = autograd::add(input, attention_.forward(attention_norm_.forward(input)));
-        return autograd::add(hidden, feed_forward_.forward(ffn_norm_.forward(hidden)));
+        auto normalized = ffn_norm_.forward(hidden);
+        return autograd::add(hidden, is_moe_ ? moe_feed_forward_->forward(normalized)
+                                             : feed_forward_->forward(normalized));
     }
 
     Tensor forward_tensor(const Tensor& input,
@@ -2150,8 +2254,10 @@ public:
         if (bf16_ffn_norm_fusion_enabled_ && trace_prefix.empty()) {
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::Ffn);
-            ffn = feed_forward_.forward_normalized_bf16_tensor(
-                hidden, ffn_norm_);
+            ffn = is_moe_ ? moe_feed_forward_->forward_normalized_bf16_tensor(
+                                hidden, ffn_norm_)
+                         : feed_forward_->forward_normalized_bf16_tensor(
+                               hidden, ffn_norm_);
         } else {
             Tensor ffn_input;
             {
@@ -2162,9 +2268,10 @@ public:
             trace_detail(trace_prefix, "ffn_norm", ffn_input);
             runtime::ScopedAllocationSource allocation_source(
                 runtime::AllocationSource::Ffn);
-            ffn = feed_forward_.forward_tensor(
-                ffn_input, trace_prefix.empty() ? std::string{} :
-                                                  trace_prefix + ".ffn");
+            const auto ffn_trace = trace_prefix.empty() ? std::string{} :
+                                                          trace_prefix + ".ffn";
+            ffn = is_moe_ ? moe_feed_forward_->forward_tensor(ffn_input, ffn_trace)
+                         : feed_forward_->forward_tensor(ffn_input, ffn_trace);
         }
         runtime::ScopedAllocationSource allocation_source(
             runtime::AllocationSource::FfnResidual);
@@ -2203,12 +2310,14 @@ public:
         const auto ffn_details = trace != nullptr &&
                                  (trace->options().record_all_layer_details ||
                                   filtered_ffn_detail);
-        auto ffn = feed_forward_.forward_tensor(
-            ffn_input,
-            ffn_details && !trace_prefix.empty()
-                ? ffn_trace_prefix
-                : std::string{},
-            ffn_details);
+        const auto ffn_call_prefix = ffn_details && !trace_prefix.empty()
+                                         ? ffn_trace_prefix
+                                         : std::string{};
+        auto ffn = is_moe_
+                       ? moe_feed_forward_->forward_tensor(
+                             ffn_input, ffn_call_prefix, ffn_details)
+                       : feed_forward_->forward_tensor(
+                             ffn_input, ffn_call_prefix, ffn_details);
         trace_prefill_rows(trace_prefix, "ffn_output", ffn,
                            input.shape()[0], input.shape()[1]);
         auto output = ops::add(hidden, ffn);
@@ -2231,10 +2340,15 @@ public:
         auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
         trace_detail(trace_prefix, "attention_residual", residual_and_norm.first);
         trace_detail(trace_prefix, "ffn_norm", residual_and_norm.second);
-        auto ffn = feed_forward_.forward_tensor(
-            residual_and_norm.second,
-            trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn",
-            false, FfnInferencePhase::CachedDecode);
+        const auto cached_ffn_trace =
+            trace_prefix.empty() ? std::string{} : trace_prefix + ".ffn";
+        auto ffn = is_moe_
+                       ? moe_feed_forward_->forward_tensor(
+                             residual_and_norm.second, cached_ffn_trace, false,
+                             FfnInferencePhase::CachedDecode)
+                       : feed_forward_->forward_tensor(
+                             residual_and_norm.second, cached_ffn_trace, false,
+                             FfnInferencePhase::CachedDecode);
         auto output = ops::add(residual_and_norm.first, ffn);
         trace_detail(trace_prefix, "output", output);
         return output;
@@ -2250,35 +2364,57 @@ public:
             attention_norm_.forward_tensor(input), cache, positions, cache_rows,
             host_positions, cache_batches, cache_capacity, cache_dtype);
         auto residual_and_norm = ffn_norm_.add_forward_tensor(input, attention);
-        return ops::add(residual_and_norm.first,
-                        feed_forward_.forward_tensor(
-                            residual_and_norm.second, {}, false,
-                            FfnInferencePhase::CachedDecode));
+        auto ffn = is_moe_
+                       ? moe_feed_forward_->forward_tensor(
+                             residual_and_norm.second, {}, false,
+                             FfnInferencePhase::CachedDecode)
+                       : feed_forward_->forward_tensor(
+                             residual_and_norm.second, {}, false,
+                             FfnInferencePhase::CachedDecode);
+        return ops::add(residual_and_norm.first, ffn);
     }
 
     void append_named(const std::string& prefix, NamedValues& values) {
         values.emplace_back(prefix + ".attention_norm.weight", &attention_norm_.weight());
         attention_.append_named(prefix + ".attention", values);
         values.emplace_back(prefix + ".ffn_norm.weight", &ffn_norm_.weight());
-        feed_forward_.append_named(prefix + ".feed_forward", values);
+        if (is_moe_) {
+            moe_feed_forward_->append_named(prefix + ".moe", values);
+        } else {
+            feed_forward_->append_named(prefix + ".feed_forward", values);
+        }
     }
     void set_bf16_ffn_arena_cache(Bf16FfnArenaCache* cache) noexcept {
-        feed_forward_.set_bf16_ffn_arena_cache(cache);
+        if (is_moe_) {
+            moe_feed_forward_->set_bf16_ffn_arena_cache(cache);
+        } else {
+            feed_forward_->set_bf16_ffn_arena_cache(cache);
+        }
     }
     void set_bf16_ffn_norm_fusion_enabled(bool enabled) noexcept {
         bf16_ffn_norm_fusion_enabled_ = enabled;
     }
     [[nodiscard]] Tensor prepare_bf16_prefill_up_candidate() const {
-        return feed_forward_.prepare_bf16_prefill_up_candidate();
+        return is_moe_ ? moe_feed_forward_->prepare_bf16_prefill_up_candidate()
+                       : feed_forward_->prepare_bf16_prefill_up_candidate();
     }
     void commit_bf16_prefill_up_candidate(Tensor candidate) noexcept {
-        feed_forward_.commit_bf16_prefill_up_candidate(std::move(candidate));
+        if (is_moe_) {
+            moe_feed_forward_->commit_bf16_prefill_up_candidate(std::move(candidate));
+        } else {
+            feed_forward_->commit_bf16_prefill_up_candidate(std::move(candidate));
+        }
     }
     void move_bf16_prefill_up_weight(Device device) {
-        feed_forward_.move_bf16_prefill_up_weight(device);
+        if (is_moe_) {
+            moe_feed_forward_->move_bf16_prefill_up_weight(device);
+        } else {
+            feed_forward_->move_bf16_prefill_up_weight(device);
+        }
     }
-    [[nodiscard]] const Tensor& ffn_up_weight_data() const noexcept {
-        return feed_forward_.up_weight_data();
+    [[nodiscard]] const Tensor& ffn_up_weight_data() const {
+        return is_moe_ ? moe_feed_forward_->up_weight_data()
+                       : feed_forward_->up_weight_data();
     }
     void set_bf16_qkv_arena_cache(Bf16QkvArenaCache* cache) noexcept {
         attention_.set_bf16_qkv_arena_cache(cache);
@@ -2310,19 +2446,35 @@ public:
 
     void append_bf16_training_mirrors(Bf16TrainingMirrors& mirrors) {
         attention_.append_bf16_training_mirrors(mirrors);
-        feed_forward_.append_bf16_training_mirrors(mirrors);
+        if (is_moe_) {
+            moe_feed_forward_->append_bf16_training_mirrors(mirrors);
+        } else {
+            feed_forward_->append_bf16_training_mirrors(mirrors);
+        }
     }
     void move_bf16_training_mirrors(Device device) {
         attention_.move_bf16_training_mirrors(device);
-        feed_forward_.move_bf16_training_mirrors(device);
+        if (is_moe_) {
+            moe_feed_forward_->move_bf16_training_mirrors(device);
+        } else {
+            feed_forward_->move_bf16_training_mirrors(device);
+        }
     }
     void append_fp8_inference_linears(std::vector<Linear*>& linears) {
         attention_.append_fp8_inference_linears(linears);
-        feed_forward_.append_fp8_inference_linears(linears);
+        if (is_moe_) {
+            moe_feed_forward_->append_fp8_inference_linears(linears);
+        } else {
+            feed_forward_->append_fp8_inference_linears(linears);
+        }
     }
     void move_fp8_inference_scales(Device device) {
         attention_.move_fp8_inference_scales(device);
-        feed_forward_.move_fp8_inference_scales(device);
+        if (is_moe_) {
+            moe_feed_forward_->move_fp8_inference_scales(device);
+        } else {
+            feed_forward_->move_fp8_inference_scales(device);
+        }
     }
     void append_int8_inference_linears(std::vector<Linear*>& linears,
                                        Int8WeightScope scope) {
@@ -2336,12 +2488,20 @@ public:
         }
         if (scope == Int8WeightScope::AllLinear ||
             scope == Int8WeightScope::FfnOnly) {
-            feed_forward_.append_int8_inference_linears(linears);
+            if (is_moe_) {
+                moe_feed_forward_->append_int8_inference_linears(linears);
+            } else {
+                feed_forward_->append_int8_inference_linears(linears);
+            }
         }
     }
     void move_int8_inference_scales(Device device) {
         attention_.move_int8_inference_scales(device);
-        feed_forward_.move_int8_inference_scales(device);
+        if (is_moe_) {
+            moe_feed_forward_->move_int8_inference_scales(device);
+        } else {
+            feed_forward_->move_int8_inference_scales(device);
+        }
     }
 
 
@@ -2349,7 +2509,9 @@ private:
     Norm attention_norm_;
     Attention attention_;
     Norm ffn_norm_;
-    FeedForward feed_forward_;
+    std::optional<FeedForward> feed_forward_;
+    std::optional<MoeFeedForward> moe_feed_forward_;
+    bool is_moe_ = false;
     bool bf16_ffn_norm_fusion_enabled_ = false;
     bool bf16_attention_norm_fusion_enabled_ = false;
 };
@@ -2418,7 +2580,11 @@ TransformerModel::TransformerModel(ModelConfig config, std::uint64_t seed,
                                    ParameterInitialization initialization)
     : impl_(std::make_unique<Impl>(std::move(config), seed, initialization)) {
     impl_->parameters_initialized = initialization == ParameterInitialization::Random;
-    if (parameter_count() != impl_->config.parameter_count()) {
+    // ModelConfig::parameter_count() explicitly does not support MoE configs yet
+    // (see M4); this cross-check is skipped for them rather than tripping on
+    // that unrelated, expected exception.
+    if (impl_->config.moe_num_experts == 0 &&
+        parameter_count() != impl_->config.parameter_count()) {
         throw std::logic_error("constructed model parameter count does not match ModelConfig");
     }
 }
@@ -3182,6 +3348,9 @@ Bf16FfnPreparationReport TransformerModel::prepare_bf16_ffn_inference(
     }
     if (impl_->config.linear_precision != LinearPrecision::Float32) {
         throw std::logic_error("BF16 inference preparation requires FP32 Linear policy");
+    }
+    if (impl_->config.moe_num_experts != 0) {
+        throw std::logic_error("BF16 FFN inference preparation does not support MoE yet");
     }
     std::set<std::int64_t> excluded;
     for (const auto layer : fp32_layers) {
@@ -4139,15 +4308,40 @@ WeightMapping qwen_style_weight_mapping(const ModelConfig& config) {
         mapping.emplace(target + ".ffn_norm.weight",
                         WeightSource{source + ".post_attention_layernorm.weight",
                                      WeightTransform::Identity});
-        mapping.emplace(target + ".feed_forward.gate_proj.weight",
-                        WeightSource{source + ".mlp.gate_proj.weight",
-                                     WeightTransform::Transpose2D});
-        mapping.emplace(target + ".feed_forward.up_proj.weight",
-                        WeightSource{source + ".mlp.up_proj.weight",
-                                     WeightTransform::Transpose2D});
-        mapping.emplace(target + ".feed_forward.down_proj.weight",
-                        WeightSource{source + ".mlp.down_proj.weight",
-                                     WeightTransform::Transpose2D});
+        if (config.moe_num_experts > 0) {
+            // Assumed to follow Hugging Face's Qwen2Moe/Mixtral-style naming
+            // (router as "mlp.gate", experts as "mlp.experts.E.*_proj"); not
+            // yet verified against a real Qwen3-MoE checkpoint -- see
+            // docs/development/2026-09-04-m5-qwen3-moe-weight-loading.md.
+            mapping.emplace(target + ".moe.router.weight",
+                            WeightSource{source + ".mlp.gate.weight",
+                                         WeightTransform::Transpose2D});
+            for (std::int64_t expert = 0; expert < config.moe_num_experts; ++expert) {
+                const auto expert_target =
+                    target + ".moe.experts." + std::to_string(expert);
+                const auto expert_source =
+                    source + ".mlp.experts." + std::to_string(expert);
+                mapping.emplace(expert_target + ".gate_proj.weight",
+                                WeightSource{expert_source + ".gate_proj.weight",
+                                             WeightTransform::Transpose2D});
+                mapping.emplace(expert_target + ".up_proj.weight",
+                                WeightSource{expert_source + ".up_proj.weight",
+                                             WeightTransform::Transpose2D});
+                mapping.emplace(expert_target + ".down_proj.weight",
+                                WeightSource{expert_source + ".down_proj.weight",
+                                             WeightTransform::Transpose2D});
+            }
+        } else {
+            mapping.emplace(target + ".feed_forward.gate_proj.weight",
+                            WeightSource{source + ".mlp.gate_proj.weight",
+                                         WeightTransform::Transpose2D});
+            mapping.emplace(target + ".feed_forward.up_proj.weight",
+                            WeightSource{source + ".mlp.up_proj.weight",
+                                         WeightTransform::Transpose2D});
+            mapping.emplace(target + ".feed_forward.down_proj.weight",
+                            WeightSource{source + ".mlp.down_proj.weight",
+                                         WeightTransform::Transpose2D});
+        }
     }
     mapping.emplace("final_norm.weight",
                     WeightSource{"model.norm.weight", WeightTransform::Identity});

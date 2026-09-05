@@ -65,6 +65,7 @@ CPU reference 见 [M1 CPU reference](development/2026-09-04-m1-qwen3-moe-cpu-ref
 readable HIP kernel 见 [M2 HIP readable kernels](development/2026-09-04-m2-qwen3-moe-hip-kernels.md)；
 CPU backward + autograd 见 [M3 autograd backward nodes](development/2026-09-04-m3-qwen3-moe-autograd-backward.md)；
 config parsing 见 [M4 config parsing](development/2026-09-04-m4-qwen3-moe-config-parsing.md)；
+weight loading 见 [M5 weight loading](development/2026-09-04-m5-qwen3-moe-weight-loading.md)；
 契约设计过程见 [M0 operator contracts](development/2026-09-04-m0-qwen3-moe-op-contracts.md)。
 M2 的 `.hip` kernel 代码在没有 ROCm 工具链的机器上写成，**从未编译或在真实 AMD GPU 上跑过**——
 C++ dispatch 层（`ops.cpp` 里的 `device().is_hip()` 分支）已经在 `MICROLLM_ENABLE_HIP=OFF`

@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-09-04: M5 Qwen3 MoE weight loading](2026-09-04-m5-qwen3-moe-weight-loading.md)
 - [2026-09-04: M4 Qwen3 MoE config parsing](2026-09-04-m4-qwen3-moe-config-parsing.md)
 - [2026-09-04: M3 Qwen3 MoE autograd backward nodes](2026-09-04-m3-qwen3-moe-autograd-backward.md)
 - [2026-09-04: M2 Qwen3 MoE readable HIP kernels](2026-09-04-m2-qwen3-moe-hip-kernels.md)
