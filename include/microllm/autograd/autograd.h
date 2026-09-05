@@ -98,7 +98,7 @@ private:
     friend Value moe_expert_ffn(const Value&, const Tensor&, const Value&,
                                 const Value&, const Value&);
     friend Value moe_combine(const Value&, const Tensor&, const Value&);
-    friend std::pair<Value, Value> moe_split_gate_up(const Value&);
+    friend Value moe_stack_experts(const std::vector<Value>&);
     friend Value contiguous(const Value&);
     friend Value causal_softmax(const Value&);
     friend Value causal_gqa_attention(const Value&, const Value&, const Value&,
@@ -185,11 +185,13 @@ struct MoeRouterResult {
                                    const Value& down_weight);
 [[nodiscard]] Value moe_combine(const Value& expert_output, const Tensor& expert_indices,
                                 const Value& expert_weights);
-// Checkpoint-format adapter (M6): splits Hugging Face Qwen3MoeExperts'
-// fused gate_up_proj [num_experts, 2*ffn_dim, dim] into the two
-// [num_experts, dim, ffn_dim] Values moe_expert_ffn expects. Not a routing
-// primitive -- see ops.h's moe_split_gate_up for the exact layout contract.
-[[nodiscard]] std::pair<Value, Value> moe_split_gate_up(const Value& gate_up_proj);
+// Checkpoint-format adapter (M7): stacks num_experts same-shaped per-expert
+// Values (each stored the way a real Qwen3-MoE checkpoint serializes one
+// expert's gate/up/down projection) into the one [num_experts,rows,cols]
+// Value moe_expert_ffn expects. Not a routing primitive -- see ops.h's
+// moe_stack_experts for the exact layout contract and why M6's fused
+// gate_up_proj assumption was replaced.
+[[nodiscard]] Value moe_stack_experts(const std::vector<Value>& experts);
 [[nodiscard]] Value contiguous(const Value& input);
 [[nodiscard]] Value causal_softmax(const Value& scores);
 [[nodiscard]] Value causal_gqa_attention(const Value& query, const Value& key,

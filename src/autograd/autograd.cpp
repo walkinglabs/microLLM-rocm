@@ -1031,35 +1031,32 @@ Value moe_combine(const Value& expert_output, const Tensor& expert_indices,
         });
 }
 
-std::pair<Value, Value> moe_split_gate_up(const Value& gate_up_proj) {
-    require_value(gate_up_proj, "gate_up_proj");
-    auto gate_up_node = gate_up_proj.node_;
+Value moe_stack_experts(const std::vector<Value>& experts) {
+    if (experts.empty()) {
+        throw std::invalid_argument("autograd moe_stack_experts requires at least one expert");
+    }
+    std::vector<std::shared_ptr<Value::Node>> parent_nodes;
+    std::vector<Tensor> tensors;
+    parent_nodes.reserve(experts.size());
+    tensors.reserve(experts.size());
+    for (const auto& expert : experts) {
+        require_value(expert, "expert");
+        parent_nodes.push_back(expert.node_);
+        tensors.push_back(expert.data());
+    }
     profiling::TraceTimer timer(
-        profiling::TraceKind::Operator, "moe_split_gate_up", gate_up_proj.data().device());
-    auto outputs = ops::moe_split_gate_up(gate_up_proj.data());
-    timer.finish(outputs.second);
-    const auto gate_shape = outputs.first.shape();
-    const auto up_shape = outputs.second.shape();
-    // gate and up share one parent (gate_up_proj); each side's backward fills
-    // in only its own half of the reconstructed gradient (the two halves never
-    // overlap) and relies on accumulate()'s existing summing behavior to
-    // combine both contributions into gate_up_proj's full gradient -- no joint
-    // two-input backward closure is needed.
-    auto gate = operation(
-        "moe_split_gate_up_gate", std::move(outputs.first), {gate_up_node},
-        [gate_up_node, up_shape](const Tensor& gradient) {
-            Tensor zero_up(up_shape, DType::Float32, gradient.device());
-            ops::fill_(zero_up, 0.0F);
-            accumulate(gate_up_node, ops::moe_split_gate_up_backward(gradient, zero_up));
+        profiling::TraceKind::Operator, "moe_stack_experts", experts.front().data().device());
+    auto stacked = ops::moe_stack_experts(tensors);
+    timer.finish(stacked);
+    return operation(
+        "moe_stack_experts", std::move(stacked), parent_nodes,
+        [parent_nodes](const Tensor& gradient) {
+            for (std::size_t index = 0; index < parent_nodes.size(); ++index) {
+                accumulate(parent_nodes[index],
+                          ops::moe_stack_experts_backward_one(
+                              gradient, static_cast<std::int64_t>(index)));
+            }
         });
-    auto up = operation(
-        "moe_split_gate_up_up", std::move(outputs.second), {gate_up_node},
-        [gate_up_node, gate_shape](const Tensor& gradient) {
-            Tensor zero_gate(gate_shape, DType::Float32, gradient.device());
-            ops::fill_(zero_gate, 0.0F);
-            accumulate(gate_up_node, ops::moe_split_gate_up_backward(zero_gate, gradient));
-        });
-    return {std::move(gate), std::move(up)};
 }
 
 Value contiguous(const Value& input) {

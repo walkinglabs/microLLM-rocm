@@ -421,30 +421,27 @@ TEST(CpuOpsTest, MoeCombineBackwardScattersOnlyIntoSelectedExpertRows) {
                  std::out_of_range);
 }
 
-TEST(CpuOpsTest, MoeSplitGateUpMatchesHandValuesAndRoundTripsThroughBackward) {
-    // One expert, ffn_dim=2, dim=2. gate_up_proj rows are [gate_h0, gate_h1,
-    // up_h0, up_h1] each of width dim, matching Hugging Face's
-    // Qwen3MoeExperts.gate_up_proj [num_experts, 2*ffn_dim, dim] layout.
-    const auto gate_up = Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8}, {1, 4, 2});
-    const auto split = moe_split_gate_up(gate_up);
-    EXPECT_EQ(split.first.shape(), (Shape{1, 2, 2}));
-    EXPECT_EQ(split.second.shape(), (Shape{1, 2, 2}));
-    expect_near(split.first.to_vector(), {1, 3, 2, 4});
-    expect_near(split.second.to_vector(), {5, 7, 6, 8});
+TEST(CpuOpsTest, MoeStackExpertsMatchesHandValuesAndRoundTripsThroughBackward) {
+    // Real Qwen3-MoE checkpoints store each expert's projection as its own
+    // separate tensor (confirmed against a downloaded checkpoint and the
+    // official Qwen/Qwen3-30B-A3B's safetensors index -- M6 briefly assumed a
+    // fused layout after reading only transformers' in-memory module source).
+    // moe_stack_experts assembles those separate tensors into the packed
+    // [num_experts,rows,cols] shape moe_expert_ffn expects.
+    const auto expert0 = Tensor::from_vector({1, 2, 3, 4}, {2, 2});
+    const auto expert1 = Tensor::from_vector({5, 6, 7, 8}, {2, 2});
+    const auto stacked = moe_stack_experts({expert0, expert1});
+    EXPECT_EQ(stacked.shape(), (Shape{2, 2, 2}));
+    expect_near(stacked.to_vector(), {1, 2, 3, 4, 5, 6, 7, 8});
 
-    // The backward is the exact inverse scatter of the forward gather, so
-    // feeding the forward's own outputs back in must reconstruct the input.
-    const auto reconstructed =
-        moe_split_gate_up_backward(split.first, split.second);
-    expect_near(reconstructed.to_vector(), gate_up.to_vector());
+    expect_near(moe_stack_experts_backward_one(stacked, 0).to_vector(), {1, 2, 3, 4});
+    expect_near(moe_stack_experts_backward_one(stacked, 1).to_vector(), {5, 6, 7, 8});
 
-    EXPECT_THROW((void)moe_split_gate_up(Tensor::from_vector({1, 2, 3}, {3})),
+    EXPECT_THROW((void)moe_stack_experts({}), std::invalid_argument);
+    EXPECT_THROW((void)moe_stack_experts({expert0, Tensor::from_vector({1, 2, 3}, {3})}),
                  std::invalid_argument);
-    EXPECT_THROW((void)moe_split_gate_up(Tensor::from_vector({1, 2, 3}, {1, 3, 1})),
-                 std::invalid_argument);
-    EXPECT_THROW((void)moe_split_gate_up_backward(
-                     split.first, Tensor::from_vector({1, 2, 3}, {3})),
-                 std::invalid_argument);
+    EXPECT_THROW((void)moe_stack_experts_backward_one(expert0, 0), std::invalid_argument);
+    EXPECT_THROW((void)moe_stack_experts_backward_one(stacked, 2), std::out_of_range);
 }
 
 TEST(CpuOpsTest, FusedSplitHalfRopeBiasMatchesComposedProjectionPath) {

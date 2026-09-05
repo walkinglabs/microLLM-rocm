@@ -248,38 +248,16 @@ TEST(AutogradTest, MoeRouterExpertFfnAndCombineBackwardsRouteThroughTheFullGraph
     EXPECT_TRUE(combine_weights.grad().defined());
 }
 
-TEST(AutogradTest, MoeSplitGateUpBackwardMatchesFiniteDifference) {
-    Value gate_up(Tensor::from_vector({1, 2, 3, 4, 5, 6, 7, 8}, {1, 4, 2}), true);
-    auto split = moe_split_gate_up(gate_up);
-    const Value gate_seed(Tensor::from_vector({0.5F, -1, 2, 0.25F}, {1, 2, 2}));
-    const Value up_seed(Tensor::from_vector({1, -0.5F, 0.75F, 2}, {1, 2, 2}));
-    add(sum(multiply(split.first, gate_seed)), sum(multiply(split.second, up_seed))).backward();
-    const auto analytic = gate_up.grad().to_vector();
-
-    const auto gate_seed_values = gate_seed.data().to_vector();
-    const auto up_seed_values = up_seed.data().to_vector();
-    const auto loss_of = [&](const std::vector<float>& values) {
-        const auto tensor = Tensor::from_vector(values, {1, 4, 2});
-        const auto split_values = ops::moe_split_gate_up(tensor);
-        const auto gate_values = split_values.first.to_vector();
-        const auto up_values = split_values.second.to_vector();
-        float total = 0.0F;
-        for (std::size_t index = 0; index < gate_values.size(); ++index) {
-            total += gate_values[index] * gate_seed_values[index] +
-                     up_values[index] * up_seed_values[index];
-        }
-        return total;
-    };
-    constexpr float epsilon = 1.0e-3F;
-    const auto base = gate_up.data().to_vector();
-    for (std::size_t index = 0; index < base.size(); ++index) {
-        auto plus = base;
-        auto minus = base;
-        plus[index] += epsilon;
-        minus[index] -= epsilon;
-        const auto numerical = (loss_of(plus) - loss_of(minus)) / (2.0F * epsilon);
-        EXPECT_NEAR(analytic[index], numerical, 5.0e-3F) << "index=" << index;
-    }
+TEST(AutogradTest, MoeStackExpertsScattersGradientBackToTheCorrectExpert) {
+    Value expert0(Tensor::from_vector({1, 2, 3, 4}, {2, 2}), true);
+    Value expert1(Tensor::from_vector({5, 6, 7, 8}, {2, 2}), true);
+    auto stacked = moe_stack_experts({expert0, expert1});
+    const Value seed(Tensor::from_vector({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}));
+    sum(multiply(stacked, seed)).backward();
+    // Each expert's gradient must equal exactly its own slice of the seed --
+    // not the other expert's, and not a mix of both.
+    EXPECT_EQ(expert0.grad().to_vector(), (std::vector<float>{1, 0, 0, 1}));
+    EXPECT_EQ(expert1.grad().to_vector(), (std::vector<float>{0, 1, 1, 0}));
 }
 
 TEST(AutogradTest, CrossEntropyBackwardMatchesFiniteDifference) {

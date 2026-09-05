@@ -304,20 +304,22 @@ TEST(ModelWeightsTest, RejectsUnknownMappingTargetsAndNonFloatSources) {
     EXPECT_THROW((void)model.load_state_dict(state, options), std::invalid_argument);
 }
 
-TEST(ModelWeightsTest, MoeStateDictHasExactTensorCountAndMatchesMapping) {
-    // M6 revised internal MoE storage after checking a real Qwen3-MoE
-    // checkpoint (transformers 5.8.0's Qwen3MoeExperts): gate/up are fused
-    // into one packed "gate_up_proj" and down into "down_proj", so a layer's
-    // tensor count no longer scales with num_experts -- exactly 3 MoE
-    // tensors per layer regardless of expert count. See docs/development/
-    // 2026-09-04-m6-qwen3-moe-model-forward.md for why this differs from
-    // M5's original per-expert-Linear count.
+TEST(ModelWeightsTest, MoeStateDictHasExactPerExpertTensorCountAndMatchesMapping) {
+    // M7 corrected internal MoE storage back to per-expert separate tensors
+    // after downloading and inspecting an actual Qwen3-MoE checkpoint (M6 had
+    // briefly assumed a fused gate_up_proj layout after reading only
+    // transformers' current in-memory module source, which turned out not to
+    // match what real checkpoints -- both a downloaded tiny one and the
+    // official Qwen/Qwen3-30B-A3B's safetensors index -- actually serialize).
+    // See docs/development/2026-09-05-m7-qwen3-moe-real-checkpoint.md.
     const auto config = moe_weight_config(/*layers=*/2, /*num_experts=*/3);
     TransformerModel model(config, 401);
     // Per layer: attention_norm(1) + attention q/k/v/o(4, no bias/qk_norm) +
-    // ffn_norm(1) + moe.router(1) + moe.gate_up_proj(1) + moe.down_proj(1) = 9.
+    // ffn_norm(1) + moe.router(1) + 3 experts * 3 projections(9) = 16.
     // Tied embeddings: + token_embedding(1) + final_norm(1), no output_head.
-    constexpr std::size_t per_layer = 1 + 4 + 1 + 1 + 1 + 1;
+    // A silently-dropped expert would show up here as an off-by-3 mismatch,
+    // not a vague "fewer tensors than expected."
+    constexpr std::size_t per_layer = 1 + 4 + 1 + 1 + 3 * 3;
     const std::size_t expected = per_layer * 2 + 2;
     EXPECT_EQ(model.named_parameters().size(), expected);
     EXPECT_EQ(model.state_dict().size(), expected);
@@ -325,24 +327,24 @@ TEST(ModelWeightsTest, MoeStateDictHasExactTensorCountAndMatchesMapping) {
     const auto mapping = qwen_style_weight_mapping(config);
     EXPECT_EQ(mapping.size(), expected);
     EXPECT_TRUE(mapping.contains("blocks.0.moe.router.weight"));
-    EXPECT_TRUE(mapping.contains("blocks.1.moe.gate_up_proj"));
-    EXPECT_TRUE(mapping.contains("blocks.1.moe.down_proj"));
-    EXPECT_FALSE(mapping.contains("blocks.0.moe.experts.0.gate_proj.weight"));
+    EXPECT_TRUE(mapping.contains("blocks.1.moe.experts.2.down_proj.weight"));
+    EXPECT_FALSE(mapping.contains("blocks.0.moe.experts.3.gate_proj.weight"));
+    EXPECT_FALSE(mapping.contains("blocks.0.moe.gate_up_proj"));
     EXPECT_FALSE(mapping.contains("blocks.0.feed_forward.gate_proj.weight"));
 }
 
-TEST(ModelWeightsTest, MoeStrictLoadRejectsMissingUnexpectedAndIncompatibleTensors) {
+TEST(ModelWeightsTest, MoeStrictLoadRejectsMissingUnexpectedAndIncompatibleExpertTensors) {
     const auto config = moe_weight_config(/*layers=*/1, /*num_experts=*/3);
     TransformerModel source(config, 403);
     TransformerModel target(config, 409);
     auto broken = source.state_dict();
-    // Missing: dropping the whole packed expert tensor is this format's
-    // analogue of a silently-dropped expert.
-    broken.erase("blocks.0.moe.down_proj");
+    // Missing: a silently-dropped expert tensor is exactly the failure mode
+    // this milestone's exact-count assertion exists to catch.
+    broken.erase("blocks.0.moe.experts.1.down_proj.weight");
     // Incompatible: right name, wrong shape.
-    broken["blocks.0.moe.gate_up_proj"] = Tensor::from_vector({1}, {1});
-    // Unexpected: a tensor nobody asked for.
-    broken.emplace("blocks.0.moe.extra_tensor", Tensor::from_vector({1}, {1}));
+    broken["blocks.0.moe.experts.2.up_proj.weight"] = Tensor::from_vector({1}, {1});
+    // Unexpected: a fourth expert nobody asked for.
+    broken.emplace("blocks.0.moe.experts.3.gate_proj.weight", Tensor::from_vector({1}, {1}));
     const auto before = target.state_dict();
 
     EXPECT_THROW((void)target.load_state_dict(broken), std::invalid_argument);
@@ -360,8 +362,8 @@ TEST(ModelWeightsTest, MoeStrictLoadRejectsMissingUnexpectedAndIncompatibleTenso
 TEST(ModelWeightsTest, MoeForwardProducesFiniteLogitsAndTrainsEveryParameter) {
     // M6: forward is real now. Checks the whole graph runs end to end
     // (embedding -> attention -> MoE router/expert_ffn/combine -> logits ->
-    // loss -> backward) and every MoE parameter -- router, the fused
-    // gate_up_proj, and down_proj -- receives a gradient.
+    // loss -> backward) and every MoE parameter -- router and every expert's
+    // gate/up/down -- receives a gradient.
     const auto config = moe_weight_config(/*layers=*/1, /*num_experts=*/2);
     TransformerModel model(config, 419);
     const auto logits_value = model.forward(tokens());

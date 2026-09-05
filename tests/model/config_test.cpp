@@ -317,10 +317,32 @@ TEST(HuggingFaceConfigTest, RejectsUnsupportedQwen3MoeFields) {
     // field HF uses to express it.
     write("\"decoder_sparse_step\":1,\"mlp_only_layers\":[0]");
     EXPECT_THROW((void)load_huggingface_config(path), std::invalid_argument);
-    // router_aux_loss_coef configures a training-time loss this repo does not
-    // implement; its presence is rejected rather than silently dropped.
-    write("\"decoder_sparse_step\":1,\"mlp_only_layers\":[],\"router_aux_loss_coef\":0.001");
-    EXPECT_THROW((void)load_huggingface_config(path), std::invalid_argument);
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
+}
+
+TEST(HuggingFaceConfigTest, AcceptsRouterAuxLossCoefWithoutEffect) {
+    // M4 originally rejected router_aux_loss_coef's mere presence; M7 found
+    // every real Qwen3-MoE config (official and third-party) serializes this
+    // field with its dataclass default, so the rejection made every real
+    // checkpoint unloadable. It configures a training-time loss this repo
+    // does not implement, so accepting it has no behavior to misrepresent.
+    const auto path =
+        std::filesystem::temp_directory_path() / "microllm-qwen3-moe-aux-loss-config.json";
+    std::ofstream(path) << R"({
+      "bos_token_id":1,"eos_token_id":2,
+      "hidden_act":"silu","hidden_size":8,"intermediate_size":16,
+      "head_dim":4,"max_position_embeddings":32,"model_type":"qwen3_moe",
+      "num_attention_heads":2,"num_hidden_layers":2,"num_key_value_heads":1,
+      "rms_norm_eps":1e-6,"rope_theta":10000,"tie_word_embeddings":false,
+      "torch_dtype":"bfloat16","use_mrope":false,"use_sliding_window":false,
+      "vocab_size":32,"num_experts":4,"num_experts_per_tok":2,
+      "moe_intermediate_size":8,"norm_topk_prob":true,"decoder_sparse_step":1,
+      "mlp_only_layers":[],"router_aux_loss_coef":0.001
+    })";
+    const auto parsed = load_huggingface_config(path);
+    EXPECT_EQ(parsed.model_type, "qwen3_moe");
+    EXPECT_EQ(parsed.model.moe_num_experts, 4);
     std::error_code ignored;
     std::filesystem::remove(path, ignored);
 }

@@ -604,15 +604,14 @@ def pytorch_references(actual):
     record(refs, "graph_moe_combine_output_grad", moe_combine_graph_output.grad)
     record(refs, "graph_moe_combine_weights_grad", moe_combine_graph_weights.grad)
 
-    moe_split_graph_gate_up = tensor([1, 2, 3, 4, 5, 6, 7, 8], (1, 4, 2), True)
-    moe_split_graph_gate_raw, moe_split_graph_up_raw = moe_split_graph_gate_up.chunk(2, dim=1)
-    moe_split_graph_gate = moe_split_graph_gate_raw.transpose(1, 2)
-    moe_split_graph_up = moe_split_graph_up_raw.transpose(1, 2)
-    moe_split_graph_gate_seed = tensor([0.5, -1, 2, 0.25], (1, 2, 2))
-    moe_split_graph_up_seed = tensor([1, -0.5, 0.75, 2], (1, 2, 2))
-    ((moe_split_graph_gate * moe_split_graph_gate_seed).sum() +
-     (moe_split_graph_up * moe_split_graph_up_seed).sum()).backward()
-    record(refs, "graph_moe_split_gate_up_gate_grad", moe_split_graph_gate_up.grad)
+    moe_stack_graph_expert0 = tensor([1, 2, 3, 4], (2, 2), True)
+    moe_stack_graph_expert1 = tensor([5, 6, 7, 8], (2, 2), True)
+    moe_stack_graph_stacked = torch.stack(
+        [moe_stack_graph_expert0, moe_stack_graph_expert1], dim=0)
+    moe_stack_graph_seed = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2))
+    (moe_stack_graph_stacked * moe_stack_graph_seed).sum().backward()
+    record(refs, "graph_moe_stack_experts_expert0_grad", moe_stack_graph_expert0.grad)
+    record(refs, "graph_moe_stack_experts_expert1_grad", moe_stack_graph_expert1.grad)
 
     rope_value = tensor([1, 0, 0, 1, 1, 0, 0, 1], (1, 2, 1, 4), True)
     rope_seed = tensor([1, 2, 3, 4, -1, -2, -3, -4], (1, 2, 1, 4))
@@ -814,9 +813,16 @@ def pytorch_references(actual):
     for name, parameter in bf16_train_params.items():
         record(refs, f"model_bf16_train_grad:{name}", parameter.grad)
 
-    # M6 model-level full-graph gate for the MoE FFN: oracle is Hugging Face's
-    # actual, unmodified Qwen3MoeSparseMoeBlock.forward() (transformers
+    # M6/M7 model-level full-graph gate for the MoE FFN: oracle is Hugging
+    # Face's actual, unmodified Qwen3MoeSparseMoeBlock.forward() (transformers
     # package), not a hand-rolled equivalent, per this milestone's standard.
+    # Fixture weights are per-expert (not a fused gate_up_proj) because that
+    # is what a real Qwen3-MoE checkpoint actually stores on disk -- confirmed
+    # by downloading one and by inspecting Qwen/Qwen3-30B-A3B's safetensors
+    # index. Hugging Face's own from_pretrained() internally concatenates
+    # per-expert gate_proj/up_proj into its packed gate_up_proj parameter
+    # (verified empirically against that real checkpoint); this fixture
+    # reproduces exactly that concatenation to populate the real module.
     from transformers.models.qwen3_moe.configuration_qwen3_moe import Qwen3MoeConfig
     from transformers.models.qwen3_moe.modeling_qwen3_moe import Qwen3MoeSparseMoeBlock
 
@@ -833,18 +839,27 @@ def pytorch_references(actual):
         moe_intermediate_size=moe_ffn_dim, norm_topk_prob=True, hidden_act="silu")
     moe_block = Qwen3MoeSparseMoeBlock(moe_config).float()
     moe_input = det((moe_tokens, moe_dim), 0).requires_grad_(True)
-    # Our convention is [dim, num_experts] (input, output); HF's nn.Linear-style
-    # router weight is [num_experts, dim], so the fixture is generated once in
-    # our layout and transposed only for the HF side -- gate_up_proj/down_proj
-    # need no such transform since our internal storage already matches HF's.
+    # Our convention is [dim, num_experts]/[dim, ffn_dim] (input, output); HF's
+    # nn.Linear-style weights are [num_experts, dim]/[ffn_dim, dim] (output,
+    # input) per expert, so every fixture tensor is generated once in our
+    # layout and transposed only when copied into the HF module.
     moe_router_weight_ours = det((moe_dim, moe_num_experts), 1)
-    moe_gate_up_proj = det((moe_num_experts, 2 * moe_ffn_dim, moe_dim), 2)
-    moe_down_proj = det((moe_num_experts, moe_dim, moe_ffn_dim), 3)
-    moe_seed = det((moe_tokens, moe_dim), 4)
+    moe_gate_experts = [det((moe_dim, moe_ffn_dim), 10 + expert * 3 + 0)
+                        for expert in range(moe_num_experts)]
+    moe_up_experts = [det((moe_dim, moe_ffn_dim), 10 + expert * 3 + 1)
+                      for expert in range(moe_num_experts)]
+    moe_down_experts = [det((moe_ffn_dim, moe_dim), 10 + expert * 3 + 2)
+                        for expert in range(moe_num_experts)]
+    moe_seed = det((moe_tokens, moe_dim), 100)
     with torch.no_grad():
         moe_block.gate.weight.copy_(moe_router_weight_ours.t())
-        moe_block.experts.gate_up_proj.copy_(moe_gate_up_proj)
-        moe_block.experts.down_proj.copy_(moe_down_proj)
+        moe_gate_up_stacked = torch.stack(
+            [torch.cat([moe_gate_experts[expert].t(), moe_up_experts[expert].t()], dim=0)
+             for expert in range(moe_num_experts)], dim=0)
+        moe_down_stacked = torch.stack(
+            [moe_down_experts[expert].t() for expert in range(moe_num_experts)], dim=0)
+        moe_block.experts.gate_up_proj.copy_(moe_gate_up_stacked)
+        moe_block.experts.down_proj.copy_(moe_down_stacked)
     moe_block.gate.weight.requires_grad_(True)
     moe_block.experts.gate_up_proj.requires_grad_(True)
     moe_block.experts.down_proj.requires_grad_(True)
@@ -853,8 +868,14 @@ def pytorch_references(actual):
     (moe_output * moe_seed).sum().backward()
     record(refs, "moe_model_input_grad", moe_input.grad)
     record(refs, "moe_model_router_weight_grad", moe_block.gate.weight.grad.t())
-    record(refs, "moe_model_gate_up_proj_grad", moe_block.experts.gate_up_proj.grad)
-    record(refs, "moe_model_down_proj_grad", moe_block.experts.down_proj.grad)
+    for expert in range(moe_num_experts):
+        moe_gate_up_grad = moe_block.experts.gate_up_proj.grad[expert]
+        record(refs, f"moe_model_expert_{expert}_gate_grad",
+               moe_gate_up_grad[:moe_ffn_dim, :].t())
+        record(refs, f"moe_model_expert_{expert}_up_grad",
+               moe_gate_up_grad[moe_ffn_dim:, :].t())
+        record(refs, f"moe_model_expert_{expert}_down_grad",
+               moe_block.experts.down_proj.grad[expert].t())
 
     sgd_parameter = tensor([1.0, -2.0], (2,), True)
     sgd = torch.optim.SGD([sgd_parameter], lr=0.1, weight_decay=0.01)
@@ -1024,8 +1045,8 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_moe_router_top_k_backward_shape",
             "invalid_moe_expert_ffn_backward_shape",
             "invalid_moe_combine_backward_shape",
-            "invalid_moe_split_gate_up_shape",
-            "invalid_moe_split_gate_up_backward_shape",
+            "invalid_moe_stack_experts_shape",
+            "invalid_moe_stack_experts_backward_shape",
             "invalid_rope_width",
             "invalid_rope_split_half_width",
             "invalid_rope_split_half_bias_shape",

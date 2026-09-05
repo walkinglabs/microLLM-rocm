@@ -2630,78 +2630,63 @@ Tensor moe_combine(const Tensor& expert_output, const Tensor& expert_indices,
     return from_values(std::move(result), {tokens, dim});
 }
 
-// Checkpoint-format adapter (M6). See ops.h for why this exists; formula:
-// gate[e,d,h] = gate_up_proj[e,h,d], up[e,d,h] = gate_up_proj[e,ffn_dim+h,d].
-TensorPair moe_split_gate_up(const Tensor& gate_up_proj,
-                             [[maybe_unused]] const OpContext& context) {
-    require_forward_float(gate_up_proj, "gate_up_proj");
-    if (gate_up_proj.dtype() != DType::Float32) {
-        throw std::invalid_argument("moe_split_gate_up requires a float32 tensor");
+// Checkpoint-format adapter (M7). See ops.h for why this exists and why M6's
+// fused-gate_up assumption was replaced. No transpose is needed: this repo's
+// own Linear weight layout ([input,output]) already matches the per-expert
+// shape moe_expert_ffn expects.
+Tensor moe_stack_experts(const std::vector<Tensor>& experts,
+                         [[maybe_unused]] const OpContext& context) {
+    if (experts.empty()) {
+        throw std::invalid_argument("moe_stack_experts requires at least one expert");
     }
-    if (gate_up_proj.ndim() != 3 || gate_up_proj.shape()[1] % 2 != 0) {
-        throw std::invalid_argument(
-            "moe_split_gate_up requires [num_experts, 2*ffn_dim, dim]");
+    const auto& first = experts.front();
+    require_forward_float(first, "experts[0]");
+    if (first.dtype() != DType::Float32 || first.ndim() != 2) {
+        throw std::invalid_argument("moe_stack_experts requires rank-two float32 tensors");
     }
-    if (gate_up_proj.device().is_hip()) {
-        throw std::runtime_error(
-            "moe_split_gate_up has no HIP kernel yet; CPU reference only");
+    if (first.device().is_hip()) {
+        throw std::runtime_error("moe_stack_experts has no HIP kernel yet; CPU reference only");
     }
-    const auto num_experts = gate_up_proj.shape()[0];
-    const auto ffn_dim = gate_up_proj.shape()[1] / 2;
-    const auto dim = gate_up_proj.shape()[2];
-    const auto values = gate_up_proj.to_vector();
-    std::vector<float> gate(static_cast<std::size_t>(num_experts * dim * ffn_dim));
-    std::vector<float> up(gate.size());
-    for (std::int64_t expert = 0; expert < num_experts; ++expert) {
-        const auto source_base = expert * (2 * ffn_dim) * dim;
-        const auto dest_base = expert * dim * ffn_dim;
-        for (std::int64_t h = 0; h < ffn_dim; ++h) {
-            for (std::int64_t d = 0; d < dim; ++d) {
-                gate[static_cast<std::size_t>(dest_base + d * ffn_dim + h)] =
-                    values[static_cast<std::size_t>(source_base + h * dim + d)];
-                up[static_cast<std::size_t>(dest_base + d * ffn_dim + h)] = values
-                    [static_cast<std::size_t>(source_base + (ffn_dim + h) * dim + d)];
-            }
+    const auto rows = first.shape()[0];
+    const auto columns = first.shape()[1];
+    const auto per_expert = static_cast<std::size_t>(rows * columns);
+    std::vector<float> result(experts.size() * per_expert);
+    for (std::size_t index = 0; index < experts.size(); ++index) {
+        const auto& expert = experts[index];
+        if (expert.dtype() != DType::Float32 || expert.shape() != first.shape()) {
+            throw std::invalid_argument(
+                "moe_stack_experts requires every expert to share float32 dtype and shape");
         }
+        const auto values = expert.to_vector();
+        std::copy(values.begin(), values.end(),
+                 result.begin() + static_cast<std::ptrdiff_t>(index * per_expert));
     }
-    return {from_values(std::move(gate), {num_experts, dim, ffn_dim}),
-           from_values(std::move(up), {num_experts, dim, ffn_dim})};
+    return from_values(std::move(result),
+                       {static_cast<std::int64_t>(experts.size()), rows, columns});
 }
 
-Tensor moe_split_gate_up_backward(const Tensor& gate_gradient, const Tensor& up_gradient,
-                                  [[maybe_unused]] const OpContext& context) {
-    require_forward_float(gate_gradient, "gate_gradient");
-    require_forward_float(up_gradient, "up_gradient");
-    if (gate_gradient.dtype() != DType::Float32 || up_gradient.dtype() != DType::Float32) {
-        throw std::invalid_argument("moe_split_gate_up_backward requires float32 tensors");
-    }
-    if (gate_gradient.ndim() != 3 || gate_gradient.shape() != up_gradient.shape()) {
+Tensor moe_stack_experts_backward_one(const Tensor& gradient, std::int64_t expert,
+                                      [[maybe_unused]] const OpContext& context) {
+    require_forward_float(gradient, "gradient");
+    if (gradient.dtype() != DType::Float32 || gradient.ndim() != 3) {
         throw std::invalid_argument(
-            "moe_split_gate_up_backward requires matching [num_experts, dim, ffn_dim] gradients");
+            "moe_stack_experts_backward_one requires a rank-three float32 gradient");
     }
-    if (gate_gradient.device().is_hip()) {
+    if (expert < 0 || expert >= gradient.shape()[0]) {
+        throw std::out_of_range("moe_stack_experts_backward_one expert index out of range");
+    }
+    if (gradient.device().is_hip()) {
         throw std::runtime_error(
-            "moe_split_gate_up_backward has no HIP kernel yet; CPU reference only");
+            "moe_stack_experts_backward_one has no HIP kernel yet; CPU reference only");
     }
-    const auto num_experts = gate_gradient.shape()[0];
-    const auto dim = gate_gradient.shape()[1];
-    const auto ffn_dim = gate_gradient.shape()[2];
-    const auto gate_values = gate_gradient.to_vector();
-    const auto up_values = up_gradient.to_vector();
-    std::vector<float> result(static_cast<std::size_t>(num_experts * (2 * ffn_dim) * dim), 0.0F);
-    for (std::int64_t expert = 0; expert < num_experts; ++expert) {
-        const auto source_base = expert * dim * ffn_dim;
-        const auto dest_base = expert * (2 * ffn_dim) * dim;
-        for (std::int64_t h = 0; h < ffn_dim; ++h) {
-            for (std::int64_t d = 0; d < dim; ++d) {
-                result[static_cast<std::size_t>(dest_base + h * dim + d)] =
-                    gate_values[static_cast<std::size_t>(source_base + d * ffn_dim + h)];
-                result[static_cast<std::size_t>(dest_base + (ffn_dim + h) * dim + d)] =
-                    up_values[static_cast<std::size_t>(source_base + d * ffn_dim + h)];
-            }
-        }
-    }
-    return from_values(std::move(result), {num_experts, 2 * ffn_dim, dim});
+    const auto rows = gradient.shape()[1];
+    const auto columns = gradient.shape()[2];
+    const auto per_expert = static_cast<std::size_t>(rows * columns);
+    const auto values = gradient.to_vector();
+    const auto base = static_cast<std::size_t>(expert) * per_expert;
+    std::vector<float> result(values.begin() + static_cast<std::ptrdiff_t>(base),
+                              values.begin() + static_cast<std::ptrdiff_t>(base + per_expert));
+    return from_values(std::move(result), {rows, columns});
 }
 
 Tensor rope(const Tensor& input, std::int64_t sequence_dim, std::int64_t position_offset,

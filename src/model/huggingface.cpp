@@ -232,10 +232,7 @@ HuggingFaceModelConfig load_huggingface_config(const std::filesystem::path& path
     if (output.model_type == "qwen3_moe") {
         // decoder_sparse_step==1 and an empty mlp_only_layers mean every layer is
         // MoE; anything else is a per-layer dense/MoE mix this parser does not
-        // represent. router_aux_loss_coef only affects a training-time load-
-        // balancing loss this repo does not implement, so its presence is
-        // rejected rather than silently ignored, per this repo's convention of
-        // never claiming a config field was honored when it wasn't.
+        // represent.
         if (optional_integer(text, "decoder_sparse_step", 1) != 1) {
             throw std::invalid_argument(
                 "qwen3_moe decoder_sparse_step must be 1 (every layer is MoE)");
@@ -246,13 +243,24 @@ HuggingFaceModelConfig load_huggingface_config(const std::filesystem::path& path
                 "qwen3_moe mlp_only_layers must be empty (per-layer dense/MoE mixing "
                 "is not supported)");
         }
-        if (optional_member(text, "router_aux_loss_coef")) {
-            throw std::invalid_argument(
-                "qwen3_moe router_aux_loss_coef is not supported (training-time "
-                "load-balancing loss is not implemented)");
-        }
+        // router_aux_loss_coef is intentionally accepted without effect: M4
+        // originally rejected its presence outright (never silently ignore a
+        // documented field), but M7 found every real Qwen3-MoE config --
+        // official and third-party alike -- serializes this field with its
+        // dataclass default, so rejecting it made every real checkpoint
+        // unloadable. It only configures a training-time load-balancing loss
+        // this repo does not implement anywhere, so there is no behavior to
+        // misrepresent by not reading it.
     }
-    output.torch_dtype = string_value(text, "torch_dtype");
+    // Informational only (never read to select compute dtype -- that is
+    // ModelConfig::linear_precision, controlled separately). Newer Hugging
+    // Face configs serialize this as "dtype" instead of "torch_dtype" (seen
+    // on a real Qwen3-MoE checkpoint while preparing the M7 fixture); accept
+    // either key rather than rejecting an otherwise-loadable config over a
+    // metadata field's name.
+    output.torch_dtype = optional_member(text, "torch_dtype")
+                              ? string_value(text, "torch_dtype")
+                              : string_value(text, "dtype");
     output.bos_token_id = integer(text, "bos_token_id");
     output.eos_token_id = integer(text, "eos_token_id");
     output.model.validate();

@@ -745,18 +745,21 @@ void swiglu_out_with_implementation_(
 [[nodiscard]] Tensor moe_combine(const Tensor& expert_output, const Tensor& expert_indices,
                                  const Tensor& expert_weights,
                                  const OpContext& context = {});
-// Checkpoint-format adapter (M6), not a routing primitive: Hugging Face's
-// Qwen3MoeExperts stores gate and up fused as one nn.Linear-style parameter
-// per expert, `gate_up_proj` [num_experts, 2*ffn_dim, dim] (output-dim first).
-// This splits it into the two [num_experts, dim, ffn_dim] tensors
-// moe_expert_ffn expects, transposing each half from HF's [out,in] layout to
-// this repo's [in,out] convention in the same step. down_proj needs only a
-// plain transpose(1,2) (no split), so it has no dedicated op.
-[[nodiscard]] TensorPair moe_split_gate_up(const Tensor& gate_up_proj,
-                                           const OpContext& context = {});
-[[nodiscard]] Tensor moe_split_gate_up_backward(
-    const Tensor& gate_gradient, const Tensor& up_gradient,
-    const OpContext& context = {});
+// Checkpoint-format adapter (M7), not a routing primitive: a real Qwen3-MoE
+// checkpoint stores each expert's gate/up/down projection as its own separate
+// [dim,ffn_dim]/[dim,ffn_dim]/[ffn_dim,dim] tensor (confirmed against both
+// Qwen/Qwen3-30B-A3B's safetensors index and a downloaded tiny checkpoint --
+// M6 briefly assumed a fused gate_up_proj layout after reading only
+// transformers' current in-memory module source, which turned out to differ
+// from what is actually serialized on disk). This stacks num_experts
+// same-shaped tensors into the one [num_experts,rows,cols] tensor
+// moe_expert_ffn expects; no transpose is needed since this repo's own Linear
+// weight layout ([input,output]) already matches moe_expert_ffn's per-expert
+// convention.
+[[nodiscard]] Tensor moe_stack_experts(const std::vector<Tensor>& experts,
+                                       const OpContext& context = {});
+[[nodiscard]] Tensor moe_stack_experts_backward_one(
+    const Tensor& gradient, std::int64_t expert, const OpContext& context = {});
 [[nodiscard]] Tensor rope(const Tensor& input, std::int64_t sequence_dim = 1,
                           std::int64_t position_offset = 0, float base = 10000.0F,
                           const OpContext& context = {});
