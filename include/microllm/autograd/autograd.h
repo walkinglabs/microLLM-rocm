@@ -12,6 +12,7 @@
 namespace microllm::autograd {
 
 struct ValueTriple;
+struct MoeRouterResult;
 
 struct GraphNodeInfo {
     std::size_t id = 0;
@@ -93,6 +94,10 @@ private:
     friend Value rope_split_half_bias_bthd(const Value&, const Value&, std::int64_t,
                                            float);
     friend Value cross_entropy(const Value&, const Tensor&);
+    friend MoeRouterResult moe_router_top_k(const Value&, std::int64_t, bool);
+    friend Value moe_expert_ffn(const Value&, const Tensor&, const Value&,
+                                const Value&, const Value&);
+    friend Value moe_combine(const Value&, const Tensor&, const Value&);
     friend Value contiguous(const Value&);
     friend Value causal_softmax(const Value&);
     friend Value causal_gqa_attention(const Value&, const Value&, const Value&,
@@ -107,6 +112,13 @@ struct ValueTriple {
     Value first;
     Value second;
     Value third;
+};
+
+// Top-k selection is not differentiable: indices are a plain Tensor, never a
+// Value, exactly like embedding()'s index argument.
+struct MoeRouterResult {
+    Tensor indices;
+    Value weights;
 };
 
 [[nodiscard]] Value add(const Value& left, const Value& right);
@@ -163,6 +175,15 @@ struct ValueTriple {
     const Value& input, const Value& bias,
     std::int64_t position_offset = 0, float base = 10000.0F);
 [[nodiscard]] Value cross_entropy(const Value& logits, const Tensor& targets);
+// MoE routing. Contract: docs/OPERATOR_CONTRACTS.zh-CN.md, "MoE 路由". indices is
+// always a plain (non-differentiable) Tensor, matching embedding()'s convention.
+[[nodiscard]] MoeRouterResult moe_router_top_k(const Value& logits, std::int64_t k,
+                                               bool norm_topk_prob);
+[[nodiscard]] Value moe_expert_ffn(const Value& input, const Tensor& expert_indices,
+                                   const Value& gate_weight, const Value& up_weight,
+                                   const Value& down_weight);
+[[nodiscard]] Value moe_combine(const Value& expert_output, const Tensor& expert_indices,
+                                const Value& expert_weights);
 [[nodiscard]] Value contiguous(const Value& input);
 [[nodiscard]] Value causal_softmax(const Value& scores);
 [[nodiscard]] Value causal_gqa_attention(const Value& query, const Value& key,

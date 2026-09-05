@@ -497,6 +497,42 @@ void emit_graph_gradient_cases() {
     emit("graph_swiglu_gate_grad", gate.grad());
     emit("graph_swiglu_up_grad", up.grad());
 
+    Value moe_router_graph_logits(
+        f32({2, 1, 0, -1, -1, 0, 2, 1, 0.1F, 0.4F, 0.3F, 0.2F}, {3, 4}), true);
+    const auto moe_router_graph_result =
+        moe_router_top_k(moe_router_graph_logits, 2, true);
+    const Value moe_router_graph_seed(
+        f32({0.6F, -0.3F, 0.4F, 0.1F, -0.5F, 0.2F}, {3, 2}));
+    sum(multiply(moe_router_graph_result.weights, moe_router_graph_seed)).backward();
+    emit("graph_moe_router_top_k_logits_grad", moe_router_graph_logits.grad());
+
+    Value moe_ffn_graph_input(f32({1, 0, 0, 1}, {2, 2}), true);
+    const auto moe_ffn_graph_indices = Tensor::from_int32_vector({1, 0}, {2, 1});
+    Value moe_ffn_graph_gate(f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}), true);
+    Value moe_ffn_graph_up(f32({1, 1, 1, 1, 2, 0, 0, 2}, {2, 2, 2}), true);
+    Value moe_ffn_graph_down(f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}), true);
+    const Value moe_ffn_graph_seed(
+        f32({0.5F, -1, 0.25F, 2, 1, -0.5F, 0.75F, -0.25F}, {2, 2, 2}));
+    sum(multiply(moe_expert_ffn(moe_ffn_graph_input, moe_ffn_graph_indices, moe_ffn_graph_gate,
+                                moe_ffn_graph_up, moe_ffn_graph_down),
+                moe_ffn_graph_seed))
+        .backward();
+    emit("graph_moe_expert_ffn_input_grad", moe_ffn_graph_input.grad());
+    emit("graph_moe_expert_ffn_gate_weight_grad", moe_ffn_graph_gate.grad());
+    emit("graph_moe_expert_ffn_up_weight_grad", moe_ffn_graph_up.grad());
+    emit("graph_moe_expert_ffn_down_weight_grad", moe_ffn_graph_down.grad());
+
+    Value moe_combine_graph_output(f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}), true);
+    const auto moe_combine_graph_indices = Tensor::from_int32_vector({1, 0}, {2, 1});
+    Value moe_combine_graph_weights(f32({0.5F, 2.0F}, {2, 1}), true);
+    const Value moe_combine_graph_seed(f32({0.3F, -0.7F, 1.0F, 0.2F}, {2, 2}));
+    sum(multiply(moe_combine(moe_combine_graph_output, moe_combine_graph_indices,
+                             moe_combine_graph_weights),
+                moe_combine_graph_seed))
+        .backward();
+    emit("graph_moe_combine_output_grad", moe_combine_graph_output.grad());
+    emit("graph_moe_combine_weights_grad", moe_combine_graph_weights.grad());
+
     Value rope_input(f32({1, 0, 0, 1, 1, 0, 0, 1}, {1, 2, 1, 4}), true);
     const Value rope_seed(f32({1, 2, 3, 4, -1, -2, -3, -4}, {1, 2, 1, 4}));
     sum(multiply(rope(rope_input), rope_seed)).backward();
@@ -670,6 +706,25 @@ void emit_invalid_shape_cases() {
                       f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}),
                       Tensor::from_int32_vector({1, 0}, {2, 1}),
                       f32({0.5F, 2.0F, 1.0F}, {3}));
+              }));
+    emit_bool("invalid_moe_router_top_k_backward_shape", rejected([&] {
+                  (void)moe_router_top_k_backward(
+                      f32({1, 2, 3}, {3}), Tensor::from_int32_vector({0}, {1, 1}), true,
+                      f32({1}, {1, 1}));
+              }));
+    emit_bool("invalid_moe_expert_ffn_backward_shape", rejected([&] {
+                  (void)moe_expert_ffn_backward(
+                      f32({1, 0, 0, 1}, {2, 2}), Tensor::from_int32_vector({1, 0}, {2, 1}),
+                      f32({1, 2, 3, 4}, {2, 2}),
+                      f32({1, 1, 1, 1, 2, 0, 0, 2}, {2, 2, 2}),
+                      f32({1, 0, 0, 1, 0, 1, 1, 0}, {2, 2, 2}),
+                      f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}));
+              }));
+    emit_bool("invalid_moe_combine_backward_shape", rejected([&] {
+                  (void)moe_combine_backward(
+                      f32({1, 2, 3, 4, 5, 6, 7, 8}, {2, 2, 2}),
+                      Tensor::from_int32_vector({1, 0}, {2, 1}),
+                      f32({0.5F, 2.0F, 1.0F}, {3}), f32({1, 2, 3, 4}, {2, 2}));
               }));
     emit_bool("invalid_rope_width", rejected([&] { (void)rope(f32({1, 2, 3}, {1, 1, 3})); }));
     emit_bool("invalid_rope_split_half_width", rejected([&] {

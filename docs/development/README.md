@@ -1,5 +1,6 @@
 # Development records
 
+- [2026-09-04: M3 Qwen3 MoE autograd backward nodes](2026-09-04-m3-qwen3-moe-autograd-backward.md)
 - [2026-09-04: M2 Qwen3 MoE readable HIP kernels](2026-09-04-m2-qwen3-moe-hip-kernels.md)
 - [2026-09-04: M1 Qwen3 MoE CPU reference operators](2026-09-04-m1-qwen3-moe-cpu-reference.md)
 - [2026-09-04: M0 Qwen3 MoE operator contracts](2026-09-04-m0-qwen3-moe-op-contracts.md)

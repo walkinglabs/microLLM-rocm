@@ -560,6 +560,50 @@ def pytorch_references(actual):
     record(refs, "graph_swiglu_gate_grad", gate.grad)
     record(refs, "graph_swiglu_up_grad", up.grad)
 
+    moe_router_graph_logits = tensor(
+        [2, 1, 0, -1, -1, 0, 2, 1, 0.1, 0.4, 0.3, 0.2], (3, 4), True)
+    moe_router_graph_probs = torch.softmax(moe_router_graph_logits, dim=-1)
+    moe_router_graph_weights, _ = torch.topk(moe_router_graph_probs, 2, dim=-1)
+    moe_router_graph_weights = (
+        moe_router_graph_weights / moe_router_graph_weights.sum(dim=-1, keepdim=True))
+    moe_router_graph_seed = tensor([0.6, -0.3, 0.4, 0.1, -0.5, 0.2], (3, 2))
+    (moe_router_graph_weights * moe_router_graph_seed).sum().backward()
+    record(refs, "graph_moe_router_top_k_logits_grad", moe_router_graph_logits.grad)
+
+    moe_ffn_graph_input = tensor([1, 0, 0, 1], (2, 2), True)
+    moe_ffn_graph_indices = torch.tensor([[1], [0]], dtype=torch.long)
+    moe_ffn_graph_gate = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2), True)
+    moe_ffn_graph_up = tensor([1, 1, 1, 1, 2, 0, 0, 2], (2, 2, 2), True)
+    moe_ffn_graph_down = tensor([1, 0, 0, 1, 0, 1, 1, 0], (2, 2, 2), True)
+    moe_ffn_graph_mask = torch.zeros(2, 2)
+    moe_ffn_graph_mask.scatter_(1, moe_ffn_graph_indices, 1.0)
+    moe_ffn_graph_outputs = []
+    for expert in range(2):
+        gate_out = moe_ffn_graph_input @ moe_ffn_graph_gate[expert]
+        up_out = moe_ffn_graph_input @ moe_ffn_graph_up[expert]
+        hidden = F.silu(gate_out) * up_out
+        moe_ffn_graph_outputs.append(hidden @ moe_ffn_graph_down[expert])
+    moe_ffn_graph_output = (
+        torch.stack(moe_ffn_graph_outputs, dim=1) * moe_ffn_graph_mask.unsqueeze(-1))
+    moe_ffn_graph_seed = tensor([0.5, -1, 0.25, 2, 1, -0.5, 0.75, -0.25], (2, 2, 2))
+    (moe_ffn_graph_output * moe_ffn_graph_seed).sum().backward()
+    record(refs, "graph_moe_expert_ffn_input_grad", moe_ffn_graph_input.grad)
+    record(refs, "graph_moe_expert_ffn_gate_weight_grad", moe_ffn_graph_gate.grad)
+    record(refs, "graph_moe_expert_ffn_up_weight_grad", moe_ffn_graph_up.grad)
+    record(refs, "graph_moe_expert_ffn_down_weight_grad", moe_ffn_graph_down.grad)
+
+    moe_combine_graph_output = tensor([1, 2, 3, 4, 5, 6, 7, 8], (2, 2, 2), True)
+    moe_combine_graph_indices = torch.tensor([[1], [0]], dtype=torch.long)
+    moe_combine_graph_weights = tensor([0.5, 2.0], (2, 1), True)
+    moe_combine_graph_gathered = moe_combine_graph_output.gather(
+        1, moe_combine_graph_indices.view(2, 1, 1).expand(-1, 1, 2))
+    moe_combine_graph_result = (
+        moe_combine_graph_weights.unsqueeze(-1) * moe_combine_graph_gathered).sum(dim=1)
+    moe_combine_graph_seed = tensor([0.3, -0.7, 1.0, 0.2], (2, 2))
+    (moe_combine_graph_result * moe_combine_graph_seed).sum().backward()
+    record(refs, "graph_moe_combine_output_grad", moe_combine_graph_output.grad)
+    record(refs, "graph_moe_combine_weights_grad", moe_combine_graph_weights.grad)
+
     rope_value = tensor([1, 0, 0, 1, 1, 0, 0, 1], (1, 2, 1, 4), True)
     rope_seed = tensor([1, 2, 3, 4, -1, -2, -3, -4], (1, 2, 1, 4))
     (rope(rope_value) * rope_seed).sum().backward()
@@ -920,6 +964,9 @@ class OperatorParityTest(unittest.TestCase):
             "invalid_moe_router_top_k_shape",
             "invalid_moe_expert_ffn_shape",
             "invalid_moe_combine_shape",
+            "invalid_moe_router_top_k_backward_shape",
+            "invalid_moe_expert_ffn_backward_shape",
+            "invalid_moe_combine_backward_shape",
             "invalid_rope_width",
             "invalid_rope_split_half_width",
             "invalid_rope_split_half_bias_shape",

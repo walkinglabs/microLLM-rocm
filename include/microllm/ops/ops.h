@@ -276,6 +276,13 @@ struct TensorTriple {
     Tensor third;
 };
 
+struct TensorQuad {
+    Tensor first;
+    Tensor second;
+    Tensor third;
+    Tensor fourth;
+};
+
 enum class Fp8ScaleMode { Scalar, OuterRow, OuterColumn };
 
 struct ScaledTensor {
@@ -832,6 +839,33 @@ void swiglu_backward_scalar_seed_out_(
 void swiglu_backward_typed_out_(
     Tensor& gate_gradient, Tensor& up_gradient,
     const Tensor& gate, const Tensor& up, const Tensor& gradient,
+    const OpContext& context = {});
+// MoE routing backward (M3). Top-k selection is not differentiable: indices are
+// never an input requiring gradient. Recomputes softmax/hidden internally from
+// logits/input rather than caching forward intermediates, matching this file's
+// existing backward-primitive convention (e.g. rms_norm_backward).
+// logits gradient only; indices carry no gradient. The full row-softmax coupling
+// means every logit gets some nonzero contribution (not just selected experts) —
+// this is the correct dense softmax Jacobian, matching PyTorch autograd exactly.
+[[nodiscard]] Tensor moe_router_top_k_backward(
+    const Tensor& logits, const Tensor& indices, bool norm_topk_prob,
+    const Tensor& gradient, const OpContext& context = {});
+// Returns {input, gate_weight, up_weight, down_weight} gradients. Because the
+// forward output is exactly zero for (token, expert) pairs the token did not
+// select, every expert's weight-row gradient is contributed to only by tokens
+// that selected it — the same "only visited rows get gradient" property
+// embedding_backward has, but it falls out of the mask multiply rather than a
+// hand-written scatter.
+[[nodiscard]] TensorQuad moe_expert_ffn_backward(
+    const Tensor& input, const Tensor& expert_indices, const Tensor& gate_weight,
+    const Tensor& up_weight, const Tensor& down_weight, const Tensor& gradient,
+    const OpContext& context = {});
+// Returns {expert_output, expert_weights} gradients. expert_output's gradient is
+// a genuine scatter-add: only the (token, expert) slots actually read by
+// moe_combine's forward receive a nonzero contribution.
+[[nodiscard]] TensorPair moe_combine_backward(
+    const Tensor& expert_output, const Tensor& expert_indices,
+    const Tensor& expert_weights, const Tensor& gradient,
     const OpContext& context = {});
 [[nodiscard]] Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim = 1,
                                    std::int64_t position_offset = 0,

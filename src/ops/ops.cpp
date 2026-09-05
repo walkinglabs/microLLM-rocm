@@ -4844,6 +4844,319 @@ void swiglu_backward_typed_out_(
         up_reference.device(), bytes);
 }
 
+// MoE routing backward (M3). See docs/OPERATOR_CONTRACTS.zh-CN.md, "MoE 路由", and
+// the forward declarations' comments in ops.h for the non-differentiability of
+// top-k indices.
+Tensor moe_router_top_k_backward(const Tensor& logits, const Tensor& indices,
+                                 bool norm_topk_prob, const Tensor& gradient,
+                                 const OpContext& context) {
+    require_forward_float(logits, "logits");
+    require_forward_float(gradient, "gradient");
+    if (logits.dtype() != DType::Float32 || gradient.dtype() != DType::Float32) {
+        throw std::invalid_argument("moe_router_top_k_backward requires float32 tensors");
+    }
+    if (indices.dtype() != DType::Int32) {
+        throw std::invalid_argument("moe_router_top_k_backward indices must be int32");
+    }
+    if (logits.ndim() != 2 || indices.ndim() != 2 || gradient.ndim() != 2) {
+        throw std::invalid_argument(
+            "moe_router_top_k_backward requires rank-two logits/indices/gradient");
+    }
+    const auto tokens = logits.shape()[0];
+    const auto num_experts = logits.shape()[1];
+    const auto k = indices.shape()[1];
+    if (indices.shape()[0] != tokens || gradient.shape() != Shape{tokens, k}) {
+        throw std::invalid_argument(
+            "moe_router_top_k_backward indices/gradient must be [tokens, k]");
+    }
+    if (logits.device().is_hip()) {
+        throw std::runtime_error(
+            "moe_router_top_k_backward has no HIP kernel yet; CPU reference only");
+    }
+
+    // Reuse the existing softmax/softmax_backward primitives rather than
+    // re-deriving the Jacobian: only the gather-then-optional-renormalize step
+    // in between is specific to routing.
+    const auto probabilities = softmax(logits, -1, context);
+    const auto probability_values = probabilities.to_vector();
+    const auto indices_values = indices.to_int32_vector();
+    const auto seed_values = gradient.to_vector();
+
+    std::vector<float> probability_seed(
+        static_cast<std::size_t>(tokens * num_experts), 0.0F);
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        const auto probability_base = token * num_experts;
+        const auto indices_base = token * k;
+        float selected_sum = 0.0F;
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            const auto expert = indices_values[static_cast<std::size_t>(indices_base + slot)];
+            if (expert < 0 || expert >= num_experts) {
+                throw std::out_of_range("moe_router_top_k_backward expert index out of range");
+            }
+            selected_sum +=
+                probability_values[static_cast<std::size_t>(probability_base + expert)];
+        }
+        if (norm_topk_prob) {
+            float weighted_sum = 0.0F;
+            for (std::int64_t slot = 0; slot < k; ++slot) {
+                const auto expert =
+                    indices_values[static_cast<std::size_t>(indices_base + slot)];
+                const auto weight =
+                    probability_values[static_cast<std::size_t>(probability_base + expert)] /
+                    selected_sum;
+                weighted_sum +=
+                    seed_values[static_cast<std::size_t>(indices_base + slot)] * weight;
+            }
+            for (std::int64_t slot = 0; slot < k; ++slot) {
+                const auto expert =
+                    indices_values[static_cast<std::size_t>(indices_base + slot)];
+                const auto raw_gradient =
+                    (seed_values[static_cast<std::size_t>(indices_base + slot)] -
+                     weighted_sum) /
+                    selected_sum;
+                probability_seed[static_cast<std::size_t>(probability_base + expert)] +=
+                    raw_gradient;
+            }
+        } else {
+            for (std::int64_t slot = 0; slot < k; ++slot) {
+                const auto expert =
+                    indices_values[static_cast<std::size_t>(indices_base + slot)];
+                probability_seed[static_cast<std::size_t>(probability_base + expert)] +=
+                    seed_values[static_cast<std::size_t>(indices_base + slot)];
+            }
+        }
+    }
+    const auto probability_seed_tensor =
+        from_values(std::move(probability_seed), Shape{tokens, num_experts});
+    return softmax_backward(probabilities, probability_seed_tensor, context);
+}
+
+TensorQuad moe_expert_ffn_backward(
+    const Tensor& input, const Tensor& expert_indices, const Tensor& gate_weight,
+    const Tensor& up_weight, const Tensor& down_weight, const Tensor& gradient,
+    const OpContext& context) {
+    require_forward_float(input, "input");
+    require_forward_float(gate_weight, "gate_weight");
+    require_forward_float(up_weight, "up_weight");
+    require_forward_float(down_weight, "down_weight");
+    require_forward_float(gradient, "gradient");
+    if (input.dtype() != DType::Float32 || gate_weight.dtype() != DType::Float32 ||
+        up_weight.dtype() != DType::Float32 || down_weight.dtype() != DType::Float32 ||
+        gradient.dtype() != DType::Float32) {
+        throw std::invalid_argument("moe_expert_ffn_backward requires float32 tensors");
+    }
+    if (expert_indices.dtype() != DType::Int32) {
+        throw std::invalid_argument("moe_expert_ffn_backward expert_indices must be int32");
+    }
+    if (input.ndim() != 2 || expert_indices.ndim() != 2 || gate_weight.ndim() != 3 ||
+        up_weight.ndim() != 3 || down_weight.ndim() != 3 || gradient.ndim() != 3) {
+        throw std::invalid_argument(
+            "moe_expert_ffn_backward requires rank-2 input/expert_indices and "
+            "rank-3 weights/gradient");
+    }
+    const auto tokens = input.shape()[0];
+    const auto dim = input.shape()[1];
+    const auto k = expert_indices.shape()[1];
+    const auto num_experts = gate_weight.shape()[0];
+    const auto ffn_dim = gate_weight.shape()[2];
+    if (expert_indices.shape()[0] != tokens ||
+        gate_weight.shape() != up_weight.shape() || gate_weight.shape()[1] != dim ||
+        down_weight.shape()[0] != num_experts || down_weight.shape()[1] != ffn_dim ||
+        down_weight.shape()[2] != dim ||
+        gradient.shape() != Shape{tokens, num_experts, dim}) {
+        throw std::invalid_argument("moe_expert_ffn_backward shape contract violated");
+    }
+    if (input.device().is_hip()) {
+        throw std::runtime_error(
+            "moe_expert_ffn_backward has no HIP kernel yet; CPU reference only");
+    }
+
+    const auto input_values = input.to_vector();
+    const auto indices_values = expert_indices.to_int32_vector();
+    const auto gate_values = gate_weight.to_vector();
+    const auto up_values = up_weight.to_vector();
+    const auto output_gradient = gradient.to_vector();
+
+    std::vector<std::uint8_t> selected(static_cast<std::size_t>(tokens * num_experts), 0);
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            const auto expert = indices_values[static_cast<std::size_t>(token * k + slot)];
+            if (expert < 0 || expert >= num_experts) {
+                throw std::out_of_range("moe_expert_ffn_backward expert index out of range");
+            }
+            selected[static_cast<std::size_t>(token * num_experts + expert)] = 1;
+        }
+    }
+
+    // Recompute the forward's per-(token, expert) gate/up projections and the
+    // masked output-gradient rather than caching forward intermediates.
+    std::vector<float> gate_sum(
+        static_cast<std::size_t>(tokens * num_experts * ffn_dim), 0.0F);
+    std::vector<float> up_sum(
+        static_cast<std::size_t>(tokens * num_experts * ffn_dim), 0.0F);
+    std::vector<float> masked_seed(
+        static_cast<std::size_t>(tokens * num_experts * dim), 0.0F);
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        const auto input_base = token * dim;
+        for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+            const auto mask =
+                selected[static_cast<std::size_t>(token * num_experts + expert)] ? 1.0F : 0.0F;
+            const auto weight_base = expert * dim * ffn_dim;
+            const auto hidden_base = (token * num_experts + expert) * ffn_dim;
+            for (std::int64_t h = 0; h < ffn_dim; ++h) {
+                float gate_value = 0.0F;
+                float up_value = 0.0F;
+                for (std::int64_t d = 0; d < dim; ++d) {
+                    const auto x = input_values[static_cast<std::size_t>(input_base + d)];
+                    const auto weight_index =
+                        static_cast<std::size_t>(weight_base + d * ffn_dim + h);
+                    gate_value += x * gate_values[weight_index];
+                    up_value += x * up_values[weight_index];
+                }
+                gate_sum[static_cast<std::size_t>(hidden_base + h)] = gate_value;
+                up_sum[static_cast<std::size_t>(hidden_base + h)] = up_value;
+            }
+            const auto out_base = (token * num_experts + expert) * dim;
+            for (std::int64_t d = 0; d < dim; ++d) {
+                masked_seed[static_cast<std::size_t>(out_base + d)] =
+                    output_gradient[static_cast<std::size_t>(out_base + d)] * mask;
+            }
+        }
+    }
+    const auto gate_sum_tensor =
+        from_values(gate_sum, Shape{tokens, num_experts, ffn_dim});
+    const auto up_sum_tensor =
+        from_values(up_sum, Shape{tokens, num_experts, ffn_dim});
+    const auto hidden_tensor = swiglu(gate_sum_tensor, up_sum_tensor, context);
+    const auto hidden_values = hidden_tensor.to_vector();
+
+    // d(hidden) = masked_seed @ down_weight[expert]^T, per (token, expert).
+    const auto down_values = down_weight.to_vector();
+    std::vector<float> hidden_gradient(gate_sum.size(), 0.0F);
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+            const auto weight_base = expert * ffn_dim * dim;
+            const auto hidden_base = (token * num_experts + expert) * ffn_dim;
+            const auto out_base = (token * num_experts + expert) * dim;
+            for (std::int64_t h = 0; h < ffn_dim; ++h) {
+                float sum = 0.0F;
+                for (std::int64_t d = 0; d < dim; ++d) {
+                    sum += masked_seed[static_cast<std::size_t>(out_base + d)] *
+                           down_values[static_cast<std::size_t>(weight_base + h * dim + d)];
+                }
+                hidden_gradient[static_cast<std::size_t>(hidden_base + h)] = sum;
+            }
+        }
+    }
+    const auto hidden_gradient_tensor =
+        from_values(std::move(hidden_gradient), Shape{tokens, num_experts, ffn_dim});
+    const auto swiglu_gradients =
+        swiglu_backward(gate_sum_tensor, up_sum_tensor, hidden_gradient_tensor, context);
+    const auto gate_sum_gradient = swiglu_gradients.first.to_vector();
+    const auto up_sum_gradient = swiglu_gradients.second.to_vector();
+
+    std::vector<float> input_gradient(input_values.size(), 0.0F);
+    std::vector<float> gate_weight_gradient(gate_values.size(), 0.0F);
+    std::vector<float> up_weight_gradient(up_values.size(), 0.0F);
+    std::vector<float> down_weight_gradient(down_values.size(), 0.0F);
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        const auto input_base = token * dim;
+        for (std::int64_t expert = 0; expert < num_experts; ++expert) {
+            const auto weight_base_gu = expert * dim * ffn_dim;
+            const auto weight_base_down = expert * ffn_dim * dim;
+            const auto hidden_base = (token * num_experts + expert) * ffn_dim;
+            const auto out_base = (token * num_experts + expert) * dim;
+            for (std::int64_t h = 0; h < ffn_dim; ++h) {
+                const auto dg = gate_sum_gradient[static_cast<std::size_t>(hidden_base + h)];
+                const auto du = up_sum_gradient[static_cast<std::size_t>(hidden_base + h)];
+                for (std::int64_t d = 0; d < dim; ++d) {
+                    const auto weight_index =
+                        static_cast<std::size_t>(weight_base_gu + d * ffn_dim + h);
+                    const auto x = input_values[static_cast<std::size_t>(input_base + d)];
+                    gate_weight_gradient[weight_index] += x * dg;
+                    up_weight_gradient[weight_index] += x * du;
+                    input_gradient[static_cast<std::size_t>(input_base + d)] +=
+                        dg * gate_values[weight_index] + du * up_values[weight_index];
+                }
+                const auto hidden_value =
+                    hidden_values[static_cast<std::size_t>(hidden_base + h)];
+                for (std::int64_t d = 0; d < dim; ++d) {
+                    down_weight_gradient[static_cast<std::size_t>(
+                        weight_base_down + h * dim + d)] +=
+                        hidden_value * masked_seed[static_cast<std::size_t>(out_base + d)];
+                }
+            }
+        }
+    }
+    return {from_values(std::move(input_gradient), input.shape()),
+           from_values(std::move(gate_weight_gradient), gate_weight.shape()),
+           from_values(std::move(up_weight_gradient), up_weight.shape()),
+           from_values(std::move(down_weight_gradient), down_weight.shape())};
+}
+
+TensorPair moe_combine_backward(
+    const Tensor& expert_output, const Tensor& expert_indices,
+    const Tensor& expert_weights, const Tensor& gradient,
+    [[maybe_unused]] const OpContext& context) {
+    require_forward_float(expert_output, "expert_output");
+    require_forward_float(expert_weights, "expert_weights");
+    require_forward_float(gradient, "gradient");
+    if (expert_output.dtype() != DType::Float32 || expert_weights.dtype() != DType::Float32 ||
+        gradient.dtype() != DType::Float32) {
+        throw std::invalid_argument("moe_combine_backward requires float32 tensors");
+    }
+    if (expert_indices.dtype() != DType::Int32) {
+        throw std::invalid_argument("moe_combine_backward expert_indices must be int32");
+    }
+    if (expert_output.ndim() != 3 || expert_indices.ndim() != 2 ||
+        expert_weights.ndim() != 2 || gradient.ndim() != 2) {
+        throw std::invalid_argument(
+            "moe_combine_backward requires rank-3 expert_output and rank-2 "
+            "expert_indices/expert_weights/gradient");
+    }
+    const auto tokens = expert_output.shape()[0];
+    const auto num_experts = expert_output.shape()[1];
+    const auto dim = expert_output.shape()[2];
+    const auto k = expert_indices.shape()[1];
+    if (expert_indices.shape()[0] != tokens ||
+        expert_weights.shape() != expert_indices.shape() ||
+        gradient.shape() != Shape{tokens, dim}) {
+        throw std::invalid_argument("moe_combine_backward shape contract violated");
+    }
+    if (expert_output.device().is_hip()) {
+        throw std::runtime_error(
+            "moe_combine_backward has no HIP kernel yet; CPU reference only");
+    }
+    const auto output_values = expert_output.to_vector();
+    const auto indices_values = expert_indices.to_int32_vector();
+    const auto weights_values = expert_weights.to_vector();
+    const auto output_gradient = gradient.to_vector();
+
+    std::vector<float> expert_output_gradient(output_values.size(), 0.0F);
+    std::vector<float> expert_weights_gradient(weights_values.size(), 0.0F);
+    for (std::int64_t token = 0; token < tokens; ++token) {
+        const auto grad_base = token * dim;
+        for (std::int64_t slot = 0; slot < k; ++slot) {
+            const auto index = token * k + slot;
+            const auto expert = indices_values[static_cast<std::size_t>(index)];
+            if (expert < 0 || expert >= num_experts) {
+                throw std::out_of_range("moe_combine_backward expert index out of range");
+            }
+            const auto weight = weights_values[static_cast<std::size_t>(index)];
+            const auto expert_base = (token * num_experts + expert) * dim;
+            float dot = 0.0F;
+            for (std::int64_t d = 0; d < dim; ++d) {
+                const auto g = output_gradient[static_cast<std::size_t>(grad_base + d)];
+                expert_output_gradient[static_cast<std::size_t>(expert_base + d)] += weight * g;
+                dot += output_values[static_cast<std::size_t>(expert_base + d)] * g;
+            }
+            expert_weights_gradient[static_cast<std::size_t>(index)] = dot;
+        }
+    }
+    return {from_values(std::move(expert_output_gradient), expert_output.shape()),
+           from_values(std::move(expert_weights_gradient), expert_weights.shape())};
+}
+
 Tensor rope_backward(const Tensor& gradient, std::int64_t sequence_dim,
                      std::int64_t position_offset, float base,
                      [[maybe_unused]] const OpContext& context) {

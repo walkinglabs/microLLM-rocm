@@ -210,6 +210,44 @@ TEST(AutogradTest, EmbeddingBackwardScattersAndAccumulatesRepeatedIndices) {
     EXPECT_EQ(weight.grad().to_vector(), (std::vector<float>{1, 1, 0, 0, 2, 2}));
 }
 
+TEST(AutogradTest, MoeRouterExpertFfnAndCombineBackwardsRouteThroughTheFullGraph) {
+    Value router_logits(Tensor::from_vector({2, 1, 0, -1, -1, 0, 2, 1}, {2, 4}), true);
+    const auto router_result = moe_router_top_k(router_logits, 2, /*norm_topk_prob=*/true);
+    EXPECT_EQ(router_result.indices.dtype(), DType::Int32);  // never a Value: not differentiable.
+    sum(router_result.weights).backward();
+    EXPECT_TRUE(router_logits.grad().defined());
+
+    // Both tokens route to expert 0 only, so expert 1's weight rows are entirely
+    // unvisited -- the graph-level analogue of embedding_backward's untouched
+    // vocabulary rows. Chain expert_ffn into combine so one backward() call
+    // exercises every accumulate() edge this milestone adds.
+    Value ffn_input(Tensor::from_vector({1, 0, 0, 1}, {2, 2}), true);
+    const auto ffn_indices = Tensor::from_int32_vector({0, 0}, {2, 1});
+    Value gate_weight(Tensor::from_vector({1, 0, 0, 1, 1, 1, 1, 1}, {2, 2, 2}), true);
+    Value up_weight(Tensor::from_vector({1, 0, 0, 1, 2, 2, 2, 2}, {2, 2, 2}), true);
+    Value down_weight(Tensor::from_vector({1, 0, 0, 1, 1, 1, 1, 1}, {2, 2, 2}), true);
+    const auto expert_output =
+        moe_expert_ffn(ffn_input, ffn_indices, gate_weight, up_weight, down_weight);
+    Value combine_weights(Tensor::from_vector({0.5F, 1.5F}, {2, 1}), true);
+    sum(moe_combine(expert_output, ffn_indices, combine_weights)).backward();
+
+    const auto gate_gradient = gate_weight.grad().to_vector();
+    const auto up_gradient = up_weight.grad().to_vector();
+    const auto down_gradient = down_weight.grad().to_vector();
+    for (std::size_t index = 4; index < 8; ++index) {
+        EXPECT_EQ(gate_gradient[index], 0.0F) << "unvisited expert-1 row, index=" << index;
+        EXPECT_EQ(up_gradient[index], 0.0F) << "unvisited expert-1 row, index=" << index;
+        EXPECT_EQ(down_gradient[index], 0.0F) << "unvisited expert-1 row, index=" << index;
+    }
+    // Expert 0 was visited by both tokens, so its own rows must NOT all be zero
+    // -- otherwise the zero check above would be vacuously satisfied by a bug
+    // that zeroed every weight gradient.
+    EXPECT_TRUE(std::any_of(gate_gradient.begin(), gate_gradient.begin() + 4,
+                            [](float value) { return value != 0.0F; }));
+    EXPECT_TRUE(ffn_input.grad().defined());
+    EXPECT_TRUE(combine_weights.grad().defined());
+}
+
 TEST(AutogradTest, CrossEntropyBackwardMatchesFiniteDifference) {
     const std::vector<float> initial{2, 1, 0, 0, 1, 2};
     const auto targets = Tensor::from_int32_vector({0, 2}, {2});

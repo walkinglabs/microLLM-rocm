@@ -956,6 +956,81 @@ Value cross_entropy(const Value& logits, const Tensor& targets) {
                      });
 }
 
+MoeRouterResult moe_router_top_k(const Value& logits, std::int64_t k, bool norm_topk_prob) {
+    require_value(logits, "logits");
+    auto logits_node = logits.node_;
+    profiling::TraceTimer timer(
+        profiling::TraceKind::Operator, "moe_router_top_k", logits.data().device());
+    auto forward = ops::moe_router_top_k(logits.data(), k, norm_topk_prob);
+    timer.finish(forward.second);
+    auto indices = forward.first;
+    auto weights = operation(
+        "moe_router_top_k", std::move(forward.second), {logits_node},
+        [logits_node, indices, norm_topk_prob](const Tensor& gradient) {
+            accumulate(logits_node, ops::moe_router_top_k_backward(
+                                        logits_node->data, indices, norm_topk_prob, gradient));
+        });
+    return {std::move(indices), std::move(weights)};
+}
+
+Value moe_expert_ffn(const Value& input, const Tensor& expert_indices,
+                     const Value& gate_weight, const Value& up_weight,
+                     const Value& down_weight) {
+    require_value(input, "input");
+    require_value(gate_weight, "gate_weight");
+    require_value(up_weight, "up_weight");
+    require_value(down_weight, "down_weight");
+    if (expert_indices.dtype() != DType::Int32 ||
+        expert_indices.device() != input.data().device()) {
+        throw std::invalid_argument(
+            "autograd moe_expert_ffn expert_indices must match input device");
+    }
+    auto input_node = input.node_;
+    auto gate_node = gate_weight.node_;
+    auto up_node = up_weight.node_;
+    auto down_node = down_weight.node_;
+    auto output = profiled_tensor("moe_expert_ffn", input.data().device(), [&] {
+        return ops::moe_expert_ffn(input.data(), expert_indices, gate_weight.data(),
+                                   up_weight.data(), down_weight.data());
+    });
+    return operation(
+        "moe_expert_ffn", std::move(output),
+        {input_node, gate_node, up_node, down_node},
+        [input_node, gate_node, up_node, down_node, expert_indices](const Tensor& gradient) {
+            auto gradients = ops::moe_expert_ffn_backward(
+                input_node->data, expert_indices, gate_node->data, up_node->data,
+                down_node->data, gradient);
+            accumulate(input_node, gradients.first);
+            accumulate(gate_node, gradients.second);
+            accumulate(up_node, gradients.third);
+            accumulate(down_node, gradients.fourth);
+        });
+}
+
+Value moe_combine(const Value& expert_output, const Tensor& expert_indices,
+                  const Value& expert_weights) {
+    require_value(expert_output, "expert_output");
+    require_value(expert_weights, "expert_weights");
+    if (expert_indices.dtype() != DType::Int32 ||
+        expert_indices.device() != expert_output.data().device()) {
+        throw std::invalid_argument(
+            "autograd moe_combine expert_indices must match expert_output device");
+    }
+    auto output_node = expert_output.node_;
+    auto weights_node = expert_weights.node_;
+    auto output = profiled_tensor("moe_combine", expert_output.data().device(), [&] {
+        return ops::moe_combine(expert_output.data(), expert_indices, expert_weights.data());
+    });
+    return operation(
+        "moe_combine", std::move(output), {output_node, weights_node},
+        [output_node, weights_node, expert_indices](const Tensor& gradient) {
+            auto gradients = ops::moe_combine_backward(
+                output_node->data, expert_indices, weights_node->data, gradient);
+            accumulate(output_node, gradients.first);
+            accumulate(weights_node, gradients.second);
+        });
+}
+
 Value contiguous(const Value& input) {
     require_value(input, "input");
     auto input_node = input.node_;
